@@ -71,11 +71,16 @@ export async function handleNewAssistantMessage(
     });
   } catch (error) {
     console.error("Error generating assistant response", error);
+    const errorMessage =
+      (error instanceof Error ? error.message : "Unexpected error")
+        .slice(0, 180);
     await client.chat.postMessage({
       channel: channel,
       thread_ts: thread_ts,
       text:
-        "Sorry, I ran into a problem fetching that answer. Please try asking again in a moment.",
+        "Sorry, I ran into a problem fetching that answer. Please try asking again in a moment. (" +
+        errorMessage +
+        ")",
     });
   } finally {
     await updateStatus("");
