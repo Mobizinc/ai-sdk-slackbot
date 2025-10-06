@@ -14,9 +14,9 @@ export async function POST(request: Request) {
 
   // See https://api.slack.com/events/url_verification
   if (requestType === "url_verification") {
-    return new Response(JSON.stringify({ challenge: payload.challenge }), {
+    return new Response(payload.challenge, {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "text/plain" },
     });
   }
 
@@ -53,7 +53,17 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const challenge = url.searchParams.get("challenge");
+
+  if (challenge) {
+    return new Response(challenge, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    });
+  }
+
   return new Response(
     JSON.stringify({
       message: "Slack Events endpoint expects POST requests from Slack",
@@ -62,7 +72,7 @@ export async function GET() {
       status: 405,
       headers: {
         "content-type": "application/json",
-        "allow": "POST",
+        allow: "POST",
       },
     },
   );

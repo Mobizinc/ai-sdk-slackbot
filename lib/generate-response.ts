@@ -52,7 +52,13 @@ export const generateResponse = async (
         }),
         execute: async ({ query, specificDomain }) => {
           updateStatus?.(`is searching the web for ${query}...`);
-          const { results } = await exa.searchAndContents(query, {
+          const exaClient = exa;
+
+          if (!exaClient) {
+            return { results: [] };
+          }
+
+          const { results } = await exaClient.searchAndContents(query, {
             livecrawl: "always",
             numResults: 3,
             includeDomains: specificDomain ? [specificDomain] : undefined,
