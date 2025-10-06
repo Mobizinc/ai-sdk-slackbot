@@ -60,12 +60,39 @@ export const verifyRequest = async ({
 };
 
 export const updateStatusUtil = (channel: string, thread_ts: string) => {
+  let assistantStatusSupported = true;
+
   return async (status: string) => {
-    await client.assistant.threads.setStatus({
-      channel_id: channel,
-      thread_ts: thread_ts,
-      status: status,
-    });
+    if (!assistantStatusSupported) return;
+
+    try {
+      await client.assistant.threads.setStatus({
+        channel_id: channel,
+        thread_ts: thread_ts,
+        status: status,
+      });
+    } catch (error: unknown) {
+      const slackError =
+        typeof error === "object" && error !== null ? (error as any) : null;
+      const apiError = slackError?.data?.error ?? slackError?.message;
+      const apiErrorString = String(apiError ?? "");
+
+      if (
+        apiErrorString === "missing_scope" ||
+        apiErrorString === "method_not_supported_for_channel_type" ||
+        apiErrorString.includes("missing_scope") ||
+        apiErrorString.includes("method_not_supported_for_channel_type")
+      ) {
+        assistantStatusSupported = false;
+        console.warn(
+          "Disabling assistant thread status updates",
+          apiErrorString,
+        );
+        return;
+      }
+
+      throw error;
+    }
   };
 };
 

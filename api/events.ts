@@ -2,13 +2,10 @@ import type {
   GenericMessageEvent,
   SlackEvent,
 } from "../lib/slack-event-types";
-import {
-  assistantThreadMessage,
-  handleNewAssistantMessage,
-} from "../lib/handle-messages";
 import { waitUntil } from "@vercel/functions";
 import { handleNewAppMention } from "../lib/handle-app-mention";
 import { verifyRequest, getBotId } from "../lib/slack-utils";
+import { assistantManager } from "../lib/assistant-manager";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -35,7 +32,11 @@ export async function POST(request: Request) {
     }
 
     if (event.type === "assistant_thread_started") {
-      waitUntil(assistantThreadMessage(event));
+      waitUntil(assistantManager.handleThreadStarted(event));
+    }
+
+    if (event.type === "assistant_thread_context_changed") {
+      assistantManager.handleThreadContextChanged(event);
     }
 
     if (event.type === "message") {
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
         !messageEvent.bot_profile &&
         messageEvent.bot_id !== botUserId
       ) {
-        waitUntil(handleNewAssistantMessage(messageEvent, botUserId));
+        waitUntil(assistantManager.handleUserMessage(messageEvent, botUserId));
       }
     }
 

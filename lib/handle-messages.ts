@@ -1,3 +1,4 @@
+import type { CoreMessage } from "ai";
 import type {
   AssistantThreadStartedEvent,
   GenericMessageEvent,
@@ -17,26 +18,50 @@ export async function assistantThreadMessage(
     thread_ts: thread_ts,
     text: "Hello, I'm an AI assistant built with the AI SDK by Vercel!",
   });
-
-  await client.assistant.threads.setSuggestedPrompts({
-    channel_id: channel_id,
-    thread_ts: thread_ts,
-    prompts: [
-      {
-        title: "Get the weather",
-        message: "What is the current weather in London?",
-      },
-      {
-        title: "Get the news",
-        message: "What is the latest Premier League news from the BBC?",
-      },
-    ],
-  });
+  try {
+    await client.assistant.threads.setSuggestedPrompts({
+      channel_id: channel_id,
+      thread_ts: thread_ts,
+      prompts: [
+        {
+          title: "Get the weather",
+          message: "What is the current weather in London?",
+        },
+        {
+          title: "Get the news",
+          message: "What is the latest Premier League news from the BBC?",
+        },
+      ],
+    });
+  } catch (error) {
+    const slackError =
+      typeof error === "object" && error !== null ? (error as any) : null;
+    const apiError = slackError?.data?.error ?? slackError?.message;
+    const apiErrorString = String(apiError ?? "");
+    if (
+      apiErrorString === "missing_scope" ||
+      apiErrorString === "method_not_supported_for_channel_type" ||
+      apiErrorString.includes("missing_scope") ||
+      apiErrorString.includes("method_not_supported_for_channel_type")
+    ) {
+      console.warn("Skipping assistant suggested prompts", apiErrorString);
+    } else {
+      throw error;
+    }
+  }
 }
 
 export async function handleNewAssistantMessage(
   event: GenericMessageEvent,
   botUserId: string,
+  options?: {
+    threadContext?: {
+      threadTs: string;
+      channelId: string;
+      context?: Record<string, unknown> | null;
+      previousContext?: Record<string, unknown> | null;
+    };
+  },
 ) {
   if (
     event.bot_id ||
@@ -51,7 +76,45 @@ export async function handleNewAssistantMessage(
   try {
     await updateStatus("is thinking...");
 
-    const messages = await getThread(channel, thread_ts, botUserId);
+    let messages: CoreMessage[];
+
+    try {
+      messages = await getThread(channel, thread_ts, botUserId);
+    } catch (threadError) {
+      const slackError =
+        typeof threadError === "object" && threadError !== null
+          ? (threadError as any)
+          : null;
+      const apiError = slackError?.data?.error ?? slackError?.message;
+      const apiErrorString = String(apiError ?? "");
+
+      if (
+        apiErrorString === "missing_scope" ||
+        apiErrorString.includes("missing_scope")
+      ) {
+        console.warn(
+          "Falling back to single message context due to missing_scope for conversations.replies",
+        );
+        if (options?.threadContext) {
+          console.warn(
+            "Thread context at time of fallback",
+            JSON.stringify(options.threadContext),
+          );
+        }
+        const cleanedText = event.text
+          ? event.text.replace(new RegExp(`<@${botUserId}>\\s*`, "g"), "").trim()
+          : "";
+        messages = [
+          {
+            role: "user",
+            content: cleanedText || event.text || "",
+          },
+        ];
+      } else {
+        throw threadError;
+      }
+    }
+
     const result = await generateResponse(messages, updateStatus);
 
     await client.chat.postMessage({

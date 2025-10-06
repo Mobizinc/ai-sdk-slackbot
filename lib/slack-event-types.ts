@@ -18,6 +18,7 @@ export interface AssistantThreadStartedEvent extends SlackBaseEvent {
   assistant_thread: {
     channel_id: string;
     thread_ts: string;
+    context?: Record<string, unknown> | null;
   };
 }
 
@@ -30,7 +31,18 @@ export interface GenericMessageEvent extends SlackBaseEvent {
   text?: string;
 }
 
+export interface AssistantThreadContextChangedEvent extends SlackBaseEvent {
+  type: "assistant_thread_context_changed";
+  assistant_thread: {
+    channel_id: string;
+    thread_ts: string;
+  };
+  context?: Record<string, unknown> | null;
+  previous_context?: Record<string, unknown> | null;
+}
+
 export type SlackEvent =
   | AppMentionEvent
   | AssistantThreadStartedEvent
+  | AssistantThreadContextChangedEvent
   | GenericMessageEvent;
