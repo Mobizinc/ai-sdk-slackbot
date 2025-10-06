@@ -1,4 +1,7 @@
-import type { SlackEvent } from "../lib/slack-event-types";
+import type {
+  GenericMessageEvent,
+  SlackEvent,
+} from "../lib/slack-event-types";
 import {
   assistantThreadMessage,
   handleNewAssistantMessage,
@@ -35,15 +38,21 @@ export async function POST(request: Request) {
       waitUntil(assistantThreadMessage(event));
     }
 
-    if (
-      event.type === "message" &&
-      !event.subtype &&
-      event.channel_type === "im" &&
-      !event.bot_id &&
-      !event.bot_profile &&
-      event.bot_id !== botUserId
-    ) {
-      waitUntil(handleNewAssistantMessage(event, botUserId));
+    if (event.type === "message") {
+      const messageEvent = event as GenericMessageEvent;
+      const isThreadReply =
+        !!messageEvent.thread_ts && messageEvent.thread_ts !== messageEvent.ts;
+      const isDirectMessage = messageEvent.channel_type === "im";
+
+      if (
+        !messageEvent.subtype &&
+        (isDirectMessage || isThreadReply) &&
+        !messageEvent.bot_id &&
+        !messageEvent.bot_profile &&
+        messageEvent.bot_id !== botUserId
+      ) {
+        waitUntil(handleNewAssistantMessage(messageEvent, botUserId));
+      }
     }
 
     return new Response("Success!", { status: 200 });

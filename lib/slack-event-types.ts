@@ -26,6 +26,8 @@ export interface GenericMessageEvent extends SlackBaseEvent {
   channel: string;
   channel_type?: string;
   thread_ts?: string;
+  ts: string;
+  text?: string;
 }
 
 export type SlackEvent =
