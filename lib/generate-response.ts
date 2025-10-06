@@ -7,15 +7,16 @@ export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
-  const { text } = await generateText({
-    model: openai("gpt-5-mini"),
-    system: `You are a Slack bot assistant Keep your responses concise and to the point.
+  const runModel = async (modelName: string) =>
+    generateText({
+      model: openai(modelName),
+      system: `You are a Slack bot assistant Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split("T")[0]}
     - Make sure to ALWAYS include sources in your final response if you use web search. Put sources inline if possible.`,
-    messages,
-    maxSteps: 10,
-    tools: {
+      messages,
+      maxSteps: 10,
+      tools: {
       getWeather: tool({
         description: "Get the current weather at a location",
         parameters: z.object({
@@ -75,6 +76,15 @@ export const generateResponse = async (
       }),
     },
   });
+
+  let text: string;
+
+  try {
+    ({ text } = await runModel("gpt-5-mini"));
+  } catch (error) {
+    console.error("Primary model gpt-5-mini failed, falling back to gpt-4o", error);
+    ({ text } = await runModel("gpt-4o"));
+  }
 
   // Convert markdown to Slack mrkdwn format
   return text.replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>").replace(/\*\*/g, "*");
