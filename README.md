@@ -13,6 +13,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - Built-in tools for enhanced capabilities:
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
+  - ServiceNow incident, case, and knowledge-base lookups (when configured)
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
 
 ## Prerequisites
@@ -49,10 +50,14 @@ pnpm install
    - Add the following [Bot Token Scopes](https://api.slack.com/scopes):
       - `app_mentions:read`
       - `assistant:write`
+      - `assistant:read`
       - `chat:write`
       - `im:history`
       - `im:read`
       - `im:write`
+      - `channels:history`
+      - `groups:history`
+      - `mpim:history`
    - Install the app to your workspace and note down the "Bot User OAuth Token" for the environment variable `SLACK_BOT_TOKEN`
 
 - Go to "Event Subscriptions"
@@ -63,6 +68,7 @@ pnpm install
    - Under "Subscribe to bot events", add:
       - `app_mention`
       - `assistant_thread_started`
+      - `assistant_thread_context_changed`
       - `message:im`
    - Save Changes
 
@@ -84,6 +90,17 @@ OPENAI_API_KEY=your-openai-api-key
 
 # Exa API Key (for web search functionality)
 EXA_API_KEY=your-exa-api-key
+
+# ServiceNow (optional)
+SERVICENOW_INSTANCE_URL=https://your-instance.service-now.com
+# Either username/password or API token
+SERVICENOW_USERNAME=your-servicenow-username
+SERVICENOW_PASSWORD=your-servicenow-password
+# Or
+# SERVICENOW_API_TOKEN=your-servicenow-api-token
+# Optional overrides (defaults shown)
+# SERVICENOW_CASE_TABLE=sn_customerservice_case
+# SERVICENOW_CASE_JOURNAL_NAME=x_mobit_serv_case_service_case
 ```
 
 Replace the placeholder values with your actual tokens.
@@ -104,6 +121,18 @@ npx untun@latest tunnel http://localhost:3000
 Make sure to modify the [subscription URL](./README.md/#enable-slack-events) to the `untun` URL.
 
 > Note: you may encounter issues locally with `waitUntil`. This is being investigated.
+
+## Testing
+
+- `npm test` – runs the Vitest integration suite with mocked Slack/OpenAI/ServiceNow services. The primary test exercises the `/api/events` handler end-to-end for a direct-message flow.
+- `npm run smoke` – executes a lightweight CLI smoke test that calls `generateResponse` with canned ServiceNow responses (no external network calls).
+- Optional live validation: to hit real services, export `SLACK_BOT_TOKEN`, `SLACK_SIGNING_SECRET`, `OPENAI_API_KEY`, and the `SERVICENOW_*` credentials for a non-production workspace, then invoke the webhook manually (e.g. via `curl`). Keep this out of the default test run so CI stays offline.
+
+### Observability & Testing
+
+- The assistant manager logs context fallbacks (`missing_scope`) so you can verify Slack permissions during development.
+- ServiceNow tool calls emit structured errors in the function logs; verify credentials before enabling in production.
+- Add integration tests (or manual scripts) that replay `assistant_thread_started`, `assistant_thread_context_changed`, and `message.im` payloads to validate the new event flow before deployment.
 
 ## Production Deployment
 
@@ -154,6 +183,10 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Search for the latest news about AI technology"
    - You can also specify a domain: "Search for the latest sports news on bbc.com"
 
+3. **ServiceNow Toolkit (optional)**: When ServiceNow credentials are configured, the assistant can look up incidents and cases, pull recent work notes/comments, and search the knowledge base directly from Slack.
+   - Example: "Show the latest updates for case SCS0048402"
+   - Example: "Search ServiceNow knowledge base for multi-factor authentication"
+
 ### Extending with New Tools
 
 The chatbot is built with an extensible architecture using the [AI SDK's tool system](https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling). You can easily add new tools such as:
@@ -163,7 +196,7 @@ The chatbot is built with an extensible architecture using the [AI SDK's tool sy
 - Custom API integrations
 - Company documentation search
 
-To add a new tool, extend the tools object in the `lib/ai.ts` file following the existing pattern.
+To add a new tool, extend the `tools` object in `lib/generate-response.ts` following the existing pattern.
 
 You can also disable any of the existing tools by removing the tool in the `lib/ai.ts` file.
 
