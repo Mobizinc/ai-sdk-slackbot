@@ -52,3 +52,18 @@ export async function POST(request: Request) {
     return new Response("Error generating response", { status: 500 });
   }
 }
+
+export async function GET() {
+  return new Response(
+    JSON.stringify({
+      message: "Slack Events endpoint expects POST requests from Slack",
+    }),
+    {
+      status: 405,
+      headers: {
+        "content-type": "application/json",
+        "allow": "POST",
+      },
+    },
+  );
+}
