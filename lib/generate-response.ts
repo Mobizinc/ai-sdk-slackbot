@@ -87,5 +87,13 @@ export const generateResponse = async (
   }
 
   // Convert markdown to Slack mrkdwn format
-  return text.replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>").replace(/\*\*/g, "*");
+  const finalText = text?.trim();
+
+  if (!finalText) {
+    throw new Error("No response text generated");
+  }
+
+  return finalText
+    .replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>")
+    .replace(/\*\*/g, "*");
 };
