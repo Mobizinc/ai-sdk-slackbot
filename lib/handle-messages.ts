@@ -48,26 +48,36 @@ export async function handleNewAssistantMessage(
 
   const { thread_ts, channel } = event;
   const updateStatus = updateStatusUtil(channel, thread_ts);
-  await updateStatus("is thinking...");
+  try {
+    await updateStatus("is thinking...");
 
-  const messages = await getThread(channel, thread_ts, botUserId);
-  const result = await generateResponse(messages, updateStatus);
+    const messages = await getThread(channel, thread_ts, botUserId);
+    const result = await generateResponse(messages, updateStatus);
 
-  await client.chat.postMessage({
-    channel: channel,
-    thread_ts: thread_ts,
-    text: result,
-    unfurl_links: false,
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: result,
+    await client.chat.postMessage({
+      channel: channel,
+      thread_ts: thread_ts,
+      text: result,
+      unfurl_links: false,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: result,
+          },
         },
-      },
-    ],
-  });
-
-  await updateStatus("");
+      ],
+    });
+  } catch (error) {
+    console.error("Error generating assistant response", error);
+    await client.chat.postMessage({
+      channel: channel,
+      thread_ts: thread_ts,
+      text:
+        "Sorry, I ran into a problem fetching that answer. Please try asking again in a moment.",
+    });
+  } finally {
+    await updateStatus("");
+  }
 }
