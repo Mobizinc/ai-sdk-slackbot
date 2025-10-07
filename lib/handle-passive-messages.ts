@@ -39,17 +39,15 @@ export async function handlePassiveMessage(
   // Extract case numbers from message
   const caseNumbers = contextManager.extractCaseNumbers(event.text);
 
-  if (caseNumbers.length === 0) {
-    // No case numbers found - check if we're in an existing case thread
-    if (event.thread_ts) {
-      await addMessageToExistingThreads(event);
-    }
-    return;
-  }
-
   // Found case numbers - process each one
   for (const caseNumber of caseNumbers) {
     await processCaseDetection(event, caseNumber, botUserId);
+  }
+
+  // Always check existing threads for resolution, regardless of case numbers
+  // This ensures resolution keywords trigger KB generation even when case numbers are mentioned
+  if (event.thread_ts) {
+    await addMessageToExistingThreads(event);
   }
 }
 

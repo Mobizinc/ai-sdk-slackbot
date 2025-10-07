@@ -74,7 +74,7 @@ Example:
     console.log("[KB Assistant] Generating gathering questions...");
 
     const { text } = await generateText({
-      model: openai("gpt-4o"),
+      model: openai("gpt-5o"),
       prompt,
       temperature: 0.7, // Allow some creativity in question phrasing
     });

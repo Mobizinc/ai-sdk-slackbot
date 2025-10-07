@@ -153,8 +153,9 @@ Return ONLY valid JSON, no other text.`;
 
     try {
       const { text } = await generateText({
-        model: openai("gpt-4o-mini"),
+        model: openai("gpt-5o"),
         prompt,
+        // Note: gpt-5o supports temperature
         temperature: 0.3, // Lower temperature for more consistent output
       });
 

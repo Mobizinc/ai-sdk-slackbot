@@ -415,12 +415,12 @@ Guardrails:
   };
 
   // Intelligent model routing based on query complexity
-  let selectedModel: "gpt-5-mini" | "gpt-4o" = "gpt-5-mini";
+  let selectedModel: "gpt-5-mini" | "gpt-5o" = "gpt-5-mini";
 
   // Check if we should force premium model
   if (forceComplexModel(messages)) {
-    selectedModel = "gpt-4o";
-    console.log("[Model Router] Force using gpt-4o for this query");
+    selectedModel = "gpt-5o";
+    console.log("[Model Router] Force using gpt-5o for this query");
   } else {
     // Classify query complexity
     const complexity = classifyQueryComplexity(messages);
@@ -437,8 +437,8 @@ Guardrails:
   try {
     ({ text } = await runModel(selectedModel));
   } catch (error) {
-    console.error(`Primary model ${selectedModel} failed, falling back to gpt-4o`, error);
-    ({ text } = await runModel("gpt-4o"));
+    console.error(`Primary model ${selectedModel} failed, falling back to gpt-5o`, error);
+    ({ text } = await runModel("gpt-5o"));
   }
 
   // Convert markdown to Slack mrkdwn format
