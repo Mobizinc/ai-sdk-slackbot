@@ -150,6 +150,8 @@ async function addMessageToExistingThreads(
 
   // Add message to all matching contexts
   for (const context of matchingContexts) {
+    console.log(`[Passive Monitor] Adding message to case ${context.caseNumber}, text: "${event.text}"`);
+
     contextManager.addMessage(
       context.caseNumber,
       context.channelId,
@@ -162,11 +164,16 @@ async function addMessageToExistingThreads(
       }
     );
 
+    console.log(`[Passive Monitor] After addMessage - isResolved: ${context.isResolved}, _notified: ${context._notified}`);
+
     // Check if this message indicates resolution
     if (context.isResolved && !context._notified) {
+      console.log(`[Passive Monitor] Triggering KB generation for ${context.caseNumber}`);
       await notifyResolution(context.caseNumber, context.channelId, context.threadTs);
       // Mark as notified (prevent duplicate notifications)
       context._notified = true;
+    } else {
+      console.log(`[Passive Monitor] NOT triggering KB - isResolved: ${context.isResolved}, _notified: ${context._notified}`);
     }
   }
 }
@@ -179,13 +186,17 @@ async function notifyResolution(
   channelId: string,
   threadTs: string
 ): Promise<void> {
+  console.log(`[KB Generation] Starting for case ${caseNumber} in thread ${threadTs}`);
+
   const contextManager = getContextManager();
   const context = contextManager.getContext(caseNumber, threadTs);
 
   if (!context) {
-    console.log(`No context found for ${caseNumber}, skipping KB generation`);
+    console.log(`[KB Generation] No context found for ${caseNumber}, skipping KB generation`);
     return;
   }
+
+  console.log(`[KB Generation] Context found with ${context.messages.length} messages`);
 
   try {
     // Step 1: Generate KB article
@@ -194,26 +205,35 @@ async function notifyResolution(
       ? await serviceNowClient.getCase(caseNumber).catch(() => null)
       : null;
 
+    console.log(`[KB Generation] Calling kbGenerator.generateArticle()...`);
     const result = await kbGenerator.generateArticle(context, caseDetails);
+    console.log(`[KB Generation] Result:`, {
+      isDuplicate: result.isDuplicate,
+      confidence: result.confidence,
+      similarCount: result.similarExistingKBs.length
+    });
 
     // Step 2: Check if similar KBs exist
     if (result.isDuplicate) {
+      console.log(`[KB Generation] Duplicate detected, posting warning`);
       // Similar KB exists - just notify
       const warningMessage = kbGenerator.formatSimilarKBsWarning(
         result.similarExistingKBs
       );
 
-      await client.chat.postMessage({
+      const duplicateResponse = await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
         text: `✅ Case *${caseNumber}* appears to be resolved!\n\n${warningMessage}`,
         unfurl_links: false,
       });
 
+      console.log(`[KB Generation] Duplicate warning posted:`, duplicateResponse.ts);
       return;
     }
 
     // Step 3: Post KB article proposal
+    console.log(`[KB Generation] Formatting KB article for Slack...`);
     const kbMessage = kbGenerator.formatForSlack(result.article);
     const confidenceEmoji = result.confidence >= 75 ? "🟢" : result.confidence >= 50 ? "🟡" : "🟠";
 
@@ -226,12 +246,14 @@ async function notifyResolution(
       fullMessage += `\n\n📎 *Related:* ${result.similarExistingKBs.map(kb => kb.case_number).join(", ")}`;
     }
 
+    console.log(`[KB Generation] Posting KB article to Slack...`);
     const response = await client.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs,
       text: fullMessage,
       unfurl_links: false,
     });
+    console.log(`[KB Generation] KB article posted:`, response.ts);
 
     // Step 4: Store for approval tracking
     if (response.ts) {
@@ -245,15 +267,21 @@ async function notifyResolution(
       );
     }
   } catch (error) {
-    console.error(`Error generating KB for ${caseNumber}:`, error);
+    console.error(`[KB Generation] ERROR for ${caseNumber}:`, error);
+    console.error(`[KB Generation] Stack trace:`, error instanceof Error ? error.stack : "No stack trace");
 
     // Fallback: simple notification
-    await client.chat.postMessage({
-      channel: channelId,
-      thread_ts: threadTs,
-      text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error generating KB article: ${error instanceof Error ? error.message : "Unknown error"}_`,
-      unfurl_links: false,
-    });
+    try {
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error generating KB article: ${error instanceof Error ? error.message : "Unknown error"}_`,
+        unfurl_links: false,
+      });
+      console.log(`[KB Generation] Error notification posted`);
+    } catch (slackError) {
+      console.error(`[KB Generation] Failed to post error notification:`, slackError);
+    }
   }
 }
 
