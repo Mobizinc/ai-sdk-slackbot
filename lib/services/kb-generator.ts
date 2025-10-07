@@ -7,6 +7,7 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
+import { sanitizeModelConfig } from "../model-capabilities";
 
 export interface KBArticle {
   title: string;
@@ -152,11 +153,13 @@ Guidelines:
 Return ONLY valid JSON, no other text.`;
 
     try {
-      const { text } = await generateText({
+      const generationConfig = sanitizeModelConfig("gpt-5-mini", {
         model: openai("gpt-5-mini"),
         prompt,
         // Note: gpt-5-mini does not support temperature parameter
       });
+
+      const { text } = await generateText(generationConfig);
 
       // Parse JSON response
       const jsonMatch = text.match(/\{[\s\S]*\}/);

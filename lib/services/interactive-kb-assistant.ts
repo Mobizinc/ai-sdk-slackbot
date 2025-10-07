@@ -7,6 +7,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
+import { sanitizeModelConfig } from "../model-capabilities";
 
 export interface GatheringQuestions {
   questions: string[];
@@ -73,11 +74,13 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const { text } = await generateText({
+    const generationConfig = sanitizeModelConfig("gpt-5-mini", {
       model: openai("gpt-5-mini"),
       prompt,
       // Note: gpt-5-mini does not support temperature parameter
     });
+
+    const { text } = await generateText(generationConfig);
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {

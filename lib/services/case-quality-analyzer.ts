@@ -6,6 +6,7 @@
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { CaseContext } from "../context-manager";
+import { sanitizeModelConfig } from "../model-capabilities";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
 
@@ -91,11 +92,13 @@ Return ONLY valid JSON in this format:
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const { text } = await generateText({
+    const generationConfig = sanitizeModelConfig("gpt-5-mini", {
       model: openai("gpt-5-mini"),
       prompt,
       // No temperature parameter for gpt-5-mini
     });
+
+    const { text } = await generateText(generationConfig);
 
     // Parse JSON response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
