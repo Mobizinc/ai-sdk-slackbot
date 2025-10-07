@@ -11,6 +11,7 @@ export interface AppMentionEvent extends SlackBaseEvent {
   thread_ts?: string;
   ts: string;
   text: string;
+  user?: string;
 }
 
 export interface AssistantThreadStartedEvent extends SlackBaseEvent {
