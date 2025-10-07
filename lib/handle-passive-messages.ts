@@ -87,8 +87,8 @@ async function processCaseDetection(
 
   // Check if this is the first time we're seeing this case in this thread
   const context = contextManager.getContextSync(caseNumber, threadTs);
-  if (!context || context.messages.length > 1) {
-    // Already tracking this thread, don't spam
+  if (!context || context.hasPostedAssistance) {
+    // Already posted intelligent assistance for this case/thread, don't spam
     return;
   }
 
@@ -136,6 +136,11 @@ async function processCaseDetection(
       text: intelligentMessage,
       unfurl_links: false,
     });
+
+    // Mark as posted to prevent duplicates
+    if (context) {
+      context.hasPostedAssistance = true;
+    }
   } catch (error) {
     console.error(
       `Error posting intelligent assistance for ${caseNumber}:`,
