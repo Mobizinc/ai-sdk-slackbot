@@ -4,7 +4,6 @@
  */
 
 const UNSUPPORTED_SAMPLING_KEYS = [
-  "temperature",
   "topP",
   "top_p",
   "frequencyPenalty",
@@ -16,9 +15,11 @@ const UNSUPPORTED_SAMPLING_KEYS = [
 type MutableRecord = Record<string, unknown>;
 
 /**
- * Remove sampling parameters that GPT-5 models currently reject.
- * GPT-5 models operate with deterministic sampling and will error if any of
- * the sampling knobs (temperature, top_p, penalties) are set.
+ * Normalise sampling parameters for GPT-5 models.
+ *
+ * GPT-5 endpoints reject requests that include sampling knobs and currently
+ * require the default temperature of 1. We coerce the configuration accordingly
+ * and strip the unsupported fields to avoid API errors.
  */
 export function sanitizeModelConfig<T extends MutableRecord>(
   modelName: string,
@@ -30,17 +31,26 @@ export function sanitizeModelConfig<T extends MutableRecord>(
     return config;
   }
 
-  let removedAny = false;
+  const record = config as MutableRecord;
+  let mutated = false;
+
   for (const key of UNSUPPORTED_SAMPLING_KEYS) {
-    if (key in config) {
-      delete (config as MutableRecord)[key];
-      removedAny = true;
+    if (key in record) {
+      delete record[key];
+      mutated = true;
     }
   }
 
-  if (removedAny) {
+  const existingTemp = record.temperature;
+  if (existingTemp !== undefined && existingTemp !== 1) {
+    mutated = true;
+  }
+
+  record.temperature = 1;
+
+  if (mutated) {
     console.warn(
-      `[ModelSanitizer] Removed unsupported sampling parameters for ${modelName}.`,
+      `[ModelSanitizer] Normalised unsupported sampling parameters for ${modelName}.`,
     );
   }
 

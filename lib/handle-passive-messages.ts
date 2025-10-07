@@ -19,6 +19,11 @@ import {
   formatTimeoutMessage,
   formatAbandonmentMessage,
 } from "./services/interactive-kb-assistant";
+import { generateResolutionSummary } from "./services/case-resolution-summary";
+import type {
+  ServiceNowCaseJournalEntry,
+  ServiceNowCaseResult,
+} from "./tools/servicenow";
 
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
@@ -309,6 +314,52 @@ async function notifyResolution(
 
   console.log(`[KB Generation] Context found with ${context.messages.length} messages`);
 
+  // Fetch ServiceNow details for summary and quality assessment
+  let caseDetails: ServiceNowCaseResult | null = null;
+  let journalEntries: ServiceNowCaseJournalEntry[] = [];
+
+  if (serviceNowClient.isConfigured()) {
+    try {
+      caseDetails = await serviceNowClient.getCase(caseNumber);
+    } catch (error) {
+      console.error(`[KB Generation] Failed to fetch case details for ${caseNumber}:`, error);
+    }
+
+    if (caseDetails?.sys_id) {
+      try {
+        journalEntries = await serviceNowClient.getCaseJournal(caseDetails.sys_id, {
+          limit: 10,
+        });
+      } catch (error) {
+        console.error(
+          `[KB Generation] Failed to fetch journal entries for ${caseNumber}:`,
+          error
+        );
+      }
+    }
+  }
+
+  // Post resolution summary before entering the KB workflow
+  try {
+    const summary = await generateResolutionSummary({
+      caseNumber,
+      context,
+      caseDetails,
+      journalEntries,
+    });
+
+    if (summary) {
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: summary,
+        unfurl_links: false,
+      });
+    }
+  } catch (error) {
+    console.error(`[KB Generation] Failed to post resolution summary for ${caseNumber}:`, error);
+  }
+
   // Initialize state machine
   const stateMachine = getKBStateMachine();
   stateMachine.initialize(caseNumber, threadTs, channelId);
@@ -317,10 +368,6 @@ async function notifyResolution(
     // Stage 1: Assess Quality (using gpt-5-mini for cost efficiency)
     console.log(`[KB Generation] Stage 1: Assessing quality...`);
     const analyzer = getCaseQualityAnalyzer();
-    const caseDetails = serviceNowClient.isConfigured()
-      ? await serviceNowClient.getCase(caseNumber).catch(() => null)
-      : null;
-
     const assessment = await analyzer(context, caseDetails);
 
     // Store assessment

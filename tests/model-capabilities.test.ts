@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sanitizeModelConfig } from "../lib/model-capabilities";
 
 describe("sanitizeModelConfig", () => {
-  it("removes unsupported sampling knobs for GPT-5 models", () => {
+  it("normalises unsupported sampling knobs for GPT-5 models", () => {
     const config = sanitizeModelConfig("gpt-5-mini", {
       temperature: 0.7,
       topP: 0.95,
@@ -11,7 +11,7 @@ describe("sanitizeModelConfig", () => {
       other: "value",
     });
 
-    expect(config).not.toHaveProperty("temperature");
+    expect(config).toHaveProperty("temperature", 1);
     expect(config).not.toHaveProperty("topP");
     expect(config).not.toHaveProperty("frequencyPenalty");
     expect(config).not.toHaveProperty("presencePenalty");
