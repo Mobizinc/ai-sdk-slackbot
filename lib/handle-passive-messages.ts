@@ -5,11 +5,20 @@
 
 import type { GenericMessageEvent } from "./slack-event-types";
 import { client } from "./slack-utils";
-import { getContextManager } from "./context-manager";
+import { getContextManager, type CaseContext } from "./context-manager";
 import { serviceNowClient } from "./tools/servicenow";
 import { getKBGenerator } from "./services/kb-generator";
 import { getKBApprovalManager } from "./handle-kb-approval";
 import { getChannelInfo } from "./services/channel-info";
+import { getKBStateMachine, KBState } from "./services/kb-state-machine";
+import { getCaseQualityAnalyzer, type QualityAssessment } from "./services/case-quality-analyzer";
+import {
+  generateGatheringQuestions,
+  formatGatheringMessage,
+  formatFollowUpMessage,
+  formatTimeoutMessage,
+  formatAbandonmentMessage,
+} from "./services/interactive-kb-assistant";
 
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
@@ -189,6 +198,16 @@ async function addMessageToExistingThreads(
 
     console.log(`[Passive Monitor] After addMessage - isResolved: ${context.isResolved}, _notified: ${context._notified}`);
 
+    // Check if we're in GATHERING state waiting for user response
+    const stateMachine = getKBStateMachine();
+    const isWaitingForUser = stateMachine.isWaitingForUser(context.caseNumber, context.threadTs);
+
+    if (isWaitingForUser) {
+      console.log(`[KB Generation] User response detected for ${context.caseNumber}, processing...`);
+      await handleUserResponse(context, event.text || "");
+      continue; // Skip resolution check
+    }
+
     // Check if this message indicates resolution
     if (context.isResolved && !context._notified) {
       console.log(`[Passive Monitor] Triggering KB generation for ${context.caseNumber}`);
@@ -202,93 +221,146 @@ async function addMessageToExistingThreads(
 }
 
 /**
- * Notify when a case appears to be resolved and generate KB article
+ * Handle user response during GATHERING state
+ */
+async function handleUserResponse(
+  context: CaseContext,
+  responseText: string
+): Promise<void> {
+  const stateMachine = getKBStateMachine();
+  const caseNumber = context.caseNumber;
+  const threadTs = context.threadTs;
+  const channelId = context.channelId;
+
+  console.log(`[KB Generation] Processing user response for ${caseNumber}...`);
+
+  // Add response to state machine
+  stateMachine.addUserResponse(caseNumber, threadTs, responseText);
+
+  // Fetch case details for re-assessment
+  const caseDetails = serviceNowClient.isConfigured()
+    ? await serviceNowClient.getCase(caseNumber).catch(() => null)
+    : null;
+
+  // Re-assess quality with new information
+  const analyzer = getCaseQualityAnalyzer();
+  const newAssessment = await analyzer(context, caseDetails);
+
+  stateMachine.storeAssessment(caseNumber, threadTs, newAssessment.score, newAssessment.missingInfo);
+
+  console.log(`[KB Generation] Re-assessment: ${newAssessment.decision} (score: ${newAssessment.score})`);
+
+  // Route based on new quality
+  if (newAssessment.decision === "high_quality") {
+    // Quality is now sufficient - generate KB
+    console.log(`[KB Generation] Quality improved - proceeding to generation`);
+    stateMachine.setState(caseNumber, threadTs, KBState.GENERATING);
+    await generateAndPostKB(caseNumber, channelId, threadTs, context, caseDetails);
+
+  } else if (stateMachine.hasReachedMaxAttempts(caseNumber, threadTs)) {
+    // Max attempts reached - abandon
+    console.log(`[KB Generation] Max attempts reached - abandoning`);
+    stateMachine.setState(caseNumber, threadTs, KBState.ABANDONED);
+
+    const message = formatAbandonmentMessage(caseNumber);
+    await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: message,
+      unfurl_links: false,
+    });
+
+    stateMachine.remove(caseNumber, threadTs);
+
+  } else {
+    // Still insufficient - ask follow-up questions
+    console.log(`[KB Generation] Quality still insufficient - asking follow-up questions`);
+    stateMachine.incrementAttempt(caseNumber, threadTs);
+
+    const gathering = await generateGatheringQuestions(newAssessment, context, caseNumber);
+    const message = formatFollowUpMessage(caseNumber, newAssessment.missingInfo);
+
+    await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: message,
+      unfurl_links: false,
+    });
+
+    console.log(`[KB Generation] Posted follow-up questions for ${caseNumber}`);
+  }
+}
+
+/**
+ * Notify when a case appears to be resolved - Multi-stage KB generation with quality assessment
  */
 async function notifyResolution(
   caseNumber: string,
   channelId: string,
   threadTs: string
 ): Promise<void> {
-  console.log(`[KB Generation] Starting for case ${caseNumber} in thread ${threadTs}`);
+  console.log(`[KB Generation] Starting multi-stage process for ${caseNumber}`);
 
   const contextManager = getContextManager();
   const context = contextManager.getContext(caseNumber, threadTs);
 
   if (!context) {
-    console.log(`[KB Generation] No context found for ${caseNumber}, skipping KB generation`);
+    console.log(`[KB Generation] No context found for ${caseNumber}, skipping`);
     return;
   }
 
   console.log(`[KB Generation] Context found with ${context.messages.length} messages`);
 
+  // Initialize state machine
+  const stateMachine = getKBStateMachine();
+  stateMachine.initialize(caseNumber, threadTs, channelId);
+
   try {
-    // Step 1: Generate KB article
-    const kbGenerator = getKBGenerator();
+    // Stage 1: Assess Quality (using gpt-5-mini for cost efficiency)
+    console.log(`[KB Generation] Stage 1: Assessing quality...`);
+    const analyzer = getCaseQualityAnalyzer();
     const caseDetails = serviceNowClient.isConfigured()
       ? await serviceNowClient.getCase(caseNumber).catch(() => null)
       : null;
 
-    console.log(`[KB Generation] Calling kbGenerator.generateArticle()...`);
-    const result = await kbGenerator.generateArticle(context, caseDetails);
-    console.log(`[KB Generation] Result:`, {
-      isDuplicate: result.isDuplicate,
-      confidence: result.confidence,
-      similarCount: result.similarExistingKBs.length
-    });
+    const assessment = await analyzer(context, caseDetails);
 
-    // Step 2: Check if similar KBs exist
-    if (result.isDuplicate) {
-      console.log(`[KB Generation] Duplicate detected, posting warning`);
-      // Similar KB exists - just notify
-      const warningMessage = kbGenerator.formatSimilarKBsWarning(
-        result.similarExistingKBs
-      );
+    // Store assessment
+    stateMachine.storeAssessment(caseNumber, threadTs, assessment.score, assessment.missingInfo);
 
-      const duplicateResponse = await client.chat.postMessage({
+    console.log(`[KB Generation] Quality: ${assessment.decision} (score: ${assessment.score})`);
+    console.log(`[KB Generation] Reasoning: ${assessment.reasoning}`);
+
+    // Route based on quality
+    if (assessment.decision === "high_quality") {
+      // Direct to KB generation - we have enough info
+      console.log(`[KB Generation] High quality - proceeding directly to generation`);
+      stateMachine.setState(caseNumber, threadTs, KBState.GENERATING);
+      await generateAndPostKB(caseNumber, channelId, threadTs, context, caseDetails);
+
+    } else if (assessment.decision === "needs_input") {
+      // Interactive gathering - ask for more info
+      console.log(`[KB Generation] Needs input - starting interactive gathering`);
+      stateMachine.setState(caseNumber, threadTs, KBState.GATHERING);
+      await startInteractiveGathering(caseNumber, channelId, threadTs, assessment, context);
+
+    } else {
+      // Insufficient - just post simple resolution message
+      console.log(`[KB Generation] Insufficient quality - skipping KB generation`);
+      stateMachine.setState(caseNumber, threadTs, KBState.ABANDONED);
+
+      const message = formatAbandonmentMessage(caseNumber);
+      await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
-        text: `✅ Case *${caseNumber}* appears to be resolved!\n\n${warningMessage}`,
+        text: message,
         unfurl_links: false,
       });
 
-      console.log(`[KB Generation] Duplicate warning posted:`, duplicateResponse.ts);
-      return;
+      // Clean up
+      stateMachine.remove(caseNumber, threadTs);
     }
 
-    // Step 3: Post KB article proposal
-    console.log(`[KB Generation] Formatting KB article for Slack...`);
-    const kbMessage = kbGenerator.formatForSlack(result.article);
-    const confidenceEmoji = result.confidence >= 75 ? "🟢" : result.confidence >= 50 ? "🟡" : "🟠";
-
-    let fullMessage = `✅ Case *${caseNumber}* appears to be resolved!\n\n`;
-    fullMessage += kbMessage;
-    fullMessage += `\n\n${confidenceEmoji} *Confidence:* ${result.confidence}%\n\n`;
-    fullMessage += `_React with ✅ to approve this KB article, or ❌ to reject it._`;
-
-    if (result.similarExistingKBs.length > 0) {
-      fullMessage += `\n\n📎 *Related:* ${result.similarExistingKBs.map(kb => kb.case_number).join(", ")}`;
-    }
-
-    console.log(`[KB Generation] Posting KB article to Slack...`);
-    const response = await client.chat.postMessage({
-      channel: channelId,
-      thread_ts: threadTs,
-      text: fullMessage,
-      unfurl_links: false,
-    });
-    console.log(`[KB Generation] KB article posted:`, response.ts);
-
-    // Step 4: Store for approval tracking
-    if (response.ts) {
-      const approvalManager = getKBApprovalManager();
-      approvalManager.storePendingApproval(
-        response.ts,
-        channelId,
-        caseNumber,
-        result.article,
-        threadTs
-      );
-    }
   } catch (error) {
     console.error(`[KB Generation] ERROR for ${caseNumber}:`, error);
     console.error(`[KB Generation] Stack trace:`, error instanceof Error ? error.stack : "No stack trace");
@@ -298,15 +370,161 @@ async function notifyResolution(
       await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
-        text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error generating KB article: ${error instanceof Error ? error.message : "Unknown error"}_`,
+        text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error during KB generation: ${error instanceof Error ? error.message : "Unknown error"}_`,
         unfurl_links: false,
       });
-      console.log(`[KB Generation] Error notification posted`);
     } catch (slackError) {
       console.error(`[KB Generation] Failed to post error notification:`, slackError);
     }
+
+    // Clean up state
+    stateMachine.setState(caseNumber, threadTs, KBState.ABANDONED);
+    stateMachine.remove(caseNumber, threadTs);
   }
 }
+
+/**
+ * Stage 2a: Generate and post KB article (high quality path)
+ */
+async function generateAndPostKB(
+  caseNumber: string,
+  channelId: string,
+  threadTs: string,
+  context: CaseContext,
+  caseDetails: any | null
+): Promise<void> {
+  console.log(`[KB Generation] Generating KB article for ${caseNumber}...`);
+
+  const kbGenerator = getKBGenerator();
+  const result = await kbGenerator.generateArticle(context, caseDetails);
+
+  if (result.isDuplicate) {
+    // Similar KB exists - notify and skip
+    const similarKBs = result.similarExistingKBs
+      ?.map((kb: any) => `• <${kb.url}|${kb.number}>: ${kb.title}`)
+      .join("\n") || "";
+
+    await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: `✅ *${caseNumber}* is resolved!\n\nℹ️ Similar KB articles already exist:\n${similarKBs}\n\n_Consider updating an existing article instead of creating a new one._`,
+      unfurl_links: false,
+    });
+
+    const stateMachine = getKBStateMachine();
+    stateMachine.setState(caseNumber, threadTs, KBState.ABANDONED);
+    stateMachine.remove(caseNumber, threadTs);
+    return;
+  }
+
+  // Post KB article for approval
+  const message = await buildKBApprovalMessage(caseNumber, result.article, result.confidence);
+  const kbApprovalManager = getKBApprovalManager();
+
+  await kbApprovalManager.postForApproval(
+    caseNumber,
+    channelId,
+    threadTs,
+    result.article,
+    message
+  );
+
+  const stateMachine = getKBStateMachine();
+  stateMachine.setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
+  console.log(`[KB Generation] Posted KB for approval: ${caseNumber}`);
+}
+
+/**
+ * Stage 2b: Start interactive gathering (needs input path)
+ */
+async function startInteractiveGathering(
+  caseNumber: string,
+  channelId: string,
+  threadTs: string,
+  assessment: QualityAssessment,
+  context: CaseContext
+): Promise<void> {
+  console.log(`[KB Generation] Starting interactive gathering for ${caseNumber}...`);
+
+  const stateMachine = getKBStateMachine();
+  stateMachine.incrementAttempt(caseNumber, threadTs);
+
+  // Generate contextual questions using GPT-4o
+  const gathering = await generateGatheringQuestions(assessment, context, caseNumber);
+
+  // Post gathering message to Slack
+  const message = formatGatheringMessage(caseNumber, gathering);
+
+  await client.chat.postMessage({
+    channel: channelId,
+    thread_ts: threadTs,
+    text: message,
+    unfurl_links: false,
+  });
+
+  console.log(`[KB Generation] Posted ${gathering.questions.length} questions for ${caseNumber}`);
+}
+
+/**
+ * Build KB approval message with article preview
+ */
+async function buildKBApprovalMessage(
+  caseNumber: string,
+  article: any,
+  confidence: number
+): Promise<string> {
+  let message = `✅ *${caseNumber}* is resolved! I've generated a KB article draft:\n\n`;
+  message += `*${article.title}*\n\n`;
+  message += `${article.problem.substring(0, 200)}${article.problem.length > 200 ? "..." : ""}\n\n`;
+  message += `_Confidence: ${confidence}% | React with ✅ to publish or ❌ to skip_`;
+  return message;
+}
+
+/**
+ * Check for and handle timed-out KB gathering sessions
+ */
+export async function cleanupTimedOutGathering(): Promise<void> {
+  const stateMachine = getKBStateMachine();
+
+  // Get all contexts in GATHERING state
+  const gatheringContexts = stateMachine.getContextsInState(KBState.GATHERING);
+
+  const now = new Date();
+  const timeoutMs = 24 * 60 * 60 * 1000; // 24 hours
+
+  for (const ctx of gatheringContexts) {
+    const elapsedMs = now.getTime() - ctx.lastUpdated.getTime();
+
+    if (elapsedMs > timeoutMs) {
+      console.log(`[KB Generation] Timing out gathering for ${ctx.caseNumber} (${Math.round(elapsedMs / 3600000)}h elapsed)`);
+
+      // Post timeout message
+      const message = formatTimeoutMessage(ctx.caseNumber);
+
+      try {
+        await client.chat.postMessage({
+          channel: ctx.channelId,
+          thread_ts: ctx.threadTs,
+          text: message,
+          unfurl_links: false,
+        });
+      } catch (error) {
+        console.error(`[KB Generation] Failed to post timeout message for ${ctx.caseNumber}:`, error);
+      }
+
+      // Update state and cleanup
+      stateMachine.setState(ctx.caseNumber, ctx.threadTs, KBState.ABANDONED);
+      stateMachine.remove(ctx.caseNumber, ctx.threadTs);
+    }
+  }
+}
+
+// Run timeout cleanup every hour
+setInterval(() => {
+  cleanupTimedOutGathering().catch(error => {
+    console.error('[KB Generation] Error during timeout cleanup:', error);
+  });
+}, 60 * 60 * 1000);
 
 /**
  * Extract case numbers from text (exported for testing)

@@ -19,6 +19,32 @@ export class KBApprovalManager {
   private pendingApprovals: Map<string, PendingKBApproval> = new Map();
 
   /**
+   * Post KB article for approval and track it
+   */
+  async postForApproval(
+    caseNumber: string,
+    channelId: string,
+    threadTs: string,
+    article: KBArticle,
+    messageText: string
+  ): Promise<void> {
+    // Post the KB article to Slack
+    const result = await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: messageText,
+      unfurl_links: false,
+    });
+
+    if (!result.ts) {
+      throw new Error("Failed to post KB approval message - no timestamp returned");
+    }
+
+    // Store for approval tracking
+    this.storePendingApproval(result.ts, channelId, caseNumber, article, threadTs);
+  }
+
+  /**
    * Store a pending KB approval
    */
   storePendingApproval(
