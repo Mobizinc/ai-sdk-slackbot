@@ -10,7 +10,7 @@ const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
 const gatewayBaseUrl = process.env.AI_GATEWAY_URL?.trim();
 const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
   ?? process.env.AI_GATEWAY_MODEL?.trim()
-  ?? "zai/glm-4.5";
+  ?? "zai/glm-4.6";
 
 const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
 
