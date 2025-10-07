@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { CaseContext } from "../context-manager";
 import type {
@@ -6,6 +5,7 @@ import type {
   ServiceNowCaseResult,
 } from "../tools/servicenow";
 import { sanitizeModelConfig } from "../model-capabilities";
+import { selectLanguageModel } from "../model-provider";
 
 interface ResolutionSummaryInput {
   caseNumber: string;
@@ -90,8 +90,10 @@ Produce a Slack-formatted message with:
 Keep bullets concise (≤140 characters) and avoid repeating the case number. Do not invent details beyond the provided information.`;
 
   try {
-    const config = sanitizeModelConfig("gpt-5-mini", {
-      model: openai("gpt-5-mini"),
+    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+    const config = sanitizeModelConfig(modelSelection.modelId, {
+      model: modelSelection.model,
       prompt,
     });
 

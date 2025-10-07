@@ -12,12 +12,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:import-contexts": "tsx scripts/import-business-contexts.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/gateway": "^1.0.15",
     "@ai-sdk/openai": "^1.1.14",
     "@azure/search-documents": "^12.1.0",
     "@neondatabase/serverless": "^1.0.2",

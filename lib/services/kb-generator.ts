@@ -4,10 +4,11 @@
  */
 
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
 import { sanitizeModelConfig } from "../model-capabilities";
+import { getBusinessContextService } from "./business-context-service";
+import { selectLanguageModel } from "../model-provider";
 
 export interface KBArticle {
   title: string;
@@ -121,7 +122,7 @@ export class KBGenerator {
             .join("\n")}`
         : "";
 
-    const prompt = `You are a technical documentation expert creating a knowledge base article from a support case resolution.
+    const basePrompt = `You are a technical documentation expert creating a knowledge base article from a support case resolution.
 
 Case Number: ${context.caseNumber}
 ${caseDetails ? `Case Details: ${JSON.stringify(caseDetails, null, 2)}` : ""}
@@ -153,10 +154,20 @@ Guidelines:
 Return ONLY valid JSON, no other text.`;
 
     try {
-      const generationConfig = sanitizeModelConfig("gpt-5", {
-        model: openai("gpt-5"),
-        prompt,
-        temperature: 0.5, // Balanced creativity for KB article generation
+      // Enhance prompt with business context
+      const businessContextService = getBusinessContextService();
+      const enhancedPrompt = await businessContextService.enhancePromptWithContext(
+        basePrompt,
+        context.channelName,
+        (context as any).channelTopic,
+        (context as any).channelPurpose
+      );
+
+      const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+      const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
+        model: modelSelection.model,
+        prompt: enhancedPrompt,
       });
 
       const { text } = await generateText(generationConfig);

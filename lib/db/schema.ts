@@ -26,6 +26,8 @@ export const caseContexts = pgTable(
     threadTs: text("thread_ts").notNull(),
     channelId: text("channel_id").notNull(),
     channelName: text("channel_name"),
+    channelTopic: text("channel_topic"),
+    channelPurpose: text("channel_purpose"),
     isResolved: boolean("is_resolved").default(false).notNull(),
     resolvedAt: timestamp("resolved_at"),
     detectedAt: timestamp("detected_at").notNull().defaultNow(),
@@ -95,3 +97,34 @@ export type NewCaseMessage = typeof caseMessages.$inferInsert;
 
 export type KBGenerationState = typeof kbGenerationStates.$inferSelect;
 export type NewKBGenerationState = typeof kbGenerationStates.$inferInsert;
+
+/**
+ * Business Contexts Table
+ * Stores business entity information (clients, vendors, platforms) for LLM context enrichment
+ */
+export const businessContexts = pgTable(
+  "business_contexts",
+  {
+    id: serial("id").primaryKey(),
+    entityName: text("entity_name").notNull().unique(),
+    entityType: text("entity_type").notNull(), // CLIENT, VENDOR, PLATFORM
+    industry: text("industry"),
+    description: text("description"),
+    aliases: jsonb("aliases").$type<string[]>().default([]).notNull(),
+    relatedEntities: jsonb("related_entities").$type<string[]>().default([]).notNull(),
+    technologyPortfolio: text("technology_portfolio"),
+    serviceDetails: text("service_details"),
+    keyContacts: jsonb("key_contacts").$type<Array<{name: string; role: string; email?: string}>>().default([]).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    entityNameIdx: index("idx_entity_name").on(table.entityName),
+    entityTypeIdx: index("idx_entity_type").on(table.entityType),
+    isActiveIdx: index("idx_is_active").on(table.isActive),
+  })
+);
+
+export type BusinessContext = typeof businessContexts.$inferSelect;
+export type NewBusinessContext = typeof businessContexts.$inferInsert;

@@ -3,11 +3,11 @@
  * and gather missing information for KB article creation.
  */
 
-import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
 import { sanitizeModelConfig } from "../model-capabilities";
+import { selectLanguageModel } from "../model-provider";
 
 export interface GatheringQuestions {
   questions: string[];
@@ -74,10 +74,11 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const generationConfig = sanitizeModelConfig("gpt-5", {
-      model: openai("gpt-5"),
+    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
+      model: modelSelection.model,
       prompt,
-      temperature: 0.4, // Slightly creative for natural questions, but focused
     });
 
     const { text } = await generateText(generationConfig);
