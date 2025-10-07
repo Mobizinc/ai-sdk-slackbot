@@ -74,9 +74,9 @@ Example:
     console.log("[KB Assistant] Generating gathering questions...");
 
     const { text } = await generateText({
-      model: openai("gpt-5o"),
+      model: openai("gpt-5-mini"),
       prompt,
-      temperature: 0.7, // Allow some creativity in question phrasing
+      // Note: gpt-5-mini does not support temperature parameter
     });
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
