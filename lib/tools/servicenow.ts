@@ -121,6 +121,9 @@ export interface ServiceNowCaseResult {
   opened_at?: string;
   assignment_group?: unknown;
   assigned_to?: unknown;
+  opened_by?: unknown;
+  caller_id?: unknown;
+  submitted_by?: string;
   url?: string;
 }
 
@@ -178,18 +181,33 @@ export class ServiceNowClient {
   public async getCase(number: string): Promise<ServiceNowCaseResult | null> {
     const table = config.caseTable ?? "sn_customerservice_case";
     const data = await request<{
-      result: ServiceNowCaseResult[];
+      result: Array<ServiceNowCaseResult & {
+        opened_by?: { display_value?: string } | string;
+        caller_id?: { display_value?: string } | string;
+        submitted_by?: string;
+      }>;
     }>(
       `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
         `number=${number}`,
-      )}&sysparm_limit=1`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
     );
 
     if (!data.result?.length) return null;
 
     const caseRecord = data.result[0];
+    const openedBy =
+      typeof caseRecord.opened_by === "string"
+        ? caseRecord.opened_by
+        : caseRecord.opened_by?.display_value;
+    const caller =
+      typeof caseRecord.caller_id === "string"
+        ? caseRecord.caller_id
+        : caseRecord.caller_id?.display_value;
     return {
       ...caseRecord,
+      opened_by: caseRecord.opened_by,
+      caller_id: caseRecord.caller_id,
+      submitted_by: caseRecord.submitted_by ?? openedBy ?? caller ?? undefined,
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${caseRecord.sys_id}`,
     };
   }
