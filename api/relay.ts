@@ -135,7 +135,8 @@ export async function POST(request: Request): Promise<Response> {
 
     const text = message.text?.trim();
 
-    const postPayload: ChatPostMessageArguments = {
+    // Build payload with relaxed typing to handle optional blocks/attachments
+    const postPayload: any = {
       channel: channelId,
       text: text ?? (source ? `Relay from ${source}` : "Relay message"),
       unfurl_links: message.unfurl_links,
@@ -146,16 +147,17 @@ export async function POST(request: Request): Promise<Response> {
       postPayload.thread_ts = threadTs;
     }
 
-    if (typeof target.reply_broadcast === "boolean") {
-      postPayload.reply_broadcast = target.reply_broadcast;
+    // reply_broadcast can only be true (not false) per Slack API types
+    if (target.reply_broadcast === true) {
+      postPayload.reply_broadcast = true;
     }
 
     if (message.blocks) {
-      postPayload.blocks = message.blocks as any;
+      postPayload.blocks = message.blocks;
     }
 
     if (message.attachments) {
-      postPayload.attachments = message.attachments as any;
+      postPayload.attachments = message.attachments;
     }
 
     if (metadata || source) {
@@ -168,13 +170,11 @@ export async function POST(request: Request): Promise<Response> {
         ...(source ? { source } : {}),
       };
 
-      postPayload.metadata =
-        Object.keys(eventPayload).length > 0
-          ? {
-              event_type: eventType,
-              event_payload: eventPayload,
-            }
-          : { event_type: eventType };
+      // MessageMetadata always requires event_payload
+      postPayload.metadata = {
+        event_type: eventType,
+        event_payload: eventPayload,
+      };
     }
 
     const response = await client.chat.postMessage(postPayload);
