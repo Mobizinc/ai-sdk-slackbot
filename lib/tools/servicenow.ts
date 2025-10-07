@@ -204,11 +204,12 @@ export class ServiceNowClient {
     const raw = data.result[0];
 
     // Extract display values for all fields that might be objects
+    const sysId = extractDisplayValue(raw.sys_id);
     const openedBy = extractDisplayValue(raw.opened_by);
     const callerId = extractDisplayValue(raw.caller_id);
 
     return {
-      sys_id: raw.sys_id,
+      sys_id: sysId,
       number: raw.number,
       short_description: extractDisplayValue(raw.short_description),
       description: extractDisplayValue(raw.description),
@@ -222,7 +223,7 @@ export class ServiceNowClient {
       opened_by: openedBy,
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${raw.sys_id}`,
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
     };
   }
 
