@@ -14,6 +14,7 @@ export enum KBState {
   PENDING_APPROVAL = "pending_approval", // Posted, waiting for ✅/❌
   APPROVED = "approved",             // User approved
   REJECTED = "rejected",             // User rejected
+  AWAITING_NOTES = "awaiting_notes", // Waiting for ServiceNow case notes to be updated
   ABANDONED = "abandoned",           // Timeout or insufficient quality
 }
 

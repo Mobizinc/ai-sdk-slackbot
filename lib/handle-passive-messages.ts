@@ -18,8 +18,11 @@ import {
   formatFollowUpMessage,
   formatTimeoutMessage,
   formatAbandonmentMessage,
+  formatNoteRequestMessage,
 } from "./services/interactive-kb-assistant";
 import { generateResolutionSummary } from "./services/case-resolution-summary";
+import { buildIntelligentAssistance } from "./services/intelligent-assistant";
+import { createAzureSearchService } from "./services/azure-search";
 import type {
   ServiceNowCaseJournalEntry,
   ServiceNowCaseResult,
@@ -36,6 +39,12 @@ export async function handlePassiveMessage(
 
   // Skip if message is empty
   if (!event.text || event.text.trim() === "") {
+    return;
+  }
+
+  // Skip @mentions - those are handled by the app_mention handler
+  // This prevents duplicate "watching case" messages when user @mentions bot
+  if (event.text.includes(`<@${botUserId}>`)) {
     return;
   }
 
@@ -94,76 +103,44 @@ async function processCaseDetection(
     // Continue without channel info
   }
 
-  // First detection - post tracking message
+  // First detection - post intelligent assistance message
   try {
-    const trackingMessage = await buildTrackingMessage(
+    // Fetch case details for intelligent assistance
+    let caseDetails: ServiceNowCaseResult | null = null;
+    if (serviceNowClient.isConfigured()) {
+      try {
+        caseDetails = await serviceNowClient.getCase(caseNumber);
+      } catch (error) {
+        console.warn(`Could not fetch case details for ${caseNumber}:`, error);
+      }
+    }
+
+    // Get Azure Search service for similar case lookup
+    const azureSearchService = createAzureSearchService();
+    console.log(`[Passive Monitor] Azure Search ${azureSearchService ? 'ENABLED' : 'DISABLED'} for ${caseNumber}`);
+
+    const intelligentMessage = await buildIntelligentAssistance(
       caseNumber,
+      caseDetails,
+      azureSearchService,
       context?.channelName
     );
 
     await client.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs === event.ts ? undefined : threadTs, // Don't create thread if it's a new message
-      text: trackingMessage,
+      text: intelligentMessage,
       unfurl_links: false,
     });
   } catch (error) {
     console.error(
-      `Error posting tracking message for ${caseNumber}:`,
+      `Error posting intelligent assistance for ${caseNumber}:`,
       error
     );
   }
 }
 
-/**
- * Build tracking message with case info
- */
-async function buildTrackingMessage(
-  caseNumber: string,
-  channelName?: string
-): Promise<string> {
-  let message = `👀 Watching case *${caseNumber}*`;
-
-  // Add channel context if available
-  if (channelName) {
-    message += ` in #${channelName}`;
-  }
-
-  // Try to fetch basic case info from ServiceNow
-  if (serviceNowClient.isConfigured()) {
-    try {
-      const caseInfo = await serviceNowClient.getCase(caseNumber);
-
-      if (caseInfo) {
-        // ServiceNow client now returns extracted string values
-        const status = caseInfo.state || "Unknown";
-        const priority = caseInfo.priority ? `P${caseInfo.priority}` : "";
-        const description = caseInfo.short_description || "";
-
-        message += `\n\n`;
-        message += `*Status:* ${status}`;
-        if (priority) message += ` | *Priority:* ${priority}`;
-        if (description) {
-          const truncated =
-            description.length > 100
-              ? description.substring(0, 100) + "..."
-              : description;
-          message += `\n*Issue:* ${truncated}`;
-        }
-      }
-    } catch (error) {
-      console.log(
-        `Could not fetch case info for ${caseNumber}:`,
-        error instanceof Error ? error.message : error
-      );
-      // Continue with basic message
-    }
-  }
-
-  message += `\n\n_I'll track this conversation for knowledge base generation._`;
-
-  return message;
-}
+// buildTrackingMessage removed - replaced by buildIntelligentAssistance
 
 /**
  * Add message to existing case threads (when no new case number is mentioned)
@@ -391,11 +368,11 @@ export async function notifyResolution(
       await startInteractiveGathering(caseNumber, channelId, threadTs, assessment, context);
 
     } else {
-      // Insufficient - just post simple resolution message
-      console.log(`[KB Generation] Insufficient quality - skipping KB generation`);
-      stateMachine.setState(caseNumber, threadTs, KBState.ABANDONED);
+      // Insufficient - request case note updates instead of abandoning immediately
+      console.log(`[KB Generation] Insufficient quality - requesting case note updates`);
+      stateMachine.setState(caseNumber, threadTs, KBState.AWAITING_NOTES);
 
-      const message = formatAbandonmentMessage(caseNumber);
+      const message = formatNoteRequestMessage(caseNumber, assessment.missingInfo);
       await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
@@ -403,8 +380,9 @@ export async function notifyResolution(
         unfurl_links: false,
       });
 
-      // Clean up
-      stateMachine.remove(caseNumber, threadTs);
+      console.log(`[KB Generation] Will check case notes for ${caseNumber} in 24 hours`);
+      // Note: Background job will check in 24h and re-assess
+      // For now, we leave it in AWAITING_NOTES state
     }
 
   } catch (error) {
