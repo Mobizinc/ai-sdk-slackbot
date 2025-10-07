@@ -22,12 +22,21 @@ export const __resetGenerateTextImpl = () => {
 // Initialize Azure Search service (singleton)
 const azureSearchService = createAzureSearchService();
 
+/**
+ * Check if a model supports the temperature parameter.
+ * GPT-5 models do not support temperature and will reject requests that include it.
+ */
+function supportsTemperature(modelName: string): boolean {
+  const lowered = (modelName || "").toLowerCase();
+  return !lowered.startsWith("gpt-5");
+}
+
 export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
-  const runModel = async (modelName: string) =>
-    generateTextImpl({
+  const runModel = async (modelName: string) => {
+    const config: any = {
       model: openai(modelName),
       system: `You are the Mobiz Service Desk Assistant embedded in Slack threads between Service Desk analysts and Engineering.
 
@@ -394,7 +403,15 @@ Guardrails:
         },
       }),
     },
-  });
+    };
+
+    // Only add temperature for models that support it (GPT-5 models do not)
+    if (supportsTemperature(modelName)) {
+      config.temperature = 0.3;
+    }
+
+    return generateTextImpl(config);
+  };
 
   let text: string;
 
