@@ -10,6 +10,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - Use any LLM with the AI SDK ([easily switch between providers](https://sdk.vercel.ai/providers/ai-sdk-providers))
 - Works both with app mentions and as an assistant in direct messages
 - Maintains conversation context within both threads and direct messages
+- **Passive Case Number Monitoring**: Automatically detects case numbers (e.g., SCS0048402) in channel conversations and tracks context for knowledge base generation
 - Built-in tools for enhanced capabilities:
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
@@ -72,6 +73,8 @@ pnpm install
       - `assistant_thread_started`
       - `assistant_thread_context_changed`
       - `message:im`
+      - `message.channels` (for passive case number monitoring)
+      - `message.groups` (optional, for private channel monitoring)
    - Save Changes
 
 > Remember to include `/api/events` in the Request URL.
@@ -199,6 +202,12 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Find similar cases to this VPN authentication issue"
    - Example: "Search for cases similar to error code 0x80070035"
    - Example: "Show me similar cases for client XYZ with network connectivity problems"
+
+5. **Passive Case Monitoring**: The bot automatically watches for case numbers mentioned in channel conversations.
+   - When a case number like `SCS0048402` is mentioned, the bot replies "👀 Watching case SCS0048402"
+   - Tracks the entire conversation thread for future knowledge base article generation
+   - Detects resolution keywords ("fixed", "resolved", "working") and offers to create KB articles
+   - No @mention needed - works passively in the background
 
 ### Extending with New Tools
 

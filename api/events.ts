@@ -6,6 +6,7 @@ import { waitUntil } from "@vercel/functions";
 import { handleNewAppMention } from "../lib/handle-app-mention";
 import { verifyRequest, getBotId } from "../lib/slack-utils";
 import { assistantManager } from "../lib/assistant-manager";
+import { handlePassiveMessage } from "../lib/handle-passive-messages";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
         !!messageEvent.thread_ts && messageEvent.thread_ts !== messageEvent.ts;
       const isDirectMessage = messageEvent.channel_type === "im";
 
+      // Handle direct messages and thread replies with the assistant
       if (
         !messageEvent.subtype &&
         (isDirectMessage || isThreadReply) &&
@@ -53,6 +55,12 @@ export async function POST(request: Request) {
         messageEvent.bot_id !== botUserId
       ) {
         waitUntil(assistantManager.handleUserMessage(messageEvent, botUserId));
+      }
+
+      // Passive monitoring: scan ALL channel messages for case numbers
+      // This runs in parallel and doesn't interfere with assistant messages
+      if (!messageEvent.subtype && !messageEvent.bot_id) {
+        waitUntil(handlePassiveMessage(messageEvent, botUserId));
       }
     }
 
