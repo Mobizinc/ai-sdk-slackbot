@@ -78,6 +78,13 @@ Analyze this case and return a JSON object with your assessment.
 - 50-79: Medium quality - Needs more detail from user
 - 0-49: Low quality - Insufficient for KB article
 
+**CRITICAL: Keep Output Concise**
+- "missingInfo": MAX 3-4 items, each ≤50 characters
+- Focus ONLY on critical gaps: problem details, solution steps, or root cause
+- Good: ["Resolution steps", "Error message", "Root cause"]
+- Bad: ["Operating system version and environment configuration details"]
+- "reasoning": 1 sentence max, ≤100 characters
+
 Return ONLY valid JSON in this format:
 {
   "score": <number 0-100>,
@@ -85,8 +92,8 @@ Return ONLY valid JSON in this format:
   "solutionClarity": "clear" | "vague" | "missing",
   "stepsDocumented": true | false,
   "rootCauseIdentified": true | false,
-  "missingInfo": [<array of strings describing what's missing>],
-  "reasoning": "<brief explanation of your assessment>"
+  "missingInfo": [<max 3-4 short items, each ≤50 chars>],
+  "reasoning": "<1 sentence, ≤100 chars>"
 }`;
 
   try {
