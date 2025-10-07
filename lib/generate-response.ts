@@ -6,6 +6,7 @@ import { serviceNowClient } from "./tools/servicenow";
 import { createAzureSearchService } from "./services/azure-search";
 import { getContextManager } from "./context-manager";
 import { getKBGenerator } from "./services/kb-generator";
+import { classifyQueryComplexity, forceComplexModel } from "./services/query-complexity";
 
 let generateTextImpl = generateText;
 
@@ -413,12 +414,30 @@ Guardrails:
     return generateTextImpl(config);
   };
 
+  // Intelligent model routing based on query complexity
+  let selectedModel: "gpt-5-mini" | "gpt-4o" = "gpt-5-mini";
+
+  // Check if we should force premium model
+  if (forceComplexModel(messages)) {
+    selectedModel = "gpt-4o";
+    console.log("[Model Router] Force using gpt-4o for this query");
+  } else {
+    // Classify query complexity
+    const complexity = classifyQueryComplexity(messages);
+    selectedModel = complexity.recommendedModel;
+
+    console.log(
+      `[Model Router] Complexity: ${complexity.level} (score: ${complexity.score}) - Using ${selectedModel}`
+    );
+    console.log(`[Model Router] Reasons: ${complexity.reasons.join(", ")}`);
+  }
+
   let text: string;
 
   try {
-    ({ text } = await runModel("gpt-5-mini"));
+    ({ text } = await runModel(selectedModel));
   } catch (error) {
-    console.error("Primary model gpt-5-mini failed, falling back to gpt-4o", error);
+    console.error(`Primary model ${selectedModel} failed, falling back to gpt-4o`, error);
     ({ text } = await runModel("gpt-4o"));
   }
 
