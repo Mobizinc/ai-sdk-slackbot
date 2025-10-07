@@ -14,6 +14,7 @@ export interface CaseContext {
   caseNumber: string;
   threadTs: string;
   channelId: string;
+  channelName?: string; // Slack channel name for context (not authoritative customer data)
   messages: CaseMessage[];
   detectedAt: Date;
   lastUpdated: Date;
