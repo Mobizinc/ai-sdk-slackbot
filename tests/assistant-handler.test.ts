@@ -1,4 +1,4 @@
-import { rest } from "msw";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { POST } from "../api/events";
@@ -16,8 +16,11 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
+const pendingPromises: Promise<any>[] = [];
+
 vi.mock("@vercel/functions", () => ({
   waitUntil: <T>(promise: Promise<T>) => {
+    pendingPromises.push(promise);
     promise.catch((error) => {
       console.error("waitUntil promise rejected in test", error);
     });
@@ -38,6 +41,10 @@ vi.mock("../lib/slack-utils", () => {
       },
       conversations: {
         replies: vi.fn(),
+        info: vi.fn().mockResolvedValue({
+          ok: true,
+          channel: { id: "D123", name: "directmessage" },
+        }),
       },
       auth: {
         test: vi.fn().mockResolvedValue({ user_id: "BOT123" }),
@@ -56,40 +63,43 @@ vi.mock("../lib/handle-app-mention", () => ({
   handleNewAppMention: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../lib/handle-passive-messages", () => ({
+  handlePassiveMessage: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("Slack events handler", () => {
 beforeEach(() => {
   hoisted.statusUpdates.length = 0;
   hoisted.postMessageMock.mockReset();
   hoisted.getThreadMock.mockReset();
+  pendingPromises.length = 0;
 
     server.use(
-      rest.get(
+      http.get(
         "https://example.service-now.com/api/now/table/sn_customerservice_case",
-        (req, res, ctx) => {
-          const query = req.url.searchParams.get("sysparm_query") ?? "";
+        ({ request }) => {
+          const url = new URL(request.url);
+          const query = url.searchParams.get("sysparm_query") ?? "";
           if (!query.includes("number=SCS0048402")) {
-            return res(ctx.status(200), ctx.json({ result: [] }));
+            return HttpResponse.json({ result: [] });
           }
-          return res(
-            ctx.status(200),
-            ctx.json({
-              result: [
-                {
-                  sys_id: "CASE_SYS_ID",
-                  number: "SCS0048402",
-                  short_description: "New PACS",
-                  priority: "4",
-                  state: "10",
-                  opened_by: { display_value: "Sarah Partain" },
-                },
-              ],
-            }),
-          );
+          return HttpResponse.json({
+            result: [
+              {
+                sys_id: "CASE_SYS_ID",
+                number: "SCS0048402",
+                short_description: "New PACS",
+                priority: "4",
+                state: "10",
+                opened_by: { display_value: "Sarah Partain" },
+              },
+            ],
+          });
         },
       ),
-      rest.get(
+      http.get(
         "https://example.service-now.com/api/now/table/sys_journal_field",
-        (req, res, ctx) => {
+        () => {
           const result = [
             {
               sys_id: "JOURNAL1",
@@ -110,7 +120,7 @@ beforeEach(() => {
               value: "Initial investigation started.",
             },
           ];
-          return res(ctx.status(200), ctx.json({ result }));
+          return HttpResponse.json({ result });
         },
       ),
     );
@@ -178,10 +188,15 @@ beforeEach(() => {
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("Success!");
 
+    // Wait for all pending promises to complete
+    await Promise.all(pendingPromises);
+
     expect(hoisted.getThreadMock).toHaveBeenCalledTimes(1);
 
     expect(hoisted.statusUpdates).toEqual([
       { channel: "D123", thread: "1728238123.000200", status: "is thinking..." },
+      { channel: "D123", thread: "1728238123.000200", status: "is looking up case SCS0048402 in ServiceNow..." },
+      { channel: "D123", thread: "1728238123.000200", status: "is fetching recent case activity from ServiceNow..." },
       { channel: "D123", thread: "1728238123.000200", status: "" },
     ]);
 
