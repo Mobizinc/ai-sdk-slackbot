@@ -89,6 +89,17 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
+/**
+ * Extract display value from ServiceNow field (handles both strings and objects)
+ */
+function extractDisplayValue(field: any): string {
+  if (!field) return "";
+  if (typeof field === "string") return field;
+  if (typeof field === "object" && field.display_value) return field.display_value;
+  if (typeof field === "object" && field.value) return field.value;
+  return String(field);
+}
+
 export interface ServiceNowIncidentResult {
   number: string;
   sys_id: string;
@@ -119,10 +130,10 @@ export interface ServiceNowCaseResult {
   category?: string;
   subcategory?: string;
   opened_at?: string;
-  assignment_group?: unknown;
-  assigned_to?: unknown;
-  opened_by?: unknown;
-  caller_id?: unknown;
+  assignment_group?: string;
+  assigned_to?: string;
+  opened_by?: string;
+  caller_id?: string;
   submitted_by?: string;
   url?: string;
 }
@@ -181,11 +192,7 @@ export class ServiceNowClient {
   public async getCase(number: string): Promise<ServiceNowCaseResult | null> {
     const table = config.caseTable ?? "sn_customerservice_case";
     const data = await request<{
-      result: Array<ServiceNowCaseResult & {
-        opened_by?: { display_value?: string } | string;
-        caller_id?: { display_value?: string } | string;
-        submitted_by?: string;
-      }>;
+      result: Array<any>;
     }>(
       `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
         `number=${number}`,
@@ -194,21 +201,28 @@ export class ServiceNowClient {
 
     if (!data.result?.length) return null;
 
-    const caseRecord = data.result[0];
-    const openedBy =
-      typeof caseRecord.opened_by === "string"
-        ? caseRecord.opened_by
-        : caseRecord.opened_by?.display_value;
-    const caller =
-      typeof caseRecord.caller_id === "string"
-        ? caseRecord.caller_id
-        : caseRecord.caller_id?.display_value;
+    const raw = data.result[0];
+
+    // Extract display values for all fields that might be objects
+    const openedBy = extractDisplayValue(raw.opened_by);
+    const callerId = extractDisplayValue(raw.caller_id);
+
     return {
-      ...caseRecord,
-      opened_by: caseRecord.opened_by,
-      caller_id: caseRecord.caller_id,
-      submitted_by: caseRecord.submitted_by ?? openedBy ?? caller ?? undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${caseRecord.sys_id}`,
+      sys_id: raw.sys_id,
+      number: raw.number,
+      short_description: extractDisplayValue(raw.short_description),
+      description: extractDisplayValue(raw.description),
+      priority: extractDisplayValue(raw.priority),
+      state: extractDisplayValue(raw.state),
+      category: extractDisplayValue(raw.category),
+      subcategory: extractDisplayValue(raw.subcategory),
+      opened_at: extractDisplayValue(raw.opened_at),
+      assignment_group: extractDisplayValue(raw.assignment_group),
+      assigned_to: extractDisplayValue(raw.assigned_to),
+      opened_by: openedBy,
+      caller_id: callerId,
+      submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${raw.sys_id}`,
     };
   }
 

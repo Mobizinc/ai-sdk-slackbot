@@ -100,10 +100,10 @@ async function buildTrackingMessage(caseNumber: string): Promise<string> {
       const caseInfo = await serviceNowClient.getCase(caseNumber);
 
       if (caseInfo) {
-        // ServiceNow returns objects with display_value when using sysparm_display_value=all
-        const status = extractValue(caseInfo.state) || "Unknown";
-        const priority = caseInfo.priority ? `P${extractValue(caseInfo.priority)}` : "";
-        const description = extractValue(caseInfo.short_description) || "";
+        // ServiceNow client now returns extracted string values
+        const status = caseInfo.state || "Unknown";
+        const priority = caseInfo.priority ? `P${caseInfo.priority}` : "";
+        const description = caseInfo.short_description || "";
 
         message += `\n\n`;
         message += `*Status:* ${status}`;
@@ -128,17 +128,6 @@ async function buildTrackingMessage(caseNumber: string): Promise<string> {
   message += `\n\n_I'll track this conversation for knowledge base generation._`;
 
   return message;
-}
-
-/**
- * Extract display value from ServiceNow field (handles both strings and objects)
- */
-function extractValue(field: any): string {
-  if (!field) return "";
-  if (typeof field === "string") return field;
-  if (typeof field === "object" && field.display_value) return field.display_value;
-  if (typeof field === "object" && field.value) return field.value;
-  return String(field);
 }
 
 /**
