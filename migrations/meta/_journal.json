@@ -15,6 +15,13 @@
       "when": 1759872734184,
       "tag": "0001_minor_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759879402493,
+      "tag": "0002_daily_expediter",
+      "breakpoints": true
     }
   ]
 }

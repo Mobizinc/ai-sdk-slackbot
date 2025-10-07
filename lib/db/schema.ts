@@ -33,6 +33,7 @@ export const caseContexts = pgTable(
     detectedAt: timestamp("detected_at").notNull().defaultNow(),
     lastUpdated: timestamp("last_updated").notNull().defaultNow(),
     notified: boolean("notified").default(false).notNull(),
+    hasPostedAssistance: boolean("has_posted_assistance").default(false).notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.caseNumber, table.threadTs] }),

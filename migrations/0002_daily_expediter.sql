@@ -1,0 +1,1 @@
+ALTER TABLE "case_contexts" ADD COLUMN "has_posted_assistance" boolean DEFAULT false NOT NULL;
