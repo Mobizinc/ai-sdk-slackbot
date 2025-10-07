@@ -25,6 +25,7 @@ export interface CaseContext {
   isResolved?: boolean;
   resolvedAt?: Date;
   _notified?: boolean; // Internal flag to prevent duplicate resolution notifications
+  hasPostedAssistance?: boolean; // Internal flag to prevent duplicate intelligent assistance posts
 }
 
 export class ContextManager {
