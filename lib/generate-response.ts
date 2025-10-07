@@ -6,7 +6,7 @@ import { serviceNowClient } from "./tools/servicenow";
 import { createAzureSearchService } from "./services/azure-search";
 import { getContextManager } from "./context-manager";
 import { getKBGenerator } from "./services/kb-generator";
-import { classifyQueryComplexity, forceComplexModel } from "./services/query-complexity";
+import { sanitizeModelConfig } from "./model-capabilities";
 
 let generateTextImpl = generateText;
 
@@ -397,8 +397,9 @@ Guardrails:
     },
     };
 
-    // gpt-5-mini does not support temperature parameter - never set it
-    return generateTextImpl(config);
+    // gpt-5-mini does not support temperature parameter - ensure it never slips through
+    const sanitizedConfig = sanitizeModelConfig(modelName, config);
+    return generateTextImpl(sanitizedConfig);
   };
 
   // Always use gpt-5-mini
