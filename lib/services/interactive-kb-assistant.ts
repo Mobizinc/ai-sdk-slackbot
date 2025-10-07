@@ -167,6 +167,26 @@ export function formatAbandonmentMessage(caseNumber: string): string {
 }
 
 /**
+ * Format message requesting case note updates (for low quality cases)
+ */
+export function formatNoteRequestMessage(
+  caseNumber: string,
+  missingInfo: string[]
+): string {
+  let message = `✅ Great that *${caseNumber}* is resolved!\n\n`;
+  message += `I'd love to create a KB article, but need a bit more detail in the case notes.\n\n`;
+  message += `*Please add to ServiceNow:*\n`;
+
+  missingInfo.forEach((item, idx) => {
+    message += `${idx + 1}. ${item}\n`;
+  });
+
+  message += `\n_I'll check back in 24 hours. If the case notes are updated, I'll generate the KB then._ ⏰`;
+
+  return message;
+}
+
+/**
  * Format timeout message (when user doesn't respond within 24 hours)
  */
 export function formatTimeoutMessage(caseNumber: string): string {
