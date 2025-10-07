@@ -128,7 +128,7 @@ async function processCaseDetection(
 
     await client.chat.postMessage({
       channel: channelId,
-      thread_ts: threadTs === event.ts ? undefined : threadTs, // Don't create thread if it's a new message
+      thread_ts: event.ts, // Always reply in thread to keep channels clean
       text: intelligentMessage,
       unfurl_links: false,
     });
