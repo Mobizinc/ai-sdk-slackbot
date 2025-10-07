@@ -11,7 +11,7 @@ export interface ComplexityScore {
   level: ComplexityLevel;
   score: number; // 0-100
   reasons: string[];
-  recommendedModel: "gpt-5-mini" | "gpt-5o";
+  recommendedModel: "gpt-5-mini";
 }
 
 /**
@@ -116,7 +116,7 @@ export function classifyQueryComplexity(messages: CoreMessage[]): ComplexityScor
 
   // Determine level (threshold at 40)
   const level: ComplexityLevel = score >= 40 ? "complex" : "simple";
-  const recommendedModel = level === "complex" ? "gpt-5o" : "gpt-5-mini";
+  const recommendedModel = "gpt-5-mini"; // Always use gpt-5-mini
 
   return {
     level,

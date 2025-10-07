@@ -414,31 +414,17 @@ Guardrails:
     return generateTextImpl(config);
   };
 
-  // Intelligent model routing based on query complexity
-  let selectedModel: "gpt-5-mini" | "gpt-5o" = "gpt-5-mini";
-
-  // Check if we should force premium model
-  if (forceComplexModel(messages)) {
-    selectedModel = "gpt-5o";
-    console.log("[Model Router] Force using gpt-5o for this query");
-  } else {
-    // Classify query complexity
-    const complexity = classifyQueryComplexity(messages);
-    selectedModel = complexity.recommendedModel;
-
-    console.log(
-      `[Model Router] Complexity: ${complexity.level} (score: ${complexity.score}) - Using ${selectedModel}`
-    );
-    console.log(`[Model Router] Reasons: ${complexity.reasons.join(", ")}`);
-  }
+  // Always use gpt-5-mini
+  const selectedModel = "gpt-5-mini";
+  console.log("[Model Router] Using gpt-5-mini");
 
   let text: string;
 
   try {
     ({ text } = await runModel(selectedModel));
   } catch (error) {
-    console.error(`Primary model ${selectedModel} failed, falling back to gpt-5o`, error);
-    ({ text } = await runModel("gpt-5o"));
+    console.error(`Model ${selectedModel} failed:`, error);
+    throw error; // Don't fallback, just fail
   }
 
   // Convert markdown to Slack mrkdwn format
