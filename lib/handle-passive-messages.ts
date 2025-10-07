@@ -7,6 +7,8 @@ import type { GenericMessageEvent } from "./slack-event-types";
 import { client } from "./slack-utils";
 import { getContextManager } from "./context-manager";
 import { serviceNowClient } from "./tools/servicenow";
+import { getKBGenerator } from "./services/kb-generator";
+import { getKBApprovalManager } from "./handle-kb-approval";
 
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
@@ -169,22 +171,88 @@ async function addMessageToExistingThreads(
 }
 
 /**
- * Notify when a case appears to be resolved
+ * Notify when a case appears to be resolved and generate KB article
  */
 async function notifyResolution(
   caseNumber: string,
   channelId: string,
   threadTs: string
 ): Promise<void> {
+  const contextManager = getContextManager();
+  const context = contextManager.getContext(caseNumber, threadTs);
+
+  if (!context) {
+    console.log(`No context found for ${caseNumber}, skipping KB generation`);
+    return;
+  }
+
   try {
+    // Step 1: Generate KB article
+    const kbGenerator = getKBGenerator();
+    const caseDetails = serviceNowClient.isConfigured()
+      ? await serviceNowClient.getCase(caseNumber).catch(() => null)
+      : null;
+
+    const result = await kbGenerator.generateArticle(context, caseDetails);
+
+    // Step 2: Check if similar KBs exist
+    if (result.isDuplicate) {
+      // Similar KB exists - just notify
+      const warningMessage = kbGenerator.formatSimilarKBsWarning(
+        result.similarExistingKBs
+      );
+
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: threadTs,
+        text: `✅ Case *${caseNumber}* appears to be resolved!\n\n${warningMessage}`,
+        unfurl_links: false,
+      });
+
+      return;
+    }
+
+    // Step 3: Post KB article proposal
+    const kbMessage = kbGenerator.formatForSlack(result.article);
+    const confidenceEmoji = result.confidence >= 75 ? "🟢" : result.confidence >= 50 ? "🟡" : "🟠";
+
+    let fullMessage = `✅ Case *${caseNumber}* appears to be resolved!\n\n`;
+    fullMessage += kbMessage;
+    fullMessage += `\n\n${confidenceEmoji} *Confidence:* ${result.confidence}%\n\n`;
+    fullMessage += `_React with ✅ to approve this KB article, or ❌ to reject it._`;
+
+    if (result.similarExistingKBs.length > 0) {
+      fullMessage += `\n\n📎 *Related:* ${result.similarExistingKBs.map(kb => kb.case_number).join(", ")}`;
+    }
+
+    const response = await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: threadTs,
+      text: fullMessage,
+      unfurl_links: false,
+    });
+
+    // Step 4: Store for approval tracking
+    if (response.ts) {
+      const approvalManager = getKBApprovalManager();
+      approvalManager.storePendingApproval(
+        response.ts,
+        channelId,
+        caseNumber,
+        result.article,
+        threadTs
+      );
+    }
+  } catch (error) {
+    console.error(`Error generating KB for ${caseNumber}:`, error);
+
+    // Fallback: simple notification
     await client.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs,
-      text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Would you like me to generate a knowledge base article from this conversation? React with ✅ to approve._`,
+      text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error generating KB article: ${error instanceof Error ? error.message : "Unknown error"}_`,
       unfurl_links: false,
     });
-  } catch (error) {
-    console.error(`Error notifying resolution for ${caseNumber}:`, error);
   }
 }
 

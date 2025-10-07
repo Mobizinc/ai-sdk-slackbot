@@ -4,6 +4,8 @@ import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
 import { createAzureSearchService } from "./services/azure-search";
+import { getContextManager } from "./context-manager";
+import { getKBGenerator } from "./services/kb-generator";
 
 let generateTextImpl = generateText;
 
@@ -316,6 +318,77 @@ Guardrails:
                 error instanceof Error
                   ? error.message
                   : "Failed to search similar cases",
+            };
+          }
+        },
+      }),
+      generateKBArticle: tool({
+        description:
+          "Generate a knowledge base article from a resolved case conversation. Use this when a user explicitly asks to create KB documentation from a case discussion.",
+        parameters: z.object({
+          caseNumber: z
+            .string()
+            .describe("The case number to generate KB article for"),
+          threadTs: z
+            .string()
+            .optional()
+            .describe("Optional thread timestamp to get conversation context from"),
+        }),
+        execute: async ({ caseNumber, threadTs }) => {
+          try {
+            updateStatus?.(`is generating KB article for ${caseNumber}...`);
+
+            const contextManager = getContextManager();
+            const contexts = contextManager.getContextsForCase(caseNumber);
+
+            if (contexts.length === 0) {
+              return {
+                error: `No conversation context found for case ${caseNumber}. The case must have been discussed in a tracked thread first.`,
+              };
+            }
+
+            // Use the most recent or specified thread context
+            const context = threadTs
+              ? contexts.find((c) => c.threadTs === threadTs)
+              : contexts[contexts.length - 1];
+
+            if (!context) {
+              return {
+                error: `Context not found for the specified thread.`,
+              };
+            }
+
+            // Fetch case details from ServiceNow
+            const caseDetails = serviceNowClient.isConfigured()
+              ? await serviceNowClient.getCase(caseNumber).catch(() => null)
+              : null;
+
+            // Generate KB article
+            const kbGenerator = getKBGenerator();
+            const result = await kbGenerator.generateArticle(context, caseDetails);
+
+            if (result.isDuplicate) {
+              return {
+                duplicate: true,
+                similar_kbs: result.similarExistingKBs,
+                message: `Similar KB articles already exist. Consider updating an existing article instead.`,
+              };
+            }
+
+            return {
+              success: true,
+              article: result.article,
+              confidence: result.confidence,
+              similar_kbs: result.similarExistingKBs,
+              message: `KB article generated with ${result.confidence}% confidence.`,
+            };
+          } catch (error) {
+            console.error("KB generation error", error);
+            return {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to generate KB article",
             };
           }
         },

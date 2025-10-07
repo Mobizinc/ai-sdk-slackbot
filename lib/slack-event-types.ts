@@ -42,8 +42,21 @@ export interface AssistantThreadContextChangedEvent extends SlackBaseEvent {
   previous_context?: Record<string, unknown> | null;
 }
 
+export interface ReactionAddedEvent extends SlackBaseEvent {
+  type: "reaction_added";
+  user: string;
+  item: {
+    type: string;
+    channel: string;
+    ts: string;
+  };
+  reaction: string;
+  event_ts: string;
+}
+
 export type SlackEvent =
   | AppMentionEvent
   | AssistantThreadStartedEvent
   | AssistantThreadContextChangedEvent
-  | GenericMessageEvent;
+  | GenericMessageEvent
+  | ReactionAddedEvent;
