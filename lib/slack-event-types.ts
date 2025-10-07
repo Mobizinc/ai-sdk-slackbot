@@ -29,6 +29,7 @@ export interface GenericMessageEvent extends SlackBaseEvent {
   thread_ts?: string;
   ts: string;
   text?: string;
+  user?: string;
 }
 
 export interface AssistantThreadContextChangedEvent extends SlackBaseEvent {
