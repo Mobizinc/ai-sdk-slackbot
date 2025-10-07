@@ -75,6 +75,7 @@ pnpm install
       - `message:im`
       - `message.channels` (for passive case number monitoring)
       - `message.groups` (optional, for private channel monitoring)
+      - `reaction_added` (for KB article approval workflow)
    - Save Changes
 
 > Remember to include `/api/events` in the Request URL.
@@ -203,11 +204,20 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Search for cases similar to error code 0x80070035"
    - Example: "Show me similar cases for client XYZ with network connectivity problems"
 
-5. **Passive Case Monitoring**: The bot automatically watches for case numbers mentioned in channel conversations.
-   - When a case number like `SCS0048402` is mentioned, the bot replies "👀 Watching case SCS0048402"
-   - Tracks the entire conversation thread for future knowledge base article generation
-   - Detects resolution keywords ("fixed", "resolved", "working") and offers to create KB articles
+5. **Passive Case Monitoring & Auto-KB Generation**: The bot automatically watches for case numbers and creates knowledge base articles.
+   - **Detection**: When a case number like `SCS0048402` is mentioned, bot replies "👀 Watching case SCS0048402"
+   - **Tracking**: Maintains conversation context (rolling 20-message window per case)
+   - **Resolution Detection**: Identifies keywords ("fixed", "resolved", "working", "closed")
+   - **KB Generation**: Automatically generates structured KB article from conversation
+   - **Deduplication**: Searches existing KBs to avoid duplicates (>85% similarity threshold)
+   - **Approval Workflow**: Posts draft KB with confidence score, react with ✅ to approve or ❌ to reject
+   - **Manual Trigger**: Ask bot "Generate KB article for case SCS0048402" for on-demand generation
    - No @mention needed - works passively in the background
+
+   **KB Article Structure:**
+   - Title, Problem Statement, Environment, Step-by-Step Solution
+   - Root Cause Analysis, Related Cases, Auto-extracted Tags
+   - Confidence scoring (🟢 High ≥75%, 🟡 Medium ≥50%, 🟠 Low <50%)
 
 ### Extending with New Tools
 

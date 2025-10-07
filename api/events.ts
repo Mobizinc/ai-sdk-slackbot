@@ -1,5 +1,6 @@
 import type {
   GenericMessageEvent,
+  ReactionAddedEvent,
   SlackEvent,
 } from "../lib/slack-event-types";
 import { waitUntil } from "@vercel/functions";
@@ -7,6 +8,7 @@ import { handleNewAppMention } from "../lib/handle-app-mention";
 import { verifyRequest, getBotId } from "../lib/slack-utils";
 import { assistantManager } from "../lib/assistant-manager";
 import { handlePassiveMessage } from "../lib/handle-passive-messages";
+import { getKBApprovalManager } from "../lib/handle-kb-approval";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -61,6 +63,23 @@ export async function POST(request: Request) {
       // This runs in parallel and doesn't interfere with assistant messages
       if (!messageEvent.subtype && !messageEvent.bot_id) {
         waitUntil(handlePassiveMessage(messageEvent, botUserId));
+      }
+    }
+
+    if (event.type === "reaction_added") {
+      const reactionEvent = event as ReactionAddedEvent;
+
+      // Handle KB approval/rejection via emoji reactions
+      if (reactionEvent.item.type === "message") {
+        const approvalManager = getKBApprovalManager();
+        waitUntil(
+          approvalManager.handleReaction(
+            reactionEvent.item.channel,
+            reactionEvent.item.ts,
+            reactionEvent.reaction,
+            reactionEvent.user
+          )
+        );
       }
     }
 
