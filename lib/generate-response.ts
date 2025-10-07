@@ -23,15 +23,6 @@ export const __resetGenerateTextImpl = () => {
 // Initialize Azure Search service (singleton)
 const azureSearchService = createAzureSearchService();
 
-/**
- * Check if a model supports the temperature parameter.
- * GPT-5 models do not support temperature and will reject requests that include it.
- */
-function supportsTemperature(modelName: string): boolean {
-  const lowered = (modelName || "").toLowerCase();
-  return !lowered.startsWith("gpt-5");
-}
-
 export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
@@ -406,11 +397,7 @@ Guardrails:
     },
     };
 
-    // Only add temperature for models that support it (GPT-5 models do not)
-    if (supportsTemperature(modelName)) {
-      config.temperature = 0.3;
-    }
-
+    // gpt-5-mini does not support temperature parameter - never set it
     return generateTextImpl(config);
   };
 
