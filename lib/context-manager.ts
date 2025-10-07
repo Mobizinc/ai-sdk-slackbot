@@ -1,7 +1,11 @@
 /**
  * Context Manager for tracking case-related conversations in Slack.
  * Maintains rolling window of messages per case for KB generation.
+ * Persists to database when available.
  */
+
+import type { CaseContextRepository } from "./db/repositories/case-context-repository";
+import { getCaseContextRepository } from "./db/repositories/case-context-repository";
 
 export interface CaseMessage {
   user: string;
@@ -27,10 +31,16 @@ export class ContextManager {
   private contexts: Map<string, CaseContext> = new Map();
   private maxMessagesPerCase: number;
   private maxAgeHours: number;
+  private repository: CaseContextRepository;
 
-  constructor(maxMessagesPerCase: number = 20, maxAgeHours: number = 72) {
+  constructor(
+    maxMessagesPerCase: number = 20,
+    maxAgeHours: number = 72,
+    repository?: CaseContextRepository
+  ) {
     this.maxMessagesPerCase = maxMessagesPerCase;
     this.maxAgeHours = maxAgeHours;
+    this.repository = repository || getCaseContextRepository();
   }
 
   /**
@@ -79,6 +89,14 @@ export class ContextManager {
 
     // Check for resolution keywords
     this.checkForResolution(context, message);
+
+    // Persist to database (fire and forget, errors are logged in repository)
+    this.repository.saveContext(context).catch((err) => {
+      console.error("[ContextManager] Failed to save context:", err);
+    });
+    this.repository.saveMessage(caseNumber, threadTs, message).catch((err) => {
+      console.error("[ContextManager] Failed to save message:", err);
+    });
   }
 
   /**
@@ -106,8 +124,37 @@ export class ContextManager {
 
   /**
    * Get context for a specific case and thread
+   * Falls back to database if not in memory cache
    */
-  getContext(caseNumber: string, threadTs: string): CaseContext | undefined {
+  async getContext(caseNumber: string, threadTs: string): Promise<CaseContext | undefined> {
+    const key = this.getContextKey(caseNumber, threadTs);
+
+    // Check memory cache first
+    let context = this.contexts.get(key);
+    if (context) {
+      return context;
+    }
+
+    // Fallback to database
+    try {
+      context = await this.repository.loadContext(caseNumber, threadTs);
+      if (context) {
+        // Cache it for future access
+        this.contexts.set(key, context);
+        console.log(`[ContextManager] Loaded context for ${caseNumber} from database`);
+      }
+      return context ?? undefined;
+    } catch (error) {
+      console.error(`[ContextManager] Error loading context from DB:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Get context synchronously from memory cache only
+   * Use this when you need immediate access without async
+   */
+  getContextSync(caseNumber: string, threadTs: string): CaseContext | undefined {
     return this.contexts.get(this.getContextKey(caseNumber, threadTs));
   }
 
@@ -138,18 +185,47 @@ export class ContextManager {
   }
 
   /**
-   * Clean up old contexts
+   * Load all active contexts from database on startup
    */
-  cleanupOldContexts(): number {
+  async loadFromDatabase(): Promise<void> {
+    try {
+      console.log("[ContextManager] Loading contexts from database...");
+      const contexts = await this.repository.loadAllActiveContexts(this.maxAgeHours);
+
+      for (const context of contexts) {
+        const key = this.getContextKey(context.caseNumber, context.threadTs);
+        this.contexts.set(key, context);
+      }
+
+      console.log(`[ContextManager] Loaded ${contexts.length} contexts from database`);
+    } catch (error) {
+      console.error("[ContextManager] Error loading contexts from database:", error);
+      // Continue without database contexts
+    }
+  }
+
+  /**
+   * Clean up old contexts from memory and database
+   */
+  async cleanupOldContexts(): Promise<number> {
     const now = new Date();
     const cutoffTime = now.getTime() - this.maxAgeHours * 60 * 60 * 1000;
     let removed = 0;
 
+    // Clean up memory
     for (const [key, context] of this.contexts.entries()) {
       if (context.lastUpdated.getTime() < cutoffTime) {
         this.contexts.delete(key);
         removed++;
       }
+    }
+
+    // Clean up database
+    try {
+      const dbRemoved = await this.repository.deleteOldContexts(this.maxAgeHours);
+      console.log(`[ContextManager] Cleaned up ${removed} from memory, ${dbRemoved} from database`);
+    } catch (error) {
+      console.error("[ContextManager] Error cleaning up database:", error);
     }
 
     return removed;
@@ -194,7 +270,7 @@ export class ContextManager {
    * Get conversation summary for a case
    */
   getSummary(caseNumber: string, threadTs: string): string | null {
-    const context = this.getContext(caseNumber, threadTs);
+    const context = this.getContextSync(caseNumber, threadTs);
     if (!context || context.messages.length === 0) return null;
 
     return context.messages

@@ -74,7 +74,7 @@ async function processCaseDetection(
   });
 
   // Check if this is the first time we're seeing this case in this thread
-  const context = contextManager.getContext(caseNumber, threadTs);
+  const context = contextManager.getContextSync(caseNumber, threadTs);
   if (!context || context.messages.length > 1) {
     // Already tracking this thread, don't spam
     return;
@@ -302,7 +302,7 @@ async function notifyResolution(
   console.log(`[KB Generation] Starting multi-stage process for ${caseNumber}`);
 
   const contextManager = getContextManager();
-  const context = contextManager.getContext(caseNumber, threadTs);
+  const context = contextManager.getContextSync(caseNumber, threadTs);
 
   if (!context) {
     console.log(`[KB Generation] No context found for ${caseNumber}, skipping`);

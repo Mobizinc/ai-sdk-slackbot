@@ -17,6 +17,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
   - ServiceNow incident, case, and knowledge-base lookups (when configured)
   - Similar cases search using Azure AI Search vector store (when configured)
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
+- **Inbound Relay Gateway**: Authenticated `/api/relay` endpoint lets upstream agents and services deliver Slack messages without creating their own Slack apps
 
 ## Prerequisites
 
@@ -113,9 +114,42 @@ SERVICENOW_PASSWORD=your-servicenow-password
 # Optional overrides (defaults shown)
 # SERVICENOW_CASE_TABLE=sn_customerservice_case
 # SERVICENOW_CASE_JOURNAL_NAME=x_mobit_serv_case_service_case
+
+# Relay Gateway
+RELAY_WEBHOOK_SECRET=shared-hmac-secret
+
+# Database (optional, for persisting context and KB generation state)
+DATABASE_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
 ```
 
 Replace the placeholder values with your actual tokens.
+
+### 5. Database Setup (Optional)
+
+The bot can persist conversation context and KB generation state to Neon Postgres. This ensures data survives bot restarts and enables historical analytics.
+
+**To set up Neon database:**
+
+1. Create a Neon project at https://neon.tech
+2. Copy the connection string and set it as `DATABASE_URL` in your environment
+3. Generate and run migrations:
+
+```bash
+# Generate migration files from schema
+npm run db:generate
+
+# Push schema directly to database (development)
+npm run db:push
+
+# Or run migrations (production)
+npm run db:migrate
+```
+
+**Database features:**
+- ✅ Context survives bot restarts
+- ✅ KB gathering workflows resume after deployments
+- ✅ Historical conversation tracking
+- ✅ Graceful degradation (works without database)
 
 ## Local Development
 
@@ -231,6 +265,89 @@ The chatbot is built with an extensible architecture using the [AI SDK's tool sy
 To add a new tool, extend the `tools` object in `lib/generate-response.ts` following the existing pattern.
 
 You can also disable any of the existing tools by removing the tool in the `lib/ai.ts` file.
+
+## Inbound Relay API
+
+Expose this project as the single Slack gateway for other agents and services via the `/api/relay` endpoint. External systems post JSON payloads, the gateway signs and validates requests with an HMAC header, and the bot forwards the message to Slack while preserving per-thread context.
+
+### Authentication
+
+- Set `RELAY_WEBHOOK_SECRET` in every environment. Requests must include:
+  - `x-relay-signature`: `v1=<hex digest>` where the digest is `HMAC_SHA256(secret, "v1:{timestamp}:{body}")`
+  - `x-relay-timestamp`: Unix seconds. Requests outside a ±5 minute window are rejected.
+- Rotate the secret by updating the environment variable and redeploying. Downstream agents should refresh at the same time.
+
+### Request Payload
+
+```json
+{
+  "target": {
+    "channel": "C12345",         // Slack channel ID; optional if user supplied
+    "user": "U67890",            // Slack user ID to open a DM
+    "thread_ts": "1728237000.000100", // Existing thread timestamp (optional)
+    "reply_broadcast": false      // Optional, when posting in public threads
+  },
+  "message": {
+    "text": "Hello from the triage agent", // Trimmed automatically
+    "blocks": [ /* Optional Slack Block Kit blocks */ ],
+    "attachments": [ /* Optional Slack attachments */ ],
+    "unfurl_links": false,
+    "unfurl_media": false
+  },
+  "source": "triage-agent",       // Optional label recorded in Slack message metadata
+  "metadata": {
+    "correlationId": "case-123",
+    "eventType": "triage.update",
+    "payload": { "priority": "high" }
+  }
+}
+```
+
+- Provide at least one of `target.channel` or `target.user`.
+- Supply `message.text` (non-empty) or `message.blocks`.
+- When only `target.user` is provided, the gateway opens a DM and uses the resolved channel ID automatically.
+- `metadata` is mapped to Slack message metadata (visible in message details) for traceability.
+
+### Example `curl`
+
+```bash
+BODY='{"target":{"channel":"C12345"},"message":{"text":"Hello"},"source":"inventory-agent"}'
+TS=$(date +%s)
+SIG=$(printf "v1:%s:%s" "$TS" "$BODY" | \
+  openssl dgst -sha256 -hmac "$RELAY_WEBHOOK_SECRET" | \
+  sed 's/^.*= //')
+
+curl -X POST https://your-app.vercel.app/api/relay \
+  -H "content-type: application/json" \
+  -H "x-relay-timestamp: $TS" \
+  -H "x-relay-signature: v1=$SIG" \
+  -d "$BODY"
+```
+
+Expected response:
+
+```json
+{
+  "ok": true,
+  "channel": "C12345",
+  "ts": "1728238123.000200",
+  "thread_ts": "1728238123.000200"
+}
+```
+
+### Upstream Agent Onboarding
+
+- Issue each agent a copy of the shared secret out-of-band or proxy requests through your service mesh that injects the header.
+- Maintain a registry (spreadsheet, config file, or secrets manager) noting which agent uses which channel/thread.
+- Optionally wrap this endpoint with a lightweight API gateway to enforce per-agent rate limits before hitting Slack rate caps.
+- Record `correlationId` values from upstream jobs so you can trace Slack replies back to originating tickets or workflows.
+
+### Failure Handling
+
+- `401` – Signature missing/invalid or replay window exceeded.
+- `400` – Malformed JSON or payload validation errors (see `details` in response body).
+- `404` – DM target could not be opened (user removed or no mutual workspace access).
+- `502` – Slack API rejected the message or timed out; upstream callers should retry with backoff and respect Slack rate limits.
 
 ## License
 

@@ -9,6 +9,12 @@ import { verifyRequest, getBotId } from "../lib/slack-utils";
 import { assistantManager } from "../lib/assistant-manager";
 import { handlePassiveMessage } from "../lib/handle-passive-messages";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
+import { initializeDatabase } from "../lib/db/init";
+
+// Initialize database on cold start (module load)
+initializeDatabase().catch((err) => {
+  console.error("[Startup] Database initialization failed:", err);
+});
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
