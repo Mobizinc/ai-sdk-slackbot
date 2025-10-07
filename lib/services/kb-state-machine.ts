@@ -1,7 +1,11 @@
 /**
  * KB State Machine for tracking multi-stage KB generation workflow.
  * Manages states, transitions, and timeout cleanup for quality-aware KB generation.
+ * Persists to database when available.
  */
+
+import type { KBStateRepository } from "../db/repositories/kb-state-repository";
+import { getKBStateRepository } from "../db/repositories/kb-state-repository";
 
 export enum KBState {
   ASSESSING = "assessing",           // Running quality check
@@ -30,6 +34,11 @@ export class KBStateMachine {
   private contexts = new Map<string, KBGenerationContext>();
   private readonly maxAttempts = 2;
   private readonly timeoutHours = 24;
+  private repository: KBStateRepository;
+
+  constructor(repository?: KBStateRepository) {
+    this.repository = repository || getKBStateRepository();
+  }
 
   /**
    * Initialize KB generation for a case
@@ -37,7 +46,7 @@ export class KBStateMachine {
   initialize(caseNumber: string, threadTs: string, channelId: string): void {
     const key = this.getKey(caseNumber, threadTs);
 
-    this.contexts.set(key, {
+    const context: KBGenerationContext = {
       caseNumber,
       threadTs,
       channelId,
@@ -46,6 +55,13 @@ export class KBStateMachine {
       lastUpdated: new Date(),
       attemptCount: 0,
       userResponses: [],
+    };
+
+    this.contexts.set(key, context);
+
+    // Persist to database
+    this.repository.saveState(context).catch((err) => {
+      console.error("[KB State] Failed to save initial state:", err);
     });
 
     console.log(`[KB State] Initialized for ${caseNumber} in state ASSESSING`);
@@ -67,6 +83,11 @@ export class KBStateMachine {
     const oldState = context.state;
     context.state = newState;
     context.lastUpdated = new Date();
+
+    // Persist to database
+    this.repository.saveState(context).catch((err) => {
+      console.error("[KB State] Failed to save state update:", err);
+    });
 
     console.log(`[KB State] ${caseNumber}: ${oldState} → ${newState}`);
   }
@@ -110,6 +131,11 @@ export class KBStateMachine {
     context.userResponses.push(response);
     context.lastUpdated = new Date();
 
+    // Persist to database
+    this.repository.saveState(context).catch((err) => {
+      console.error("[KB State] Failed to save user response:", err);
+    });
+
     console.log(`[KB State] Added user response for ${caseNumber} (${context.userResponses.length} total)`);
   }
 
@@ -126,6 +152,13 @@ export class KBStateMachine {
     }
 
     context.attemptCount += 1;
+    context.lastUpdated = new Date();
+
+    // Persist to database
+    this.repository.saveState(context).catch((err) => {
+      console.error("[KB State] Failed to save attempt count:", err);
+    });
+
     console.log(`[KB State] Attempt ${context.attemptCount}/${this.maxAttempts} for ${caseNumber}`);
 
     return context.attemptCount;
@@ -154,6 +187,12 @@ export class KBStateMachine {
     if (context) {
       context.assessmentScore = score;
       context.missingInfo = missingInfo;
+      context.lastUpdated = new Date();
+
+      // Persist to database
+      this.repository.saveState(context).catch((err) => {
+        console.error("[KB State] Failed to save assessment:", err);
+      });
     }
   }
 
@@ -163,17 +202,44 @@ export class KBStateMachine {
   remove(caseNumber: string, threadTs: string): void {
     const key = this.getKey(caseNumber, threadTs);
     this.contexts.delete(key);
+
+    // Delete from database
+    this.repository.deleteState(caseNumber, threadTs).catch((err) => {
+      console.error("[KB State] Failed to delete state from database:", err);
+    });
+
     console.log(`[KB State] Removed context for ${caseNumber}`);
+  }
+
+  /**
+   * Load all active states from database on startup
+   */
+  async loadFromDatabase(): Promise<void> {
+    try {
+      console.log("[KB State] Loading states from database...");
+      const states = await this.repository.loadAllActiveStates();
+
+      for (const state of states) {
+        const key = this.getKey(state.caseNumber, state.threadTs);
+        this.contexts.set(key, state);
+      }
+
+      console.log(`[KB State] Loaded ${states.length} states from database`);
+    } catch (error) {
+      console.error("[KB State] Error loading states from database:", error);
+      // Continue without database states
+    }
   }
 
   /**
    * Clean up expired contexts (timeout handling)
    */
-  cleanupExpired(): number {
+  async cleanupExpired(): Promise<number> {
     const now = new Date();
     const cutoffTime = now.getTime() - this.timeoutHours * 60 * 60 * 1000;
     let removed = 0;
 
+    // Clean up memory
     for (const [key, context] of this.contexts.entries()) {
       // Only cleanup GATHERING state contexts that have timed out
       if (
@@ -186,8 +252,16 @@ export class KBStateMachine {
       }
     }
 
+    // Clean up database
+    try {
+      const dbRemoved = await this.repository.cleanupExpiredStates(this.timeoutHours);
+      console.log(`[KB State] Cleaned up ${removed} from memory, ${dbRemoved} from database`);
+    } catch (error) {
+      console.error("[KB State] Error cleaning up database:", error);
+    }
+
     if (removed > 0) {
-      console.log(`[KB State] Cleaned up ${removed} expired contexts`);
+      console.log(`[KB State] Cleaned up ${removed} expired contexts from memory`);
     }
 
     return removed;
