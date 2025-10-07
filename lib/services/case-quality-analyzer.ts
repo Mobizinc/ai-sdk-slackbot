@@ -1,6 +1,6 @@
 /**
  * Case Quality Analyzer - Assesses whether case data is sufficient for KB generation.
- * Uses gpt-5-mini for fast, cost-effective quality assessment.
+ * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
 import { openai } from "@ai-sdk/openai";
@@ -92,10 +92,10 @@ Return ONLY valid JSON in this format:
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const generationConfig = sanitizeModelConfig("gpt-5-mini", {
-      model: openai("gpt-5-mini"),
+    const generationConfig = sanitizeModelConfig("gpt-5", {
+      model: openai("gpt-5"),
       prompt,
-      // No temperature parameter for gpt-5-mini
+      temperature: 0.3, // Low temperature for consistent assessment
     });
 
     const { text } = await generateText(generationConfig);

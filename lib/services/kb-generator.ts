@@ -153,10 +153,10 @@ Guidelines:
 Return ONLY valid JSON, no other text.`;
 
     try {
-      const generationConfig = sanitizeModelConfig("gpt-5-mini", {
-        model: openai("gpt-5-mini"),
+      const generationConfig = sanitizeModelConfig("gpt-5", {
+        model: openai("gpt-5"),
         prompt,
-        // Note: gpt-5-mini does not support temperature parameter
+        temperature: 0.5, // Balanced creativity for KB article generation
       });
 
       const { text } = await generateText(generationConfig);

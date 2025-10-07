@@ -32,7 +32,7 @@ export interface KBGenerationContext {
 
 export class KBStateMachine {
   private contexts = new Map<string, KBGenerationContext>();
-  private readonly maxAttempts = 2;
+  private readonly maxAttempts = 5; // Allow up to 5 clarification attempts before abandoning
   private readonly timeoutHours = 24;
   private repository: KBStateRepository;
 

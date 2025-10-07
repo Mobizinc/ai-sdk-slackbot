@@ -1,5 +1,5 @@
 /**
- * Interactive KB Assistant - Uses GPT-4o to generate contextual questions
+ * Interactive KB Assistant - Uses gpt-5 to generate contextual questions
  * and gather missing information for KB article creation.
  */
 
@@ -74,10 +74,10 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const generationConfig = sanitizeModelConfig("gpt-5-mini", {
-      model: openai("gpt-5-mini"),
+    const generationConfig = sanitizeModelConfig("gpt-5", {
+      model: openai("gpt-5"),
       prompt,
-      // Note: gpt-5-mini does not support temperature parameter
+      temperature: 0.4, // Slightly creative for natural questions, but focused
     });
 
     const { text } = await generateText(generationConfig);
