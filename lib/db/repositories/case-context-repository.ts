@@ -115,7 +115,7 @@ export class CaseContextRepository {
             eq(caseMessages.threadTs, threadTs)
           )
         )
-        .orderBy(caseMessages.createdAt);
+        .orderBy(caseMessages.messageTimestamp);
 
       // Convert to ContextManager format
       const messages: CaseMessage[] = messagesResult.map((msg) => ({
@@ -178,7 +178,7 @@ export class CaseContextRepository {
               eq(caseMessages.threadTs, dbContext.threadTs)
             )
           )
-          .orderBy(caseMessages.createdAt);
+          .orderBy(caseMessages.messageTimestamp);
 
         const messages: CaseMessage[] = messagesResult.map((msg) => ({
           user: msg.userId,
@@ -235,7 +235,7 @@ export class CaseContextRepository {
               eq(caseMessages.threadTs, dbContext.threadTs)
             )
           )
-          .orderBy(caseMessages.createdAt);
+          .orderBy(caseMessages.messageTimestamp);
 
         const messages: CaseMessage[] = messagesResult.map((msg) => ({
           user: msg.userId,
@@ -301,18 +301,29 @@ export class CaseContextRepository {
       const cutoffTime = new Date();
       cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
 
-      // Delete messages first (foreign key constraint)
-      await db
-        .delete(caseMessages)
-        .where(
-          and(
-            eq(caseMessages.caseNumber, caseContexts.caseNumber),
-            eq(caseMessages.threadTs, caseContexts.threadTs),
-            lt(caseContexts.lastUpdated, cutoffTime)
-          )
-        );
+      // First, find all old contexts
+      const oldContexts = await db
+        .select({ caseNumber: caseContexts.caseNumber, threadTs: caseContexts.threadTs })
+        .from(caseContexts)
+        .where(lt(caseContexts.lastUpdated, cutoffTime));
 
-      // Delete contexts
+      if (oldContexts.length === 0) {
+        return 0;
+      }
+
+      // Delete messages for each old context
+      for (const context of oldContexts) {
+        await db
+          .delete(caseMessages)
+          .where(
+            and(
+              eq(caseMessages.caseNumber, context.caseNumber),
+              eq(caseMessages.threadTs, context.threadTs)
+            )
+          );
+      }
+
+      // Delete the contexts
       const result = await db
         .delete(caseContexts)
         .where(lt(caseContexts.lastUpdated, cutoffTime));

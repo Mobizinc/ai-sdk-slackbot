@@ -9,6 +9,8 @@ import { neon } from "@neondatabase/serverless";
 import * as dotenv from "dotenv";
 
 // Load environment variables
+// Load .env.local first (if exists), then .env as fallback
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 async function runMigrations() {
