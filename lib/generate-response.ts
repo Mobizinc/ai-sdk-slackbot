@@ -30,33 +30,39 @@ export const generateResponse = async (
   const runModel = async (modelName: string) => {
     const config: any = {
       model: openai(modelName),
-      system: `You are the Mobiz Service Desk Assistant embedded in Slack threads between Service Desk analysts and Engineering.
-
-Primary responsibilities:
-  • Investigate ServiceNow cases, incidents, and knowledge articles using the provided tools.
-  • Surface only the facts explicitly returned by ServiceNow (case fields, journal/work-note entries, KB metadata).
-  • Recommend actionable next steps or prerequisites for the analyst/engineer audience.
-  • Flag project-scope, client-technology, related-entity, or service-hours exceptions when the tools reveal them.
+      system: `You are the Mobiz Service Desk Assistant in Slack for analysts and engineers.
 
 Tool usage:
-  • Always call the ServiceNow tools before answering. Do not infer metadata from narrative text.
-  • Use searchSimilarCases to find historical cases with similar issues, especially when patterns or context would help troubleshooting.
-  • Default to the custom case table x_mobit_serv_case_service_case and journal name x_mobit_serv_case_service_case.
-  • Web search and weather are optional—only invoke if they add concrete value to the conversation.
+  • Always call ServiceNow tools before answering
+  • Use searchSimilarCases when context would help troubleshooting
+  • Web search only if it adds concrete value
 
-Response structure (use headings or bullet lists):
-  1. Summary – ≤3 concise sentences explaining what changed and why it matters.
-  2. Latest Activity – bullet the most recent journal/work-note entries chronologically (e.g. \`2025-10-06 15:49 UTC – agent@example.com: Issue acknowledged. Device rebooted.\`).
-  3. Current State – status, priority, assignment, submitter/requester (only if present in ServiceNow).
-  4. Next Actions – numbered, actionable steps or prerequisites (e.g. “Prerequisite: Confirm requester has VPN entitlement”).
-  5. References – cite artefacts inline with Slack formatting (e.g. \`SCS0048402 – 2025-10-06 15:49 UTC\`, <https://kb-link|KB KBA0001234>).
+Response format (use Slack markdown):
+  *Summary*
+  1-2 sentences max. What happened and why it matters. No filler text.
+
+  *Latest Activity*
+  • 2-3 most recent journal entries only
+  • Format: \`Sep 23, 16:06 – uahmed: Fixed by repair + set as default\`
+  • Keep it short - skip verbose notes
+
+  *Current State*
+  Status: [state] | Priority: [priority] | Assigned: [name]
+
+  *Next Actions*
+  1. Specific actionable step
+  2. Another step if needed
+
+  *References*
+  <https://servicenow.com/case|SCS0047226>
 
 Guardrails:
-  • Never tag Slack users or fabricate values. If a field is absent, state “Not provided in ServiceNow.”
-  • Do not treat approval names in notes as submitters; only use submitter/requester fields supplied by ServiceNow.
-  • Make it explicit when follow-up in ServiceNow is required (e.g. “Manual update needed…”).
-  • Today’s date is ${new Date().toISOString().split("T")[0]}.
-  • You have read-only access—suggest actions instead of claiming completion.`,
+  • Never show tool errors (like "Azure Search not configured") - handle silently
+  • Never suggest using tools in your response (like "request via generateKBArticle tool")
+  • Use bold headers with * not numbered lists
+  • Short timestamps: "Sep 23, 16:06" not "2025-09-23 16:06:25 UTC"
+  • If field missing: "Not provided"
+  • Today: ${new Date().toISOString().split("T")[0]}`,
       messages,
       maxSteps: 10,
       tools: {
@@ -282,9 +288,11 @@ Guardrails:
         }),
         execute: async ({ query, clientId, topK }) => {
           if (!azureSearchService) {
+            // Fail gracefully - return empty results, log to console
+            console.log("[searchSimilarCases] Azure Search not configured, returning empty results");
             return {
-              error:
-                "Case intelligence search is not configured. Azure Search credentials are required.",
+              similar_cases: [],
+              message: "No similar cases found.",
             };
           }
 
@@ -299,7 +307,7 @@ Guardrails:
             if (results.length === 0) {
               return {
                 similar_cases: [],
-                message: "No similar cases found in the knowledge base.",
+                message: "No similar cases found.",
               };
             }
 
@@ -313,19 +321,18 @@ Guardrails:
               total_found: results.length,
             };
           } catch (error) {
-            console.error("Similar cases search error", error);
+            // Fail gracefully - log error but return empty results
+            console.error("[searchSimilarCases] Error:", error);
             return {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to search similar cases",
+              similar_cases: [],
+              message: "No similar cases found.",
             };
           }
         },
       }),
       generateKBArticle: tool({
         description:
-          "Generate a knowledge base article from a resolved case conversation. Use this when a user explicitly asks to create KB documentation from a case discussion.",
+          "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
         parameters: z.object({
           caseNumber: z
             .string()
@@ -423,6 +430,7 @@ Guardrails:
   }
 
   return finalText
-    .replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>")
-    .replace(/\*\*/g, "*");
+    .replace(/^#{1,6}\s+(.+)$/gm, "*$1*") // Convert markdown headers to bold
+    .replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>") // Convert markdown links to Slack links
+    .replace(/\*\*/g, "*"); // Convert markdown bold to Slack bold
 };

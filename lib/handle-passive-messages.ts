@@ -296,8 +296,9 @@ async function handleUserResponse(
 
 /**
  * Notify when a case appears to be resolved - Multi-stage KB generation with quality assessment
+ * Exported for use in @mention flow
  */
-async function notifyResolution(
+export async function notifyResolution(
   caseNumber: string,
   channelId: string,
   threadTs: string
