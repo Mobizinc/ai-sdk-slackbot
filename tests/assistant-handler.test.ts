@@ -8,6 +8,14 @@ import {
 } from "../lib/generate-response";
 import { server } from "./setup";
 
+const hoisted = vi.hoisted(() => {
+  return {
+    postMessageMock: vi.fn(),
+    getThreadMock: vi.fn(),
+    statusUpdates: [] as Array<{ channel: string; thread: string; status: string }>,
+  };
+});
+
 vi.mock("@vercel/functions", () => ({
   waitUntil: <T>(promise: Promise<T>) => {
     promise.catch((error) => {
@@ -16,15 +24,11 @@ vi.mock("@vercel/functions", () => ({
   },
 }));
 
-const postMessageMock = vi.fn();
-const statusUpdates: Array<{ channel: string; thread: string; status: string }> = [];
-const getThreadMock = vi.fn();
-
 vi.mock("../lib/slack-utils", () => {
   return {
     client: {
       chat: {
-        postMessage: postMessageMock,
+        postMessage: hoisted.postMessageMock,
       },
       assistant: {
         threads: {
@@ -41,9 +45,9 @@ vi.mock("../lib/slack-utils", () => {
     },
     verifyRequest: vi.fn().mockResolvedValue(undefined),
     getBotId: vi.fn().mockResolvedValue("BOT123"),
-    getThread: getThreadMock,
+    getThread: hoisted.getThreadMock,
     updateStatusUtil: (channel: string, thread: string) => async (status: string) => {
-      statusUpdates.push({ channel, thread, status });
+      hoisted.statusUpdates.push({ channel, thread, status });
     },
   };
 });
@@ -53,10 +57,10 @@ vi.mock("../lib/handle-app-mention", () => ({
 }));
 
 describe("Slack events handler", () => {
-  beforeEach(() => {
-    statusUpdates.length = 0;
-    postMessageMock.mockReset();
-    getThreadMock.mockReset();
+beforeEach(() => {
+  hoisted.statusUpdates.length = 0;
+  hoisted.postMessageMock.mockReset();
+  hoisted.getThreadMock.mockReset();
 
     server.use(
       rest.get(
@@ -76,6 +80,7 @@ describe("Slack events handler", () => {
                   short_description: "New PACS",
                   priority: "4",
                   state: "10",
+                  opened_by: { display_value: "Sarah Partain" },
                 },
               ],
             }),
@@ -110,7 +115,7 @@ describe("Slack events handler", () => {
       ),
     );
 
-    getThreadMock.mockResolvedValue([
+    hoisted.getThreadMock.mockResolvedValue([
       {
         role: "user",
         content: "Please share the latest updates for case SCS0048402",
@@ -173,15 +178,15 @@ describe("Slack events handler", () => {
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("Success!");
 
-    expect(getThreadMock).toHaveBeenCalledTimes(1);
+    expect(hoisted.getThreadMock).toHaveBeenCalledTimes(1);
 
-    expect(statusUpdates).toEqual([
+    expect(hoisted.statusUpdates).toEqual([
       { channel: "D123", thread: "1728238123.000200", status: "is thinking..." },
       { channel: "D123", thread: "1728238123.000200", status: "" },
     ]);
 
-    expect(postMessageMock).toHaveBeenCalledTimes(1);
-    const postMessageArgs = postMessageMock.mock.calls[0][0];
+    expect(hoisted.postMessageMock).toHaveBeenCalledTimes(1);
+    const postMessageArgs = hoisted.postMessageMock.mock.calls[0][0];
     expect(postMessageArgs.channel).toBe("D123");
     expect(postMessageArgs.thread_ts).toBe("1728238123.000200");
     expect(postMessageArgs.text).toContain("Case SCS0048402");

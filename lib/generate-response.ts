@@ -30,6 +30,7 @@ export const generateResponse = async (
     Communication guidelines:
       - Keep every reply concise, professional, and action-oriented. Prefer short paragraphs or bullet lists for clarity.
       - Never tag Slack users (avoid the @ symbol entirely) and never invent data—state when information is missing or requires manual follow-up.
+      - When referencing metadata (submitter, assignment group, status, etc.), only report values that are explicitly provided by the tools. Do not infer roles or ownership from narrative text.
     References:
       - Always cite the data you surface. Reference ServiceNow artefacts inline using their identifiers and timestamps (e.g. \`SCS0048402 – 2025-10-06 15:49 UTC\`).
       - Format external sources with Slack links like <url|label>.
