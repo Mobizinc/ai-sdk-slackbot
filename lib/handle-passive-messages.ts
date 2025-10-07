@@ -9,6 +9,7 @@ import { getContextManager } from "./context-manager";
 import { serviceNowClient } from "./tools/servicenow";
 import { getKBGenerator } from "./services/kb-generator";
 import { getKBApprovalManager } from "./handle-kb-approval";
+import { getChannelInfo } from "./services/channel-info";
 
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
@@ -70,9 +71,23 @@ async function processCaseDetection(
     return;
   }
 
+  // Fetch and store channel info for context (first detection only)
+  try {
+    const channelInfo = await getChannelInfo(channelId);
+    if (channelInfo && context) {
+      context.channelName = channelInfo.channelName;
+    }
+  } catch (error) {
+    console.warn(`Could not fetch channel info for ${channelId}:`, error);
+    // Continue without channel info
+  }
+
   // First detection - post tracking message
   try {
-    const trackingMessage = await buildTrackingMessage(caseNumber);
+    const trackingMessage = await buildTrackingMessage(
+      caseNumber,
+      context?.channelName
+    );
 
     await client.chat.postMessage({
       channel: channelId,
@@ -91,8 +106,16 @@ async function processCaseDetection(
 /**
  * Build tracking message with case info
  */
-async function buildTrackingMessage(caseNumber: string): Promise<string> {
+async function buildTrackingMessage(
+  caseNumber: string,
+  channelName?: string
+): Promise<string> {
   let message = `👀 Watching case *${caseNumber}*`;
+
+  // Add channel context if available
+  if (channelName) {
+    message += ` in #${channelName}`;
+  }
 
   // Try to fetch basic case info from ServiceNow
   if (serviceNowClient.isConfigured()) {
