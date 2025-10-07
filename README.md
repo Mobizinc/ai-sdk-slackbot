@@ -14,6 +14,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
   - ServiceNow incident, case, and knowledge-base lookups (when configured)
+  - Similar cases search using Azure AI Search vector store (when configured)
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
 
 ## Prerequisites
@@ -22,6 +23,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - Slack workspace with admin privileges
 - [OpenAI API key](https://platform.openai.com/api-keys)
 - [Exa API key](https://exa.ai) (for web search functionality)
+- Azure AI Search service (optional, for similar cases search)
 - A server or hosting platform (e.g., [Vercel](https://vercel.com)) to deploy the bot
 
 ## Setup
@@ -90,6 +92,12 @@ OPENAI_API_KEY=your-openai-api-key
 
 # Exa API Key (for web search functionality)
 EXA_API_KEY=your-exa-api-key
+
+# Azure Search Configuration (optional, for case intelligence / similar cases search)
+AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
+AZURE_SEARCH_KEY=your-azure-search-api-key
+AZURE_SEARCH_INDEX_NAME=case-intelligence-prod
+CASE_EMBEDDING_MODEL=text-embedding-3-small
 
 # ServiceNow (optional)
 SERVICENOW_INSTANCE_URL=https://your-instance.service-now.com
@@ -186,6 +194,11 @@ The bot maintains context within both threads and direct messages, so it can fol
 3. **ServiceNow Toolkit (optional)**: When ServiceNow credentials are configured, the assistant can look up incidents and cases, pull recent work notes/comments, and search the knowledge base directly from Slack.
    - Example: "Show the latest updates for case SCS0048402"
    - Example: "Search ServiceNow knowledge base for multi-factor authentication"
+
+4. **Similar Cases Search (optional)**: When Azure AI Search is configured, the assistant can find similar historical cases using vector similarity search.
+   - Example: "Find similar cases to this VPN authentication issue"
+   - Example: "Search for cases similar to error code 0x80070035"
+   - Example: "Show me similar cases for client XYZ with network connectivity problems"
 
 ### Extending with New Tools
 
