@@ -34,11 +34,11 @@ describe("selectLanguageModel", () => {
 
   it("uses AI Gateway model when configured", async () => {
     process.env.AI_GATEWAY_API_KEY = "test-key";
-    process.env.AI_GATEWAY_DEFAULT_MODEL = "zai/glm-4.5";
+    process.env.AI_GATEWAY_DEFAULT_MODEL = "zai/glm-4.6";
 
     const { selectLanguageModel } = await loadModule();
     const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
 
-    expect(selection.modelId).toBe("zai/glm-4.5");
+    expect(selection.modelId).toBe("zai/glm-4.6");
   });
 });
