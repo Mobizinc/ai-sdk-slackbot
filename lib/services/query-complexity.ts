@@ -11,7 +11,7 @@ export interface ComplexityScore {
   level: ComplexityLevel;
   score: number; // 0-100
   reasons: string[];
-  recommendedModel: "gpt-5-mini" | "gpt-4o";
+  recommendedModel: "gpt-5-mini" | "gpt-5o";
 }
 
 /**
@@ -116,7 +116,7 @@ export function classifyQueryComplexity(messages: CoreMessage[]): ComplexityScor
 
   // Determine level (threshold at 40)
   const level: ComplexityLevel = score >= 40 ? "complex" : "simple";
-  const recommendedModel = level === "complex" ? "gpt-4o" : "gpt-5-mini";
+  const recommendedModel = level === "complex" ? "gpt-5o" : "gpt-5-mini";
 
   return {
     level,
@@ -135,7 +135,7 @@ export function forceComplexModel(messages: CoreMessage[]): boolean {
     ? lastMessage.content.toLowerCase()
     : "";
 
-  // Always use gpt-4o for KB generation
+  // Always use gpt-5o for KB generation
   if (userMessage.includes("resolved") && messages.some(m =>
     typeof m.content === "string" && /\b[A-Z]{3}\d{7}\b/.test(m.content)
   )) {
