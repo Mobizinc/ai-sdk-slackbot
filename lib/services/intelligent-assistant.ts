@@ -4,10 +4,11 @@
  */
 
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { sanitizeModelConfig } from "../model-capabilities";
+import { getBusinessContextService } from "./business-context-service";
+import { selectLanguageModel } from "../model-provider";
 
 export interface CaseGuidance {
   suggestions: string[];
@@ -23,7 +24,9 @@ export async function buildIntelligentAssistance(
   caseNumber: string,
   caseDetails: ServiceNowCaseResult | null,
   searchService: AzureSearchService | null,
-  channelName?: string
+  channelName?: string,
+  channelTopic?: string,
+  channelPurpose?: string
 ): Promise<string> {
   let message = `👋 I see you're working on *${caseNumber}*`;
 
@@ -64,7 +67,10 @@ export async function buildIntelligentAssistance(
 
       const guidance = await generateProactiveGuidance(
         caseDetails,
-        searchService
+        searchService,
+        channelName,
+        channelTopic,
+        channelPurpose
       );
 
       if (guidance) {
@@ -95,7 +101,10 @@ export async function buildIntelligentAssistance(
  */
 async function generateProactiveGuidance(
   caseDetails: ServiceNowCaseResult,
-  searchService: AzureSearchService
+  searchService: AzureSearchService,
+  channelName?: string,
+  channelTopic?: string,
+  channelPurpose?: string
 ): Promise<string | null> {
   const problemDescription = caseDetails.description || caseDetails.short_description || "";
 
@@ -125,7 +134,13 @@ async function generateProactiveGuidance(
   });
 
   // Use gpt-5 to synthesize guidance from similar cases
-  const guidance = await synthesizeGuidance(caseDetails, similarCases);
+  const guidance = await synthesizeGuidance(
+    caseDetails,
+    similarCases,
+    channelName,
+    channelTopic,
+    channelPurpose
+  );
 
   return guidance;
 }
@@ -135,7 +150,10 @@ async function generateProactiveGuidance(
  */
 async function synthesizeGuidance(
   currentCase: ServiceNowCaseResult,
-  similarCases: SimilarCase[]
+  similarCases: SimilarCase[],
+  channelName?: string,
+  channelTopic?: string,
+  channelPurpose?: string
 ): Promise<string> {
   const currentProblem = currentCase.description || currentCase.short_description || "";
 
@@ -146,7 +164,7 @@ ${c.content.substring(0, 300)}...`;
     })
     .join("\n\n");
 
-  const prompt = `You are a Service Desk AI assistant helping an agent troubleshoot a case.
+  const basePrompt = `You are a Service Desk AI assistant helping an agent troubleshoot a case.
 
 **Current Case:**
 ${currentProblem}
@@ -175,10 +193,20 @@ IMPORTANT:
 - Start directly with "*Similar Cases Found:*"`;
 
   try {
-    const generationConfig = sanitizeModelConfig("gpt-5", {
-      model: openai("gpt-5"),
-      prompt,
-      temperature: 0.4, // Balanced - creative but focused
+    // Enhance prompt with business context
+    const businessContextService = getBusinessContextService();
+    const enhancedPrompt = await businessContextService.enhancePromptWithContext(
+      basePrompt,
+      channelName,
+      channelTopic,
+      channelPurpose
+    );
+
+    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
+      model: modelSelection.model,
+      prompt: enhancedPrompt,
     });
 
     const { text } = await generateText(generationConfig);

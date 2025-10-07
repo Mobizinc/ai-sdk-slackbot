@@ -97,6 +97,8 @@ async function processCaseDetection(
     const channelInfo = await getChannelInfo(channelId);
     if (channelInfo && context) {
       context.channelName = channelInfo.channelName;
+      (context as any).channelTopic = channelInfo.channelTopic;
+      (context as any).channelPurpose = channelInfo.channelPurpose;
     }
   } catch (error) {
     console.warn(`Could not fetch channel info for ${channelId}:`, error);
@@ -123,7 +125,9 @@ async function processCaseDetection(
       caseNumber,
       caseDetails,
       azureSearchService,
-      context?.channelName
+      context?.channelName,
+      (context as any)?.channelTopic,
+      (context as any)?.channelPurpose
     );
 
     await client.chat.postMessage({

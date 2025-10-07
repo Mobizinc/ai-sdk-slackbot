@@ -1,0 +1,163 @@
+{
+  "clients": [
+    {
+      "entityName": "Altus Community Healthcare",
+      "entityType": "CLIENT",
+      "industry": "Healthcare",
+      "description": "Managed services client operating healthcare facilities across multiple locations",
+      "aliases": ["Altus", "Altus Health", "Altus Healthcare"],
+      "relatedEntities": ["Epic", "Cerner", "Microsoft 365"],
+      "technologyPortfolio": "Epic EHR, Microsoft 365, Azure AD, Cisco networking, FortiGate firewalls",
+      "serviceDetails": "24/7 managed IT services including helpdesk, network management, and EHR support",
+      "keyContacts": [
+        {
+          "name": "John Smith",
+          "role": "IT Director",
+          "email": "jsmith@altushealth.com"
+        },
+        {
+          "name": "Sarah Johnson",
+          "role": "CTO",
+          "email": "sjohnson@altushealth.com"
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "entityName": "Neighbors Emergency Center",
+      "entityType": "CLIENT",
+      "industry": "Healthcare",
+      "description": "Emergency room and urgent care provider with multiple facilities",
+      "aliases": ["Neighbors ER", "Neighbors", "NEC"],
+      "relatedEntities": ["Meditech", "Microsoft 365"],
+      "technologyPortfolio": "Meditech EHR, Microsoft 365, Azure, VMware infrastructure",
+      "serviceDetails": "Managed IT services, EHR support, and infrastructure management",
+      "keyContacts": [
+        {
+          "name": "Dr. Michael Chen",
+          "role": "Medical Director",
+          "email": "mchen@neighborsec.com"
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "entityName": "FPA Women's Health",
+      "entityType": "CLIENT",
+      "industry": "Healthcare",
+      "description": "Women's health medical services provider specializing in reproductive health",
+      "aliases": ["FPA", "Family Planning Associates"],
+      "relatedEntities": ["eClinicalWorks", "Microsoft 365"],
+      "technologyPortfolio": "eClinicalWorks EHR, Microsoft 365, SonicWall firewalls",
+      "serviceDetails": "IT support, practice management systems, and compliance support",
+      "keyContacts": [
+        {
+          "name": "Lisa Martinez",
+          "role": "Practice Manager",
+          "email": "lmartinez@fpahealth.com"
+        }
+      ],
+      "isActive": true
+    }
+  ],
+  "vendors": [
+    {
+      "entityName": "Microsoft",
+      "entityType": "VENDOR",
+      "industry": "Software",
+      "description": "Cloud services, productivity software, and enterprise solutions provider",
+      "aliases": ["MS", "MSFT", "Microsoft Corporation"],
+      "relatedEntities": ["Azure", "Office 365", "Teams", "SharePoint", "Exchange"],
+      "technologyPortfolio": "Azure cloud platform, Microsoft 365, Windows Server, SQL Server, Active Directory",
+      "serviceDetails": "Primary cloud and productivity vendor for most clients",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "Fortinet",
+      "entityType": "VENDOR",
+      "industry": "Networking & Security",
+      "description": "Network security and firewall vendor providing enterprise protection",
+      "aliases": ["FortiGate", "FortiNet"],
+      "relatedEntities": ["FortiGate", "FortiManager", "FortiAnalyzer"],
+      "technologyPortfolio": "FortiGate firewalls, FortiManager, FortiAnalyzer, SD-WAN solutions",
+      "serviceDetails": "Primary firewall and network security vendor",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "Palo Alto Networks",
+      "entityType": "VENDOR",
+      "industry": "Security",
+      "description": "Network security, firewall, and threat prevention vendor",
+      "aliases": ["Palo Alto", "PA", "PAN"],
+      "relatedEntities": ["Panorama", "WildFire", "Cortex"],
+      "technologyPortfolio": "Next-gen firewalls, Panorama management, threat prevention, cloud security",
+      "serviceDetails": "Network security vendor for select clients",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "Cisco",
+      "entityType": "VENDOR",
+      "industry": "Networking",
+      "description": "Network infrastructure and collaboration solutions provider",
+      "aliases": ["Cisco Systems"],
+      "relatedEntities": ["Meraki", "Webex", "Catalyst"],
+      "technologyPortfolio": "Switches, routers, wireless access points, Meraki cloud networking, Webex",
+      "serviceDetails": "Primary networking hardware vendor",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "VMware",
+      "entityType": "VENDOR",
+      "industry": "Virtualization",
+      "description": "Virtualization and cloud computing software provider",
+      "aliases": ["VMWare"],
+      "relatedEntities": ["vSphere", "ESXi", "vCenter"],
+      "technologyPortfolio": "vSphere, ESXi, vCenter, NSX, vSAN",
+      "serviceDetails": "Virtualization platform for on-premises infrastructure",
+      "keyContacts": [],
+      "isActive": true
+    }
+  ],
+  "platforms": [
+    {
+      "entityName": "Azure",
+      "entityType": "PLATFORM",
+      "industry": "Cloud",
+      "description": "Microsoft's cloud computing platform providing IaaS, PaaS, and SaaS solutions",
+      "aliases": ["Azure Cloud", "Microsoft Azure", "MS Azure"],
+      "relatedEntities": ["Microsoft", "Azure AD", "Azure DevOps"],
+      "technologyPortfolio": "Virtual machines, storage, networking, AI services, managed databases",
+      "serviceDetails": "Primary cloud platform for most clients",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "ServiceNow",
+      "entityType": "PLATFORM",
+      "industry": "ITSM",
+      "description": "IT service management and workflow automation platform",
+      "aliases": ["SNOW", "ServiceNow ITSM"],
+      "relatedEntities": [],
+      "technologyPortfolio": "Incident management, change management, CMDB, service catalog",
+      "serviceDetails": "Internal ticketing and case management system",
+      "keyContacts": [],
+      "isActive": true
+    },
+    {
+      "entityName": "Microsoft 365",
+      "entityType": "PLATFORM",
+      "industry": "Productivity",
+      "description": "Cloud-based productivity and collaboration suite",
+      "aliases": ["M365", "Office 365", "O365"],
+      "relatedEntities": ["Microsoft", "Exchange", "Teams", "SharePoint"],
+      "technologyPortfolio": "Exchange Online, Teams, SharePoint, OneDrive, Office apps",
+      "serviceDetails": "Standard productivity platform for all clients",
+      "keyContacts": [],
+      "isActive": true
+    }
+  ]
+}

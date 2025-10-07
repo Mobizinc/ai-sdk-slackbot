@@ -3,10 +3,10 @@
  * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
-import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import type { CaseContext } from "../context-manager";
 import { sanitizeModelConfig } from "../model-capabilities";
+import { selectLanguageModel } from "../model-provider";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
 
@@ -99,10 +99,11 @@ Return ONLY valid JSON in this format:
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const generationConfig = sanitizeModelConfig("gpt-5", {
-      model: openai("gpt-5"),
+    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
+      model: modelSelection.model,
       prompt,
-      temperature: 0.3, // Low temperature for consistent assessment
     });
 
     const { text } = await generateText(generationConfig);

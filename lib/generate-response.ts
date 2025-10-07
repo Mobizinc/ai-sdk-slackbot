@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { CoreMessage, generateText, tool } from "ai";
 import { z } from "zod";
 import { exa } from "./utils";
@@ -7,6 +6,8 @@ import { createAzureSearchService } from "./services/azure-search";
 import { getContextManager } from "./context-manager";
 import { getKBGenerator } from "./services/kb-generator";
 import { sanitizeModelConfig } from "./model-capabilities";
+import { getBusinessContextService } from "./services/business-context-service";
+import { selectLanguageModel } from "./model-provider";
 
 let generateTextImpl = generateText;
 
@@ -27,14 +28,40 @@ export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
-  const runModel = async (modelName: string) => {
-    const config: any = {
-      model: openai(modelName),
-      system: `You are the Mobiz Service Desk Assistant in Slack for analysts and engineers.
+  const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+
+  const runModel = async () => {
+    // Extract case numbers and context for business context enrichment
+    const contextManager = getContextManager();
+    const businessContextService = getBusinessContextService();
+
+    let companyName: string | undefined;
+    let channelTopic: string | undefined;
+    let channelPurpose: string | undefined;
+
+    // Try to extract company from conversation context
+    const messageText = messages.map(m => typeof m.content === 'string' ? m.content : '').join(' ');
+    const caseNumbers = contextManager.extractCaseNumbers(messageText);
+
+    if (caseNumbers.length > 0) {
+      // Get context for the first case number mentioned
+      const contexts = contextManager.getContextsForCase(caseNumbers[0]);
+      if (contexts.length > 0) {
+        const context = contexts[0];
+        companyName = context.channelName; // Use channel name as company hint
+        channelTopic = (context as any).channelTopic;
+        channelPurpose = (context as any).channelPurpose;
+      }
+    }
+
+    // Build base system prompt
+    const baseSystemPrompt = `You are the Mobiz Service Desk Assistant in Slack for analysts and engineers.
 
 Tool usage:
-  • Always call ServiceNow tools before answering
-  • Use searchSimilarCases when context would help troubleshooting
+  • Call ServiceNow tools to get details for cases explicitly mentioned in the conversation
+  • Use searchSimilarCases to find reference cases for context and pattern recognition
+  • IMPORTANT: Similar cases are for REFERENCE ONLY - never display their journal entries, activity, or specific details
+  • Only show journal entries and case details for cases explicitly mentioned in the current conversation
   • Web search only if it adds concrete value
 
 Response format (use Slack markdown):
@@ -42,8 +69,8 @@ Response format (use Slack markdown):
   1-2 sentences max. What happened and why it matters. No filler text.
 
   *Latest Activity*
-  • 2-3 most recent journal entries only
-  • Format: \`Sep 23, 16:06 – uahmed: Fixed by repair + set as default\`
+  • 2-3 most recent journal entries only - ONLY for cases explicitly mentioned in conversation
+  • Format: \`Oct 5, 14:23 – jsmith: Updated configuration settings\`
   • Keep it short - skip verbose notes
 
   *Current State*
@@ -54,15 +81,28 @@ Response format (use Slack markdown):
   2. Another step if needed
 
   *References*
-  <https://servicenow.com/case|SCS0047226>
+  <https://servicenow.com/case|SCS1234567>
 
 Guardrails:
   • Never show tool errors (like "Azure Search not configured") - handle silently
   • Never suggest using tools in your response (like "request via generateKBArticle tool")
+  • Never display journal entries or details from similar/reference cases
   • Use bold headers with * not numbered lists
-  • Short timestamps: "Sep 23, 16:06" not "2025-09-23 16:06:25 UTC"
+  • Short timestamps: "Oct 5, 14:23" not "2025-10-05 14:23:45 UTC"
   • If field missing: "Not provided"
-  • Today: ${new Date().toISOString().split("T")[0]}`,
+  • Today: ${new Date().toISOString().split("T")[0]}`;
+
+    // Enhance system prompt with business context
+    const enhancedSystemPrompt = await businessContextService.enhancePromptWithContext(
+      baseSystemPrompt,
+      companyName,
+      channelTopic,
+      channelPurpose
+    );
+
+    const config: any = {
+      model: modelSelection.model,
+      system: enhancedSystemPrompt,
       messages,
       maxSteps: 10,
       tools: {
@@ -270,7 +310,7 @@ Guardrails:
       }),
       searchSimilarCases: tool({
         description:
-          "Search for similar historical cases using vector similarity. Use this to find cases with similar issues, error messages, or technical contexts. This searches the case intelligence knowledge base.",
+          "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
         parameters: z.object({
           query: z
             .string()
@@ -405,20 +445,18 @@ Guardrails:
     };
 
     // gpt-5-mini does not support temperature parameter - ensure it never slips through
-    const sanitizedConfig = sanitizeModelConfig(modelName, config);
+    const sanitizedConfig = sanitizeModelConfig(modelSelection.modelId, config);
     return generateTextImpl(sanitizedConfig);
   };
 
-  // Always use gpt-5-mini
-  const selectedModel = "gpt-5-mini";
-  console.log("[Model Router] Using gpt-5-mini");
+  console.log(`[Model Router] Using ${modelSelection.modelId}`);
 
   let text: string;
 
   try {
-    ({ text } = await runModel(selectedModel));
+    ({ text } = await runModel());
   } catch (error) {
-    console.error(`Model ${selectedModel} failed:`, error);
+    console.error(`Model ${modelSelection.modelId} failed:`, error);
     throw error; // Don't fallback, just fail
   }
 

@@ -8,6 +8,8 @@ import { client } from "../slack-utils";
 interface ChannelInfo {
   channelId: string;
   channelName: string;
+  channelTopic?: string;
+  channelPurpose?: string;
   potentialCustomer?: string;
 }
 
@@ -74,11 +76,15 @@ export async function getChannelInfo(
     }
 
     const channelName = result.channel.name || channelId;
+    const channelTopic = result.channel.topic?.value || undefined;
+    const channelPurpose = result.channel.purpose?.value || undefined;
     const potentialCustomer = extractCustomerHint(channelName);
 
     const info: ChannelInfo = {
       channelId,
       channelName,
+      channelTopic,
+      channelPurpose,
       potentialCustomer,
     };
 
