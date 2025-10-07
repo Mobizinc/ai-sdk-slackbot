@@ -3,6 +3,7 @@ import { CoreMessage, generateText, tool } from "ai";
 import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
+import { createAzureSearchService } from "./services/azure-search";
 
 let generateTextImpl = generateText;
 
@@ -15,6 +16,9 @@ export const __setGenerateTextImpl = (
 export const __resetGenerateTextImpl = () => {
   generateTextImpl = generateText;
 };
+
+// Initialize Azure Search service (singleton)
+const azureSearchService = createAzureSearchService();
 
 export const generateResponse = async (
   messages: CoreMessage[],
@@ -33,6 +37,7 @@ Primary responsibilities:
 
 Tool usage:
   • Always call the ServiceNow tools before answering. Do not infer metadata from narrative text.
+  • Use searchSimilarCases to find historical cases with similar issues, especially when patterns or context would help troubleshooting.
   • Default to the custom case table x_mobit_serv_case_service_case and journal name x_mobit_serv_case_service_case.
   • Web search and weather are optional—only invoke if they add concrete value to the conversation.
 
@@ -250,6 +255,67 @@ Guardrails:
             return {
               error:
                 error instanceof Error ? error.message : "Unknown ServiceNow error",
+            };
+          }
+        },
+      }),
+      searchSimilarCases: tool({
+        description:
+          "Search for similar historical cases using vector similarity. Use this to find cases with similar issues, error messages, or technical contexts. This searches the case intelligence knowledge base.",
+        parameters: z.object({
+          query: z
+            .string()
+            .describe("The case description or issue text to find similar cases for"),
+          clientId: z
+            .string()
+            .optional()
+            .describe("Optional client/company identifier to filter results to a specific customer"),
+          topK: z
+            .number()
+            .min(1)
+            .max(10)
+            .optional()
+            .describe("Number of similar cases to return (default: 5)"),
+        }),
+        execute: async ({ query, clientId, topK }) => {
+          if (!azureSearchService) {
+            return {
+              error:
+                "Case intelligence search is not configured. Azure Search credentials are required.",
+            };
+          }
+
+          try {
+            updateStatus?.(`is searching for similar cases...`);
+
+            const results = await azureSearchService.searchSimilarCases(query, {
+              topK: topK ?? 5,
+              clientId,
+            });
+
+            if (results.length === 0) {
+              return {
+                similar_cases: [],
+                message: "No similar cases found in the knowledge base.",
+              };
+            }
+
+            return {
+              similar_cases: results.map((r) => ({
+                case_number: r.case_number,
+                similarity_score: r.score,
+                content_preview: r.content.substring(0, 300) + (r.content.length > 300 ? "..." : ""),
+                created_at: r.created_at,
+              })),
+              total_found: results.length,
+            };
+          } catch (error) {
+            console.error("Similar cases search error", error);
+            return {
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to search similar cases",
             };
           }
         },

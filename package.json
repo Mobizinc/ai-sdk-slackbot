@@ -15,10 +15,13 @@
   "license": "ISC",
   "dependencies": {
     "@ai-sdk/openai": "^1.1.14",
+    "@azure/search-documents": "^12.1.0",
     "@slack/web-api": "^7.9.3",
     "@vercel/functions": "^2.0.0",
     "ai": "^4.1.46",
+    "dotenv": "^17.2.3",
     "exa-js": "^1.4.10",
+    "openai": "^6.2.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
