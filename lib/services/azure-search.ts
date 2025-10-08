@@ -154,15 +154,16 @@ export class AzureSearchService {
     query: string,
     options: SearchOptions = {}
   ): Promise<SimilarCase[]> {
-    // Add filter for KB articles if your index distinguishes them
-    const kbFilters = {
-      ...options.filters,
-      content_type: "knowledge_base",
-    };
+    // Search for KB articles
+    // Note: If your index has a content_type field, uncomment the filter below
+    // const kbFilters = {
+    //   ...options.filters,
+    //   content_type: "knowledge_base",
+    // };
 
     return this.searchSimilarCases(query, {
       ...options,
-      filters: kbFilters,
+      // filters: kbFilters, // Uncomment when index has content_type field
     });
   }
 }
