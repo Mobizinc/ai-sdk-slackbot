@@ -54,10 +54,11 @@ export async function POST(request: Request) {
         !!messageEvent.thread_ts && messageEvent.thread_ts !== messageEvent.ts;
       const isDirectMessage = messageEvent.channel_type === "im";
 
-      // Handle direct messages and thread replies with the assistant
+      // Handle direct messages with the assistant
+      // Thread replies are handled by passive monitoring and @mentions only
       if (
         !messageEvent.subtype &&
-        (isDirectMessage || isThreadReply) &&
+        isDirectMessage &&
         !messageEvent.bot_id &&
         !messageEvent.bot_profile &&
         messageEvent.bot_id !== botUserId

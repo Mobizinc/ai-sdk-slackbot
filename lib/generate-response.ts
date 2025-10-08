@@ -28,7 +28,7 @@ export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
-  const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+  const modelSelection = selectLanguageModel({});
 
   const runModel = async () => {
     // Extract case numbers and context for business context enrichment
@@ -56,6 +56,14 @@ export const generateResponse = async (
 
     // Build base system prompt
     const baseSystemPrompt = `You are the Mobiz Service Desk Assistant in Slack for analysts and engineers.
+
+IMPORTANT: Engineers are actively troubleshooting. Only respond when:
+  • You have NEW, actionable information to contribute
+  • User explicitly asks you a question
+  • Never restate what engineers just said
+  • Never generate summaries mid-conversation unless explicitly requested
+  • If you would just be agreeing or acknowledging, stay silent
+  • Observe and track, but don't interrupt active work
 
 Tool usage:
   • Call ServiceNow tools to get details for cases explicitly mentioned in the conversation
