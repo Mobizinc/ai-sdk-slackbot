@@ -533,7 +533,7 @@ Guardrails:
 
     console.log(`[Model Response${retryLabel}] Full result:`, JSON.stringify(modelResult, null, 2).substring(0, 2000));
     console.log(`[Model Response${retryLabel}] Response keys:`, Object.keys(modelResult));
-    console.log(`[Model Response${retryLabel}] Text length: ${modelResult.text.length}`);
+    console.log(`[Model Response${retryLabel}] Text length: ${modelResult.text?.length || 0}`);
     console.log(`[Model Response${retryLabel}] Raw text:`, modelResult.text);
     console.log(`[Model Response${retryLabel}] Finish reason:`, modelResult.finishReason);
     console.log(`[Model Response${retryLabel}] Usage:`, modelResult.usage);
@@ -633,11 +633,11 @@ Guardrails:
         ) as any;
         const fallbackResult = await generateTextImpl(sanitizedFallbackConfig);
 
-        console.log(`[Fallback] ${openAiFallback} response:`, fallbackResult.text.substring(0, 200));
+        console.log(`[Fallback] ${openAiFallback} response:`, fallbackResult.text?.substring(0, 200));
         console.log(`[Fallback] Finish reason:`, fallbackResult.finishReason);
         console.log(`[Fallback] Usage:`, fallbackResult.usage);
 
-        finalText = fallbackResult.text.trim();
+        finalText = fallbackResult.text?.trim();
 
         if (finalText) {
           console.log(`[Fallback] Successfully recovered using ${openAiFallback}`);
