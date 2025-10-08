@@ -462,24 +462,34 @@ Guardrails:
   let text: string;
   let result: any;
 
-  try {
-    result = await runModel();
+  // Helper function to run model with detailed logging
+  const runModelWithLogging = async (modelId: string, isRetry = false) => {
+    const retryLabel = isRetry ? " (RETRY)" : "";
+    console.log(`[Model Request${retryLabel}] Model: ${modelId}`);
+    console.log(`[Model Request${retryLabel}] Messages count: ${messages.length}`);
+    console.log(`[Model Request${retryLabel}] Last message:`, messages[messages.length - 1]);
 
-    console.log(`[Model Response] Full result:`, JSON.stringify(result, null, 2).substring(0, 2000));
-    console.log(`[Model Response] Response keys:`, Object.keys(result));
+    const modelResult = await runModel();
 
-    text = result.text;
-
-    console.log(`[Model Response] Text length: ${text?.length || 0}`);
-    console.log(`[Model Response] Raw text:`, text);
-    console.log(`[Model Response] Finish reason:`, result.finishReason);
-    console.log(`[Model Response] Usage:`, result.usage);
-    console.log(`[Model Response] Response metadata:`, JSON.stringify({
-      finishReason: result.finishReason,
-      usage: result.usage,
-      warnings: result.warnings,
-      rawResponse: result.rawResponse?.headers,
+    console.log(`[Model Response${retryLabel}] Full result:`, JSON.stringify(modelResult, null, 2).substring(0, 2000));
+    console.log(`[Model Response${retryLabel}] Response keys:`, Object.keys(modelResult));
+    console.log(`[Model Response${retryLabel}] Text length: ${modelResult.text?.length || 0}`);
+    console.log(`[Model Response${retryLabel}] Raw text:`, modelResult.text);
+    console.log(`[Model Response${retryLabel}] Finish reason:`, modelResult.finishReason);
+    console.log(`[Model Response${retryLabel}] Usage:`, modelResult.usage);
+    console.log(`[Model Response${retryLabel}] Response metadata:`, JSON.stringify({
+      finishReason: modelResult.finishReason,
+      usage: modelResult.usage,
+      warnings: modelResult.warnings,
+      rawResponse: modelResult.rawResponse?.headers,
     }, null, 2));
+
+    return modelResult;
+  };
+
+  try {
+    result = await runModelWithLogging(activeModelId);
+    text = result.text;
 
     // Check for tool calls or steps that might explain empty text
     if (result.steps) {
@@ -525,13 +535,70 @@ Guardrails:
     throw error; // Don't fallback, just fail
   }
 
-  // Convert markdown to Slack mrkdwn format
-  const finalText = text?.trim();
+  // Handle empty response from GLM-4.6 with OpenAI fallback
+  let finalText = text?.trim();
 
   if (!finalText) {
-    throw new Error("No response text generated");
+    console.warn(`[Empty Response] ${activeModelId} returned empty text`);
+    console.warn(`[Empty Response] Finish reason: ${result.finishReason}`);
+    console.warn(`[Empty Response] Usage:`, result.usage);
+    console.warn(`[Empty Response] Steps:`, result.steps?.length || 0);
+
+    // Check if this is GLM-4.6 and we can fallback to OpenAI
+    const isGatewayModel = activeModelId.includes("glm");
+    const openAiFallback = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
+
+    if (isGatewayModel) {
+      console.warn(`[Fallback] Retrying with ${openAiFallback} due to empty GLM response`);
+
+      try {
+        // Import openai provider for fallback
+        const { openai } = await import("@ai-sdk/openai");
+
+        // Recreate config with OpenAI model
+        const fallbackConfig = {
+          model: openai(openAiFallback),
+          messages: config.messages,
+          system: config.system,
+          tools: config.tools,
+          maxSteps: config.maxSteps,
+          experimental_telemetry: config.experimental_telemetry,
+          onStepFinish: config.onStepFinish,
+        };
+
+        const sanitizedFallbackConfig = sanitizeModelConfig(openAiFallback, fallbackConfig);
+        const fallbackResult = await generateTextImpl(sanitizedFallbackConfig);
+
+        console.log(`[Fallback] ${openAiFallback} response:`, fallbackResult.text?.substring(0, 200));
+        console.log(`[Fallback] Finish reason:`, fallbackResult.finishReason);
+        console.log(`[Fallback] Usage:`, fallbackResult.usage);
+
+        finalText = fallbackResult.text?.trim();
+
+        if (finalText) {
+          console.log(`[Fallback] Successfully recovered using ${openAiFallback}`);
+        }
+      } catch (fallbackError) {
+        console.error(`[Fallback] ${openAiFallback} also failed:`, fallbackError);
+      }
+    }
+
+    // If still empty after fallback, provide helpful error message
+    if (!finalText) {
+      // Check if user's message is empty or just a mention
+      const userMessage = messages[messages.length - 1];
+      const userText = userMessage?.content?.toString().trim();
+
+      if (!userText || userText.length < 10) {
+        finalText = "Hi! I'm your Mobiz Service Desk Assistant. How can I help you today?";
+        console.log(`[Empty Response] Returning friendly greeting for empty/short mention`);
+      } else {
+        throw new Error("No response text generated from any model");
+      }
+    }
   }
 
+  // Convert markdown to Slack mrkdwn format
   return finalText
     .replace(/^#{1,6}\s+(.+)$/gm, "*$1*") // Convert markdown headers to bold
     .replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>") // Convert markdown links to Slack links
