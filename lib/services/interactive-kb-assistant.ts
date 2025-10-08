@@ -74,7 +74,7 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+    const modelSelection = selectLanguageModel();
 
     const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
       model: modelSelection.model,
