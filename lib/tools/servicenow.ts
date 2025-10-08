@@ -12,7 +12,7 @@ interface ServiceNowConfig {
 }
 
 const config: ServiceNowConfig = {
-  instanceUrl: process.env.SERVICENOW_INSTANCE_URL,
+  instanceUrl: process.env.SERVICENOW_INSTANCE_URL || process.env.SERVICENOW_URL,
   username: process.env.SERVICENOW_USERNAME,
   password: process.env.SERVICENOW_PASSWORD,
   apiToken: process.env.SERVICENOW_API_TOKEN,

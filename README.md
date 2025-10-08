@@ -92,8 +92,14 @@ Create a `.env` file in the root of your project with the following:
 SLACK_BOT_TOKEN=xoxb-your-bot-token
 SLACK_SIGNING_SECRET=your-signing-secret
 
-# OpenAI Credentials
+# AI Model Configuration (Primary: AI Gateway with GLM-4.6, Fallback: OpenAI)
+# AI Gateway (Z.ai GLM-4.6 - 200K context, faster, cheaper)
+AI_GATEWAY_API_KEY=vck_your-gateway-api-key
+AI_GATEWAY_DEFAULT_MODEL=zai/glm-4.6
+
+# OpenAI (Fallback + Embeddings for vector search)
 OPENAI_API_KEY=your-openai-api-key
+OPENAI_FALLBACK_MODEL=gpt-5-mini
 
 # Exa API Key (for web search functionality)
 EXA_API_KEY=your-exa-api-key
@@ -104,13 +110,17 @@ AZURE_SEARCH_KEY=your-azure-search-api-key
 AZURE_SEARCH_INDEX_NAME=case-intelligence-prod
 CASE_EMBEDDING_MODEL=text-embedding-3-small
 
-# ServiceNow (optional)
-SERVICENOW_INSTANCE_URL=https://your-instance.service-now.com
-# Either username/password or API token
+# ServiceNow (optional - for case lookups and KB integration)
+SERVICENOW_URL=https://your-instance.service-now.com
+# Or use SERVICENOW_INSTANCE_URL (both work, URL takes precedence)
+# SERVICENOW_INSTANCE_URL=https://your-instance.service-now.com
+
+# Authentication: Either username/password or API token
 SERVICENOW_USERNAME=your-servicenow-username
 SERVICENOW_PASSWORD=your-servicenow-password
 # Or
 # SERVICENOW_API_TOKEN=your-servicenow-api-token
+
 # Optional overrides (defaults shown)
 # SERVICENOW_CASE_TABLE=sn_customerservice_case
 # SERVICENOW_CASE_JOURNAL_NAME=x_mobit_serv_case_service_case
@@ -238,20 +248,55 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Search for cases similar to error code 0x80070035"
    - Example: "Show me similar cases for client XYZ with network connectivity problems"
 
-5. **Passive Case Monitoring & Auto-KB Generation**: The bot automatically watches for case numbers and creates knowledge base articles.
-   - **Detection**: When a case number like `SCS0048402` is mentioned, bot replies "👀 Watching case SCS0048402"
-   - **Tracking**: Maintains conversation context (rolling 20-message window per case)
-   - **Resolution Detection**: Identifies keywords ("fixed", "resolved", "working", "closed")
-   - **KB Generation**: Automatically generates structured KB article from conversation
-   - **Deduplication**: Searches existing KBs to avoid duplicates (>85% similarity threshold)
-   - **Approval Workflow**: Posts draft KB with confidence score, react with ✅ to approve or ❌ to reject
-   - **Manual Trigger**: Ask bot "Generate KB article for case SCS0048402" for on-demand generation
+5. **Passive Case Monitoring & Multi-Stage KB Generation**: The bot automatically watches for case numbers and creates knowledge base articles through an intelligent, quality-aware workflow.
+
+   **Passive Monitoring:**
+   - **Detection**: Automatically detects case numbers (e.g., `SCS0048402`) in channel messages
+   - **Intelligent Assistance**: Posts threaded reply with case details, similar historical cases, and business context
+   - **Context Tracking**: Maintains rolling 20-message window per case, persisted to PostgreSQL
+   - **Resolution Detection**: Identifies keywords ("fixed", "resolved", "working", "closed", "done")
    - No @mention needed - works passively in the background
 
+   **Multi-Stage KB Generation Workflow:**
+
+   1. **Resolution Summary** (AI-powered)
+      - Concise summary of what was resolved posted to thread
+      - Non-blocking, continues to quality assessment
+
+   2. **Quality Assessment** (AI-powered decision engine)
+      - Analyzes conversation completeness: problem clarity, solution detail, steps documented, root cause
+      - Scores 0-100 with three decision paths:
+        - **Score ≥80** (High Quality): Direct to KB generation
+        - **Score 50-79** (Needs Input): Interactive Q&A to gather missing information
+        - **Score <50** (Insufficient): Requests case notes update in ServiceNow
+
+   3a. **High Quality Path** (Score ≥80)
+      - **Duplicate Detection**: Searches existing KBs via vector similarity (>85% = duplicate)
+      - **KB Generation**: Creates structured article with AI (title, problem, environment, solution, root cause, tags)
+      - **Confidence Scoring**: 0-100% based on conversation quality
+      - **Approval Workflow**: Posts draft, react with ✅ to approve or ❌ to reject
+      - **Auto-publish**: [Future] Creates KB in ServiceNow on approval
+
+   3b. **Interactive Gathering Path** (Score 50-79)
+      - **Contextual Questions**: AI generates 3-5 specific questions to fill knowledge gaps
+      - **User Interaction**: Waits for responses (24h timeout, max 5 attempts)
+      - **Re-assessment**: Quality re-evaluated after each response
+      - **Adaptive**: Jumps to high-quality path when score improves to ≥80
+
+   3c. **Insufficient Path** (Score <50)
+      - **Case Notes Request**: Asks user to update ServiceNow case notes
+      - **Manual Follow-up**: Requires intervention before KB creation
+
    **KB Article Structure:**
-   - Title, Problem Statement, Environment, Step-by-Step Solution
-   - Root Cause Analysis, Related Cases, Auto-extracted Tags
+   - Title (50-80 chars), Problem Statement, Environment (systems/versions)
+   - Step-by-Step Solution (markdown formatted), Root Cause Analysis
+   - Related Cases (auto-extracted), Tags (auto-generated for search)
+   - Conversation Summary (full context preserved)
    - Confidence scoring (🟢 High ≥75%, 🟡 Medium ≥50%, 🟠 Low <50%)
+
+   **State Persistence:**
+   - All workflow states persisted to PostgreSQL (survives bot restarts)
+   - Background cleanup jobs handle timeouts (24h for Q&A, expired approvals)
 
 ### Extending with New Tools
 

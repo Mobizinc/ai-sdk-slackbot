@@ -1,4 +1,4 @@
-import { CoreMessage, generateText, tool } from "ai";
+import { CoreMessage, generateText, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
@@ -112,11 +112,11 @@ Guardrails:
       model: modelProvider.languageModel("chat-model"),
       system: enhancedSystemPrompt,
       messages,
-      maxSteps: 10,
+      stopWhen: stepCountIs(10),
       tools: {
       getWeather: tool({
         description: "Get the current weather at a location",
-        parameters: z.object({
+        inputSchema: z.object({
           latitude: z.number(),
           longitude: z.number(),
           city: z.string(),
@@ -139,7 +139,7 @@ Guardrails:
       }),
       searchWeb: tool({
         description: "Use this to search the web for information",
-        parameters: z.object({
+        inputSchema: z.object({
           query: z.string(),
           specificDomain: z
             .string()
@@ -174,7 +174,7 @@ Guardrails:
       serviceNow: tool({
         description:
           "Read data from ServiceNow (incidents, cases, knowledge base, and recent journal entries).",
-        parameters: z
+        inputSchema: z
           .object({
             action: z.enum([
               "getIncident",
@@ -319,7 +319,7 @@ Guardrails:
       searchSimilarCases: tool({
         description:
           "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
-        parameters: z.object({
+        inputSchema: z.object({
           query: z
             .string()
             .describe("The case description or issue text to find similar cases for"),
@@ -381,7 +381,7 @@ Guardrails:
       generateKBArticle: tool({
         description:
           "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
-        parameters: z.object({
+        inputSchema: z.object({
           caseNumber: z
             .string()
             .describe("The case number to generate KB article for"),
@@ -464,14 +464,64 @@ Guardrails:
 
   try {
     result = await runModel();
+
+    console.log(`[Model Response] Full result:`, JSON.stringify(result, null, 2).substring(0, 2000));
+    console.log(`[Model Response] Response keys:`, Object.keys(result));
+
     text = result.text;
 
     console.log(`[Model Response] Text length: ${text?.length || 0}`);
     console.log(`[Model Response] Raw text:`, text);
     console.log(`[Model Response] Finish reason:`, result.finishReason);
     console.log(`[Model Response] Usage:`, result.usage);
+    console.log(`[Model Response] Response metadata:`, JSON.stringify({
+      finishReason: result.finishReason,
+      usage: result.usage,
+      warnings: result.warnings,
+      rawResponse: result.rawResponse?.headers,
+    }, null, 2));
+
+    // Check for tool calls or steps that might explain empty text
+    if (result.steps) {
+      console.log(`[Model Response] Steps taken: ${result.steps.length}`);
+      result.steps.forEach((step: any, i: number) => {
+        console.log(`[Model Response] Step ${i}:`, {
+          stepType: step.stepType,
+          text: step.text?.substring(0, 100),
+          toolCalls: step.toolCalls?.length,
+          toolResults: step.toolResults?.length,
+          finishReason: step.finishReason,
+        });
+
+        // Log tool calls in detail
+        if (step.toolCalls && step.toolCalls.length > 0) {
+          step.toolCalls.forEach((call: any, j: number) => {
+            console.log(`  [Tool Call ${j}]:`, {
+              toolName: call.toolName,
+              args: call.args,
+            });
+          });
+        }
+
+        // Log tool results in detail
+        if (step.toolResults && step.toolResults.length > 0) {
+          step.toolResults.forEach((result: any, j: number) => {
+            const resultStr = typeof result.result === 'string'
+              ? result.result.substring(0, 200)
+              : result.result
+                ? JSON.stringify(result.result).substring(0, 200)
+                : 'undefined';
+            console.log(`  [Tool Result ${j}]:`, {
+              toolName: result.toolName,
+              result: resultStr,
+            });
+          });
+        }
+      });
+    }
   } catch (error) {
     console.error(`Model ${activeModelId} failed:`, error);
+    console.error(`Error stack:`, error instanceof Error ? error.stack : 'No stack');
     throw error; // Don't fallback, just fail
   }
 
