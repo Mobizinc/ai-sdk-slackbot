@@ -9,6 +9,111 @@ import { sanitizeModelConfig } from "./model-capabilities";
 import { getBusinessContextService } from "./services/business-context-service";
 import { modelProvider, getActiveModelId } from "./model-provider";
 
+type WeatherToolInput = {
+  latitude: number;
+  longitude: number;
+  city: string;
+};
+
+type SearchWebToolInput = {
+  query: string;
+  specificDomain: string | null;
+};
+
+type ServiceNowToolInput = {
+  action: "getIncident" | "getCase" | "getCaseJournal" | "searchKnowledge";
+  number?: string;
+  caseSysId?: string;
+  query?: string;
+  limit?: number;
+};
+
+type SearchSimilarCasesInput = {
+  query: string;
+  clientId?: string;
+  topK?: number;
+};
+
+type GenerateKBArticleInput = {
+  caseNumber: string;
+  threadTs?: string;
+};
+
+const weatherInputSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+  city: z.string(),
+});
+
+const searchWebInputSchema = z.object({
+  query: z.string(),
+  specificDomain: z
+    .string()
+    .nullable()
+    .describe(
+      "a domain to search if the user specifies e.g. bbc.com. Should be only the domain name without the protocol",
+    ),
+});
+
+const serviceNowInputSchema = z
+  .object({
+    action: z.enum([
+      "getIncident",
+      "getCase",
+      "getCaseJournal",
+      "searchKnowledge",
+    ]),
+    number: z
+      .string()
+      .optional()
+      .describe("Incident or case number to look up."),
+    caseSysId: z
+      .string()
+      .optional()
+      .describe(
+        "ServiceNow case sys_id for fetching journal entries (comments, work notes).",
+      ),
+    query: z
+      .string()
+      .optional()
+      .describe("Search phrase for knowledge base lookups."),
+    limit: z
+      .number()
+      .min(1)
+      .max(20)
+      .optional()
+      .describe("Maximum number of knowledge articles to return."),
+  })
+  .describe("ServiceNow action parameters");
+
+const searchSimilarCasesInputSchema = z.object({
+  query: z
+    .string()
+    .describe("The case description or issue text to find similar cases for"),
+  clientId: z
+    .string()
+    .optional()
+    .describe("Optional client/company identifier to filter results to a specific customer"),
+  topK: z
+    .number()
+    .min(1)
+    .max(10)
+    .optional()
+    .describe("Number of similar cases to return (default: 5)"),
+});
+
+const generateKbArticleInputSchema = z.object({
+  caseNumber: z
+    .string()
+    .describe("The case number to generate KB article for"),
+  threadTs: z
+    .string()
+    .optional()
+    .describe("Optional thread timestamp to get conversation context from"),
+});
+
+const createTool = tool as unknown as (options: any) => any;
+
 let generateTextImpl = generateText;
 
 export const __setGenerateTextImpl = (
@@ -29,6 +134,8 @@ export const generateResponse = async (
   updateStatus?: (status: string) => void,
 ) => {
   const activeModelId = getActiveModelId();
+
+  let lastConfigBuilder: ((model: unknown) => Record<string, unknown>) | undefined;
 
   const runModel = async () => {
     // Extract case numbers and context for business context enrichment
@@ -108,20 +215,11 @@ Guardrails:
       channelPurpose
     );
 
-    const config: any = {
-      model: modelProvider.languageModel("chat-model"),
-      system: enhancedSystemPrompt,
-      messages,
-      stopWhen: stepCountIs(10),
-      tools: {
-      getWeather: tool({
+    const createTools = () => {
+      const getWeatherTool = createTool({
         description: "Get the current weather at a location",
-        inputSchema: z.object({
-          latitude: z.number(),
-          longitude: z.number(),
-          city: z.string(),
-        }),
-        execute: async ({ latitude, longitude, city }) => {
+        inputSchema: weatherInputSchema,
+        execute: async ({ latitude, longitude, city }: WeatherToolInput) => {
           updateStatus?.(`is getting weather for ${city}...`);
 
           const response = await fetch(
@@ -136,19 +234,12 @@ Guardrails:
             city,
           };
         },
-      }),
-      searchWeb: tool({
+      });
+
+      const searchWebTool = createTool({
         description: "Use this to search the web for information",
-        inputSchema: z.object({
-          query: z.string(),
-          specificDomain: z
-            .string()
-            .nullable()
-            .describe(
-              "a domain to search if the user specifies e.g. bbc.com. Should be only the domain name without the protocol",
-            ),
-        }),
-        execute: async ({ query, specificDomain }) => {
+        inputSchema: searchWebInputSchema,
+        execute: async ({ query, specificDomain }: SearchWebToolInput) => {
           updateStatus?.(`is searching the web for ${query}...`);
           const exaClient = exa;
 
@@ -170,41 +261,13 @@ Guardrails:
             })),
           };
         },
-      }),
-      serviceNow: tool({
+      });
+
+      const serviceNowTool = createTool({
         description:
           "Read data from ServiceNow (incidents, cases, knowledge base, and recent journal entries).",
-        inputSchema: z
-          .object({
-            action: z.enum([
-              "getIncident",
-              "getCase",
-              "getCaseJournal",
-              "searchKnowledge",
-            ]),
-            number: z
-              .string()
-              .optional()
-              .describe("Incident or case number to look up."),
-            caseSysId: z
-              .string()
-              .optional()
-              .describe(
-                "ServiceNow case sys_id for fetching journal entries (comments, work notes).",
-              ),
-            query: z
-              .string()
-              .optional()
-              .describe("Search phrase for knowledge base lookups."),
-            limit: z
-              .number()
-              .min(1)
-              .max(20)
-              .optional()
-              .describe("Maximum number of knowledge articles to return."),
-          })
-          .describe("ServiceNow action parameters"),
-        execute: async ({ action, number, caseSysId, query, limit }) => {
+        inputSchema: serviceNowInputSchema,
+        execute: async ({ action, number, caseSysId, query, limit }: ServiceNowToolInput) => {
           if (!serviceNowClient.isConfigured()) {
             return {
               error:
@@ -315,28 +378,14 @@ Guardrails:
             };
           }
         },
-      }),
-      searchSimilarCases: tool({
+      });
+
+      const searchSimilarCasesTool = createTool({
         description:
           "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
-        inputSchema: z.object({
-          query: z
-            .string()
-            .describe("The case description or issue text to find similar cases for"),
-          clientId: z
-            .string()
-            .optional()
-            .describe("Optional client/company identifier to filter results to a specific customer"),
-          topK: z
-            .number()
-            .min(1)
-            .max(10)
-            .optional()
-            .describe("Number of similar cases to return (default: 5)"),
-        }),
-        execute: async ({ query, clientId, topK }) => {
+        inputSchema: searchSimilarCasesInputSchema,
+        execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
           if (!azureSearchService) {
-            // Fail gracefully - return empty results, log to console
             console.log("[searchSimilarCases] Azure Search not configured, returning empty results");
             return {
               similar_cases: [],
@@ -369,7 +418,6 @@ Guardrails:
               total_found: results.length,
             };
           } catch (error) {
-            // Fail gracefully - log error but return empty results
             console.error("[searchSimilarCases] Error:", error);
             return {
               similar_cases: [],
@@ -377,20 +425,13 @@ Guardrails:
             };
           }
         },
-      }),
-      generateKBArticle: tool({
+      });
+
+      const generateKbArticleTool = createTool({
         description:
           "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
-        inputSchema: z.object({
-          caseNumber: z
-            .string()
-            .describe("The case number to generate KB article for"),
-          threadTs: z
-            .string()
-            .optional()
-            .describe("Optional thread timestamp to get conversation context from"),
-        }),
-        execute: async ({ caseNumber, threadTs }) => {
+        inputSchema: generateKbArticleInputSchema,
+        execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
           try {
             updateStatus?.(`is generating KB article for ${caseNumber}...`);
 
@@ -403,7 +444,6 @@ Guardrails:
               };
             }
 
-            // Use the most recent or specified thread context
             const context = threadTs
               ? contexts.find((c) => c.threadTs === threadTs)
               : contexts[contexts.length - 1];
@@ -414,12 +454,10 @@ Guardrails:
               };
             }
 
-            // Fetch case details from ServiceNow
             const caseDetails = serviceNowClient.isConfigured()
               ? await serviceNowClient.getCase(caseNumber).catch(() => null)
               : null;
 
-            // Generate KB article
             const kbGenerator = getKBGenerator();
             const result = await kbGenerator.generateArticle(context, caseDetails);
 
@@ -448,13 +486,35 @@ Guardrails:
             };
           }
         },
-      }),
-    },
+      });
+
+      return {
+        getWeather: getWeatherTool,
+        searchWeb: searchWebTool,
+        serviceNow: serviceNowTool,
+        searchSimilarCases: searchSimilarCasesTool,
+        generateKBArticle: generateKbArticleTool,
+      };
     };
 
-    // gpt-5-mini does not support temperature parameter - ensure it never slips through
-    const sanitizedConfig = sanitizeModelConfig(activeModelId, config);
+    const createConfig = (model: unknown) => ({
+      model,
+      system: enhancedSystemPrompt,
+      messages,
+      stopWhen: stepCountIs(10),
+      tools: createTools(),
+    });
+
+    lastConfigBuilder = createConfig;
+
+    const baseModel = modelProvider.languageModel("chat-model");
+    const baseConfig = createConfig(baseModel);
+    const sanitizedConfig = sanitizeModelConfig(
+      activeModelId,
+      baseConfig as any,
+    ) as any;
     return generateTextImpl(sanitizedConfig);
+
   };
 
   console.log(`[Model Router] Using ${activeModelId}`);
@@ -473,15 +533,22 @@ Guardrails:
 
     console.log(`[Model Response${retryLabel}] Full result:`, JSON.stringify(modelResult, null, 2).substring(0, 2000));
     console.log(`[Model Response${retryLabel}] Response keys:`, Object.keys(modelResult));
-    console.log(`[Model Response${retryLabel}] Text length: ${modelResult.text?.length || 0}`);
+    console.log(`[Model Response${retryLabel}] Text length: ${modelResult.text.length}`);
     console.log(`[Model Response${retryLabel}] Raw text:`, modelResult.text);
     console.log(`[Model Response${retryLabel}] Finish reason:`, modelResult.finishReason);
     console.log(`[Model Response${retryLabel}] Usage:`, modelResult.usage);
+    const responseMetadata = modelResult.response
+      ? {
+        modelId: modelResult.response.modelId,
+        headers: modelResult.response.headers,
+        messageCount: modelResult.response.messages?.length,
+      }
+      : undefined;
     console.log(`[Model Response${retryLabel}] Response metadata:`, JSON.stringify({
       finishReason: modelResult.finishReason,
       usage: modelResult.usage,
       warnings: modelResult.warnings,
-      rawResponse: modelResult.rawResponse?.headers,
+      response: responseMetadata,
     }, null, 2));
 
     return modelResult;
@@ -555,25 +622,22 @@ Guardrails:
         // Import openai provider for fallback
         const { openai } = await import("@ai-sdk/openai");
 
-        // Recreate config with OpenAI model
-        const fallbackConfig = {
-          model: openai(openAiFallback),
-          messages: config.messages,
-          system: config.system,
-          tools: config.tools,
-          maxSteps: config.maxSteps,
-          experimental_telemetry: config.experimental_telemetry,
-          onStepFinish: config.onStepFinish,
-        };
-
-        const sanitizedFallbackConfig = sanitizeModelConfig(openAiFallback, fallbackConfig);
+        const fallbackModel = openai(openAiFallback);
+        if (!lastConfigBuilder) {
+          throw new Error("Fallback configuration not available");
+        }
+        const fallbackConfig = lastConfigBuilder(fallbackModel);
+        const sanitizedFallbackConfig = sanitizeModelConfig(
+          openAiFallback,
+          fallbackConfig as any,
+        ) as any;
         const fallbackResult = await generateTextImpl(sanitizedFallbackConfig);
 
-        console.log(`[Fallback] ${openAiFallback} response:`, fallbackResult.text?.substring(0, 200));
+        console.log(`[Fallback] ${openAiFallback} response:`, fallbackResult.text.substring(0, 200));
         console.log(`[Fallback] Finish reason:`, fallbackResult.finishReason);
         console.log(`[Fallback] Usage:`, fallbackResult.usage);
 
-        finalText = fallbackResult.text?.trim();
+        finalText = fallbackResult.text.trim();
 
         if (finalText) {
           console.log(`[Fallback] Successfully recovered using ${openAiFallback}`);

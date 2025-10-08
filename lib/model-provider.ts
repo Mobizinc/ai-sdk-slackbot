@@ -1,6 +1,6 @@
 import { createGateway } from "@ai-sdk/gateway";
 import { openai } from "@ai-sdk/openai";
-import { customProvider, type LanguageModel } from "ai";
+import { customProvider } from "ai";
 
 // AI Gateway configuration - primary provider for GLM-4.6
 const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
@@ -21,9 +21,9 @@ const gatewayProvider = gatewayApiKey
 // Export unified provider with named models
 // When AI_GATEWAY_API_KEY is set: uses GLM-4.6
 // When not set: falls back to OpenAI models
-const baseModel = (gatewayProvider
+const baseModel = gatewayProvider
   ? gatewayProvider(gatewayDefaultModel)
-  : openai(openAiFallbackModel)) as LanguageModel;
+  : openai(openAiFallbackModel);
 
 export const modelProvider = customProvider({
   languageModels: {
