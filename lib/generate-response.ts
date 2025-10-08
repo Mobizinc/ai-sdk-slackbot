@@ -109,7 +109,7 @@ Guardrails:
     );
 
     const config: any = {
-      model: modelProvider("chat-model"),
+      model: modelProvider.languageModel("chat-model"),
       system: enhancedSystemPrompt,
       messages,
       maxSteps: 10,

@@ -1,6 +1,6 @@
 import { createGateway } from "@ai-sdk/gateway";
 import { openai } from "@ai-sdk/openai";
-import { customProvider } from "ai";
+import { customProvider, type LanguageModelV1 } from "ai";
 
 // AI Gateway configuration - primary provider for GLM-4.6
 const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
@@ -22,26 +22,18 @@ const gatewayProvider = gatewayApiKey
 // Export unified provider with named models
 // When AI_GATEWAY_API_KEY is set: uses GLM-4.6
 // When not set: falls back to OpenAI models
+const baseModel = (gatewayProvider
+  ? gatewayProvider(gatewayDefaultModel)
+  : openai(openAiFallbackModel)) as LanguageModelV1;
+
 export const modelProvider = customProvider({
   languageModels: {
-    "chat-model": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
-    "kb-generator": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
-    "quality-analyzer": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
-    "resolution-summary": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
-    "intelligent-assistant": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
-    "kb-assistant": gatewayProvider
-      ? gatewayProvider(gatewayDefaultModel)
-      : openai(openAiFallbackModel),
+    "chat-model": baseModel,
+    "kb-generator": baseModel,
+    "quality-analyzer": baseModel,
+    "resolution-summary": baseModel,
+    "intelligent-assistant": baseModel,
+    "kb-assistant": baseModel,
   },
 });
 
