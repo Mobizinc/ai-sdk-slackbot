@@ -6,8 +6,7 @@
 import { generateText } from "ai";
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
-import { sanitizeModelConfig } from "../model-capabilities";
-import { selectLanguageModel } from "../model-provider";
+import { modelProvider } from "../model-provider";
 
 export interface GatheringQuestions {
   questions: string[];
@@ -74,12 +73,10 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const modelSelection = selectLanguageModel();
-
-    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
-      model: modelSelection.model,
+    const generationConfig = {
+      model: modelProvider("kb-assistant"),
       prompt,
-    });
+    };
 
     const { text } = await generateText(generationConfig);
 

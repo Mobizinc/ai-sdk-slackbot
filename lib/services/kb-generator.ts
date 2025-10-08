@@ -6,9 +6,8 @@
 import { generateText } from "ai";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
-import { sanitizeModelConfig } from "../model-capabilities";
 import { getBusinessContextService } from "./business-context-service";
-import { selectLanguageModel } from "../model-provider";
+import { modelProvider } from "../model-provider";
 
 export interface KBArticle {
   title: string;
@@ -163,12 +162,10 @@ Return ONLY valid JSON, no other text.`;
         (context as any).channelPurpose
       );
 
-      const modelSelection = selectLanguageModel();
-
-      const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
-        model: modelSelection.model,
+      const generationConfig = {
+        model: modelProvider("kb-generator"),
         prompt: enhancedPrompt,
-      });
+      };
 
       const { text } = await generateText(generationConfig);
 

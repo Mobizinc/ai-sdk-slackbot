@@ -7,7 +7,7 @@ import { getContextManager } from "./context-manager";
 import { getKBGenerator } from "./services/kb-generator";
 import { sanitizeModelConfig } from "./model-capabilities";
 import { getBusinessContextService } from "./services/business-context-service";
-import { selectLanguageModel } from "./model-provider";
+import { modelProvider, getActiveModelId } from "./model-provider";
 
 let generateTextImpl = generateText;
 
@@ -28,7 +28,7 @@ export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
-  const modelSelection = selectLanguageModel({});
+  const activeModelId = getActiveModelId();
 
   const runModel = async () => {
     // Extract case numbers and context for business context enrichment
@@ -109,7 +109,7 @@ Guardrails:
     );
 
     const config: any = {
-      model: modelSelection.model,
+      model: modelProvider("chat-model"),
       system: enhancedSystemPrompt,
       messages,
       maxSteps: 10,
@@ -453,11 +453,11 @@ Guardrails:
     };
 
     // gpt-5-mini does not support temperature parameter - ensure it never slips through
-    const sanitizedConfig = sanitizeModelConfig(modelSelection.modelId, config);
+    const sanitizedConfig = sanitizeModelConfig(activeModelId, config);
     return generateTextImpl(sanitizedConfig);
   };
 
-  console.log(`[Model Router] Using ${modelSelection.modelId}`);
+  console.log(`[Model Router] Using ${activeModelId}`);
 
   let text: string;
   let result: any;
@@ -471,7 +471,7 @@ Guardrails:
     console.log(`[Model Response] Finish reason:`, result.finishReason);
     console.log(`[Model Response] Usage:`, result.usage);
   } catch (error) {
-    console.error(`Model ${modelSelection.modelId} failed:`, error);
+    console.error(`Model ${activeModelId} failed:`, error);
     throw error; // Don't fallback, just fail
   }
 

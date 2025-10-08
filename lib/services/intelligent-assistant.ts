@@ -6,9 +6,8 @@
 import { generateText } from "ai";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
-import { sanitizeModelConfig } from "../model-capabilities";
 import { getBusinessContextService } from "./business-context-service";
-import { selectLanguageModel } from "../model-provider";
+import { modelProvider } from "../model-provider";
 
 export interface CaseGuidance {
   suggestions: string[];
@@ -202,12 +201,10 @@ IMPORTANT:
       channelPurpose
     );
 
-    const modelSelection = selectLanguageModel();
-
-    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
-      model: modelSelection.model,
+    const generationConfig = {
+      model: modelProvider("intelligent-assistant"),
       prompt: enhancedPrompt,
-    });
+    };
 
     const { text } = await generateText(generationConfig);
 
