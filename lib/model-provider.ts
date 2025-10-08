@@ -4,7 +4,6 @@ import { customProvider, type LanguageModelV1 } from "ai";
 
 // AI Gateway configuration - primary provider for GLM-4.6
 const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
-const gatewayBaseUrl = process.env.AI_GATEWAY_URL?.trim();
 const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
   ?? process.env.AI_GATEWAY_MODEL?.trim()
   ?? "zai/glm-4.6";
@@ -12,10 +11,10 @@ const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
 const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
 
 // Create gateway provider once at module load (Vercel AI SDK best practice)
+// AI SDK handles routing - only apiKey needed, no baseURL
 const gatewayProvider = gatewayApiKey
   ? createGateway({
       apiKey: gatewayApiKey,
-      baseURL: gatewayBaseUrl,
     })
   : null;
 
