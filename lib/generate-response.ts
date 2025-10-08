@@ -460,9 +460,16 @@ Guardrails:
   console.log(`[Model Router] Using ${modelSelection.modelId}`);
 
   let text: string;
+  let result: any;
 
   try {
-    ({ text } = await runModel());
+    result = await runModel();
+    text = result.text;
+
+    console.log(`[Model Response] Text length: ${text?.length || 0}`);
+    console.log(`[Model Response] Raw text:`, text);
+    console.log(`[Model Response] Finish reason:`, result.finishReason);
+    console.log(`[Model Response] Usage:`, result.usage);
   } catch (error) {
     console.error(`Model ${modelSelection.modelId} failed:`, error);
     throw error; // Don't fallback, just fail
