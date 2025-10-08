@@ -90,7 +90,7 @@ Produce a Slack-formatted message with:
 Keep bullets concise (≤140 characters) and avoid repeating the case number. Do not invent details beyond the provided information.`;
 
   try {
-    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+    const modelSelection = selectLanguageModel();
 
     const config = sanitizeModelConfig(modelSelection.modelId, {
       model: modelSelection.model,

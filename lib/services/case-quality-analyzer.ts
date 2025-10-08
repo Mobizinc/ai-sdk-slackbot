@@ -99,7 +99,7 @@ Return ONLY valid JSON in this format:
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const modelSelection = selectLanguageModel({ openAiModel: "gpt-5-mini" });
+    const modelSelection = selectLanguageModel();
 
     const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
       model: modelSelection.model,
