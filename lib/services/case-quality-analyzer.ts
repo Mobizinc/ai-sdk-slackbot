@@ -5,8 +5,7 @@
 
 import { generateText } from "ai";
 import type { CaseContext } from "../context-manager";
-import { sanitizeModelConfig } from "../model-capabilities";
-import { selectLanguageModel } from "../model-provider";
+import { modelProvider } from "../model-provider";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
 
@@ -99,12 +98,10 @@ Return ONLY valid JSON in this format:
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const modelSelection = selectLanguageModel();
-
-    const generationConfig = sanitizeModelConfig(modelSelection.modelId, {
-      model: modelSelection.model,
+    const generationConfig = {
+      model: modelProvider("quality-analyzer"),
       prompt,
-    });
+    };
 
     const { text } = await generateText(generationConfig);
 

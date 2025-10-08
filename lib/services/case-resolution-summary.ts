@@ -4,8 +4,7 @@ import type {
   ServiceNowCaseJournalEntry,
   ServiceNowCaseResult,
 } from "../tools/servicenow";
-import { sanitizeModelConfig } from "../model-capabilities";
-import { selectLanguageModel } from "../model-provider";
+import { modelProvider } from "../model-provider";
 
 interface ResolutionSummaryInput {
   caseNumber: string;
@@ -90,12 +89,10 @@ Produce a Slack-formatted message with:
 Keep bullets concise (≤140 characters) and avoid repeating the case number. Do not invent details beyond the provided information.`;
 
   try {
-    const modelSelection = selectLanguageModel();
-
-    const config = sanitizeModelConfig(modelSelection.modelId, {
-      model: modelSelection.model,
+    const config = {
+      model: modelProvider("resolution-summary"),
       prompt,
-    });
+    };
 
     const { text } = await generateText(config);
     const summary = text.trim();
