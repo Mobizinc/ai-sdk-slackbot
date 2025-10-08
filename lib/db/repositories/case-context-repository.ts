@@ -3,7 +3,7 @@
  * Handles persistence of case conversations and messages
  */
 
-import { eq, and, lt, desc } from "drizzle-orm";
+import { eq, and, lt, gte, desc } from "drizzle-orm";
 import { getDb } from "../client";
 import { caseContexts, caseMessages } from "../schema";
 import type { CaseContext as ContextManagerContext, CaseMessage } from "../../context-manager";
@@ -160,7 +160,7 @@ export class CaseContextRepository {
       const contextsResult = await db
         .select()
         .from(caseContexts)
-        .where(eq(caseContexts.lastUpdated, cutoffTime))
+        .where(gte(caseContexts.lastUpdated, cutoffTime))
         .orderBy(desc(caseContexts.lastUpdated));
 
       console.log(`[DB] Loading ${contextsResult.length} active contexts`);
