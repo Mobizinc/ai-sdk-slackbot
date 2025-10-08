@@ -90,7 +90,7 @@ Keep bullets concise (≤140 characters) and avoid repeating the case number. Do
 
   try {
     const config = {
-      model: modelProvider("resolution-summary"),
+      model: modelProvider.languageModel("resolution-summary"),
       prompt,
     };
 

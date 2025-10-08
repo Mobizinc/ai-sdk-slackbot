@@ -202,7 +202,7 @@ IMPORTANT:
     );
 
     const generationConfig = {
-      model: modelProvider("intelligent-assistant"),
+      model: modelProvider.languageModel("intelligent-assistant"),
       prompt: enhancedPrompt,
     };
 

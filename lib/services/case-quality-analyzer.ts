@@ -99,7 +99,7 @@ Return ONLY valid JSON in this format:
     console.log("[Quality Analyzer] Assessing case quality...");
 
     const generationConfig = {
-      model: modelProvider("quality-analyzer"),
+      model: modelProvider.languageModel("quality-analyzer"),
       prompt,
     };
 

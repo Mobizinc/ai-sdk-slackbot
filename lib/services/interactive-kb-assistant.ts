@@ -74,7 +74,7 @@ Example:
     console.log("[KB Assistant] Generating gathering questions...");
 
     const generationConfig = {
-      model: modelProvider("kb-assistant"),
+      model: modelProvider.languageModel("kb-assistant"),
       prompt,
     };
 

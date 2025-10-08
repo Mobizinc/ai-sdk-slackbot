@@ -163,7 +163,7 @@ Return ONLY valid JSON, no other text.`;
       );
 
       const generationConfig = {
-        model: modelProvider("kb-generator"),
+        model: modelProvider.languageModel("kb-generator"),
         prompt: enhancedPrompt,
       };
 
