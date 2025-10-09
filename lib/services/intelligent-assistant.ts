@@ -11,6 +11,34 @@ import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
 
+/**
+ * Check if a case is in an active state that warrants intelligent assistance.
+ * Returns true if the case is open/in-progress/pending, false if closed/resolved/cancelled.
+ */
+export function shouldProvideAssistance(caseDetails: ServiceNowCaseResult | null): boolean {
+  if (!caseDetails) {
+    // No case details available - provide assistance by default
+    return true;
+  }
+
+  const caseState = caseDetails.state;
+  if (!caseState) {
+    // No state info - provide assistance by default
+    return true;
+  }
+
+  // Check if state is in the configured active states list
+  const isActive = config.assistantActiveStates.some(
+    (activeState) => caseState.toLowerCase().includes(activeState.toLowerCase())
+  );
+
+  if (!isActive) {
+    console.log(`[Intelligent Assistant] Skipping assistance for ${caseDetails.number || 'case'} - state "${caseState}" not in active states`);
+  }
+
+  return isActive;
+}
+
 export interface CaseGuidance {
   similarCases: string[];
   suggestions: string[];
