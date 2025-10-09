@@ -22,7 +22,7 @@ import {
 } from "./services/interactive-kb-assistant";
 import { generateResolutionSummary } from "./services/case-resolution-summary";
 import { config } from "./config";
-import { buildIntelligentAssistance } from "./services/intelligent-assistant";
+import { buildIntelligentAssistance, shouldProvideAssistance } from "./services/intelligent-assistant";
 import { createAzureSearchService } from "./services/azure-search";
 import type {
   ServiceNowCaseJournalEntry,
@@ -116,6 +116,25 @@ async function processCaseDetection(
       } catch (error) {
         console.warn(`Could not fetch case details for ${caseNumber}:`, error);
       }
+    }
+
+    // Check if we should provide assistance for this case state
+    if (!shouldProvideAssistance(caseDetails)) {
+      console.log(`[Passive Monitor] Skipping assistance for ${caseNumber} - case is not in an active state`);
+
+      // Still track the case for KB generation, but post a minimal message
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: event.ts,
+        text: `👋 I see you're working on *${caseNumber}*. I'll track this conversation for knowledge base generation. 📝`,
+        unfurl_links: false,
+      });
+
+      // Mark as posted to prevent duplicates
+      if (context) {
+        context.hasPostedAssistance = true;
+      }
+      return;
     }
 
     // Get Azure Search service for similar case lookup
