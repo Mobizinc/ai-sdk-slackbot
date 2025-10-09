@@ -4,7 +4,6 @@
  * Tests all three quality paths: high quality, needs input, and insufficient
  */
 
-import { getKBWorkflowManager } from "../../lib/kb-workflow-manager";
 import { getCaseQualityAnalyzer } from "../../lib/services/case-quality-analyzer";
 import { getKBGenerator } from "../../lib/services/kb-generator";
 import type { CaseContext } from "../../lib/context-manager";
@@ -374,7 +373,6 @@ async function testDuplicateDetection(): Promise<void> {
 async function testApprovalWorkflow(): Promise<void> {
   printStep(9, "Test KB approval workflow");
 
-  const workflowManager = getKBWorkflowManager();
   const kbArticle = createSampleKBArticle(CASE_NUMBER);
   const channelId = "C_TEST_KB";
   const threadTs = Date.now().toString();
@@ -466,7 +464,6 @@ async function testWorkflowPersistence(): Promise<void> {
     return;
   }
 
-  const workflowManager = getKBWorkflowManager();
   const channelId = "C_TEST_PERSIST";
   const threadTs = Date.now().toString();
 
@@ -480,14 +477,14 @@ async function testWorkflowPersistence(): Promise<void> {
     lastUpdated: new Date(),
   };
 
-  // In real test, this would save to database
-  // await workflowManager.saveState(initialState);
+  // In real test, this would save to database using the persisted KB state machine
+  // await getKBStateMachine().saveState(initialState);
 
   // Wait for async persistence
   await sleep(300);
 
   // Retrieve from database
-  // const retrievedState = await workflowManager.getState(CASE_NUMBER, threadTs);
+  // const retrievedState = await getKBStateMachine().getContext(CASE_NUMBER, threadTs);
 
   // Mock retrieval for testing
   const retrievedState = { ...initialState };
@@ -505,7 +502,6 @@ async function testWorkflowPersistence(): Promise<void> {
 async function testTimeoutHandling(): Promise<void> {
   printStep(12, "Test timeout handling");
 
-  const workflowManager = getKBWorkflowManager();
   const now = new Date();
   const twentyFiveHoursAgo = new Date(now.getTime() - 25 * 60 * 60 * 1000);
 

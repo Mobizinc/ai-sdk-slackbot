@@ -9,6 +9,7 @@ import { verifyRequest, getBotId } from "../lib/slack-utils";
 import { assistantManager } from "../lib/assistant-manager";
 import { handlePassiveMessage } from "../lib/handle-passive-messages";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
+import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
 
 // Initialize database on cold start (module load)
@@ -81,6 +82,16 @@ export async function POST(request: Request) {
         const approvalManager = getKBApprovalManager();
         waitUntil(
           approvalManager.handleReaction(
+            reactionEvent.item.channel,
+            reactionEvent.item.ts,
+            reactionEvent.reaction,
+            reactionEvent.user
+          )
+        );
+
+        const contextUpdateManager = getContextUpdateManager();
+        waitUntil(
+          contextUpdateManager.handleReaction(
             reactionEvent.item.channel,
             reactionEvent.item.ts,
             reactionEvent.reaction,

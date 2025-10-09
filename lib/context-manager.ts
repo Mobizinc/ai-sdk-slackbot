@@ -178,6 +178,15 @@ export class ContextManager {
   }
 
   /**
+   * Get active (unresolved) contexts for a specific channel
+   */
+  getActiveContextsForChannel(channelId: string): CaseContext[] {
+    return Array.from(this.contexts.values()).filter(
+      (ctx) => ctx.channelId === channelId && !ctx.isResolved
+    );
+  }
+
+  /**
    * Mark context as processed (for KB generation)
    */
   markAsProcessed(caseNumber: string, threadTs: string): void {

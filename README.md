@@ -128,6 +128,13 @@ SERVICENOW_PASSWORD=your-servicenow-password
 # Relay Gateway
 RELAY_WEBHOOK_SECRET=shared-hmac-secret
 
+# Knowledge Workflow Tuning (optional)
+KB_GATHERING_TIMEOUT_HOURS=24
+KB_GATHERING_MAX_ATTEMPTS=5
+ASSISTANT_MIN_DESCRIPTION_LENGTH=10
+ASSISTANT_SIMILAR_CASES_TOP_K=3
+KB_SIMILAR_CASES_TOP_K=3
+
 # Database (optional, for persisting context and KB generation state)
 DATABASE_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
 ```
@@ -239,16 +246,20 @@ The bot maintains context within both threads and direct messages, so it can fol
    - Example: "Search for the latest news about AI technology"
    - You can also specify a domain: "Search for the latest sports news on bbc.com"
 
-3. **ServiceNow Toolkit (optional)**: When ServiceNow credentials are configured, the assistant can look up incidents and cases, pull recent work notes/comments, and search the knowledge base directly from Slack.
+3. **ServiceNow Toolkit (optional)**: When ServiceNow credentials are configured, the assistant can look up incidents and cases, pull recent work notes/comments, search the knowledge base, and validate configuration items directly from Slack.
    - Example: "Show the latest updates for case SCS0048402"
    - Example: "Search ServiceNow knowledge base for multi-factor authentication"
+   - Example: "Check ServiceNow CMDB for ALTUSHOUHOSP or 172.99.109.10"
 
-4. **Similar Cases Search (optional)**: When Azure AI Search is configured, the assistant can find similar historical cases using vector similarity search.
+4. **Context Update Proposals**: When the CMDB is missing a verified asset, the assistant can draft a structured update for steward approval. Approved updates append to the `business_contexts` table and keep Altus metadata fresh.
+   - Example: "Propose context update for ALTUSHOUHOSP with IP 172.99.109.10 and owner Network Ops"
+
+5. **Similar Cases Search (optional)**: When Azure AI Search is configured, the assistant can find similar historical cases using vector similarity search.
    - Example: "Find similar cases to this VPN authentication issue"
    - Example: "Search for cases similar to error code 0x80070035"
    - Example: "Show me similar cases for client XYZ with network connectivity problems"
 
-5. **Passive Case Monitoring & Multi-Stage KB Generation**: The bot automatically watches for case numbers and creates knowledge base articles through an intelligent, quality-aware workflow.
+6. **Passive Case Monitoring & Multi-Stage KB Generation**: The bot automatically watches for case numbers and creates knowledge base articles through an intelligent, quality-aware workflow.
 
    **Passive Monitoring:**
    - **Detection**: Automatically detects case numbers (e.g., `SCS0048402`) in channel messages
@@ -296,7 +307,13 @@ The bot maintains context within both threads and direct messages, so it can fol
 
    **State Persistence:**
    - All workflow states persisted to PostgreSQL (survives bot restarts)
-   - Background cleanup jobs handle timeouts (24h for Q&A, expired approvals)
+   - Background cleanup jobs handle timeouts (configurable hours for Q&A, expired approvals)
+
+### Scheduled Cleanup
+
+- Configure a Vercel Cron Job to call `GET /api/cron/cleanup-workflows` (or `POST`) on your preferred cadence.
+- The endpoint runs the same `cleanupTimedOutGathering` logic that previously lived in an in-process timer, ensuring stale gathering sessions are closed even on serverless platforms.
+- Environment variable `KB_GATHERING_TIMEOUT_HOURS` controls when conversations are considered abandoned.
 
 ### Extending with New Tools
 

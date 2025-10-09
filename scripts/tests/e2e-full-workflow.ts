@@ -5,7 +5,6 @@
  */
 
 import { getContextManager } from "../../lib/context-manager";
-import { getKBWorkflowManager } from "../../lib/kb-workflow-manager";
 import { serviceNowClient } from "../../lib/tools/servicenow";
 import { searchSimilarCases, createAzureSearchService } from "../../lib/services/azure-search";
 import { getCaseQualityAnalyzer } from "../../lib/services/case-quality-analyzer";
@@ -291,8 +290,6 @@ async function testDuplicateKBDetection(): Promise<void> {
 async function testKBApprovalWorkflow(): Promise<void> {
   printStep(9, "Test KB approval workflow");
 
-  const workflowManager = getKBWorkflowManager();
-
   // Mock workflow state
   const workflowState = {
     caseNumber: CASE_NUMBER,
@@ -353,8 +350,6 @@ async function testWorkflowStatePersistence(): Promise<void> {
     printWarning("DATABASE_URL not configured - state only in memory");
     return;
   }
-
-  const workflowManager = getKBWorkflowManager();
 
   printSuccess("✓ Database configured - workflow states persisted");
   printSuccess("✓ Workflow survives bot restarts");

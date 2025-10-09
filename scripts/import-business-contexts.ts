@@ -26,6 +26,21 @@ interface BusinessContextData {
   technologyPortfolio?: string;
   serviceDetails?: string;
   keyContacts?: ContactData[];
+  slackChannels?: Array<{ name: string; channelId?: string; notes?: string }>;
+  cmdbIdentifiers?: Array<{
+    ciName?: string;
+    sysId?: string;
+    ipAddresses?: string[];
+    description?: string;
+    ownerGroup?: string;
+    documentation?: string[];
+  }>;
+  contextStewards?: Array<{
+    type: "channel" | "user" | "usergroup";
+    id?: string;
+    name?: string;
+    notes?: string;
+  }>;
   isActive?: boolean;
 }
 
@@ -87,6 +102,9 @@ async function importBusinessContexts(filePath: string) {
             technologyPortfolio: entity.technologyPortfolio,
             serviceDetails: entity.serviceDetails,
             keyContacts: entity.keyContacts || [],
+            slackChannels: entity.slackChannels || [],
+            cmdbIdentifiers: entity.cmdbIdentifiers || [],
+            contextStewards: entity.contextStewards || [],
             isActive: entity.isActive ?? true,
             updatedAt: new Date(),
           })
@@ -106,6 +124,9 @@ async function importBusinessContexts(filePath: string) {
           technologyPortfolio: entity.technologyPortfolio,
           serviceDetails: entity.serviceDetails,
           keyContacts: entity.keyContacts || [],
+          slackChannels: entity.slackChannels || [],
+          cmdbIdentifiers: entity.cmdbIdentifiers || [],
+          contextStewards: entity.contextStewards || [],
           isActive: entity.isActive ?? true,
         });
 

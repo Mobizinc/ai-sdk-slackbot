@@ -3,7 +3,8 @@
  * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
+import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { modelProvider } from "../model-provider";
 
@@ -19,6 +20,35 @@ export interface QualityAssessment {
   missingInfo: string[]; // What's missing: ["root cause", "step-by-step", ...]
   reasoning: string; // Why this assessment
 }
+
+type QualityAssessmentPayload = {
+  score: number;
+  problemClarity: "clear" | "vague" | "missing";
+  solutionClarity: "clear" | "vague" | "missing";
+  stepsDocumented: boolean;
+  rootCauseIdentified: boolean;
+  missingInfo: string[];
+  reasoning: string;
+};
+
+const QualityAssessmentSchema = z.object({
+  score: z.number().int().min(0).max(100),
+  problemClarity: z.enum(["clear", "vague", "missing"]),
+  solutionClarity: z.enum(["clear", "vague", "missing"]),
+  stepsDocumented: z.boolean(),
+  rootCauseIdentified: z.boolean(),
+  missingInfo: z.array(z.string().max(50)).max(4),
+  reasoning: z.string().max(120),
+}) as z.ZodTypeAny;
+
+const createTool = tool as unknown as (options: any) => any;
+
+const qualityAssessmentTool = createTool({
+  description:
+    "Return your quality assessment for the case as structured data. You must call this exactly once.",
+  inputSchema: QualityAssessmentSchema as z.ZodTypeAny,
+  execute: async (payload: QualityAssessmentPayload) => payload,
+});
 
 /**
  * Assess the quality of case information for KB generation
@@ -41,83 +71,33 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
 `.trim()
     : "No ServiceNow case details available.";
 
-  const prompt = `You are a knowledge base quality analyst. Assess whether the following case has enough information to create a useful knowledge base article.
-
-**Case Information:**
-${caseInfoText}
-
-**Conversation History:**
-${conversationSummary}
-
-**Assessment Criteria:**
-
-1. **Problem Clarity**: Is the issue clearly described?
-   - Clear: Specific symptoms, error messages, or user impact
-   - Vague: Generic description like "not working"
-   - Missing: No problem description
-
-2. **Solution Clarity**: Is the resolution explained?
-   - Clear: Specific actions taken, tools used, or config changed
-   - Vague: "Fixed it" or "Restarted service" without detail
-   - Missing: No resolution mentioned
-
-3. **Steps Documented**: Are there actionable step-by-step instructions?
-   - Yes: Can someone follow the steps to reproduce the fix
-   - No: Steps missing or too vague
-
-4. **Root Cause**: Is the underlying cause identified?
-   - Yes: Why the problem occurred is explained
-   - No: Only symptoms/fix without cause
-
-**Your Task:**
-Analyze this case and return a JSON object with your assessment.
-
-**Scoring Guide:**
-- 80-100: High quality - Can generate excellent KB article
-- 50-79: Medium quality - Needs more detail from user
-- 0-49: Low quality - Insufficient for KB article
-
-**CRITICAL: Keep Output Concise**
-- "missingInfo": MAX 3-4 items, each ≤50 characters
-- Focus ONLY on critical gaps: problem details, solution steps, or root cause
-- Good: ["Resolution steps", "Error message", "Root cause"]
-- Bad: ["Operating system version and environment configuration details"]
-- "reasoning": 1 sentence max, ≤100 characters
-
-Return ONLY valid JSON in this format:
-{
-  "score": <number 0-100>,
-  "problemClarity": "clear" | "vague" | "missing",
-  "solutionClarity": "clear" | "vague" | "missing",
-  "stepsDocumented": true | false,
-  "rootCauseIdentified": true | false,
-  "missingInfo": [<max 3-4 short items, each ≤50 chars>],
-  "reasoning": "<1 sentence, ≤100 chars>"
-}`;
-
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const generationConfig = {
+    const result = await generateText({
       model: modelProvider.languageModel("quality-analyzer"),
-      prompt,
-    };
+      system:
+        "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
+      prompt: `**Case Information:**\n${caseInfoText}\n\n**Conversation History:**\n${conversationSummary}\n\nAnalyze this case using the criteria provided and call the tool with your findings.`,
+      tools: {
+        report_quality: qualityAssessmentTool,
+      },
+      toolChoice: { type: "tool", toolName: "report_quality" },
+    });
 
-    const { text } = await generateText(generationConfig);
+    const toolResult = result.toolResults[0];
 
-    // Parse JSON response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No JSON found in quality assessment response");
+    if (!toolResult || toolResult.type !== "tool-result") {
+      throw new Error("Model did not return a structured quality assessment");
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    const parsed = QualityAssessmentSchema.parse(toolResult.output) as QualityAssessmentPayload;
 
     // Determine decision based on score
     let decision: QualityDecision;
-    if (result.score >= 80) {
+    if (parsed.score >= 80) {
       decision = "high_quality";
-    } else if (result.score >= 50) {
+    } else if (parsed.score >= 50) {
       decision = "needs_input";
     } else {
       decision = "insufficient";
@@ -125,13 +105,13 @@ Return ONLY valid JSON in this format:
 
     const assessment: QualityAssessment = {
       decision,
-      score: result.score,
-      problemClarity: result.problemClarity,
-      solutionClarity: result.solutionClarity,
-      stepsDocumented: result.stepsDocumented,
-      rootCauseIdentified: result.rootCauseIdentified,
-      missingInfo: result.missingInfo || [],
-      reasoning: result.reasoning,
+      score: parsed.score,
+      problemClarity: parsed.problemClarity,
+      solutionClarity: parsed.solutionClarity,
+      stepsDocumented: parsed.stepsDocumented,
+      rootCauseIdentified: parsed.rootCauseIdentified,
+      missingInfo: parsed.missingInfo ?? [],
+      reasoning: parsed.reasoning,
     };
 
     console.log(`[Quality Analyzer] Assessment: ${decision} (score: ${assessment.score})`);

@@ -115,7 +115,10 @@ export async function handleNewAssistantMessage(
       }
     }
 
-    const result = await generateResponse(messages, updateStatus);
+    const result = await generateResponse(messages, updateStatus, {
+      channelId: channel,
+      threadTs: thread_ts,
+    });
 
     await client.chat.postMessage({
       channel: channel,

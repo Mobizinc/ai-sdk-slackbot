@@ -4,7 +4,12 @@
  */
 
 import { eq, and, ilike } from "drizzle-orm";
-import { businessContexts, type BusinessContext, type NewBusinessContext } from "../schema";
+import {
+  businessContexts,
+  type BusinessContext,
+  type BusinessContextCmdbIdentifier,
+  type NewBusinessContext,
+} from "../schema";
 import { getDb } from "../client";
 
 export class BusinessContextRepository {
@@ -156,6 +161,99 @@ export class BusinessContextRepository {
       console.error(`[Business Context Repo] Error updating context ${id}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Append a CMDB identifier to an entity (creates entity if allowed and missing)
+   */
+  async appendCmdbIdentifier(
+    entityName: string,
+    identifier: BusinessContextCmdbIdentifier,
+    options: {
+      createIfMissing?: boolean;
+      entityType?: string;
+      defaults?: Partial<NewBusinessContext>;
+    } = {}
+  ): Promise<BusinessContext | null> {
+    const db = getDb();
+    if (!db) return null;
+
+    const existing = await this.findByName(entityName);
+
+    if (!existing) {
+      if (!options.createIfMissing) {
+        console.warn(
+          `[Business Context Repo] appendCmdbIdentifier skipped – ${entityName} does not exist`);
+        return null;
+      }
+
+      if (!options.entityType) {
+        throw new Error(
+          `Cannot create ${entityName} without entityType when appending CMDB identifier`
+        );
+      }
+
+      const newContext: NewBusinessContext = {
+        entityName,
+        entityType: options.entityType,
+        industry: options.defaults?.industry,
+        description: options.defaults?.description,
+        aliases: options.defaults?.aliases ?? [],
+        relatedEntities: options.defaults?.relatedEntities ?? [],
+        technologyPortfolio: options.defaults?.technologyPortfolio,
+        serviceDetails: options.defaults?.serviceDetails,
+        keyContacts: options.defaults?.keyContacts ?? [],
+        slackChannels: options.defaults?.slackChannels ?? [],
+        cmdbIdentifiers: [identifier],
+        contextStewards: options.defaults?.contextStewards ?? [],
+        isActive: options.defaults?.isActive ?? true,
+      };
+
+      const created = await this.create(newContext);
+      return created;
+    }
+
+    const existingIdentifiers = Array.isArray(existing.cmdbIdentifiers)
+      ? existing.cmdbIdentifiers
+      : [];
+
+    const alreadyExists = existingIdentifiers.some((existingIdentifier) => {
+      if (identifier.sysId && existingIdentifier.sysId) {
+        if (existingIdentifier.sysId === identifier.sysId) return true;
+      }
+
+      if (identifier.ciName && existingIdentifier.ciName) {
+        if (existingIdentifier.ciName.toLowerCase() === identifier.ciName.toLowerCase()) return true;
+      }
+
+      if (identifier.ipAddresses?.length) {
+        const normalized = identifier.ipAddresses.map((ip) => ip.trim());
+        const existingIps = existingIdentifier.ipAddresses?.map((ip) => ip.trim()) ?? [];
+        if (normalized.some((ip) => existingIps.includes(ip))) return true;
+      }
+
+      return false;
+    });
+
+    if (alreadyExists) {
+      console.log(
+        `[Business Context Repo] CMDB identifier already present for ${entityName}, skipping append.`
+      );
+      return existing;
+    }
+
+    const updatedIdentifiers = [...existingIdentifiers, identifier];
+
+    const results = await db
+      .update(businessContexts)
+      .set({
+        cmdbIdentifiers: updatedIdentifiers,
+        updatedAt: new Date(),
+      })
+      .where(eq(businessContexts.id, existing.id))
+      .returning();
+
+    return results[0] || null;
   }
 
   /**
