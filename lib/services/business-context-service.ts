@@ -19,6 +19,21 @@ export interface BusinessEntityContext {
   technologyPortfolio?: string;
   serviceDetails?: string;
   keyContacts: Array<{ name: string; role: string; email?: string }>;
+  slackChannels: Array<{ name: string; channelId?: string; notes?: string }>;
+  cmdbIdentifiers: Array<{
+    ciName?: string;
+    sysId?: string;
+    ipAddresses?: string[];
+    description?: string;
+    ownerGroup?: string;
+    documentation?: string[];
+  }>;
+  contextStewards: Array<{
+    type: "channel" | "user" | "usergroup";
+    id?: string;
+    name?: string;
+    notes?: string;
+  }>;
 }
 
 export class BusinessContextService {
@@ -35,6 +50,9 @@ export class BusinessContextService {
       aliases: ["Altus", "Altus Health", "Altus Healthcare"],
       relatedEntities: [],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
     {
       entityName: "Neighbors Emergency Center",
@@ -44,6 +62,9 @@ export class BusinessContextService {
       aliases: ["Neighbors ER", "Neighbors"],
       relatedEntities: [],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
     {
       entityName: "FPA Women's Health",
@@ -53,6 +74,9 @@ export class BusinessContextService {
       aliases: ["FPA"],
       relatedEntities: [],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
   ];
 
@@ -65,6 +89,9 @@ export class BusinessContextService {
       aliases: ["MS", "MSFT"],
       relatedEntities: ["Azure", "Office 365", "Teams"],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
     {
       entityName: "Fortinet",
@@ -74,6 +101,9 @@ export class BusinessContextService {
       aliases: [],
       relatedEntities: ["FortiGate"],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
     {
       entityName: "Palo Alto Networks",
@@ -83,6 +113,9 @@ export class BusinessContextService {
       aliases: ["Palo Alto", "PA"],
       relatedEntities: [],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
   ];
 
@@ -95,6 +128,9 @@ export class BusinessContextService {
       aliases: ["Azure Cloud", "Microsoft Azure"],
       relatedEntities: ["Microsoft"],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
     {
       entityName: "ServiceNow",
@@ -104,11 +140,49 @@ export class BusinessContextService {
       aliases: ["SNOW"],
       relatedEntities: [],
       keyContacts: [],
+      slackChannels: [],
+      cmdbIdentifiers: [],
+      contextStewards: [],
     },
   ];
 
   constructor() {
     this.loadStaticContext();
+  }
+
+  private buildContextFromDbRecord(dbContext: BusinessContext): BusinessEntityContext {
+    return {
+      entityName: dbContext.entityName,
+      entityType: dbContext.entityType as EntityType,
+      industry: dbContext.industry || undefined,
+      description: dbContext.description || undefined,
+      aliases: dbContext.aliases || [],
+      relatedEntities: dbContext.relatedEntities || [],
+      technologyPortfolio: dbContext.technologyPortfolio || undefined,
+      serviceDetails: dbContext.serviceDetails || undefined,
+      keyContacts: dbContext.keyContacts || [],
+      slackChannels: dbContext.slackChannels || [],
+      cmdbIdentifiers: dbContext.cmdbIdentifiers || [],
+      contextStewards: dbContext.contextStewards || [],
+    };
+  }
+
+  private storeContextInCache(context: BusinessEntityContext): void {
+    const keys = [context.entityName, ...context.aliases].map((name) =>
+      name.toLowerCase().trim()
+    );
+    for (const key of keys) {
+      this.contextCache.set(key, context);
+    }
+  }
+
+  private removeContextFromCache(entityName: string): void {
+    const normalized = entityName.toLowerCase().trim();
+    for (const [key, value] of this.contextCache.entries()) {
+      if (key === normalized || value.entityName.toLowerCase() === normalized) {
+        this.contextCache.delete(key);
+      }
+    }
   }
 
   /**
@@ -151,20 +225,8 @@ export class BusinessContextService {
       if (dbContext) {
         console.log(`✅ [Business Context] Loaded from database: ${companyName}`);
 
-        const context: BusinessEntityContext = {
-          entityName: dbContext.entityName,
-          entityType: dbContext.entityType as EntityType,
-          industry: dbContext.industry || undefined,
-          description: dbContext.description || undefined,
-          aliases: dbContext.aliases || [],
-          relatedEntities: dbContext.relatedEntities || [],
-          technologyPortfolio: dbContext.technologyPortfolio || undefined,
-          serviceDetails: dbContext.serviceDetails || undefined,
-          keyContacts: dbContext.keyContacts || [],
-        };
-
-        // Cache for future use
-        this.contextCache.set(companyKey, context);
+        const context = this.buildContextFromDbRecord(dbContext);
+        this.storeContextInCache(context);
         return context;
       }
     } catch (error) {
@@ -173,6 +235,27 @@ export class BusinessContextService {
 
     // Not found in cache or database
     return null;
+  }
+
+  /**
+   * Refresh cache entry for an entity by refetching from DB
+   */
+  async refreshContext(entityName: string): Promise<BusinessEntityContext | null> {
+    try {
+      const dbContext = await this.repository.findByName(entityName);
+      if (!dbContext) {
+        this.removeContextFromCache(entityName);
+        return null;
+      }
+
+      const context = this.buildContextFromDbRecord(dbContext);
+      this.removeContextFromCache(entityName);
+      this.storeContextInCache(context);
+      return context;
+    } catch (error) {
+      console.warn(`[Business Context] Failed to refresh context for "${entityName}":`, error);
+      return null;
+    }
   }
 
   /**
@@ -202,10 +285,39 @@ export class BusinessContextService {
       parts.push(`\n  Technology: ${context.technologyPortfolio}`);
     }
 
+    if (context.serviceDetails) {
+      parts.push(`\n  Services: ${context.serviceDetails}`);
+    }
+
     if (context.keyContacts.length > 0) {
       const contacts = context.keyContacts.slice(0, 2);
       const contactStr = contacts.map(c => `${c.name} (${c.role})`).join(", ");
       parts.push(`\n  Key contacts: ${contactStr}`);
+    }
+
+    if (context.slackChannels.length > 0) {
+      const slackStr = context.slackChannels
+        .map((channel) => channel.notes ? `#${channel.name} (${channel.notes})` : `#${channel.name}`)
+        .join(", ");
+      parts.push(`\n  Slack channels: ${slackStr}`);
+    }
+
+    if (context.cmdbIdentifiers.length > 0) {
+      const ciSummaries = context.cmdbIdentifiers.slice(0, 2).map((ci) => {
+        const name = ci.ciName || ci.sysId || "Unknown CI";
+        const ips = ci.ipAddresses?.length ? ` [IP: ${ci.ipAddresses.join(", ")}]` : "";
+        const owner = ci.ownerGroup ? ` Owner: ${ci.ownerGroup}.` : "";
+        const description = ci.description ? ` ${ci.description}` : "";
+        return `${name}${ips}.${owner}${description}`.trim();
+      });
+      parts.push(`\n  CMDB refs: ${ciSummaries.join(" | ")}`);
+    }
+
+    if (context.contextStewards.length > 0) {
+      const stewardStr = context.contextStewards
+        .map((steward) => steward.name || steward.id || steward.type)
+        .join(", ");
+      parts.push(`\n  Context stewards: ${stewardStr}`);
     }
 
     return parts.join(" ");
@@ -307,6 +419,32 @@ export class BusinessContextService {
             .map(c => `${c.name} (${c.role})`)
             .join(", ");
           contextLines.push(`- Key contacts: ${contactsStr}`);
+        }
+        if (companyContext.slackChannels.length > 0) {
+          const channelStr = companyContext.slackChannels
+            .map((channel) => channel.notes ? `#${channel.name} (${channel.notes})` : `#${channel.name}`)
+            .join(", ");
+          contextLines.push(`- Slack channels: ${channelStr}`);
+        }
+        if (companyContext.cmdbIdentifiers.length > 0) {
+          const ciStr = companyContext.cmdbIdentifiers.slice(0, 2)
+            .map((ci) => {
+              const name = ci.ciName || ci.sysId || "Unknown CI";
+              const ips = ci.ipAddresses?.length ? ` IP: ${ci.ipAddresses.join(", ")}` : "";
+              const doc = ci.documentation?.length ? ` Docs: ${ci.documentation.join("; ")}` : "";
+              return `${name}${ips}${doc}`.trim();
+            })
+            .join(" | ");
+          contextLines.push(`- CMDB references: ${ciStr}`);
+        }
+        if (companyContext.contextStewards.length > 0) {
+          const stewardStr = companyContext.contextStewards
+            .map((steward) => {
+              const label = steward.name || steward.id || steward.type;
+              return steward.notes ? `${label} (${steward.notes})` : label;
+            })
+            .join(", ");
+          contextLines.push(`- Context stewards: ${stewardStr}`);
         }
 
         contextLines.push("");

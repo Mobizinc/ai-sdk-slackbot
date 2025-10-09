@@ -21,6 +21,50 @@
           "email": "sjohnson@altushealth.com"
         }
       ],
+      "slackChannels": [
+        {
+          "name": "altus-helpdesk",
+          "notes": "Primary triage channel for Altus end-user support"
+        }
+      ],
+      "cmdbIdentifiers": [
+        {
+          "ciName": "ALTUSHOUHOSP",
+          "ipAddresses": [
+            "172.99.109.10"
+          ],
+          "description": "Houston hospital file server located in Bryan data center. Access path: JMPBX-ALT01 (10.0.90.8) → 172.16.2.70 jump host → ALTUSHOUHOSP (172.99.109.10). Awaiting decision on replication to Azure.",
+          "ownerGroup": "Network Operations",
+          "documentation": [
+            "TODO: Create CMDB record if not present",
+            "TODO: Publish runbook covering jump-host connectivity and failover plan"
+          ]
+        },
+        {
+          "ciName": "AHCTSYSEVA",
+          "ipAddresses": [
+            "172.16.2.73",
+            "172.16.2.70"
+          ],
+          "description": "Azure-hosted VM with nested Hyper-V instance (172.16.2.70) used as bridge to Bryan DC assets.",
+          "ownerGroup": "Cloud Infrastructure",
+          "documentation": [
+            "Check ASR migration plan for Altus Houston workloads"
+          ]
+        }
+      ],
+      "contextStewards": [
+        {
+          "type": "channel",
+          "name": "context-approvals",
+          "notes": "Review queue for context/CMDB updates"
+        },
+        {
+          "type": "usergroup",
+          "name": "netops-oncall",
+          "notes": "Primary Altus infrastructure steward"
+        }
+      ],
       "isActive": true
     },
     {

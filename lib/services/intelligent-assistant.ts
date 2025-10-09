@@ -3,17 +3,40 @@
  * Inspired by mobiz-intelligence-analytics case intelligence system.
  */
 
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
+import { z } from "zod";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
+import { config } from "../config";
 
 export interface CaseGuidance {
+  similarCases: string[];
   suggestions: string[];
-  similarCasesSummary: string;
   nextSteps: string[];
 }
+
+type CaseGuidancePayload = {
+  similarCases: string[];
+  suggestions: string[];
+  nextSteps: string[];
+};
+
+const CaseGuidanceSchema = z.object({
+  similarCases: z.array(z.string().max(120)).min(1).max(3),
+  suggestions: z.array(z.string().max(100)).min(1).max(4),
+  nextSteps: z.array(z.string().max(100)).min(1).max(3),
+}) as z.ZodTypeAny;
+
+const createTool = tool as unknown as (options: any) => any;
+
+const guidanceTool = createTool({
+  description:
+    "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
+  inputSchema: CaseGuidanceSchema as z.ZodTypeAny,
+  execute: async (payload: CaseGuidancePayload) => payload,
+});
 
 /**
  * Generate intelligent assistance message when a case is first detected.
@@ -107,9 +130,14 @@ async function generateProactiveGuidance(
 ): Promise<string | null> {
   const problemDescription = caseDetails.description || caseDetails.short_description || "";
 
-  if (!problemDescription || problemDescription.length < 10) {
-    // Too vague to search (lowered from 20 to 10 to catch more cases)
-    console.log(`[Intelligent Assistant] Description too short for search: "${problemDescription}" (${problemDescription.length} chars)`);
+  if (
+    !problemDescription ||
+    problemDescription.length < config.assistantMinDescriptionLength
+  ) {
+    // Too vague to search with current threshold
+    console.log(
+      `[Intelligent Assistant] Description too short for search: "${problemDescription}" (${problemDescription.length} chars)`,
+    );
     return null;
   }
 
@@ -117,7 +145,7 @@ async function generateProactiveGuidance(
   console.log(`[Intelligent Assistant] Calling Azure Search with query: "${problemDescription.substring(0, 80)}..."`);
 
   const similarCases = await searchService.searchSimilarCases(problemDescription, {
-    topK: 3,
+    topK: config.assistantSimilarCasesTopK,
   });
 
   console.log(`[Intelligent Assistant] Azure Search returned ${similarCases.length} similar cases`);
@@ -163,7 +191,7 @@ ${c.content.substring(0, 300)}...`;
     })
     .join("\n\n");
 
-  const basePrompt = `You are a Service Desk AI assistant helping an agent troubleshoot a case.
+  const basePrompt = `You are a Service Desk AI assistant helping an engineer troubleshoot a case.
 
 **Current Case:**
 ${currentProblem}
@@ -171,25 +199,12 @@ ${currentProblem}
 **Similar Historical Cases:**
 ${similarCasesContext}
 
-**Your Task:**
-Provide concise, actionable guidance in Slack markdown format:
+When ready, call the \`draft_case_guidance\` tool EXACTLY ONCE with:
+- similarCases: 1-3 bullet strings summarising matched cases (case number + fix)
+- suggestions: 2-4 tactical troubleshooting ideas (≤80 chars each)
+- nextSteps: 1-3 immediate follow-up actions (≤80 chars each)
 
-*Similar Cases Found:*
-- Brief summary of 2-3 similar cases (case number + what fixed it)
-
-*Suggestions:*
-- 2-4 specific troubleshooting steps based on patterns from similar cases
-- Keep each suggestion to 1 line, ≤80 characters
-
-*Next Steps:*
-- 1-2 recommended actions to try first
-
-IMPORTANT:
-- Be concise - max 200 words total
-- Focus on ACTIONABLE steps, not theory
-- Use bullet points with • or -
-- No preamble like "Based on similar cases..."
-- Start directly with "*Similar Cases Found:*"`;
+Prioritise actionable insights only.`;
 
   try {
     // Enhance prompt with business context
@@ -201,14 +216,26 @@ IMPORTANT:
       channelPurpose
     );
 
-    const generationConfig = {
+    const result = await generateText({
       model: modelProvider.languageModel("intelligent-assistant"),
+      system:
+        "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
       prompt: enhancedPrompt,
-    };
+      tools: {
+        draft_case_guidance: guidanceTool,
+      },
+      toolChoice: { type: "tool", toolName: "draft_case_guidance" },
+    });
 
-    const { text } = await generateText(generationConfig);
+    const toolResult = result.toolResults[0];
 
-    return text.trim();
+    if (!toolResult || toolResult.type !== "tool-result") {
+      throw new Error("Structured guidance not returned");
+    }
+
+    const structured = CaseGuidanceSchema.parse(toolResult.output) as CaseGuidancePayload;
+
+    return formatGuidanceMessage(structured);
   } catch (error) {
     console.error("[Intelligent Assistant] Error synthesizing guidance:", error);
 
@@ -219,4 +246,19 @@ IMPORTANT:
 
     return fallback;
   }
+}
+
+function formatGuidanceMessage(guidance: CaseGuidance): string {
+  let message = "*Similar Cases Found:*";
+  message += "\n" + guidance.similarCases.map((item) => `• ${item}`).join("\n");
+
+  if (guidance.suggestions.length > 0) {
+    message += "\n\n*Suggestions:*\n" + guidance.suggestions.map((item) => `• ${item}`).join("\n");
+  }
+
+  if (guidance.nextSteps.length > 0) {
+    message += "\n\n*Next Steps:*\n" + guidance.nextSteps.map((item) => `• ${item}`).join("\n");
+  }
+
+  return message;
 }

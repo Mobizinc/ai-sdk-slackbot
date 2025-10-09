@@ -8,6 +8,8 @@ import { getKBGenerator } from "./services/kb-generator";
 import { sanitizeModelConfig } from "./model-capabilities";
 import { getBusinessContextService } from "./services/business-context-service";
 import { modelProvider, getActiveModelId } from "./model-provider";
+import { getContextUpdateManager, type ContextUpdateAction } from "./context-update-manager";
+import { getCurrentIssuesService } from "./services/current-issues-service";
 
 type WeatherToolInput = {
   latitude: number;
@@ -21,11 +23,19 @@ type SearchWebToolInput = {
 };
 
 type ServiceNowToolInput = {
-  action: "getIncident" | "getCase" | "getCaseJournal" | "searchKnowledge";
+  action:
+    | "getIncident"
+    | "getCase"
+    | "getCaseJournal"
+    | "searchKnowledge"
+    | "searchConfigurationItem";
   number?: string;
   caseSysId?: string;
   query?: string;
   limit?: number;
+  ciName?: string;
+  ipAddress?: string;
+  ciSysId?: string;
 };
 
 type SearchSimilarCasesInput = {
@@ -37,6 +47,28 @@ type SearchSimilarCasesInput = {
 type GenerateKBArticleInput = {
   caseNumber: string;
   threadTs?: string;
+};
+
+type ProposeContextUpdateInput = {
+  entityName: string;
+  caseNumber?: string;
+  summary: string;
+  details?: string;
+  cmdbIdentifier: {
+    ciName?: string;
+    sysId?: string;
+    ipAddresses?: string[];
+    description?: string;
+    ownerGroup?: string;
+    documentation?: string[];
+  };
+  confidence?: "LOW" | "MEDIUM" | "HIGH";
+  entityTypeIfCreate?: "CLIENT" | "VENDOR" | "PLATFORM";
+};
+
+type FetchCurrentIssuesInput = {
+  channelId?: string;
+  channelNameHint?: string;
 };
 
 const weatherInputSchema = z.object({
@@ -62,6 +94,7 @@ const serviceNowInputSchema = z
       "getCase",
       "getCaseJournal",
       "searchKnowledge",
+      "searchConfigurationItem",
     ]),
     number: z
       .string()
@@ -83,6 +116,18 @@ const serviceNowInputSchema = z
       .max(20)
       .optional()
       .describe("Maximum number of knowledge articles to return."),
+    ciName: z
+      .string()
+      .optional()
+      .describe("Configuration item name, hostname, or partial match to search for."),
+    ipAddress: z
+      .string()
+      .optional()
+      .describe("IP address associated with a configuration item."),
+    ciSysId: z
+      .string()
+      .optional()
+      .describe("Exact sys_id of the configuration item to retrieve."),
   })
   .describe("ServiceNow action parameters");
 
@@ -112,6 +157,54 @@ const generateKbArticleInputSchema = z.object({
     .describe("Optional thread timestamp to get conversation context from"),
 });
 
+const proposeContextUpdateInputSchema = z.object({
+  entityName: z
+    .string()
+    .min(2)
+    .describe("Business entity/client name that should be updated."),
+  caseNumber: z
+    .string()
+    .optional()
+    .describe("Case number associated with the discovered context gap."),
+  summary: z
+    .string()
+    .min(10)
+    .describe("Short summary describing what needs to change."),
+  details: z
+    .string()
+    .optional()
+    .describe("Optional additional detail or justification."),
+  cmdbIdentifier: z
+    .object({
+      ciName: z.string().optional(),
+      sysId: z.string().optional(),
+      ipAddresses: z.array(z.string()).optional(),
+      description: z.string().optional(),
+      ownerGroup: z.string().optional(),
+      documentation: z.array(z.string()).optional(),
+    })
+    .describe("CMDB identifier payload to append if approved."),
+  confidence: z
+    .enum(["LOW", "MEDIUM", "HIGH"])
+    .optional()
+    .describe("Assistant confidence in this proposed update."),
+  entityTypeIfCreate: z
+    .enum(["CLIENT", "VENDOR", "PLATFORM"])
+    .optional()
+    .describe("If the entity does not exist, what type should be created."),
+});
+
+const fetchCurrentIssuesInputSchema = z.object({
+  channelId: z
+    .string()
+    .optional()
+    .describe("Slack channel ID where the question originated."),
+  channelNameHint: z
+    .string()
+    .optional()
+    .describe("Optional channel name hint if the ID is not available."),
+});
+
 const createTool = tool as unknown as (options: any) => any;
 
 let generateTextImpl = generateText;
@@ -132,6 +225,11 @@ const azureSearchService = createAzureSearchService();
 export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
+  options?: {
+    channelId?: string;
+    channelName?: string;
+    threadTs?: string;
+  },
 ) => {
   const activeModelId = getActiveModelId();
 
@@ -174,6 +272,9 @@ IMPORTANT: Engineers are actively troubleshooting. Only respond when:
 
 Tool usage:
   • Call ServiceNow tools to get details for cases explicitly mentioned in the conversation
+  • When hosts, IPs, or server names are mentioned, use ServiceNow configuration item search. If no CMDB record is returned, say so plainly and request that an owner capture documentation/create the record (suggest the most relevant team if known).
+  • When someone asks for current issues/outages, call fetchCurrentIssues before responding so you can summarize active ServiceNow cases and in-channel threads.
+  • If the CMDB is missing critical information and you have concrete, verified details, call proposeContextUpdate to draft an update for steward approval. Only include durable facts the team just validated.
   • Use searchSimilarCases to find reference cases for context and pattern recognition
   • IMPORTANT: Similar cases are for REFERENCE ONLY - never display their journal entries, activity, or specific details
   • Only show journal entries and case details for cases explicitly mentioned in the current conversation
@@ -265,9 +366,18 @@ Guardrails:
 
       const serviceNowTool = createTool({
         description:
-          "Read data from ServiceNow (incidents, cases, knowledge base, and recent journal entries).",
+          "Read data from ServiceNow (incidents, cases, knowledge base, recent journal entries, and configuration items).",
         inputSchema: serviceNowInputSchema,
-        execute: async ({ action, number, caseSysId, query, limit }: ServiceNowToolInput) => {
+        execute: async ({
+          action,
+          number,
+          caseSysId,
+          query,
+          limit,
+          ciName,
+          ipAddress,
+          ciSysId,
+        }: ServiceNowToolInput) => {
           if (!serviceNowClient.isConfigured()) {
             return {
               error:
@@ -367,6 +477,33 @@ Guardrails:
               });
 
               return { articles };
+            }
+
+            if (action === "searchConfigurationItem") {
+              if (!ciName && !ipAddress && !ciSysId) {
+                throw new Error(
+                  "Provide at least ciName, ipAddress, or ciSysId to search the CMDB.",
+                );
+              }
+
+              updateStatus?.("is checking ServiceNow CMDB for the requested asset...");
+
+              const configurationItems = await serviceNowClient.searchConfigurationItems({
+                name: ciName,
+                ipAddress,
+                sysId: ciSysId,
+                limit,
+              });
+
+              if (!configurationItems.length) {
+                return {
+                  configurationItems: [],
+                  notFound: true,
+                  message: "No matching configuration items were found in ServiceNow.",
+                };
+              }
+
+              return { configurationItems };
             }
 
             throw new Error(`Unsupported ServiceNow action: ${action}`);
@@ -488,12 +625,171 @@ Guardrails:
         },
       });
 
+      const proposeContextUpdateTool = createTool({
+        description:
+          "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
+        inputSchema: proposeContextUpdateInputSchema,
+        execute: async ({
+          entityName,
+          caseNumber,
+          summary,
+          details,
+          cmdbIdentifier,
+          confidence,
+          entityTypeIfCreate,
+        }: ProposeContextUpdateInput) => {
+          const chosenCaseNumber = caseNumber ?? caseNumbers[0];
+          if (!chosenCaseNumber) {
+            return {
+              error:
+                "No case number available for the context update. Provide caseNumber in the tool invocation so the stewards can trace the source conversation.",
+            };
+          }
+
+          const contextManager = getContextManager();
+          const contexts = contextManager.getContextsForCase(chosenCaseNumber);
+
+          if (!contexts.length) {
+            return {
+              error: `Unable to locate conversation history for ${chosenCaseNumber}. Wait until the case is tracked before proposing updates.`,
+            };
+          }
+
+          const conversationContext = contexts[contexts.length - 1];
+          const sourceChannelId = conversationContext.channelId;
+          const sourceThreadTs = conversationContext.threadTs;
+
+          const businessService = getBusinessContextService();
+          const businessContext = await businessService.getContextForCompany(entityName);
+
+          if (!businessContext && !entityTypeIfCreate) {
+            return {
+              error:
+                `No business context exists for ${entityName}. Provide entityTypeIfCreate (CLIENT | VENDOR | PLATFORM) so a record can be bootstrapped when approved.`,
+            };
+          }
+
+          const identifierHasSignal =
+            Boolean(cmdbIdentifier.ciName) ||
+            Boolean(cmdbIdentifier.sysId) ||
+            Boolean(cmdbIdentifier.description) ||
+            (cmdbIdentifier.ipAddresses?.length ?? 0) > 0;
+
+          if (!identifierHasSignal) {
+            return {
+              error:
+                "Provide at least one of ciName, sysId, description, or ipAddresses for the CMDB identifier so stewards have something actionable.",
+            };
+          }
+
+          const normalizeIp = (value: string) => value.trim();
+          const dedupeIps = (ips: string[] | undefined) =>
+            Array.from(new Set((ips ?? []).map(normalizeIp))).filter(Boolean);
+
+          const stewardChannel = businessContext?.contextStewards?.find(
+            (steward) => steward.type === "channel" && steward.id
+          );
+
+          const stewardChannelId = stewardChannel?.id || sourceChannelId;
+
+          const formatStewardMention = (steward: {
+            type: "channel" | "user" | "usergroup";
+            id?: string;
+            name?: string;
+            notes?: string;
+          }): string => {
+            const label = steward.name || steward.id || steward.type;
+            let mention: string;
+            if (steward.type === "channel") {
+              mention = steward.id ? `<#${steward.id}${steward.name ? `|${steward.name}` : ""}>` : `#${label}`;
+            } else if (steward.type === "usergroup") {
+              mention = steward.id ? `<!subteam^${steward.id}${steward.name ? `|@${steward.name}` : ""}>` : `@${label}`;
+            } else {
+              mention = steward.id ? `<@${steward.id}>` : `@${label}`;
+            }
+            return steward.notes ? `${mention} (${steward.notes})` : mention;
+          };
+
+          const stewardMentions = (businessContext?.contextStewards ?? []).map(formatStewardMention);
+
+          if (!stewardMentions.length) {
+            stewardMentions.push("Context stewards not configured – please triage manually.");
+          }
+
+          const contextUpdateManager = getContextUpdateManager();
+          const actions: ContextUpdateAction[] = [
+            {
+              type: "append_cmdb_identifier",
+              identifier: {
+                ciName: cmdbIdentifier.ciName,
+                sysId: cmdbIdentifier.sysId,
+                ipAddresses: dedupeIps(cmdbIdentifier.ipAddresses),
+                description: cmdbIdentifier.description,
+                ownerGroup: cmdbIdentifier.ownerGroup,
+                documentation: cmdbIdentifier.documentation ?? [],
+              },
+              createEntityIfMissing: !businessContext,
+              entityTypeIfCreate,
+            },
+          ];
+
+          const proposal = await contextUpdateManager.postProposal({
+            entityName,
+            summary,
+            details,
+            actions,
+            stewardMentions,
+            stewardChannelId,
+            sourceChannelId,
+            sourceThreadTs,
+            initiatedBy: "PeterPool",
+            caseNumber: chosenCaseNumber,
+            confidence,
+          });
+
+          return {
+            status: "pending_approval",
+            messageTs: proposal.messageTs,
+            stewardChannelId,
+          };
+        },
+      });
+
+      const fetchCurrentIssuesTool = createTool({
+        description:
+          "Check ServiceNow and Slack for live issues affecting this customer.",
+        inputSchema: fetchCurrentIssuesInputSchema,
+        execute: async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
+          const effectiveChannelId = channelId ?? options?.channelId;
+
+          if (!effectiveChannelId) {
+            return {
+              error:
+                "channelId is required to fetch current issues. Provide it in the tool call or ensure the assistant has channel metadata.",
+            };
+          }
+
+          const currentIssuesService = getCurrentIssuesService();
+          const result = await currentIssuesService.getCurrentIssues(effectiveChannelId);
+
+          if (channelNameHint && !result.channelName) {
+            result.channelName = channelNameHint;
+          }
+
+          return {
+            result,
+          };
+        },
+      });
+
       return {
         getWeather: getWeatherTool,
         searchWeb: searchWebTool,
         serviceNow: serviceNowTool,
         searchSimilarCases: searchSimilarCasesTool,
         generateKBArticle: generateKbArticleTool,
+        proposeContextUpdate: proposeContextUpdateTool,
+        fetchCurrentIssues: fetchCurrentIssuesTool,
       };
     };
 

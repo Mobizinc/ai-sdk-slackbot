@@ -6,6 +6,7 @@
 
 import type { KBStateRepository } from "../db/repositories/kb-state-repository";
 import { getKBStateRepository } from "../db/repositories/kb-state-repository";
+import { config } from "../config";
 
 export enum KBState {
   ASSESSING = "assessing",           // Running quality check
@@ -33,8 +34,8 @@ export interface KBGenerationContext {
 
 export class KBStateMachine {
   private contexts = new Map<string, KBGenerationContext>();
-  private readonly maxAttempts = 5; // Allow up to 5 clarification attempts before abandoning
-  private readonly timeoutHours = 24;
+  private readonly maxAttempts = config.kbGatheringMaxAttempts;
+  private readonly timeoutHours = config.kbGatheringTimeoutHours;
   private repository: KBStateRepository;
 
   constructor(repository?: KBStateRepository) {

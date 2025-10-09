@@ -153,6 +153,9 @@ Cloud/software platforms used across clients.
 | `technologyPortfolio` | string | ⚪ | Technologies used/provided |
 | `serviceDetails` | string | ⚪ | Services provided/received |
 | `keyContacts` | array | ⚪ | Important people [{name, role, email}] |
+| `slackChannels` | array | ⚪ | Slack channel hints [{name, channelId?, notes?}] |
+| `cmdbIdentifiers` | array | ⚪ | CMDB metadata [{ciName?, sysId?, ipAddresses?, description?, ownerGroup?, documentation?}] |
+| `contextStewards` | array | ⚪ | Who approves context updates [{type, id?, name?, notes?}] |
 | `isActive` | boolean | ⚪ | Whether entity is active (default: true) |
 
 ## How It's Used
@@ -215,6 +218,23 @@ Add to the appropriate array in `business-contexts.json` and re-import.
 3. **Update key contacts** - Keep them current for better service
 4. **Technology portfolio** - List main technologies, not everything
 5. **Re-import regularly** - Run import script whenever you update the JSON
+
+## Channel & CMDB Metadata
+
+- **Slack channels**: Track the canonical support channels (`slackChannels`) so the assistant can tie conversation threads to the right customer context. Include a short note describing the channel’s purpose if it helps distinguish production vs. project rooms.
+- **CMDB identifiers**: Capture the authoritative CI name, `sys_id` (if known), primary IPs, and owning group in `cmdbIdentifiers`. When a configuration item is missing in ServiceNow, the assistant will now call out the gap and ask for documentation/CMDB creation—having the expected data here keeps the follow-up targeted.
+- **Runbooks & docs**: Use the `documentation` array to link to existing runbooks or to flag missing docs (e.g., `"TODO: Publish runbook for Houston file server jump path"`).
+- **Keep owners obvious**: Populate `ownerGroup` with the accountable team so follow-up requests automatically land with the right audience.
+- **Context stewards**: List the Slack channel/user group/user who must approve context changes (`contextStewards`). The bot will ping these stewards when it drafts an update and wait for their 👍 before writing to the database.
+
+## Context Update Workflow
+
+1. **Detection** – During a case conversation the assistant checks the CMDB via ServiceNow. If no record exists, it gathers the verified facts (hostnames, IPs, owner group, access path).
+2. **Proposal** – The assistant calls `proposeContextUpdate`, which posts a summary to the steward channel (defined in `contextStewards`). Stewards are mentioned directly in the message.
+3. **Approval via emoji** – React with ✅ to apply or ❌ to discard. On approval the update is written into the `business_contexts` table (and the cache refreshed). Rejection posts a follow-up in the case thread so engineers know nothing changed.
+4. **Documentation** – Use the `documentation` array to point to the runbook/ServiceNow task that tracks long-form follow-up. The goal is to keep prompts, CMDB, and tribal notes aligned.
+
+> Tip: Configure a dedicated channel (e.g., `#context-approvals`) and a Slack user group (e.g., `@netops-oncall`) for faster reviews.
 
 ## Static Fallback
 

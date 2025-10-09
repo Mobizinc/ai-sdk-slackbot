@@ -21,6 +21,7 @@ import {
   formatNoteRequestMessage,
 } from "./services/interactive-kb-assistant";
 import { generateResolutionSummary } from "./services/case-resolution-summary";
+import { config } from "./config";
 import { buildIntelligentAssistance } from "./services/intelligent-assistant";
 import { createAzureSearchService } from "./services/azure-search";
 import type {
@@ -389,8 +390,10 @@ export async function notifyResolution(
         unfurl_links: false,
       });
 
-      console.log(`[KB Generation] Will check case notes for ${caseNumber} in 24 hours`);
-      // Note: Background job will check in 24h and re-assess
+      console.log(
+        `[KB Generation] Will check case notes for ${caseNumber} in ${config.kbGatheringTimeoutHours} hours`,
+      );
+      // Note: Background cleanup will re-assess after the configured timeout
       // For now, we leave it in AWAITING_NOTES state
     }
 
@@ -523,7 +526,7 @@ export async function cleanupTimedOutGathering(): Promise<void> {
   const gatheringContexts = stateMachine.getContextsInState(KBState.GATHERING);
 
   const now = new Date();
-  const timeoutMs = 24 * 60 * 60 * 1000; // 24 hours
+  const timeoutMs = config.kbGatheringTimeoutHours * 60 * 60 * 1000;
 
   for (const ctx of gatheringContexts) {
     const elapsedMs = now.getTime() - ctx.lastUpdated.getTime();
@@ -551,13 +554,6 @@ export async function cleanupTimedOutGathering(): Promise<void> {
     }
   }
 }
-
-// Run timeout cleanup every hour
-setInterval(() => {
-  cleanupTimedOutGathering().catch(error => {
-    console.error('[KB Generation] Error during timeout cleanup:', error);
-  });
-}, 60 * 60 * 1000);
 
 /**
  * Extract case numbers from text (exported for testing)

@@ -45,11 +45,18 @@ export async function handleNewAppMention(
   let result: string;
   if (thread_ts) {
     const messages = await getThread(channel, thread_ts, botUserId);
-    result = await generateResponse(messages, updateMessage);
+    result = await generateResponse(messages, updateMessage, {
+      channelId: channel,
+      threadTs: thread_ts,
+    });
   } else {
     result = await generateResponse(
       [{ role: "user", content: event.text }],
       updateMessage,
+      {
+        channelId: channel,
+        threadTs: thread_ts ?? event.ts,
+      },
     );
   }
 

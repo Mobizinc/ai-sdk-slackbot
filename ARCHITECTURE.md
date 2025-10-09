@@ -37,7 +37,7 @@ The AI SDK Slackbot is a **passive monitoring and intelligent assistance system*
 │  • app_mention          → App Mention Handler                   │
 │  • message (channels)   → Passive Message Handler               │
 │  • message (DM)         → Assistant Manager                     │
-│  • reaction_added       → KB Approval Manager                   │
+│  • reaction_added       → KB Approval Manager & Context Updates │
 └─────┬───────────────────────────────────────────────────────────┘
       │
       ├─────────────────────────────────────────────────────────┐
@@ -318,6 +318,9 @@ Stores company/vendor/platform information for LLM context enrichment
   technologyPortfolio?: string;
   serviceDetails?: string;
   keyContacts: {name, role, email}[]; (JSONB)
+  slackChannels: {name, channelId?, notes?}[]; (JSONB)
+  cmdbIdentifiers: {ciName?, sysId?, ipAddresses?, ownerGroup?, documentation?}[]; (JSONB)
+  contextStewards: {type, id?, name?, notes?}[]; (JSONB)
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -509,7 +512,7 @@ Duplicate?         User Response + Re-assess
 - `app_mention` → Direct @mention responses
 - `message` (channels) → Passive case monitoring
 - `message` (im) → Direct message assistant
-- `reaction_added` → KB approval workflow
+- `reaction_added` → KB approval workflow + context update approvals
 - `assistant_thread_started` → Assistant mode
 - `assistant_thread_context_changed` → Context updates
 
@@ -729,8 +732,9 @@ Interface-compatible implementations for:
 
 **4. KB generation stuck in GATHERING**
 - Check `kb_generation_states` table for state
-- Verify cleanup job running (hourly)
+- Verify Vercel Cron is calling `/api/cron/cleanup-workflows`
 - Manual cleanup: `stateMachine.cleanupExpired()`
+- Tune via `KB_GATHERING_TIMEOUT_HOURS`
 
 **5. Database connection errors**
 - Verify `DATABASE_URL` format: `postgresql://user:pass@host/db?sslmode=require`
@@ -746,4 +750,3 @@ Interface-compatible implementations for:
 - [Azure AI Search](https://learn.microsoft.com/en-us/azure/search/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [Z.ai GLM-4.6](https://z.ai/)
-

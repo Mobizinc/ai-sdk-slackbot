@@ -116,6 +116,21 @@ export const businessContexts = pgTable(
     technologyPortfolio: text("technology_portfolio"),
     serviceDetails: text("service_details"),
     keyContacts: jsonb("key_contacts").$type<Array<{name: string; role: string; email?: string}>>().default([]).notNull(),
+    slackChannels: jsonb("slack_channels").$type<Array<{name: string; channelId?: string; notes?: string}>>().default([]).notNull(),
+    cmdbIdentifiers: jsonb("cmdb_identifiers").$type<Array<{
+      ciName?: string;
+      sysId?: string;
+      ipAddresses?: string[];
+      description?: string;
+      ownerGroup?: string;
+      documentation?: string[];
+    }>>().default([]).notNull(),
+    contextStewards: jsonb("context_stewards").$type<Array<{
+      type: "channel" | "user" | "usergroup";
+      id?: string;
+      name?: string;
+      notes?: string;
+    }>>().default([]).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -129,3 +144,5 @@ export const businessContexts = pgTable(
 
 export type BusinessContext = typeof businessContexts.$inferSelect;
 export type NewBusinessContext = typeof businessContexts.$inferInsert;
+export type BusinessContextCmdbIdentifier = BusinessContext["cmdbIdentifiers"][number];
+export type BusinessContextSteward = BusinessContext["contextStewards"][number];

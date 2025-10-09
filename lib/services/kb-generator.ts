@@ -3,11 +3,13 @@
  * Generates structured KB articles from case conversations with AI assistance
  */
 
-import { generateText } from "ai";
+import { generateText, tool } from "ai";
+import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
+import { config } from "../config";
 
 export interface KBArticle {
   title: string;
@@ -30,6 +32,37 @@ export interface KBGenerationResult {
   isDuplicate: boolean;
   confidence: number;
 }
+
+type KBArticlePayload = {
+  title: string;
+  problem: string;
+  environment: string;
+  solution: string;
+  rootCause?: string;
+  relatedCases: string[];
+  tags: string[];
+  conversationSummary?: string;
+};
+
+const KBArticleSchema = z.object({
+  title: z.string().min(10).max(120),
+  problem: z.string().min(10),
+  environment: z.string().min(5),
+  solution: z.string().min(10),
+  rootCause: z.string().min(5).optional(),
+  relatedCases: z.array(z.string()).max(10),
+  tags: z.array(z.string().min(2)).max(10),
+  conversationSummary: z.string().optional(),
+}) as z.ZodTypeAny;
+
+const createTool = tool as unknown as (options: any) => any;
+
+const kbArticleTool = createTool({
+  description:
+    "Return the fully structured knowledge base article as your final output. Call this exactly once.",
+  inputSchema: KBArticleSchema as z.ZodTypeAny,
+  execute: async (article: KBArticlePayload) => article,
+});
 
 export class KBGenerator {
   private azureSearch = createAzureSearchService();
@@ -88,7 +121,7 @@ export class KBGenerator {
     try {
       // Search with KB-specific filters if your index has content_type field
       const results = await this.azureSearch.searchKnowledgeBase(query, {
-        topK: 3,
+        topK: config.kbSimilarCasesTopK,
       });
 
       return results.map((r) => ({
@@ -130,27 +163,17 @@ Conversation that led to resolution:
 ${conversationSummary}
 ${similarContext}
 
-Generate a structured knowledge base article in JSON format with these fields:
+When you have finished analysing the conversation, call the \`draft_kb_article\` tool exactly once with:
+- title: clear descriptive title (50-80 characters)
+- problem: precise summary of symptoms/impact
+- environment: relevant systems, versions, configs
+- solution: step-by-step resolution in markdown (numbered steps where possible)
+- rootCause: why it happened if identified (omit otherwise)
+- relatedCases: case numbers referenced in the conversation
+- tags: relevant keywords (technology, component, issue type)
+- conversationSummary: concise recap of the resolution dialogue
 
-{
-  "title": "Clear, descriptive title (50-80 chars)",
-  "problem": "What was the issue? Be specific about symptoms.",
-  "environment": "Affected systems, software versions, or configurations",
-  "solution": "Step-by-step resolution in markdown format with numbered steps",
-  "rootCause": "Why did this happen? (if identifiable)",
-  "relatedCases": ["List of related case numbers mentioned"],
-  "tags": ["Relevant keywords for searching: technology, symptom, category"]
-}
-
-Guidelines:
-- Be concise but complete
-- Use technical accuracy from the conversation
-- Solution should be actionable steps
-- Extract all case numbers mentioned in conversation
-- Tags should include: technology names, error types, affected systems
-- Write for technical support staff
-
-Return ONLY valid JSON, no other text.`;
+Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
 
     try {
       // Enhance prompt with business context
@@ -162,23 +185,29 @@ Return ONLY valid JSON, no other text.`;
         (context as any).channelPurpose
       );
 
-      const generationConfig = {
+      const result = await generateText({
         model: modelProvider.languageModel("kb-generator"),
+        system:
+          "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
         prompt: enhancedPrompt,
-      };
+        tools: {
+          draft_kb_article: kbArticleTool,
+        },
+        toolChoice: { type: "tool", toolName: "draft_kb_article" },
+      });
 
-      const { text } = await generateText(generationConfig);
+      const toolResult = result.toolResults[0];
 
-      // Parse JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in LLM response");
+      if (!toolResult || toolResult.type !== "tool-result") {
+        throw new Error("Model did not return structured KB article data");
       }
 
-      const article = JSON.parse(jsonMatch[0]) as KBArticle;
-      article.conversationSummary = conversationSummary;
+      const parsed = KBArticleSchema.parse(toolResult.output) as KBArticlePayload;
 
-      return article;
+      return {
+        ...parsed,
+        conversationSummary: parsed.conversationSummary ?? conversationSummary,
+      };
     } catch (error) {
       console.error("Error generating KB with LLM:", error);
 

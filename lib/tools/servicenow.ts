@@ -9,6 +9,7 @@ interface ServiceNowConfig {
   apiToken?: string;
   caseTable?: string;
   caseJournalName?: string;
+  ciTable?: string;
 }
 
 const config: ServiceNowConfig = {
@@ -21,6 +22,7 @@ const config: ServiceNowConfig = {
   caseJournalName:
     process.env.SERVICENOW_CASE_JOURNAL_NAME?.trim() ||
     "x_mobit_serv_case_service_case",
+  ciTable: process.env.SERVICENOW_CI_TABLE?.trim() || "cmdb_ci",
 };
 
 function detectAuthMode(): ServiceNowAuthMode | null {
@@ -100,6 +102,24 @@ function extractDisplayValue(field: any): string {
   return String(field);
 }
 
+function normalizeIpAddresses(field: any): string[] {
+  if (!field) return [];
+  if (Array.isArray(field)) {
+    return field
+      .map((entry) => extractDisplayValue(entry))
+      .map((value) => value.trim())
+      .filter((value) => Boolean(value));
+  }
+
+  const display = extractDisplayValue(field);
+  if (!display) return [];
+
+  return display
+    .split(/[\s,;]+/)
+    .map((value) => value.trim())
+    .filter((value) => Boolean(value));
+}
+
 export interface ServiceNowIncidentResult {
   number: string;
   sys_id: string;
@@ -146,6 +166,35 @@ export interface ServiceNowCaseJournalEntry {
   sys_created_on: string;
   sys_created_by: string;
   value?: string;
+}
+
+export interface ServiceNowConfigurationItem {
+  sys_id: string;
+  name: string;
+  sys_class_name?: string;
+  fqdn?: string;
+  host_name?: string;
+  ip_addresses: string[];
+  owner_group?: string;
+  support_group?: string;
+  location?: string;
+  environment?: string;
+  status?: string;
+  description?: string;
+  url: string;
+}
+
+export interface ServiceNowCaseSummary {
+  sys_id: string;
+  number: string;
+  short_description?: string;
+  priority?: string;
+  state?: string;
+  account?: string;
+  company?: string;
+  opened_at?: string;
+  updated_on?: string;
+  url: string;
 }
 
 export class ServiceNowClient {
@@ -249,6 +298,144 @@ export class ServiceNowClient {
     );
 
     return data.result ?? [];
+  }
+
+  public async searchConfigurationItems(
+    input: { name?: string; ipAddress?: string; sysId?: string; limit?: number },
+  ): Promise<ServiceNowConfigurationItem[]> {
+    const table = config.ciTable ?? "cmdb_ci";
+    const limit = input.limit ?? 5;
+
+    const queryGroups: string[] = [];
+
+    if (input.sysId) {
+      queryGroups.push(`sys_id=${input.sysId}`);
+    }
+
+    if (input.name) {
+      const nameQuery = input.name.trim();
+      if (nameQuery) {
+        queryGroups.push(
+          `nameLIKE${nameQuery}^ORfqdnLIKE${nameQuery}^ORu_fqdnLIKE${nameQuery}^ORhost_nameLIKE${nameQuery}`,
+        );
+      }
+    }
+
+    if (input.ipAddress) {
+      const ipQuery = input.ipAddress.trim();
+      if (ipQuery) {
+        queryGroups.push(
+          `ip_addressLIKE${ipQuery}^ORu_ip_addressLIKE${ipQuery}^ORfqdnLIKE${ipQuery}`,
+        );
+      }
+    }
+
+    if (!queryGroups.length) {
+      throw new Error(
+        "Provide at least one of: name, ipAddress, or sysId to search configuration items.",
+      );
+    }
+
+    const query = queryGroups.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+    );
+
+    const items = data.result ?? [];
+
+    return items.map((item) => {
+      const sysId = extractDisplayValue(item.sys_id);
+      const name =
+        extractDisplayValue(item.name) ||
+        extractDisplayValue(item.fqdn) ||
+        extractDisplayValue(item.u_fqdn) ||
+        extractDisplayValue(item.host_name) ||
+        sysId;
+
+      return {
+        sys_id: sysId,
+        name,
+        sys_class_name: extractDisplayValue(item.sys_class_name) || undefined,
+        fqdn: extractDisplayValue(item.fqdn) || extractDisplayValue(item.u_fqdn) || undefined,
+        host_name: extractDisplayValue(item.host_name) || undefined,
+        ip_addresses: normalizeIpAddresses(item.ip_address ?? item.u_ip_address),
+        owner_group: extractDisplayValue(item.owner) || extractDisplayValue(item.support_group) || undefined,
+        support_group: extractDisplayValue(item.support_group) || undefined,
+        location: extractDisplayValue(item.location) || undefined,
+        environment: extractDisplayValue(item.u_environment) || undefined,
+        status:
+          extractDisplayValue(item.install_status) ||
+          extractDisplayValue(item.status) ||
+          undefined,
+        description:
+          extractDisplayValue(item.short_description) ||
+          extractDisplayValue(item.description) ||
+          undefined,
+        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+      } satisfies ServiceNowConfigurationItem;
+    });
+  }
+
+  public async searchCustomerCases(
+    input: {
+      accountName?: string;
+      companyName?: string;
+      query?: string;
+      limit?: number;
+      activeOnly?: boolean;
+    },
+  ): Promise<ServiceNowCaseSummary[]> {
+    const table = config.caseTable ?? "sn_customerservice_case";
+    const limit = input.limit ?? 5;
+
+    const queryParts: string[] = ["ORDERBYDESCopened_at"];
+
+    if (input.accountName) {
+      queryParts.push(`account.nameLIKE${input.accountName}`);
+    }
+
+    if (input.companyName) {
+      queryParts.push(`company.nameLIKE${input.companyName}`);
+    }
+
+    if (input.query) {
+      queryParts.push(`short_descriptionLIKE${input.query}`);
+    }
+
+    if (input.activeOnly) {
+      queryParts.push("active=true");
+    }
+
+    const query = queryParts.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+    );
+
+    return (data.result ?? []).map((record) => {
+      const sysId = extractDisplayValue(record.sys_id);
+      return {
+        sys_id: sysId,
+        number: extractDisplayValue(record.number),
+        short_description: extractDisplayValue(record.short_description) || undefined,
+        priority: extractDisplayValue(record.priority) || undefined,
+        state: extractDisplayValue(record.state) || undefined,
+        account: extractDisplayValue(record.account) || undefined,
+        company: extractDisplayValue(record.company) || undefined,
+        opened_at: extractDisplayValue(record.opened_at) || undefined,
+        updated_on: extractDisplayValue(record.sys_updated_on) || undefined,
+        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+      } satisfies ServiceNowCaseSummary;
+    });
   }
 }
 
