@@ -1,11 +1,12 @@
-import type { WaitUntil } from "@vercel/functions";
+// Extract the waitUntil type from the function signature
+type WaitUntilFunction = typeof import("@vercel/functions").waitUntil;
 
 type BackgroundTask = Promise<unknown>;
 
-let cachedWaitUntil: WaitUntil | null = null;
-let loadWaitUntilPromise: Promise<WaitUntil | null> | null = null;
+let cachedWaitUntil: WaitUntilFunction | null = null;
+let loadWaitUntilPromise: Promise<WaitUntilFunction | null> | null = null;
 
-async function loadWaitUntil(): Promise<WaitUntil | null> {
+async function loadWaitUntil(): Promise<WaitUntilFunction | null> {
   if (cachedWaitUntil) {
     return cachedWaitUntil;
   }
@@ -51,7 +52,7 @@ export function enqueueBackgroundTask(task: BackgroundTask): void {
     });
 }
 
-export function __setWaitUntilForTests(waitUntilFn: WaitUntil | null): void {
+export function __setWaitUntilForTests(waitUntilFn: WaitUntilFunction | null): void {
   cachedWaitUntil = waitUntilFn;
   loadWaitUntilPromise = null;
 }
