@@ -1,8 +1,8 @@
 import type { ChatPostMessageArguments } from "@slack/web-api";
 import { z } from "zod";
 
-import { client } from "../lib/slack-utils";
-import { verifyRelaySignature } from "../lib/relay-auth";
+import { client } from "../../../lib/slack-utils";
+import { verifyRelaySignature } from "../../../lib/relay-auth";
 
 const targetSchema = z
   .object({
