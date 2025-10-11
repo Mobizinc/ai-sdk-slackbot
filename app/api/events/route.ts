@@ -2,15 +2,15 @@ import type {
   GenericMessageEvent,
   ReactionAddedEvent,
   SlackEvent,
-} from "../lib/slack-event-types";
+} from "../../../lib/slack-event-types";
 import { waitUntil } from "@vercel/functions";
-import { handleNewAppMention } from "../lib/handle-app-mention";
-import { verifyRequest, getBotId } from "../lib/slack-utils";
-import { assistantManager } from "../lib/assistant-manager";
-import { handlePassiveMessage } from "../lib/handle-passive-messages";
-import { getKBApprovalManager } from "../lib/handle-kb-approval";
-import { getContextUpdateManager } from "../lib/context-update-manager";
-import { initializeDatabase } from "../lib/db/init";
+import { handleNewAppMention } from "../../../lib/handle-app-mention";
+import { verifyRequest, getBotId } from "../../../lib/slack-utils";
+import { assistantManager } from "../../../lib/assistant-manager";
+import { handlePassiveMessage } from "../../../lib/handle-passive-messages";
+import { getKBApprovalManager } from "../../../lib/handle-kb-approval";
+import { getContextUpdateManager } from "../../../lib/context-update-manager";
+import { initializeDatabase } from "../../../lib/db/init";
 
 // Initialize database on cold start (module load)
 initializeDatabase().catch((err) => {

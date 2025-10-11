@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
-import { POST } from "../api/events";
+import { POST } from "../app/api/events/route";
 import {
   __resetGenerateTextImpl,
   __setGenerateTextImpl,
