@@ -95,14 +95,24 @@ export async function handleNewAppMention(
         }
       }
 
-      // Trigger KB workflow if resolved (either by keyword or ServiceNow state)
-      if (context && (context.isResolved || isResolvedInServiceNow) && !context._notified) {
-        console.log(`[App Mention] Case ${caseNumber} is resolved, triggering KB workflow`);
-        // Fire and forget - don't block the response
-        notifyResolution(caseNumber, channel, actualThreadTs).catch((err) => {
-          console.error(`[App Mention] Error in notifyResolution for ${caseNumber}:`, err);
-        });
-        context._notified = true;
+      // Trigger KB workflow only if BOTH conversation AND ServiceNow agree it's resolved
+      // OR if ServiceNow is not configured (rely on conversation only)
+      if (context && !context._notified) {
+        const shouldTriggerKB = (context.isResolved || isResolvedInServiceNow) &&
+                                (!serviceNowClient.isConfigured() || isResolvedInServiceNow);
+
+        if (shouldTriggerKB) {
+          console.log(`[App Mention] Case ${caseNumber} is resolved, triggering KB workflow (ServiceNow confirmed: ${isResolvedInServiceNow})`);
+          // Fire and forget - don't block the response
+          notifyResolution(caseNumber, channel, actualThreadTs).catch((err) => {
+            console.error(`[App Mention] Error in notifyResolution for ${caseNumber}:`, err);
+          });
+          context._notified = true;
+        } else if (context.isResolved && !isResolvedInServiceNow) {
+          console.log(`[App Mention] Skipping KB workflow - conversation suggests resolution but ServiceNow state doesn't confirm it yet`);
+          // Reset isResolved flag since ServiceNow doesn't confirm
+          context.isResolved = false;
+        }
       }
     }
   }

@@ -39,6 +39,14 @@ function getStringArrayEnv(envKey: string, defaultValue: string[]): string[] {
   return raw.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
+function getBooleanEnv(envKey: string, defaultValue: boolean): boolean {
+  const raw = process.env[envKey];
+  if (!raw) {
+    return defaultValue;
+  }
+  return raw.toLowerCase() === "true" || raw === "1";
+}
+
 export const config = {
   kbGatheringTimeoutHours: getNumberEnv("KB_GATHERING_TIMEOUT_HOURS", 24),
   kbGatheringMaxAttempts: getNumberEnv("KB_GATHERING_MAX_ATTEMPTS", 5),
@@ -56,4 +64,9 @@ export const config = {
     "Awaiting Info",
     "Work in Progress",
   ]),
+
+  // Troubleshooting assistant configuration
+  proactiveTroubleshootingEnabled: getBooleanEnv("PROACTIVE_TROUBLESHOOTING_ENABLED", true),
+  autoCmdbLookupEnabled: getBooleanEnv("AUTO_CMDB_LOOKUP_ENABLED", true),
+  maxClarifyingQuestions: getNumberEnv("MAX_CLARIFYING_QUESTIONS", 4),
 };

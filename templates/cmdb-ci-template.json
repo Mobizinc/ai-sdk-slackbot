@@ -1,0 +1,307 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CMDB Configuration Item Template",
+  "description": "AI-friendly template for documenting infrastructure in ServiceNow CMDB. Optimized for searchability and troubleshooting.",
+  "type": "object",
+  "required": ["name", "type", "support_team"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name. Use consistent naming: <Customer>-<Function>-<Location>",
+      "examples": [
+        "Altus-FileServer-HQ",
+        "Altus-DC01-Waxahachie",
+        "Altus-Router-Main"
+      ]
+    },
+
+    "type": {
+      "type": "string",
+      "description": "CI Type/Class",
+      "enum": [
+        "File Server",
+        "Application Server",
+        "Domain Controller",
+        "Router",
+        "Switch",
+        "Firewall",
+        "Load Balancer",
+        "Database Server",
+        "Virtual Machine",
+        "Network Attached Storage",
+        "Application",
+        "Service",
+        "Other"
+      ]
+    },
+
+    "ip_addresses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+      },
+      "description": "All IP addresses associated with this CI",
+      "examples": [["10.252.0.40", "172.16.1.50"]]
+    },
+
+    "hostname": {
+      "type": "string",
+      "description": "DNS hostname or FQDN",
+      "examples": ["altus-fs01.altus.local", "fs01"]
+    },
+
+    "location": {
+      "type": "object",
+      "description": "Physical or logical location",
+      "properties": {
+        "site": {
+          "type": "string",
+          "description": "Site/office name",
+          "examples": ["Altus HQ", "Waxahachie Office", "Dallas DC"]
+        },
+        "address": {
+          "type": "string",
+          "description": "Physical address (optional)",
+          "examples": ["123 Main St, Waxahachie, TX"]
+        },
+        "datacenter": {
+          "type": "string",
+          "description": "Datacenter location if hosted",
+          "examples": ["Azure East US", "AWS us-west-2", "On-Premise"]
+        }
+      }
+    },
+
+    "support_team": {
+      "type": "object",
+      "required": ["primary"],
+      "description": "Who to contact for issues",
+      "properties": {
+        "primary": {
+          "type": "string",
+          "description": "Primary support team/group",
+          "examples": ["Altus IT Team", "Network Operations", "Infrastructure Team"]
+        },
+        "secondary": {
+          "type": "string",
+          "description": "Escalation team (optional)",
+          "examples": ["Senior Network Engineers"]
+        },
+        "contact": {
+          "type": "string",
+          "description": "Contact method (email, Slack channel, etc.)",
+          "examples": ["#altus-support", "it@altus.com", "@infrastructure-team"]
+        }
+      }
+    },
+
+    "purpose": {
+      "type": "string",
+      "description": "What this CI does and why it exists. Write for troubleshooting context.",
+      "examples": [
+        "Primary file share for Altus HQ users. Hosts departmental folders and user home directories. Mapped as L: drive.",
+        "Active Directory domain controller for Altus.local domain. Handles authentication and group policy.",
+        "Main office router providing internet connectivity and VLAN routing for Altus HQ."
+      ]
+    },
+
+    "primary_users": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Who uses this (departments, user groups, etc.)",
+      "examples": [
+        ["All Altus HQ staff"],
+        ["Finance Department", "HR Department"],
+        ["External users via VPN"]
+      ]
+    },
+
+    "share_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "UNC paths for file shares",
+      "examples": [
+        ["\\\\10.252.0.40\\altus.share", "\\\\altus-fs01\\departments"]
+      ]
+    },
+
+    "mapped_drives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Common drive letter mappings",
+      "examples": [["L:", "M:", "S:"]]
+    },
+
+    "dependencies": {
+      "type": "object",
+      "description": "What this CI depends on or what depends on it",
+      "properties": {
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Systems this CI requires to function",
+          "examples": [
+            ["Altus-DC01 (for authentication)", "Altus-Router-Main (for network)"]
+          ]
+        },
+        "used_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Systems that depend on this CI",
+          "examples": [
+            ["All desktop computers", "Accounting application"]
+          ]
+        }
+      }
+    },
+
+    "known_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Issue description"
+          },
+          "workaround": {
+            "type": "string",
+            "description": "Known workaround or solution"
+          },
+          "case_references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Related ServiceNow cases"
+          }
+        }
+      },
+      "description": "Common problems and solutions",
+      "examples": [
+        [
+          {
+            "description": "Users get 'Access Denied' after password change",
+            "workaround": "Disconnect mapped drive, reconnect with new credentials",
+            "case_references": ["SCS0048728", "SCS0045123"]
+          }
+        ]
+      ]
+    },
+
+    "documentation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["Runbook", "Diagram", "KB Article", "Vendor Doc", "Other"]
+          }
+        }
+      },
+      "description": "Related documentation links",
+      "examples": [
+        [
+          {
+            "title": "Altus Network Diagram",
+            "url": "https://confluence.company.com/altus-network",
+            "type": "Diagram"
+          },
+          {
+            "title": "File Share Access Troubleshooting",
+            "url": "https://servicenow.com/kb/KB0012345",
+            "type": "KB Article"
+          }
+        ]
+      ]
+    },
+
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Keywords for AI search. Include common terms users might say.",
+      "examples": [
+        ["file share", "L drive", "network drive", "altus", "permission issues", "mapped drive"]
+      ]
+    },
+
+    "status": {
+      "type": "string",
+      "enum": ["Active", "Inactive", "Planned", "Retired", "Under Maintenance"],
+      "description": "Current operational status",
+      "default": "Active"
+    },
+
+    "environment": {
+      "type": "string",
+      "enum": ["Production", "Test", "Development", "Staging", "DR"],
+      "description": "Environment classification"
+    },
+
+    "criticality": {
+      "type": "string",
+      "enum": ["Critical", "High", "Medium", "Low"],
+      "description": "Business impact if down",
+      "examples": ["Critical"]
+    },
+
+    "servicenow_sys_id": {
+      "type": "string",
+      "description": "ServiceNow CI sys_id (populated after creation)"
+    },
+
+    "metadata": {
+      "type": "object",
+      "description": "AI-assistance metadata",
+      "properties": {
+        "created_by": {
+          "type": "string",
+          "enum": ["human", "ai-draft", "automated"],
+          "description": "How this CI record was created"
+        },
+        "created_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_verified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this CI was last confirmed accurate"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["HIGH", "MEDIUM", "LOW"],
+          "description": "Confidence in accuracy (for AI-drafted records)"
+        },
+        "source_conversations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Slack thread IDs or case numbers where this was mentioned"
+        }
+      }
+    }
+  }
+}
