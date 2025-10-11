@@ -5,11 +5,6 @@
       "destination": "https://github.com/nicoalbanese/ai-sdk-slackbot"
     }
   ],
-  "functions": {
-    "app/api/events/route.ts": {
-      "maxDuration": 60
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/cleanup-workflows",
