@@ -102,6 +102,21 @@
         }
       ],
       "isActive": true
+    },
+    {
+      "entityName": "Altman Plants",
+      "entityType": "CLIENT",
+      "industry": "Agriculture/Horticulture",
+      "description": "Plant nursery and distribution company specializing in cacti, succulents, and ornamental plants",
+      "aliases": ["Altman", "Citrix (altmanplants1)"],
+      "relatedEntities": ["Microsoft 365", "Azure"],
+      "technologyPortfolio": "Microsoft 365, Azure, Microsoft Fabric",
+      "serviceDetails": "Azure CSP subscriptions managed by Mobiz. Subscription 'Citrix (altmanplants1)' #1303812 (bacaed3c-f853-432e-a298-0026adadfd5a) - Mobiz has Partner Center Admin Agent access.",
+      "keyContacts": [],
+      "slackChannels": [],
+      "cmdbIdentifiers": [],
+      "contextStewards": [],
+      "isActive": true
     }
   ],
   "vendors": [

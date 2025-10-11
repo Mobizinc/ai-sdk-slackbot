@@ -4,6 +4,10 @@
  * Usage: tsx scripts/import-business-contexts.ts [--file=path/to/file.json]
  */
 
+// Load environment variables from .env.local
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { getDb } from "../lib/db/client";
