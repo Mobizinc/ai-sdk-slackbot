@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/cron/cleanup-workflows/route": "app/api/cron/cleanup-workflows/route.js",
+  "/api/relay/route": "app/api/relay/route.js",
+  "/api/business-contexts/route": "app/api/business-contexts/route.js",
+  "/api/business-contexts/[id]/route": "app/api/business-contexts/[id]/route.js",
+  "/business-contexts/new/page": "app/business-contexts/new/page.js",
+  "/business-contexts/[id]/page": "app/business-contexts/[id]/page.js",
+  "/business-contexts/page": "app/business-contexts/page.js",
+  "/page": "app/page.js",
+  "/system-prompt/page": "app/system-prompt/page.js",
+  "/api/system-prompt/route": "app/api/system-prompt/route.js",
+  "/api/events/route": "app/api/events/route.js"
+}

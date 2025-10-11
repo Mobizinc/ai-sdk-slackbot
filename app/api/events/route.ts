@@ -3,7 +3,7 @@ import type {
   ReactionAddedEvent,
   SlackEvent,
 } from "../../../lib/slack-event-types";
-import { waitUntil } from "@vercel/functions";
+import { enqueueBackgroundTask } from "../../../lib/background-tasks";
 import { handleNewAppMention } from "../../../lib/handle-app-mention";
 import { verifyRequest, getBotId } from "../../../lib/slack-utils";
 import { assistantManager } from "../../../lib/assistant-manager";
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
     const event = payload.event as SlackEvent;
 
     if (event.type === "app_mention") {
-      waitUntil(handleNewAppMention(event, botUserId));
+      enqueueBackgroundTask(handleNewAppMention(event, botUserId));
     }
 
     if (event.type === "assistant_thread_started") {
-      waitUntil(assistantManager.handleThreadStarted(event));
+      enqueueBackgroundTask(assistantManager.handleThreadStarted(event));
     }
 
     if (event.type === "assistant_thread_context_changed") {
@@ -67,13 +67,15 @@ export async function POST(request: Request) {
         !messageEvent.bot_profile &&
         messageEvent.bot_id !== botUserId
       ) {
-        waitUntil(assistantManager.handleUserMessage(messageEvent, botUserId));
+        enqueueBackgroundTask(
+          assistantManager.handleUserMessage(messageEvent, botUserId),
+        );
       }
 
       // Passive monitoring: scan ALL channel messages for case numbers
       // This runs in parallel and doesn't interfere with assistant messages
       if (!messageEvent.subtype && !messageEvent.bot_id) {
-        waitUntil(handlePassiveMessage(messageEvent, botUserId));
+        enqueueBackgroundTask(handlePassiveMessage(messageEvent, botUserId));
       }
     }
 
@@ -83,23 +85,23 @@ export async function POST(request: Request) {
       // Handle KB approval/rejection via emoji reactions
       if (reactionEvent.item.type === "message") {
         const approvalManager = getKBApprovalManager();
-        waitUntil(
+        enqueueBackgroundTask(
           approvalManager.handleReaction(
             reactionEvent.item.channel,
             reactionEvent.item.ts,
             reactionEvent.reaction,
-            reactionEvent.user
-          )
+            reactionEvent.user,
+          ),
         );
 
         const contextUpdateManager = getContextUpdateManager();
-        waitUntil(
+        enqueueBackgroundTask(
           contextUpdateManager.handleReaction(
             reactionEvent.item.channel,
             reactionEvent.item.ts,
             reactionEvent.reaction,
-            reactionEvent.user
-          )
+            reactionEvent.user,
+          ),
         );
       }
     }
