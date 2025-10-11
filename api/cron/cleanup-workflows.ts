@@ -1,4 +1,4 @@
-import { cleanupTimedOutGathering } from "../../../../lib/handle-passive-messages";
+import { cleanupTimedOutGathering } from "../../lib/handle-passive-messages";
 
 type JsonBody = { status: "ok"; message: string } | { status: "error"; message: string };
 
