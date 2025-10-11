@@ -18,11 +18,11 @@ const hoisted = vi.hoisted(() => {
 
 const pendingPromises: Promise<any>[] = [];
 
-vi.mock("@vercel/functions", () => ({
-  waitUntil: <T>(promise: Promise<T>) => {
+vi.mock("../lib/background-tasks", () => ({
+  enqueueBackgroundTask: <T>(promise: Promise<T>) => {
     pendingPromises.push(promise);
     promise.catch((error) => {
-      console.error("waitUntil promise rejected in test", error);
+      console.error("background task promise rejected in test", error);
     });
   },
 }));
