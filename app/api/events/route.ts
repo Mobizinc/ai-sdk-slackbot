@@ -12,6 +12,9 @@ import { getKBApprovalManager } from "../../../lib/handle-kb-approval";
 import { getContextUpdateManager } from "../../../lib/context-update-manager";
 import { initializeDatabase } from "../../../lib/db/init";
 
+// Route segment config - set max duration for Vercel serverless function
+export const maxDuration = 60;
+
 // Initialize database on cold start (module load)
 initializeDatabase().catch((err) => {
   console.error("[Startup] Database initialization failed:", err);
