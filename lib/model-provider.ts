@@ -2,13 +2,13 @@ import { createGateway } from "@ai-sdk/gateway";
 import { openai } from "@ai-sdk/openai";
 import { customProvider } from "ai";
 
-// AI Gateway configuration - primary provider for GLM-4.6
+// AI Gateway configuration - primary provider for Claude Sonnet 4.5
 const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
 const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
   ?? process.env.AI_GATEWAY_MODEL?.trim()
-  ?? "zai/glm-4.6";
+  ?? "anthropic/claude-sonnet-4.5";
 
-const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
+const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "anthropic/claude-sonnet-4";
 
 // Create gateway provider once at module load (Vercel AI SDK best practice)
 // AI SDK handles routing - only apiKey needed, no baseURL
