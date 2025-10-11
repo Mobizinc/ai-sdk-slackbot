@@ -2,18 +2,15 @@ import type {
   GenericMessageEvent,
   ReactionAddedEvent,
   SlackEvent,
-} from "../../../lib/slack-event-types";
-import { enqueueBackgroundTask } from "../../../lib/background-tasks";
-import { handleNewAppMention } from "../../../lib/handle-app-mention";
-import { verifyRequest, getBotId } from "../../../lib/slack-utils";
-import { assistantManager } from "../../../lib/assistant-manager";
-import { handlePassiveMessage } from "../../../lib/handle-passive-messages";
-import { getKBApprovalManager } from "../../../lib/handle-kb-approval";
-import { getContextUpdateManager } from "../../../lib/context-update-manager";
-import { initializeDatabase } from "../../../lib/db/init";
-
-// Route segment config - set max duration for Vercel serverless function
-export const maxDuration = 60;
+} from "../lib/slack-event-types";
+import { enqueueBackgroundTask } from "../lib/background-tasks";
+import { handleNewAppMention } from "../lib/handle-app-mention";
+import { verifyRequest, getBotId } from "../lib/slack-utils";
+import { assistantManager } from "../lib/assistant-manager";
+import { handlePassiveMessage } from "../lib/handle-passive-messages";
+import { getKBApprovalManager } from "../lib/handle-kb-approval";
+import { getContextUpdateManager } from "../lib/context-update-manager";
+import { initializeDatabase } from "../lib/db/init";
 
 // Initialize database on cold start (module load)
 initializeDatabase().catch((err) => {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { POST } from "../app/api/relay/route";
+import { POST } from "../api/relay";
 import { createRelaySignature } from "../lib/relay-auth";
 
 const hoisted = vi.hoisted(() => {

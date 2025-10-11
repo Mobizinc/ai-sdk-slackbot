@@ -326,7 +326,7 @@ export const generateResponse = async (
             `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode,relativehumidity_2m&timezone=auto`,
           );
 
-          const weatherData = await response.json();
+          const weatherData = await response.json() as any;
           return {
             temperature: weatherData.current.temperature_2m,
             weatherCode: weatherData.current.weathercode,
