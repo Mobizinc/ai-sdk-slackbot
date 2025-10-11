@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Vercel-optimized configuration
-  output: 'standalone',
+  // Note: Removed 'output: standalone' - incompatible with Vercel serverless API routes
 
   // Enable React strict mode for development
   reactStrictMode: true,
