@@ -219,10 +219,35 @@ async function addMessageToExistingThreads(
 
     // Check if this message indicates resolution
     if (context.isResolved && !context._notified) {
-      console.log(`[Passive Monitor] Triggering KB generation for ${context.caseNumber}`);
-      await notifyResolution(context.caseNumber, context.channelId, context.threadTs);
-      // Mark as notified (prevent duplicate notifications)
-      context._notified = true;
+      // Validate resolution against ServiceNow state before triggering workflow
+      let isResolvedInServiceNow = false;
+      if (serviceNowClient.isConfigured()) {
+        try {
+          const caseDetails = await serviceNowClient.getCase(context.caseNumber);
+          if (caseDetails?.state?.toLowerCase().includes("closed") ||
+              caseDetails?.state?.toLowerCase().includes("resolved")) {
+            isResolvedInServiceNow = true;
+          }
+        } catch (error) {
+          console.log(`[Passive Monitor] Could not validate ServiceNow state for ${context.caseNumber}:`, error);
+          // Continue with conversation-based resolution only if ServiceNow check fails
+        }
+      }
+
+      // Only trigger KB workflow if BOTH conversation AND ServiceNow agree it's resolved
+      // OR if ServiceNow is not configured (rely on conversation only)
+      const shouldTriggerKB = !serviceNowClient.isConfigured() || isResolvedInServiceNow;
+
+      if (shouldTriggerKB) {
+        console.log(`[Passive Monitor] Triggering KB generation for ${context.caseNumber} (ServiceNow confirmed: ${isResolvedInServiceNow})`);
+        await notifyResolution(context.caseNumber, context.channelId, context.threadTs);
+        // Mark as notified (prevent duplicate notifications)
+        context._notified = true;
+      } else {
+        console.log(`[Passive Monitor] Skipping KB generation - conversation suggests resolution but ServiceNow state doesn't confirm it yet`);
+        // Reset isResolved flag since ServiceNow doesn't confirm
+        context.isResolved = false;
+      }
     } else {
       console.log(`[Passive Monitor] NOT triggering KB - isResolved: ${context.isResolved}, _notified: ${context._notified}`);
     }

@@ -4,3 +4,10 @@ ai-context
 dist
 .vercel
 .env*.local
+
+# Work-in-progress CI records (keep README)
+ci-records/*
+!ci-records/README.md
+
+# Infrastructure discovery reports
+infrastructure-discovery-*.json

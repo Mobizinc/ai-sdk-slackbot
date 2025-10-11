@@ -1,0 +1,92 @@
+{
+  "name": "Altus-FileServer-HQ",
+  "type": "File Server",
+  "ip_addresses": ["10.252.0.40"],
+  "hostname": "altus-fs01",
+
+  "location": {
+    "site": "Altus HQ",
+    "address": "Waxahachie, TX",
+    "datacenter": "On-Premise"
+  },
+
+  "support_team": {
+    "primary": "Altus IT Team",
+    "contact": "#altus-support"
+  },
+
+  "purpose": "Primary file share for Altus HQ users. Hosts departmental folders, user home directories, and shared resources. Commonly accessed as 'L Drive' via mapped network drive. Critical for daily operations - users store all working files here.",
+
+  "primary_users": [
+    "All Altus HQ staff (~50 users)",
+    "Finance Department",
+    "Operations Team"
+  ],
+
+  "share_paths": [
+    "\\\\10.252.0.40\\altus.share",
+    "\\\\altus-fs01\\share"
+  ],
+
+  "mapped_drives": ["L:"],
+
+  "dependencies": {
+    "depends_on": [
+      "Active Directory - for user authentication",
+      "Network switch at Altus HQ - for connectivity"
+    ],
+    "used_by": [
+      "All Altus desktop computers",
+      "Accounting application (stores files on L drive)"
+    ]
+  },
+
+  "known_issues": [
+    {
+      "description": "Users get 'Access Denied' after password change",
+      "workaround": "Disconnect mapped L: drive, then reconnect with new credentials. Use 'net use L: /delete' then remap.",
+      "case_references": ["SCS0048728", "SCS0045123"]
+    },
+    {
+      "description": "Slow access during morning hours (8-9am)",
+      "workaround": "Peak usage time - no immediate fix. Consider file server upgrade if persistent.",
+      "case_references": ["SCS0046234"]
+    }
+  ],
+
+  "documentation": [
+    {
+      "title": "Altus File Share Access Guide",
+      "url": "https://servicenow.company.com/kb/KB0012345",
+      "type": "KB Article"
+    }
+  ],
+
+  "tags": [
+    "file share",
+    "L drive",
+    "network drive",
+    "altus",
+    "permission issues",
+    "mapped drive",
+    "altus.share",
+    "10.252.0.40",
+    "file server",
+    "storage"
+  ],
+
+  "status": "Active",
+  "environment": "Production",
+  "criticality": "High",
+
+  "metadata": {
+    "created_by": "human",
+    "created_date": "2025-10-10T20:00:00Z",
+    "last_verified": "2025-10-10T20:00:00Z",
+    "confidence": "HIGH",
+    "source_conversations": [
+      "SCS0048728",
+      "#altus-support thread from 2025-10-10"
+    ]
+  }
+}

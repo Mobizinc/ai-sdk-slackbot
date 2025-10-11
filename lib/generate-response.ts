@@ -2,6 +2,7 @@ import { CoreMessage, generateText, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
+import { microsoftLearnMCP } from "./tools/microsoft-learn-mcp";
 import { createAzureSearchService } from "./services/azure-search";
 import { getContextManager } from "./context-manager";
 import { getKBGenerator } from "./services/kb-generator";
@@ -69,6 +70,11 @@ type ProposeContextUpdateInput = {
 type FetchCurrentIssuesInput = {
   channelId?: string;
   channelNameHint?: string;
+};
+
+type MicrosoftLearnSearchInput = {
+  query: string;
+  limit?: number;
 };
 
 const weatherInputSchema = z.object({
@@ -205,6 +211,18 @@ const fetchCurrentIssuesInputSchema = z.object({
     .describe("Optional channel name hint if the ID is not available."),
 });
 
+const microsoftLearnSearchInputSchema = z.object({
+  query: z
+    .string()
+    .describe("Search query for Microsoft Learn documentation (e.g., 'Azure AD authentication', 'PowerShell get users')"),
+  limit: z
+    .number()
+    .min(1)
+    .max(5)
+    .optional()
+    .describe("Maximum number of results to return (default: 3)"),
+});
+
 const createTool = tool as unknown as (options: any) => any;
 
 let generateTextImpl = generateText;
@@ -260,22 +278,43 @@ export const generateResponse = async (
     }
 
     // Build base system prompt
-    const baseSystemPrompt = `You are the Mobiz Service Desk Assistant in Slack for analysts and engineers.
+    const baseSystemPrompt = `You are the Mobiz Service Desk Assistant - a senior engineer co-pilot helping analysts troubleshoot issues in Slack.
 
-IMPORTANT: Engineers are actively troubleshooting. Only respond when:
-  • You have NEW, actionable information to contribute
-  • User explicitly asks you a question
-  • Never restate what engineers just said
-  • Never generate summaries mid-conversation unless explicitly requested
-  • If you would just be agreeing or acknowledging, stay silent
-  • Observe and track, but don't interrupt active work
+Senior Engineer Mindset:
+  • Be proactive with infrastructure lookups, troubleshooting guidance, and clarifying questions
+  • Stay passive during active discussions where engineers already have the right direction
+  • Provide structured, actionable guidance - not passive summaries
+  • Think like a senior engineer: check CMDB, reference similar cases, suggest next steps
+
+When to Actively Intervene:
+  • Infrastructure mentioned (IP, hostname, server) → immediately check CMDB
+  • Vague problem description → ask clarifying questions
+  • Common issue detected → provide troubleshooting checklist
+  • Similar cases exist with solutions → share them proactively
+  • Missing obvious troubleshooting step → suggest it
+  • User explicitly asks a question → always respond
+
+When to Stay Passive:
+  • Engineers already discussing the right solution
+  • Issue is clearly being resolved
+  • Would just be restating what was said
+  • Agreeing without adding value
 
 Tool usage:
-  • Call ServiceNow tools to get details for cases explicitly mentioned in the conversation
-  • When hosts, IPs, or server names are mentioned, use ServiceNow configuration item search. If no CMDB record is returned, say so plainly and request that an owner capture documentation/create the record (suggest the most relevant team if known).
-  • When someone asks for current issues/outages, call fetchCurrentIssues before responding so you can summarize active ServiceNow cases and in-channel threads.
-  • If the CMDB is missing critical information and you have concrete, verified details, call proposeContextUpdate to draft an update for steward approval. Only include durable facts the team just validated.
-  • Use searchSimilarCases to find reference cases for context and pattern recognition
+  • ServiceNow lookups - use the correct action based on ticket prefix:
+    - Numbers starting with SCS, CS, or CASE → use getCase action
+    - Numbers starting with INC or INCIDENT → use getIncident action
+    - If unsure about prefix, the tool will automatically try both tables
+  • Infrastructure awareness: When IPs, hostnames, or servers mentioned → automatically search CMDB
+    - If found: Share owner, support group, documentation
+    - If missing: Flag gap and suggest capture (with team if known)
+  • Microsoft Learn documentation: When questions involve Microsoft products (Azure, M365, PowerShell, Windows, AD, etc.)
+    - Use microsoftLearnSearch for official Microsoft documentation and troubleshooting steps
+    - Great for error codes, configuration guidance, PowerShell cmdlets, Azure services
+    - Always cite Microsoft Learn URLs in responses
+  • When someone asks for current issues/outages, call fetchCurrentIssues before responding
+  • If the CMDB is missing critical information and you have concrete, verified details, call proposeContextUpdate to draft an update for steward approval
+  • Use searchSimilarCases to find reference cases and patterns
   • IMPORTANT: Similar cases are for REFERENCE ONLY - never display their journal entries, activity, or specific details
   • Only show journal entries and case details for cases explicitly mentioned in the current conversation
   • Web search only if it adds concrete value
@@ -284,12 +323,30 @@ Response format (use Slack markdown):
   *Summary*
   1-2 sentences max. What happened and why it matters. No filler text.
 
-  *Latest Activity*
+  *Infrastructure Check* (when relevant)
+  • If IP/hostname mentioned, show CMDB lookup result
+  • Example: "🔍 Searched CMDB for 10.252.0.40 - *not found*. This server should be documented."
+
+  *Troubleshooting Checklist* (when appropriate)
+  1. Highest priority checks first
+  2. Include specific error messages to check
+  3. Reference what to test/verify
+  4. Keep steps actionable and concise
+
+  *Similar Cases* (when available)
+  • Reference case numbers with brief description of resolution
+  • Focus on patterns and solutions
+
+  *Key Questions* (when problem is vague)
+  • Ask 2-4 clarifying questions to narrow scope
+  • Focus on symptoms, scope, changes, basic connectivity
+
+  *Latest Activity* (for case lookups)
   • 2-3 most recent journal entries only - ONLY for cases explicitly mentioned in conversation
   • Format: \`Oct 5, 14:23 – jsmith: Updated configuration settings\`
   • Keep it short - skip verbose notes
 
-  *Current State*
+  *Current State* (for case lookups)
   Status: [state] | Priority: [priority] | Assigned: [name]
 
   *Next Actions*
@@ -397,9 +454,19 @@ Guardrails:
 
               const incident = await serviceNowClient.getIncident(number);
               if (!incident) {
+                // Fallback: try case table
+                console.log(`[ServiceNow] Incident ${number} not found, trying case table...`);
+                updateStatus?.(`is looking up ${number} in case table...`);
+
+                const caseRecord = await serviceNowClient.getCase(number);
+                if (caseRecord) {
+                  console.log(`[ServiceNow] Found ${number} in case table (fallback from incident)`);
+                  return { case: caseRecord };
+                }
+
                 return {
                   incident: null,
-                  message: `Incident ${number} was not found in ServiceNow.`,
+                  message: `Incident ${number} was not found in ServiceNow. This case number may be incorrect or the incident may not exist in the system.`,
                 };
               }
 
@@ -418,9 +485,19 @@ Guardrails:
               const caseRecord = await serviceNowClient.getCase(number);
 
               if (!caseRecord) {
+                // Fallback: try incident table
+                console.log(`[ServiceNow] Case ${number} not found, trying incident table...`);
+                updateStatus?.(`is looking up ${number} in incident table...`);
+
+                const incident = await serviceNowClient.getIncident(number);
+                if (incident) {
+                  console.log(`[ServiceNow] Found ${number} in incident table (fallback from case)`);
+                  return { incident };
+                }
+
                 return {
                   case: null,
-                  message: `Case ${number} was not found in ServiceNow.`,
+                  message: `Case ${number} was not found in ServiceNow. This case number may be incorrect or the case may not exist in the system.`,
                 };
               }
 
@@ -782,6 +859,49 @@ Guardrails:
         },
       });
 
+      const microsoftLearnSearchTool = createTool({
+        description:
+          "Search official Microsoft Learn documentation for Azure, Microsoft 365, PowerShell, Windows, Active Directory, and other Microsoft products. Use this when questions involve Microsoft technologies, error codes, or configuration guidance.",
+        inputSchema: microsoftLearnSearchInputSchema,
+        execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
+          if (!microsoftLearnMCP.isAvailable()) {
+            console.log("[Microsoft Learn MCP] Service not available");
+            return {
+              results: [],
+              message: "Microsoft Learn documentation search is not available.",
+            };
+          }
+
+          try {
+            updateStatus?.(`is searching Microsoft Learn documentation...`);
+
+            const results = await microsoftLearnMCP.searchDocs(query, limit ?? 3);
+
+            if (results.length === 0) {
+              return {
+                results: [],
+                message: `No Microsoft Learn documentation found for "${query}".`,
+              };
+            }
+
+            return {
+              results: results.map((r) => ({
+                title: r.title,
+                url: r.url,
+                content: r.content,
+              })),
+              total_found: results.length,
+            };
+          } catch (error) {
+            console.error("[Microsoft Learn MCP] Search error:", error);
+            return {
+              results: [],
+              message: "Error searching Microsoft Learn documentation.",
+            };
+          }
+        },
+      });
+
       return {
         getWeather: getWeatherTool,
         searchWeb: searchWebTool,
@@ -790,6 +910,7 @@ Guardrails:
         generateKBArticle: generateKbArticleTool,
         proposeContextUpdate: proposeContextUpdateTool,
         fetchCurrentIssues: fetchCurrentIssuesTool,
+        microsoftLearnSearch: microsoftLearnSearchTool,
       };
     };
 
