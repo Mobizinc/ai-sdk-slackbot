@@ -96,6 +96,45 @@ export class BusinessContextRepository {
   }
 
   /**
+   * Get all business contexts (including inactive)
+   */
+  async getAll(): Promise<BusinessContext[]> {
+    const db = getDb();
+    if (!db) return [];
+
+    try {
+      return await db
+        .select()
+        .from(businessContexts)
+        .orderBy(businessContexts.entityName);
+    } catch (error) {
+      console.error("[Business Context Repo] Error getting all:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Find business context by ID
+   */
+  async findById(id: number): Promise<BusinessContext | null> {
+    const db = getDb();
+    if (!db) return null;
+
+    try {
+      const results = await db
+        .select()
+        .from(businessContexts)
+        .where(eq(businessContexts.id, id))
+        .limit(1);
+
+      return results[0] || null;
+    } catch (error) {
+      console.error(`[Business Context Repo] Error finding by ID ${id}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Get all contexts of a specific type (CLIENT, VENDOR, PLATFORM)
    */
   async getByType(entityType: string): Promise<BusinessContext[]> {
@@ -275,6 +314,25 @@ export class BusinessContextRepository {
       return true;
     } catch (error) {
       console.error(`[Business Context Repo] Error deactivating context ${id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a business context permanently
+   */
+  async delete(id: number): Promise<boolean> {
+    const db = getDb();
+    if (!db) return false;
+
+    try {
+      await db
+        .delete(businessContexts)
+        .where(eq(businessContexts.id, id));
+
+      return true;
+    } catch (error) {
+      console.error(`[Business Context Repo] Error deleting context ${id}:`, error);
       return false;
     }
   }

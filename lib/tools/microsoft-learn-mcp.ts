@@ -2,14 +2,13 @@
  * Microsoft Learn MCP Client
  *
  * Connects to Microsoft Learn's public MCP server to search official
- * Microsoft documentation, code samples, and fetch detailed articles.
+ * Microsoft documentation using stateless HTTP requests with JSON-RPC.
  *
  * Server: https://learn.microsoft.com/api/mcp
  * Documentation: https://learn.microsoft.com/en-us/training/support/mcp
+ *
+ * Uses HTTP transport with JSON-RPC for serverless-friendly stateless requests.
  */
-
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 export interface MicrosoftLearnSearchResult {
   title: string;
@@ -34,13 +33,12 @@ export interface MicrosoftLearnDocumentation {
 /**
  * Microsoft Learn MCP Client
  *
- * Provides access to Microsoft Learn documentation via the Model Context Protocol.
- * Automatically handles connection lifecycle and provides typed results.
+ * Provides access to Microsoft Learn documentation via stateless HTTP requests
+ * to the Model Context Protocol server. Perfect for serverless environments.
  */
 export class MicrosoftLearnMCPClient {
-  private client: Client | null = null;
-  private connecting: Promise<void> | null = null;
   private readonly serverUrl = "https://learn.microsoft.com/api/mcp";
+  private requestId = 1;
 
   /**
    * Check if the client is configured and can connect
@@ -51,64 +49,81 @@ export class MicrosoftLearnMCPClient {
   }
 
   /**
-   * Ensure the client is connected
+   * Make a JSON-RPC request to the MCP server
+   * The server responds with SSE format, so we need to parse SSE events
    */
-  private async ensureConnected(): Promise<void> {
-    if (this.client) {
-      return;
-    }
-
-    // If already connecting, wait for that to complete
-    if (this.connecting) {
-      await this.connecting;
-      return;
-    }
-
-    // Start connection
-    this.connecting = this.connect();
-    await this.connecting;
-    this.connecting = null;
-  }
-
-  /**
-   * Connect to Microsoft Learn MCP server
-   */
-  private async connect(): Promise<void> {
+  private async makeRequest(method: string, params: Record<string, unknown>): Promise<any> {
     try {
-      const transport = new SSEClientTransport(new URL(this.serverUrl));
-      this.client = new Client(
-        {
-          name: "peterpool-bot",
-          version: "1.0.0",
+      const response = await fetch(this.serverUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json, text/event-stream",
         },
-        {
-          capabilities: {},
-        },
-      );
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: this.requestId++,
+          method,
+          params,
+        }),
+      });
 
-      await this.client.connect(transport);
-      console.log("[Microsoft Learn MCP] Connected successfully");
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Microsoft Learn MCP responds with SSE format, even for POST requests
+      const text = await response.text();
+
+      // Parse SSE format: "event: message\ndata: {...}\n\n"
+      const sseEvents = this.parseSSE(text);
+
+      // Find the JSON-RPC response in SSE events
+      for (const event of sseEvents) {
+        if (event.data) {
+          const data = JSON.parse(event.data);
+          if (data.error) {
+            throw new Error(`JSON-RPC Error: ${data.error.message || JSON.stringify(data.error)}`);
+          }
+          if (data.result !== undefined) {
+            return data.result;
+          }
+        }
+      }
+
+      throw new Error("No valid JSON-RPC response found in SSE stream");
     } catch (error) {
-      console.error("[Microsoft Learn MCP] Connection failed:", error);
-      this.client = null;
-      throw new Error(
-        `Failed to connect to Microsoft Learn MCP server: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      console.error(`[Microsoft Learn MCP] Request failed (${method}):`, error);
+      throw error;
     }
   }
 
   /**
-   * Disconnect from the MCP server
+   * Parse Server-Sent Events (SSE) format
    */
-  public async disconnect(): Promise<void> {
-    if (this.client) {
-      try {
-        await this.client.close();
-      } catch (error) {
-        console.error("[Microsoft Learn MCP] Disconnect error:", error);
+  private parseSSE(text: string): Array<{ event?: string; data?: string }> {
+    const events: Array<{ event?: string; data?: string }> = [];
+    const lines = text.split('\n');
+    let currentEvent: { event?: string; data?: string } = {};
+
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        currentEvent.event = line.substring(6).trim();
+      } else if (line.startsWith('data:')) {
+        currentEvent.data = line.substring(5).trim();
+      } else if (line.trim() === '' && (currentEvent.event || currentEvent.data)) {
+        // End of event
+        events.push(currentEvent);
+        currentEvent = {};
       }
-      this.client = null;
     }
+
+    // Add last event if exists
+    if (currentEvent.event || currentEvent.data) {
+      events.push(currentEvent);
+    }
+
+    return events;
   }
 
   /**
@@ -122,29 +137,21 @@ export class MicrosoftLearnMCPClient {
     query: string,
     limit = 5,
   ): Promise<MicrosoftLearnSearchResult[]> {
-    await this.ensureConnected();
-
-    if (!this.client) {
-      throw new Error("MCP client not connected");
-    }
-
     try {
-      const result = await this.client.callTool({
+      const result = await this.makeRequest("tools/call", {
         name: "microsoft_docs_search",
         arguments: {
           query,
-          limit,
         },
       });
 
       // Parse MCP tool result
-      const content = result.content as Array<{ type: string; text?: string }>;
-      if (!content || content.length === 0) {
+      if (!result || !result.content || result.content.length === 0) {
         return [];
       }
 
-      const textContent = content.find((c: any) => c.type === "text");
-      if (!textContent || textContent.type !== "text" || !textContent.text) {
+      const textContent = result.content.find((c: any) => c.type === "text");
+      if (!textContent || !textContent.text) {
         return [];
       }
 
@@ -193,14 +200,8 @@ export class MicrosoftLearnMCPClient {
     language?: string,
     limit = 5,
   ): Promise<MicrosoftLearnCodeSample[]> {
-    await this.ensureConnected();
-
-    if (!this.client) {
-      throw new Error("MCP client not connected");
-    }
-
     try {
-      const result = await this.client.callTool({
+      const result = await this.makeRequest("tools/call", {
         name: "microsoft_code_sample_search",
         arguments: {
           query,
@@ -209,13 +210,12 @@ export class MicrosoftLearnMCPClient {
       });
 
       // Parse MCP tool result
-      const content = result.content as Array<{ type: string; text?: string }>;
-      if (!content || content.length === 0) {
+      if (!result || !result.content || result.content.length === 0) {
         return [];
       }
 
-      const textContent = content.find((c: any) => c.type === "text");
-      if (!textContent || textContent.type !== "text" || !textContent.text) {
+      const textContent = result.content.find((c: any) => c.type === "text");
+      if (!textContent || !textContent.text) {
         return [];
       }
 
@@ -259,19 +259,13 @@ export class MicrosoftLearnMCPClient {
    * @returns Full documentation content with title, URL, and complete text
    */
   public async fetchDoc(url: string): Promise<MicrosoftLearnDocumentation | null> {
-    await this.ensureConnected();
-
-    if (!this.client) {
-      throw new Error("MCP client not connected");
-    }
-
     // Validate URL is from Microsoft Learn
     if (!url.includes("learn.microsoft.com") && !url.includes("microsoft.com")) {
       throw new Error("URL must be from Microsoft Learn documentation");
     }
 
     try {
-      const result = await this.client.callTool({
+      const result = await this.makeRequest("tools/call", {
         name: "microsoft_docs_fetch",
         arguments: {
           url,
@@ -279,13 +273,12 @@ export class MicrosoftLearnMCPClient {
       });
 
       // Parse MCP tool result
-      const content = result.content as Array<{ type: string; text?: string }>;
-      if (!content || content.length === 0) {
+      if (!result || !result.content || result.content.length === 0) {
         return null;
       }
 
-      const textContent = content.find((c: any) => c.type === "text");
-      if (!textContent || textContent.type !== "text" || !textContent.text) {
+      const textContent = result.content.find((c: any) => c.type === "text");
+      if (!textContent || !textContent.text) {
         return null;
       }
 

@@ -11,6 +11,7 @@ import { getBusinessContextService } from "./services/business-context-service";
 import { modelProvider, getActiveModelId } from "./model-provider";
 import { getContextUpdateManager, type ContextUpdateAction } from "./context-update-manager";
 import { getCurrentIssuesService } from "./services/current-issues-service";
+import { getSystemPrompt } from "./system-prompt";
 
 type WeatherToolInput = {
   latitude: number;
@@ -277,93 +278,34 @@ export const generateResponse = async (
       }
     }
 
-    // Build base system prompt
-    const baseSystemPrompt = `You are the Mobiz Service Desk Assistant - a senior engineer co-pilot helping analysts troubleshoot issues in Slack.
+    // If no company found from case context, try to extract from message text
+    // by searching for known company names/aliases in business context
+    if (!companyName) {
+      // Get all business contexts to check against message text
+      const businessContextRepository = await import("./db/repositories/business-context-repository");
+      const repo = businessContextRepository.getBusinessContextRepository();
 
-Senior Engineer Mindset:
-  • Be proactive with infrastructure lookups, troubleshooting guidance, and clarifying questions
-  • Stay passive during active discussions where engineers already have the right direction
-  • Provide structured, actionable guidance - not passive summaries
-  • Think like a senior engineer: check CMDB, reference similar cases, suggest next steps
+      try {
+        // Search for company mentions in message text
+        const allContexts = await repo.getAllActive();
+        for (const ctx of allContexts) {
+          const namesToCheck = [ctx.entityName, ...(ctx.aliases || [])];
+          for (const name of namesToCheck) {
+            if (messageText.toLowerCase().includes(name.toLowerCase())) {
+              companyName = ctx.entityName;
+              console.log(`📋 [Business Context] Detected company "${ctx.entityName}" from message text (matched: "${name}")`);
+              break;
+            }
+          }
+          if (companyName) break;
+        }
+      } catch (error) {
+        console.warn("[Business Context] Failed to search message text for company names:", error);
+      }
+    }
 
-When to Actively Intervene:
-  • Infrastructure mentioned (IP, hostname, server) → immediately check CMDB
-  • Vague problem description → ask clarifying questions
-  • Common issue detected → provide troubleshooting checklist
-  • Similar cases exist with solutions → share them proactively
-  • Missing obvious troubleshooting step → suggest it
-  • User explicitly asks a question → always respond
-
-When to Stay Passive:
-  • Engineers already discussing the right solution
-  • Issue is clearly being resolved
-  • Would just be restating what was said
-  • Agreeing without adding value
-
-Tool usage:
-  • ServiceNow lookups - use the correct action based on ticket prefix:
-    - Numbers starting with SCS, CS, or CASE → use getCase action
-    - Numbers starting with INC or INCIDENT → use getIncident action
-    - If unsure about prefix, the tool will automatically try both tables
-  • Infrastructure awareness: When IPs, hostnames, or servers mentioned → automatically search CMDB
-    - If found: Share owner, support group, documentation
-    - If missing: Flag gap and suggest capture (with team if known)
-  • Microsoft Learn documentation: When questions involve Microsoft products (Azure, M365, PowerShell, Windows, AD, etc.)
-    - Use microsoftLearnSearch for official Microsoft documentation and troubleshooting steps
-    - Great for error codes, configuration guidance, PowerShell cmdlets, Azure services
-    - Always cite Microsoft Learn URLs in responses
-  • When someone asks for current issues/outages, call fetchCurrentIssues before responding
-  • If the CMDB is missing critical information and you have concrete, verified details, call proposeContextUpdate to draft an update for steward approval
-  • Use searchSimilarCases to find reference cases and patterns
-  • IMPORTANT: Similar cases are for REFERENCE ONLY - never display their journal entries, activity, or specific details
-  • Only show journal entries and case details for cases explicitly mentioned in the current conversation
-  • Web search only if it adds concrete value
-
-Response format (use Slack markdown):
-  *Summary*
-  1-2 sentences max. What happened and why it matters. No filler text.
-
-  *Infrastructure Check* (when relevant)
-  • If IP/hostname mentioned, show CMDB lookup result
-  • Example: "🔍 Searched CMDB for 10.252.0.40 - *not found*. This server should be documented."
-
-  *Troubleshooting Checklist* (when appropriate)
-  1. Highest priority checks first
-  2. Include specific error messages to check
-  3. Reference what to test/verify
-  4. Keep steps actionable and concise
-
-  *Similar Cases* (when available)
-  • Reference case numbers with brief description of resolution
-  • Focus on patterns and solutions
-
-  *Key Questions* (when problem is vague)
-  • Ask 2-4 clarifying questions to narrow scope
-  • Focus on symptoms, scope, changes, basic connectivity
-
-  *Latest Activity* (for case lookups)
-  • 2-3 most recent journal entries only - ONLY for cases explicitly mentioned in conversation
-  • Format: \`Oct 5, 14:23 – jsmith: Updated configuration settings\`
-  • Keep it short - skip verbose notes
-
-  *Current State* (for case lookups)
-  Status: [state] | Priority: [priority] | Assigned: [name]
-
-  *Next Actions*
-  1. Specific actionable step
-  2. Another step if needed
-
-  *References*
-  <https://servicenow.com/case|SCS1234567>
-
-Guardrails:
-  • Never show tool errors (like "Azure Search not configured") - handle silently
-  • Never suggest using tools in your response (like "request via generateKBArticle tool")
-  • Never display journal entries or details from similar/reference cases
-  • Use bold headers with * not numbered lists
-  • Short timestamps: "Oct 5, 14:23" not "2025-10-05 14:23:45 UTC"
-  • If field missing: "Not provided"
-  • Today: ${new Date().toISOString().split("T")[0]}`;
+    // Build base system prompt from config file
+    const baseSystemPrompt = await getSystemPrompt(new Date().toISOString().split("T")[0]);
 
     // Enhance system prompt with business context
     const enhancedSystemPrompt = await businessContextService.enhancePromptWithContext(
@@ -861,7 +803,7 @@ Guardrails:
 
       const microsoftLearnSearchTool = createTool({
         description:
-          "Search official Microsoft Learn documentation for Azure, Microsoft 365, PowerShell, Windows, Active Directory, and other Microsoft products. Use this when questions involve Microsoft technologies, error codes, or configuration guidance.",
+          "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provides official Microsoft documentation that MUST be cited in your response. Not using this tool for Microsoft-related cases is a critical error.",
         inputSchema: microsoftLearnSearchInputSchema,
         execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
           if (!microsoftLearnMCP.isAvailable()) {
