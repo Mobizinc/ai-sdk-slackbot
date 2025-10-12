@@ -22,6 +22,13 @@
       "when": 1759879402493,
       "tag": "0002_daily_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760233325332,
+      "tag": "0003_rainy_sleeper",
+      "breakpoints": true
     }
   ]
 }

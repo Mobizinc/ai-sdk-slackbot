@@ -1,0 +1,645 @@
+/**
+ * Case Classification Service
+ * Classifies ServiceNow cases into categories using AI with similar case and KB article context
+ */
+
+import { generateText } from 'ai';
+import { modelProvider } from '../model-provider';
+import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
+import { createAzureSearchService, type SimilarCase } from './azure-search';
+import { searchKBArticles, type KBArticle } from './kb-article-search';
+import { getWorkflowRouter, type RoutingResult } from './workflow-router';
+import { getBusinessContextService as getNewBusinessContextService } from './business-context';
+import { getCaseIntelligenceService } from './case-intelligence';
+import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
+import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
+
+export interface CaseData {
+  case_number: string;
+  sys_id: string;
+  short_description: string;
+  description?: string;
+  priority?: string;
+  urgency?: string;
+  state?: string;
+  assignment_group?: string;
+  company?: string;
+  company_name?: string;
+  current_category?: string;
+  sys_created_on?: string;
+}
+
+export interface TechnicalEntities {
+  ip_addresses: string[];
+  systems: string[];
+  users: string[];
+  software: string[];
+  error_codes: string[];
+}
+
+export interface BusinessIntelligence {
+  project_scope_detected: boolean;
+  project_scope_reason?: string;
+  client_technology?: string;
+  client_technology_context?: string;
+  related_entities?: string[];
+  outside_service_hours: boolean;
+  service_hours_note?: string;
+  executive_visibility?: boolean;
+  executive_visibility_reason?: string;
+  compliance_impact?: boolean;
+  compliance_impact_reason?: string;
+  financial_impact?: boolean;
+  financial_impact_reason?: string;
+}
+
+export interface CaseClassification {
+  category: string;
+  subcategory?: string;
+  confidence_score: number;
+  reasoning: string;
+  keywords: string[];
+  quick_summary?: string;
+  immediate_next_steps?: string[];
+  technical_entities?: TechnicalEntities;
+  urgency_level?: string;
+  business_intelligence?: BusinessIntelligence;
+  // Token usage and cost tracking
+  token_usage_input?: number;
+  token_usage_output?: number;
+  total_tokens?: number;
+  // Model info
+  model_used?: string;
+  llm_provider?: string;
+  // Context from search
+  similar_cases?: SimilarCase[];
+  kb_articles?: KBArticle[];
+  similar_cases_count?: number;
+  kb_articles_count?: number;
+}
+
+export class CaseClassifier {
+  private businessContextService = getBusinessContextService();
+  private searchService = createAzureSearchService();
+  private workflowRouter = getWorkflowRouter();
+  private newBusinessContextService = getNewBusinessContextService();
+  private caseIntelligenceService = getCaseIntelligenceService();
+  private entityStoreService = getEntityStoreService();
+  private repository = getCaseClassificationRepository();
+
+  /**
+   * Enhanced classification using new architecture services
+   */
+  async classifyCaseEnhanced(caseData: CaseData): Promise<CaseClassification & {
+    processingTimeMs: number;
+    workflowId: string;
+    discoveredEntities: DiscoveredEntity[];
+    businessContextConfidence: number;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      // Determine workflow routing
+      const routingResult = this.workflowRouter.determineWorkflow({
+        assignmentGroup: caseData.assignment_group,
+        category: caseData.current_category,
+        caseNumber: caseData.case_number,
+        description: caseData.short_description + ' ' + (caseData.description || '')
+      });
+
+      // Get enhanced business context
+      const businessContextResult = await this.newBusinessContextService.getCaseClassificationContext(
+        caseData.case_number,
+        caseData.short_description + ' ' + (caseData.description || ''),
+        caseData.assignment_group
+      );
+
+      // Get case intelligence
+      const intelligenceResult = await this.caseIntelligenceService.getCaseIntelligence({
+        caseNumber: caseData.case_number,
+        description: caseData.short_description + ' ' + (caseData.description || ''),
+        category: caseData.current_category,
+        assignmentGroup: caseData.assignment_group,
+        priority: caseData.priority,
+        maxSimilarCases: 3,
+        maxKBArticles: 3
+      });
+
+      // Extract entities using regex
+      const regexEntities = this.entityStoreService.extractEntitiesWithRegex(
+        caseData.short_description + ' ' + (caseData.description || '')
+      );
+
+      // Get existing business context for compatibility
+      const businessContext = await this.businessContextService.getContextForCompany(
+        caseData.company_name || caseData.company || 'unknown'
+      );
+
+      // Use existing classification method with enhanced context
+      const classification = await this.classifyCase(caseData, businessContext, {
+        includeSimilarCases: true,
+        includeKBArticles: true,
+        workflowId: routingResult.workflowId
+      });
+
+      // Merge entities from different sources
+      const llmEntities: DiscoveredEntity[] = [];
+      
+      // Convert technical entities from classification
+      if (classification.technical_entities) {
+        classification.technical_entities.ip_addresses?.forEach(ip => {
+          llmEntities.push({
+            entityType: 'IP_ADDRESS',
+            entityValue: ip,
+            confidence: 0.8,
+            source: 'llm'
+          });
+        });
+
+        classification.technical_entities.systems?.forEach(system => {
+          llmEntities.push({
+            entityType: 'SYSTEM',
+            entityValue: system,
+            confidence: 0.7,
+            source: 'llm'
+          });
+        });
+
+        classification.technical_entities.users?.forEach(user => {
+          llmEntities.push({
+            entityType: 'USER',
+            entityValue: user,
+            confidence: 0.8,
+            source: 'llm'
+          });
+        });
+
+        classification.technical_entities.software?.forEach(software => {
+          llmEntities.push({
+            entityType: 'SOFTWARE',
+            entityValue: software,
+            confidence: 0.7,
+            source: 'llm'
+          });
+        });
+
+        classification.technical_entities.error_codes?.forEach(code => {
+          llmEntities.push({
+            entityType: 'ERROR_CODE',
+            entityValue: code,
+            confidence: 0.9,
+            source: 'llm'
+          });
+        });
+      }
+
+      const allEntities = this.entityStoreService.mergeEntities(llmEntities, regexEntities);
+
+      // Save discovered entities
+      await this.entityStoreService.saveDiscoveredEntities(
+        caseData.case_number,
+        caseData.sys_id,
+        allEntities
+      );
+
+      // Save classification result
+      await this.repository.saveClassificationResult({
+        caseNumber: caseData.case_number,
+        workflowId: routingResult.workflowId,
+        classificationJson: classification,
+        tokenUsage: {
+          promptTokens: classification.token_usage_input || 0,
+          completionTokens: classification.token_usage_output || 0,
+          totalTokens: classification.total_tokens || 0
+        },
+        cost: this.calculateCost(classification),
+        provider: classification.llm_provider || 'unknown',
+        model: classification.model_used || 'unknown',
+        processingTimeMs: Date.now() - startTime,
+        servicenowUpdated: false,
+        entitiesCount: allEntities.length,
+        similarCasesCount: intelligenceResult.similarCases.length,
+        kbArticlesCount: intelligenceResult.kbArticles.length,
+        businessIntelligenceDetected: !!(
+          classification.business_intelligence?.project_scope_detected ||
+          classification.business_intelligence?.executive_visibility ||
+          classification.business_intelligence?.compliance_impact ||
+          classification.business_intelligence?.financial_impact
+        ),
+        confidenceScore: classification.confidence_score,
+        retryCount: 0
+      });
+
+      return {
+        ...classification,
+        processingTimeMs: Date.now() - startTime,
+        workflowId: routingResult.workflowId,
+        discoveredEntities: allEntities,
+        businessContextConfidence: businessContextResult.confidence
+      };
+    } catch (error) {
+      console.error(`[CaseClassifier] Enhanced classification failed for ${caseData.case_number}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate cost based on token usage
+   */
+  private calculateCost(classification: CaseClassification): number {
+    const promptTokens = classification.token_usage_input || 0;
+    const completionTokens = classification.token_usage_output || 0;
+    
+    // Simple cost calculation - adjust based on actual pricing
+    const promptCostPer1K = 0.003;
+    const completionCostPer1K = 0.004;
+    
+    const promptCost = (promptTokens / 1000) * promptCostPer1K;
+    const completionCost = (completionTokens / 1000) * completionCostPer1K;
+    
+    return promptCost + completionCost;
+  }
+
+  /**
+   * Classify a case using AI with similar case and KB article context
+   */
+  async classifyCase(
+    caseData: CaseData,
+    businessContext?: BusinessEntityContext | null,
+    options?: {
+      includeSimilarCases?: boolean;
+      includeKBArticles?: boolean;
+      workflowId?: string;
+    }
+  ): Promise<CaseClassification> {
+    const {
+      includeSimilarCases = true,
+      includeKBArticles = true,
+      workflowId = 'default'
+    } = options || {};
+
+    const startTime = Date.now();
+
+    // Fetch similar cases if enabled
+    let similarCases: SimilarCase[] = [];
+    if (includeSimilarCases && this.searchService) {
+      try {
+        const queryText = `${caseData.short_description} ${caseData.description || ''}`.trim();
+        similarCases = await this.searchService.searchSimilarCases(queryText, {
+          topK: 5,
+          clientId: caseData.company, // Multi-tenant filtering
+        });
+        console.log(`[CaseClassifier] Found ${similarCases.length} similar cases`);
+      } catch (error) {
+        console.warn('[CaseClassifier] Failed to fetch similar cases:', error);
+      }
+    }
+
+    // Fetch KB articles if enabled
+    let kbArticles: KBArticle[] = [];
+    if (includeKBArticles) {
+      try {
+        const queryText = `${caseData.short_description} ${caseData.description || ''}`.trim();
+        kbArticles = await searchKBArticles(queryText, 3);
+        console.log(`[CaseClassifier] Found ${kbArticles.length} KB articles`);
+      } catch (error) {
+        console.warn('[CaseClassifier] Failed to fetch KB articles:', error);
+      }
+    }
+
+    // Build classification prompt with context
+    const prompt = await this.buildClassificationPrompt(
+      caseData,
+      businessContext,
+      similarCases,
+      kbArticles
+    );
+
+    // Use AI Gateway via model provider
+    const model = modelProvider.languageModel("chat-model");
+
+    try {
+      const result = await generateText({
+        model,
+        prompt,
+        temperature: 0.1, // Low temperature for consistent classification
+      });
+
+      // Parse the JSON response
+      const classificationText = result.text.trim();
+
+      // Try to extract JSON from the response
+      const jsonMatch = classificationText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in classification response');
+      }
+
+      const classification = JSON.parse(jsonMatch[0]);
+
+      // Validate and normalize the classification
+      const validatedClassification = this.validateClassification(classification);
+
+      // Add metadata from AI SDK response
+      const processingTime = Date.now() - startTime;
+
+      // Extract token usage (using type assertion due to SDK type definitions)
+      const usage = result.usage as any;
+      const promptTokens = usage?.promptTokens || 0;
+      const completionTokens = usage?.completionTokens || 0;
+
+      return {
+        ...validatedClassification,
+        // Token usage from AI SDK
+        token_usage_input: promptTokens,
+        token_usage_output: completionTokens,
+        total_tokens: promptTokens + completionTokens,
+        // Model info
+        model_used: result.finishReason || 'unknown',
+        llm_provider: 'ai-gateway', // Using Vercel AI Gateway
+        // Context
+        similar_cases: similarCases,
+        kb_articles: kbArticles,
+        similar_cases_count: similarCases.length,
+        kb_articles_count: kbArticles.length,
+      };
+
+    } catch (error) {
+      console.error('[CaseClassifier] Classification failed:', error);
+
+      // Fallback classification
+      return this.getFallbackClassification(caseData);
+    }
+  }
+
+  /**
+   * Build the classification prompt
+   */
+  private async buildClassificationPrompt(
+    caseData: CaseData,
+    businessContext?: BusinessEntityContext | null,
+    similarCases?: SimilarCase[],
+    kbArticles?: KBArticle[]
+  ): Promise<string> {
+    const businessContextText = businessContext
+      ? this.businessContextService.toPromptText(businessContext)
+      : 'No specific business context available.';
+
+    let prompt = `You are classifying a ServiceNow case for Mobiz IT, a managed service provider.
+
+CASE DETAILS:
+- Number: ${caseData.case_number}
+- Short Description: ${caseData.short_description}
+- Description: ${caseData.description || 'No description provided'}
+- Priority: ${caseData.priority || 'Not specified'}
+- Urgency: ${caseData.urgency || 'Not specified'}
+- Current Category: ${caseData.current_category || 'Not categorized'}
+
+BUSINESS CONTEXT:
+${businessContextText}`;
+
+    // Add similar cases context if available
+    if (similarCases && similarCases.length > 0) {
+      prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
+      prompt += `These are similar cases that were previously resolved:\n\n`;
+
+      similarCases.slice(0, 5).forEach((case_, index) => {
+        prompt += `${index + 1}. Case ${case_.case_number} (similarity: ${case_.score.toFixed(2)}):\n`;
+        prompt += `   - Description: ${case_.content.substring(0, 200)}...\n\n`;
+      });
+
+      prompt += `Use these similar cases as reference, but analyze the current case independently.\n`;
+    }
+
+    // Add KB articles context if available
+    if (kbArticles && kbArticles.length > 0) {
+      prompt += `\n\n--- RELEVANT KB ARTICLES ---\n`;
+      prompt += `These KB articles may help resolve this case:\n\n`;
+
+      kbArticles.forEach((kb, index) => {
+        prompt += `${index + 1}. ${kb.kb_number}: ${kb.title} (similarity: ${kb.similarity_score.toFixed(2)})\n`;
+        if (kb.category) {
+          prompt += `   Category: ${kb.category}\n`;
+        }
+        if (kb.summary) {
+          prompt += `   Summary: ${kb.summary.substring(0, 150)}...\n`;
+        }
+        prompt += `\n`;
+      });
+
+      prompt += `Consider these KB articles when suggesting next steps or troubleshooting guidance.\n`;
+    }
+
+    prompt += `
+
+AVAILABLE CATEGORIES:
+- User Access Management (password resets, account locks, permissions, VPN access)
+- Networking (connectivity issues, firewall rules, DNS, DHCP, VPN performance)
+- Application Support (software issues, crashes, performance, configuration)
+- Infrastructure (server issues, storage, virtualization, cloud services)
+- Security (malware, vulnerabilities, access control, security incidents)
+- Hardware (laptops, desktops, printers, mobile devices)
+- Email & Collaboration (Outlook, Teams, SharePoint, Office 365)
+- Database (performance issues, backups, queries, connectivity)
+- Backup & Recovery (backup failures, restore requests, disaster recovery)
+- Monitoring & Alerts (system monitoring, alerts, performance issues)
+
+CLASSIFICATION RULES:
+1. Choose the most specific category that fits the issue
+2. Provide a subcategory for more granular classification (e.g., "Password Reset" under "User Access Management")
+3. Consider the business context - client-specific issues may need special handling
+4. Look for keywords that indicate the technical area
+5. Assess urgency based on business impact
+
+Provide a JSON response with this exact structure:
+{
+  "category": "Category name from list above",
+  "subcategory": "Specific subcategory",
+  "confidence_score": 0.85,
+  "reasoning": "Brief explanation of why this category was chosen",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "quick_summary": "3-sentence technical summary of the issue",
+  "immediate_next_steps": ["Step 1", "Step 2", "Step 3"],
+  "technical_entities": {
+    "ip_addresses": ["192.168.1.1"],
+    "systems": ["Exchange Server", "Azure AD"],
+    "users": ["john.doe"],
+    "software": ["Microsoft Teams", "Outlook"],
+    "error_codes": ["0x80070005"]
+  },
+  "urgency_level": "High|Medium|Low",
+  "business_intelligence": {
+    "project_scope_detected": false,
+    "project_scope_reason": "Optional: explain if this requires professional services",
+    "client_technology": "Optional: client-specific technology mentioned",
+    "client_technology_context": "Optional: context about the technology",
+    "related_entities": ["Optional: sibling companies that may be affected"],
+    "outside_service_hours": false,
+    "service_hours_note": "Optional: service hours context"
+  }
+}
+
+Requirements:
+- category must exactly match one from the list above
+- confidence_score must be between 0.0 and 1.0
+- reasoning should be 2-3 sentences
+- keywords should be 3-5 relevant terms
+- quick_summary should be exactly 3 sentences
+- immediate_next_steps should be 2-4 actionable, specific steps
+- technical_entities: extract all technical entities from the case description
+- urgency_level should be based on business impact
+- business_intelligence: ONLY populate fields when exceptions are detected (project scope, client tech, service hours)
+
+Return only the JSON, no other text.`;
+
+    return prompt;
+  }
+
+  /**
+   * Validate and normalize classification result
+   */
+  private validateClassification(classification: any): CaseClassification {
+    const validCategories = [
+      'User Access Management',
+      'Networking',
+      'Application Support',
+      'Infrastructure',
+      'Security',
+      'Hardware',
+      'Email & Collaboration',
+      'Database',
+      'Backup & Recovery',
+      'Monitoring & Alerts'
+    ];
+
+    // Ensure category is valid
+    if (!validCategories.includes(classification.category)) {
+      console.warn(`[CaseClassifier] Invalid category: ${classification.category}, using fallback`);
+      classification.category = 'Application Support'; // Safe default
+    }
+
+    // Ensure confidence score is valid
+    if (typeof classification.confidence_score !== 'number' ||
+        classification.confidence_score < 0 ||
+        classification.confidence_score > 1) {
+      classification.confidence_score = 0.5;
+    }
+
+    // Ensure arrays exist
+    if (!Array.isArray(classification.keywords)) {
+      classification.keywords = [];
+    }
+    if (!Array.isArray(classification.immediate_next_steps)) {
+      classification.immediate_next_steps = [];
+    }
+
+    // Ensure urgency level is valid
+    const validUrgencyLevels = ['High', 'Medium', 'Low'];
+    if (!validUrgencyLevels.includes(classification.urgency_level)) {
+      classification.urgency_level = 'Medium';
+    }
+
+    // Validate technical entities
+    if (!classification.technical_entities || typeof classification.technical_entities !== 'object') {
+      classification.technical_entities = {
+        ip_addresses: [],
+        systems: [],
+        users: [],
+        software: [],
+        error_codes: []
+      };
+    } else {
+      // Ensure each array exists
+      classification.technical_entities.ip_addresses = classification.technical_entities.ip_addresses || [];
+      classification.technical_entities.systems = classification.technical_entities.systems || [];
+      classification.technical_entities.users = classification.technical_entities.users || [];
+      classification.technical_entities.software = classification.technical_entities.software || [];
+      classification.technical_entities.error_codes = classification.technical_entities.error_codes || [];
+    }
+
+    // Validate business intelligence
+    if (!classification.business_intelligence || typeof classification.business_intelligence !== 'object') {
+      classification.business_intelligence = {
+        project_scope_detected: false,
+        outside_service_hours: false
+      };
+    } else {
+      // Ensure boolean fields have valid values
+      classification.business_intelligence.project_scope_detected = !!classification.business_intelligence.project_scope_detected;
+      classification.business_intelligence.outside_service_hours = !!classification.business_intelligence.outside_service_hours;
+    }
+
+    return classification as CaseClassification;
+  }
+
+  /**
+   * Fallback classification for when AI fails
+   */
+  private getFallbackClassification(caseData: CaseData): CaseClassification {
+    const text = `${caseData.short_description} ${caseData.description || ''}`.toLowerCase();
+    
+    // Simple keyword-based fallback
+    let category = 'Application Support'; // Default
+    let subcategory = 'General Issue';
+    let keywords: string[] = [];
+    let urgency = 'Medium';
+
+    // User Access Management
+    if (text.includes('password') || text.includes('account') || text.includes('login') || text.includes('vpn')) {
+      category = 'User Access Management';
+      subcategory = text.includes('password') ? 'Password Reset' : 'Account Access';
+      keywords = ['password', 'account', 'access'];
+    }
+    // Networking
+    else if (text.includes('network') || text.includes('connect') || text.includes('internet') || text.includes('firewall')) {
+      category = 'Networking';
+      subcategory = 'Connectivity Issue';
+      keywords = ['network', 'connectivity', 'firewall'];
+    }
+    // Security
+    else if (text.includes('virus') || text.includes('malware') || text.includes('security') || text.includes('threat')) {
+      category = 'Security';
+      subcategory = 'Security Incident';
+      keywords = ['security', 'malware', 'threat'];
+      urgency = 'High';
+    }
+    // Hardware
+    else if (text.includes('laptop') || text.includes('computer') || text.includes('printer') || text.includes('device')) {
+      category = 'Hardware';
+      subcategory = 'Device Issue';
+      keywords = ['hardware', 'device', 'equipment'];
+    }
+    // Email & Collaboration
+    else if (text.includes('email') || text.includes('outlook') || text.includes('teams') || text.includes('sharepoint')) {
+      category = 'Email & Collaboration';
+      subcategory = 'Email Issue';
+      keywords = ['email', 'outlook', 'collaboration'];
+    }
+
+    // Extract keywords from text
+    const words = text.split(/\s+/).filter(word => word.length > 3);
+    if (keywords.length < 3 && words.length > 0) {
+      keywords = [...keywords, ...words.slice(0, 3 - keywords.length)];
+    }
+
+    return {
+      category,
+      subcategory,
+      confidence_score: 0.3, // Low confidence for fallback
+      reasoning: `Fallback classification based on keyword matching. Original AI classification failed.`,
+      keywords: keywords.slice(0, 5),
+      quick_summary: `Issue reported for ${caseData.case_number}. ${caseData.short_description}. Requires investigation and resolution.`,
+      immediate_next_steps: ['Investigate the reported issue', 'Contact user if more information needed', 'Provide resolution or escalate'],
+      urgency_level: urgency,
+    };
+  }
+}
+
+// Singleton instance
+let classifier: CaseClassifier | null = null;
+
+export function getCaseClassifier(): CaseClassifier {
+  if (!classifier) {
+    classifier = new CaseClassifier();
+  }
+  return classifier;
+}

@@ -437,6 +437,64 @@ export class ServiceNowClient {
       } satisfies ServiceNowCaseSummary;
     });
   }
+
+  /**
+   * Add work note to a case
+   */
+  public async addCaseWorkNote(
+    sysId: string,
+    workNote: string,
+    workNotes: boolean = true
+  ): Promise<void> {
+    const table = config.caseTable ?? "sn_customerservice_case";
+    const endpoint = `/api/now/table/${table}/${sysId}`;
+
+    const payload = workNotes ? 
+      { work_notes: workNote } : 
+      { comments: workNote };
+
+    await request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /**
+   * Update case fields
+   */
+  public async updateCase(
+    sysId: string,
+    updates: Record<string, any>
+  ): Promise<void> {
+    const table = config.caseTable ?? "sn_customerservice_case";
+    const endpoint = `/api/now/table/${table}/${sysId}`;
+
+    await request(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
+   * Add comment to case (visible to customer)
+   */
+  public async addCaseComment(
+    sysId: string,
+    comment: string
+  ): Promise<void> {
+    await this.addCaseWorkNote(sysId, comment, false);
+  }
 }
 
 export const serviceNowClient = new ServiceNowClient();
+
+/**
+ * Convenience function to add work note
+ */
+export async function addCaseWorkNote(
+  sysId: string,
+  workNote: string,
+  workNotes: boolean = true
+): Promise<void> {
+  await serviceNowClient.addCaseWorkNote(sysId, workNote, workNotes);
+}
