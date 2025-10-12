@@ -8,14 +8,15 @@ const targetSchema = z
   .object({
     channel: z.string().min(1, "target.channel is required").optional(),
     user: z.string().min(1, "target.user cannot be empty").optional(),
+    email: z.string().email().optional(),
     thread_ts: z.string().min(1, "target.thread_ts cannot be empty").optional(),
     reply_broadcast: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
-    if (!value.channel && !value.user) {
+    if (!value.channel && !value.user && !value.email) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Provide either target.channel or target.user",
+        message: "Provide at least one of target.channel, target.user, or target.email",
         path: ["channel"],
       });
     }
@@ -115,8 +116,23 @@ export async function POST(request: Request): Promise<Response> {
   let threadTs = target.thread_ts;
 
   try {
-    if (!channelId && target.user) {
-      const dm = await client.conversations.open({ users: target.user });
+    let userId = target.user;
+
+    // Resolve user by email if no Slack ID provided
+    if (!userId && target.email) {
+      const lookupResult = await client.users.lookupByEmail({ email: target.email });
+      if (lookupResult.user?.id) {
+        userId = lookupResult.user.id;
+      } else {
+        return jsonResponse(
+          { error: "Unable to resolve Slack user for target.email" },
+          404,
+        );
+      }
+    }
+
+    if (!channelId && userId) {
+      const dm = await client.conversations.open({ users: userId });
       channelId = dm.channel?.id ?? undefined;
       if (!channelId) {
         return jsonResponse(
