@@ -13,6 +13,7 @@ import {
   jsonb,
   index,
   primaryKey,
+  real,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -146,3 +147,178 @@ export type BusinessContext = typeof businessContexts.$inferSelect;
 export type NewBusinessContext = typeof businessContexts.$inferInsert;
 export type BusinessContextCmdbIdentifier = BusinessContext["cmdbIdentifiers"][number];
 export type BusinessContextSteward = BusinessContext["contextStewards"][number];
+
+/**
+ * Case Classification Inbound Table
+ * Records incoming webhook payloads for case classification
+ */
+export const caseClassificationInbound = pgTable(
+  "case_classification_inbound",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    rawPayload: jsonb("raw_payload").notNull(),
+    routingContext: jsonb("routing_context").$type<{
+      assignmentGroup?: string;
+      assignedTo?: string;
+      category?: string;
+      subcategory?: string;
+      priority?: string;
+      state?: string;
+    }>().default({}).notNull(),
+    processed: boolean("processed").default(false).notNull(),
+    processingError: text("processing_error"),
+    workflowId: text("workflow_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    processedAt: timestamp("processed_at"),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_inbound_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_inbound_case_sys_id").on(table.caseSysId),
+    processedIdx: index("idx_inbound_processed").on(table.processed),
+    createdAtIdx: index("idx_inbound_created_at").on(table.createdAt),
+  })
+);
+
+/**
+ * Case Classification Results Table
+ * Stores detailed classification results with metadata
+ */
+export const caseClassificationResults = pgTable(
+  "case_classification_results",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    workflowId: text("workflow_id").notNull(),
+    classificationJson: jsonb("classification_json").notNull(),
+    tokenUsage: jsonb("token_usage").$type<{
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    }>().default({ promptTokens: 0, completionTokens: 0, totalTokens: 0 }).notNull(),
+    cost: real("cost").default(0).notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    processingTimeMs: real("processing_time_ms").notNull(),
+    servicenowUpdated: boolean("servicenow_updated").default(false).notNull(),
+    entitiesCount: integer("entities_count").default(0).notNull(),
+    similarCasesCount: integer("similar_cases_count").default(0).notNull(),
+    kbArticlesCount: integer("kb_articles_count").default(0).notNull(),
+    businessIntelligenceDetected: boolean("business_intelligence_detected").default(false).notNull(),
+    confidenceScore: real("confidence_score").notNull(),
+    retryCount: integer("retry_count").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_results_case_number").on(table.caseNumber),
+    workflowIdIdx: index("idx_results_workflow_id").on(table.workflowId),
+    providerIdx: index("idx_results_provider").on(table.provider),
+    createdAtIdx: index("idx_results_created_at").on(table.createdAt),
+    confidenceScoreIdx: index("idx_results_confidence").on(table.confidenceScore),
+  })
+);
+
+/**
+ * Case Discovered Entities Table
+ * Tracks entities discovered during case classification
+ */
+export const caseDiscoveredEntities = pgTable(
+  "case_discovered_entities",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    entityType: text("entity_type").notNull(), // IP_ADDRESS, SYSTEM, USER, SOFTWARE, ERROR_CODE
+    entityValue: text("entity_value").notNull(),
+    confidence: real("confidence").notNull(),
+    status: text("status").notNull().default("discovered"), // discovered, verified, false_positive
+    source: text("source").notNull(), // llm, regex, manual
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_entities_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_entities_case_sys_id").on(table.caseSysId),
+    entityTypeIdx: index("idx_entities_type").on(table.entityType),
+    entityValueIdx: index("idx_entities_value").on(table.entityValue),
+    statusIdx: index("idx_entities_status").on(table.status),
+    confidenceIdx: index("idx_entities_confidence").on(table.confidence),
+  })
+);
+
+export type CaseClassificationInbound = typeof caseClassificationInbound.$inferSelect;
+export type NewCaseClassificationInbound = typeof caseClassificationInbound.$inferInsert;
+
+export type CaseClassificationResults = typeof caseClassificationResults.$inferSelect;
+export type NewCaseClassificationResults = typeof caseClassificationResults.$inferInsert;
+
+export type CaseDiscoveredEntities = typeof caseDiscoveredEntities.$inferSelect;
+export type NewCaseDiscoveredEntities = typeof caseDiscoveredEntities.$inferInsert;
+
+/**
+ * Case Classifications Table
+ * Tracks AI classification results for ServiceNow cases
+ */
+export const caseClassifications = pgTable(
+  "case_classifications",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    category: text("category").notNull(),
+    subcategory: text("subcategory"),
+    confidenceScore: real("confidence_score").notNull(),
+    urgencyLevel: text("urgency_level"),
+    reasoning: text("reasoning"),
+    keywords: jsonb("keywords").$type<string[]>().default([]).notNull(),
+    quickSummary: text("quick_summary"),
+    immediateNextSteps: jsonb("immediate_next_steps").$type<string[]>().default([]).notNull(),
+    technicalEntities: jsonb("technical_entities").$type<{
+      ip_addresses: string[];
+      systems: string[];
+      users: string[];
+      software: string[];
+      error_codes: string[];
+    }>().default({ ip_addresses: [], systems: [], users: [], software: [], error_codes: [] }).notNull(),
+    businessIntelligence: jsonb("business_intelligence").$type<{
+      project_scope_detected: boolean;
+      project_scope_reason?: string;
+      client_technology?: string;
+      client_technology_context?: string;
+      related_entities?: string[];
+      outside_service_hours: boolean;
+      service_hours_note?: string;
+      executive_visibility: boolean;
+      executive_visibility_reason?: string;
+      compliance_impact: boolean;
+      compliance_impact_reason?: string;
+      financial_impact: boolean;
+      financial_impact_reason?: string;
+    }>().default({ 
+      project_scope_detected: false, 
+      outside_service_hours: false, 
+      executive_visibility: false, 
+      compliance_impact: false, 
+      financial_impact: false 
+    }).notNull(),
+    similarCasesCount: integer("similar_cases_count").default(0).notNull(),
+    kbArticlesCount: integer("kb_articles_count").default(0).notNull(),
+    modelUsed: text("model_used").notNull(),
+    classifiedAt: timestamp("classified_at").defaultNow().notNull(),
+    processingTimeMs: real("processing_time_ms"),
+    servicenowUpdated: boolean("servicenow_updated").default(false).notNull(),
+    workNoteContent: text("work_note_content"),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_case_number_classifications").on(table.caseNumber),
+    caseSysIdIdx: index("idx_case_sys_id").on(table.caseSysId),
+    categoryIdx: index("idx_category").on(table.category),
+    classifiedAtIdx: index("idx_classified_at").on(table.classifiedAt),
+    confidenceScoreIdx: index("idx_confidence_score").on(table.confidenceScore),
+  })
+);
+
+export type CaseClassification = typeof caseClassifications.$inferSelect;
+export type NewCaseClassification = typeof caseClassifications.$inferInsert;

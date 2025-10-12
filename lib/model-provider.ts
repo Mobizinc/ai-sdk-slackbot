@@ -8,7 +8,7 @@ const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
   ?? process.env.AI_GATEWAY_MODEL?.trim()
   ?? "anthropic/claude-sonnet-4.5";
 
-const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "anthropic/claude-sonnet-4";
+const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-4o-mini";
 
 // Create gateway provider once at module load (Vercel AI SDK best practice)
 // AI SDK handles routing - only apiKey needed, no baseURL

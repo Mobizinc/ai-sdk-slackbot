@@ -1,4 +1,5 @@
 {
+  "buildCommand": "pnpm build",
   "redirects": [
     {
       "source": "/",
@@ -8,6 +9,9 @@
   "functions": {
     "api/events.ts": {
       "maxDuration": 60
+    },
+    "api/servicenow-webhook.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -15,6 +19,5 @@
       "path": "/api/cron/cleanup-workflows",
       "schedule": "0 */6 * * *"
     }
-  ],
-  "outputDirectory": "dist"
+  ]
 }
