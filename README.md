@@ -62,6 +62,7 @@ pnpm install
       - `channels:history`
       - `groups:history`
       - `mpim:history`
+      - `users:read.email`
    - Install the app to your workspace and note down the "Bot User OAuth Token" for the environment variable `SLACK_BOT_TOKEN`
 
 - Go to "Event Subscriptions"
@@ -346,6 +347,7 @@ Expose this project as the single Slack gateway for other agents and services vi
   "target": {
     "channel": "C12345",         // Slack channel ID; optional if user supplied
     "user": "U67890",            // Slack user ID to open a DM
+                                  // or supply target.email to resolve slack user ID
     "thread_ts": "1728237000.000100", // Existing thread timestamp (optional)
     "reply_broadcast": false      // Optional, when posting in public threads
   },
@@ -365,9 +367,9 @@ Expose this project as the single Slack gateway for other agents and services vi
 }
 ```
 
-- Provide at least one of `target.channel` or `target.user`.
+- Provide at least one of `target.channel`, `target.user`, or `target.email`.
 - Supply `message.text` (non-empty) or `message.blocks`.
-- When only `target.user` is provided, the gateway opens a DM and uses the resolved channel ID automatically.
+- When only `target.user` or `target.email` is provided, the gateway opens a DM and uses the resolved channel ID automatically.
 - `metadata` is mapped to Slack message metadata (visible in message details) for traceability.
 
 ### Example `curl`
