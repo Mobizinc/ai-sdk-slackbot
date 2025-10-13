@@ -31,20 +31,55 @@ const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
 
 /**
- * Validate webhook signature
- * Original: api/app/services/batch_processing/auth.py
+ * Validate webhook request
+ * Supports multiple authentication methods (all using same SERVICENOW_WEBHOOK_SECRET):
+ * 1. Simple API key in header (x-api-key) - Azure Functions style
+ * 2. Simple API key in query param (?code=xxx) - Azure Functions style
+ * 3. HMAC-SHA256 signature (hex or base64) - Advanced security
  */
-function validateSignature(payload: string, signature: string): boolean {
+function validateRequest(request: Request, payload: string): boolean {
   if (!WEBHOOK_SECRET) {
-    console.warn('[Webhook] No webhook secret configured, skipping signature validation');
+    console.warn('[Webhook] No SERVICENOW_WEBHOOK_SECRET configured, allowing request');
     return true;
   }
 
-  const expectedSignature = createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
+  // Method 1: Simple API key in header (x-api-key)
+  const apiKeyHeader = request.headers.get('x-api-key') || request.headers.get('x-functions-key');
+  if (apiKeyHeader === WEBHOOK_SECRET) {
+    console.info('[Webhook] Authenticated via API key (header)');
+    return true;
+  }
 
-  return signature === expectedSignature;
+  // Method 2: Simple API key in query param (?code=xxx) - Azure Functions style
+  const url = new URL(request.url);
+  const apiKeyQuery = url.searchParams.get('code');
+  if (apiKeyQuery === WEBHOOK_SECRET) {
+    console.info('[Webhook] Authenticated via API key (query param)');
+    return true;
+  }
+
+  // Method 3: HMAC signature (backward compatibility)
+  const signature = request.headers.get('x-servicenow-signature') ||
+                   request.headers.get('signature') || '';
+
+  if (signature) {
+    // ServiceNow may send signatures in either hex or base64 format
+    const hexSignature = createHmac('sha256', WEBHOOK_SECRET)
+      .update(payload)
+      .digest('hex');
+
+    const base64Signature = createHmac('sha256', WEBHOOK_SECRET)
+      .update(payload)
+      .digest('base64');
+
+    if (signature === hexSignature || signature === base64Signature) {
+      console.info('[Webhook] Authenticated via HMAC signature');
+      return true;
+    }
+  }
+
+  // All authentication methods failed
+  return false;
 }
 
 /**
@@ -63,16 +98,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get request body and signature
+    // Get request body
     const payload = await request.text();
-    const signature = request.headers.get('x-servicenow-signature') ||
-                     request.headers.get('signature') || '';
 
-    // Validate signature
-    if (!validateSignature(payload, signature)) {
-      console.warn('[Webhook] Invalid webhook signature received');
+    // Validate authentication (API key or HMAC signature)
+    if (!validateRequest(request, payload)) {
+      console.warn('[Webhook] Authentication failed');
       return Response.json(
-        { error: 'Invalid signature' },
+        { error: 'Authentication failed' },
         { status: 401 }
       );
     }
