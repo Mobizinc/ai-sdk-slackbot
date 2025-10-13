@@ -37,6 +37,7 @@ import { getWorkflowRouter } from "./workflow-router";
 import { getCaseClassifier } from "./case-classifier";
 import { createAzureSearchClient } from "./azure-search-client";
 import { formatWorkNote } from "./work-note-formatter";
+import { getCategorySyncService } from "./servicenow-category-sync";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -102,6 +103,7 @@ export class CaseTriageService {
   private workflowRouter = getWorkflowRouter();
   private classifier = getCaseClassifier();
   private azureSearchClient = createAzureSearchClient();
+  private categorySyncService = getCategorySyncService();
 
   /**
    * Execute complete case triage workflow
@@ -182,13 +184,30 @@ export class CaseTriageService {
         }
       }
 
-      // Step 4: Convert webhook to classification request
+      // Step 4: Fetch ServiceNow categories from database cache
+      const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
+        process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case',
+        13 // maxAgeHours
+      );
+
+      if (categoriesData.isStale) {
+        console.warn('[Case Triage] Categories are stale - consider running sync');
+      }
+
+      console.log(
+        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache`
+      );
+
+      // Step 5: Convert webhook to classification request
       const classificationRequest = this.webhookToClassificationRequest(webhook);
 
       // Note: Similar cases and KB articles are fetched by the classifier internally
       // The classifier uses the new Azure Search client with vector search and MSP attribution
 
-      // Step 5: Perform classification with retry logic
+      // Step 6: Set real ServiceNow categories in classifier
+      this.classifier.setCategories(categoriesData.categories, categoriesData.subcategories);
+
+      // Step 7: Perform classification with retry logic (using real ServiceNow categories)
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 

@@ -87,6 +87,18 @@ export class CaseClassifier {
   private caseIntelligenceService = getCaseIntelligenceService();
   private entityStoreService = getEntityStoreService();
   private repository = getCaseClassificationRepository();
+  private availableCategories: string[] = []; // Will be set by setCategories()
+  private availableSubcategories: string[] = []; // Will be set by setCategories()
+
+  /**
+   * Set available categories from ServiceNow cache
+   * Should be called before classification to use real ServiceNow categories
+   */
+  setCategories(categories: string[], subcategories: string[] = []): void {
+    this.availableCategories = categories;
+    this.availableSubcategories = subcategories;
+    console.log(`[CaseClassifier] Loaded ${categories.length} categories, ${subcategories.length} subcategories from ServiceNow`);
+  }
 
   /**
    * Enhanced classification using new architecture services
@@ -458,10 +470,10 @@ Case Information:
       prompt += `Consider these KB articles when suggesting next steps or troubleshooting guidance.\n`;
     }
 
-    prompt += `
-
-Available Categories:
-- User Access Management
+    // Use real ServiceNow categories if available, otherwise use default list
+    const categoryList = this.availableCategories.length > 0
+      ? this.availableCategories.map(c => `- ${c}`).join('\n')
+      : `- User Access Management
 - Networking
 - Application Support
 - Infrastructure
@@ -471,7 +483,12 @@ Available Categories:
 - Email & Collaboration
 - Telephony
 - Cloud Services
-- Unclassified
+- Unclassified`;
+
+    prompt += `
+
+Available Categories:
+${categoryList}
 
 Analyze the case and provide:
 1. The most appropriate category from the list above
