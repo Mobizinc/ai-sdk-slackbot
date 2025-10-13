@@ -3,9 +3,7 @@
  * Formats classification results as ServiceNow work notes
  */
 
-import type { CaseClassification } from './case-classifier';
-import type { BusinessIntelligence } from './business-intelligence';
-import type { TechnicalEntities } from './entity-extractor';
+import type { CaseClassification, BusinessIntelligence, TechnicalEntities } from './case-classifier';
 import type { DiscoveredEntity } from './entity-store';
 import type { SimilarCase } from './case-intelligence';
 import type { KBArticle } from './case-intelligence';
