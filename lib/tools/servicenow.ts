@@ -10,6 +10,7 @@ interface ServiceNowConfig {
   caseTable?: string;
   caseJournalName?: string;
   ciTable?: string;
+  taskTable?: string;
 }
 
 const config: ServiceNowConfig = {
@@ -23,6 +24,7 @@ const config: ServiceNowConfig = {
     process.env.SERVICENOW_CASE_JOURNAL_NAME?.trim() ||
     "x_mobit_serv_case_service_case",
   ciTable: process.env.SERVICENOW_CI_TABLE?.trim() || "cmdb_ci",
+  taskTable: process.env.SERVICENOW_TASK_TABLE?.trim() || "sn_customerservice_task",
 };
 
 function detectAuthMode(): ServiceNowAuthMode | null {
@@ -611,6 +613,60 @@ export class ServiceNowClient {
         subcategoryDetails: [],
       };
     }
+  }
+
+  /**
+   * Create a child task for a case
+   */
+  public async createChildTask(input: {
+    caseSysId: string;
+    caseNumber: string;
+    description: string;
+    assignmentGroup?: string;
+    shortDescription?: string;
+    priority?: string;
+  }): Promise<{
+    sys_id: string;
+    number: string;
+    url: string;
+  }> {
+    const table = config.taskTable ?? "sn_customerservice_task";
+    const endpoint = `/api/now/table/${table}`;
+
+    // Build task payload
+    const payload: Record<string, any> = {
+      parent: input.caseSysId, // Link to parent case
+      short_description: input.shortDescription || `CMDB Asset Creation Task for ${input.caseNumber}`,
+      description: input.description,
+      state: "1", // New state
+      priority: input.priority || "4", // Medium priority by default
+    };
+
+    // Add assignment group if provided
+    if (input.assignmentGroup) {
+      payload.assignment_group = input.assignmentGroup;
+    }
+
+    const data = await request<{
+      result: Array<{
+        sys_id: string;
+        number: string;
+      }>;
+    }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!data.result?.length) {
+      throw new Error('Failed to create child task: No response from ServiceNow');
+    }
+
+    const task = data.result[0];
+    return {
+      sys_id: task.sys_id,
+      number: task.number,
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
+    };
   }
 }
 

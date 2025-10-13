@@ -53,6 +53,20 @@ export class CmdbReconciliationRepository {
   }
 
   /**
+   * Get reconciliation result by ID
+   */
+  async findById(id: number): Promise<CmdbReconciliationResult | null> {
+    const db = this.getDb();
+    const [result] = await db
+      .select()
+      .from(cmdbReconciliationResults)
+      .where(eq(cmdbReconciliationResults.id, id))
+      .limit(1);
+    
+    return result || null;
+  }
+
+  /**
    * Update reconciliation result with CMDB match information
    */
   async updateWithMatch(
