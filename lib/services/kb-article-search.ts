@@ -16,11 +16,31 @@ export interface KBArticle {
 
 /**
  * Search KB articles by embedding similarity
+ *
+ * TODO: This is currently DISABLED because the Python implementation uses SQL Server tables
+ * (servicenow_kb_articles, kb_article_embeddings) which we don't have in Neon Postgres.
+ *
+ * The previous implementation was incorrectly searching the CASE index and returning
+ * cases pretending to be KB articles (hence why you saw SCS#### instead of KB####).
+ *
+ * To properly implement:
+ * 1. Create servicenow_kb_articles and kb_article_embeddings tables in Postgres
+ * 2. Sync KB articles from ServiceNow kb_knowledge table
+ * 3. Generate embeddings for KB articles
+ * 4. Search via vector similarity like Python does
+ *
+ * OR use ServiceNow API directly: serviceNowClient.searchKnowledge()
  */
 export async function searchKBArticles(
   queryText: string,
   topK: number = 3
 ): Promise<KBArticle[]> {
+  // DISABLED: Returning empty array to avoid misleading data
+  // Previously this was returning CASES pretending to be KB articles
+  console.log('[KB Article Search] DISABLED - KB article tables not yet implemented in Postgres');
+  return [];
+
+  /* BROKEN IMPLEMENTATION - DO NOT USE
   const searchService = createAzureSearchService();
 
   if (!searchService) {
@@ -31,20 +51,17 @@ export async function searchKBArticles(
   try {
     console.log(`[KB Article Search] Searching for: "${queryText.substring(0, 50)}..."`);
 
-    // Use the existing Azure Search service to search for KB articles
-    // We'll search the same index but filter for KB content if possible
+    // BUG: This searches CASES, not KB articles!
     const results = await searchService.searchSimilarCases(queryText, {
       topK,
-      // Note: If the index has a content_type field, we could filter for KB articles
-      // For now, we'll return all results and let the caller determine relevance
     });
 
-    // Transform results to KB article format
+    // BUG: Renames case_number to kb_number - completely wrong!
     const kbArticles: KBArticle[] = results.map((result: SimilarCase) => ({
-      kb_number: result.case_number, // This might need adjustment based on actual index schema
+      kb_number: result.case_number, // ← WRONG: This is a case number, not KB article number!
       title: result.content.substring(0, 100) + (result.content.length > 100 ? '...' : ''),
       similarity_score: result.score,
-      url: `https://your-servicenow-instance.com/kb_view.do?sysparm_article=${result.case_number}`, // Template URL
+      url: `https://your-servicenow-instance.com/kb_view.do?sysparm_article=${result.case_number}`,
       summary: result.content.substring(0, 200) + (result.content.length > 200 ? '...' : ''),
     }));
 
@@ -55,6 +72,7 @@ export async function searchKBArticles(
     console.error('[KB Article Search] Error searching KB articles:', error);
     return [];
   }
+  */
 }
 
 /**
