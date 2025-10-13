@@ -173,6 +173,15 @@ npm run db:push
 npm run db:migrate
 ```
 
+**⚠️ Migration Note:** If the standard migration fails due to existing tables, use the targeted migration script:
+
+```bash
+# For CMDB reconciliation table specifically
+npx tsx scripts/migrate-cmdb-only.ts
+```
+
+This bypasses migration system issues and creates only the missing `cmdb_reconciliation_results` table needed for CMDB functionality.
+
 **Database features:**
 - ✅ Context survives bot restarts
 - ✅ KB gathering workflows resume after deployments
