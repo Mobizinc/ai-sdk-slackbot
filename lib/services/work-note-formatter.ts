@@ -127,19 +127,48 @@ export function formatWorkNote(classification: CompleteClassification): string {
     }
   }
 
-  // Resources
-  const resources: string[] = [];
-  
+  // Similar Cases with MSP Attribution
+  // Original: api/app/routers/webhooks.py:654-673
   if (classification.similar_cases?.length) {
-    resources.push(`${classification.similar_cases.length} similar cases`);
-  }
-  
-  if (classification.kb_articles?.length) {
-    resources.push(`${classification.kb_articles.length} KB articles`);
+    note += `📚 SIMILAR CASES (${classification.similar_cases.length} found):\n`;
+
+    classification.similar_cases.slice(0, 3).forEach((similarCase: any, i) => {
+      const caseNum = similarCase.case_number || 'N/A';
+      const desc = similarCase.short_description ?
+        similarCase.short_description.substring(0, 50) : 'N/A';
+      const score = similarCase.similarity_score || 0;
+
+      // MSP Client attribution label
+      let clientLabel = '';
+      const sameClient = similarCase.same_client;
+      const clientName = similarCase.client_name;
+
+      if (sameClient) {
+        clientLabel = '[Your Organization]';
+      } else if (clientName) {
+        clientLabel = `[${clientName}]`;
+      } else {
+        clientLabel = '[Different Client]';
+      }
+
+      note += `${i + 1}. ${caseNum} ${clientLabel} - ${desc} (Score: ${score.toFixed(2)})\n`;
+    });
+    note += `\n`;
   }
 
-  if (resources.length > 0) {
-    note += `📚 RESOURCES: ${resources.join(' | ')}\n`;
+  // KB Articles
+  // Original: api/app/routers/webhooks.py:675-684
+  if (classification.kb_articles?.length) {
+    note += `📖 KB ARTICLES (${classification.kb_articles.length} found):\n`;
+
+    classification.kb_articles.slice(0, 3).forEach((kb: any, i) => {
+      const kbNum = kb.kb_number || 'N/A';
+      const title = kb.title ? kb.title.substring(0, 50) : 'N/A';
+      const score = kb.similarity_score || 0;
+
+      note += `${i + 1}. ${kbNum} - ${title} (Score: ${score.toFixed(2)})\n`;
+    });
+    note += `\n`;
   }
 
   // Keywords
