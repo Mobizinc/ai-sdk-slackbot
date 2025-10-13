@@ -3,9 +3,7 @@
  * Formats classification results as ServiceNow work notes
  */
 
-import type { CaseClassification } from './case-classifier';
-import type { BusinessIntelligence } from './business-intelligence';
-import type { TechnicalEntities } from './entity-extractor';
+import type { CaseClassification, BusinessIntelligence, TechnicalEntities } from './case-classifier';
 import type { DiscoveredEntity } from './entity-store';
 import type { SimilarCase } from './case-intelligence';
 import type { KBArticle } from './case-intelligence';
@@ -52,6 +50,11 @@ export function formatWorkNote(classification: CompleteClassification): string {
   if (classification.business_intelligence) {
     const bi = classification.business_intelligence;
     const alerts: string[] = [];
+
+    // CRITICAL: Systemic issue alert FIRST (most important)
+    if (bi.systemic_issue_detected) {
+      alerts.push(`🚨 SYSTEMIC ISSUE: ${bi.systemic_issue_reason || `${bi.affected_cases_same_client || 'Multiple'} similar cases from same client - infrastructure problem likely`}`);
+    }
 
     if (bi.project_scope_detected) {
       alerts.push(`• PROJECT SCOPE: ${bi.project_scope_reason}`);

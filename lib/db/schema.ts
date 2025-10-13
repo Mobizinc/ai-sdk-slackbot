@@ -322,3 +322,66 @@ export const caseClassifications = pgTable(
 
 export type CaseClassification = typeof caseClassifications.$inferSelect;
 export type NewCaseClassification = typeof caseClassifications.$inferInsert;
+
+/**
+ * ServiceNow Choice Cache Table
+ * Caches category/subcategory choice lists from ServiceNow sys_choice table
+ * Synced every 12 hours to avoid real-time API calls during classification
+ *
+ * Original: sql/create_servicenow_category_cache.sql
+ */
+export const servicenowChoiceCache = pgTable(
+  "servicenow_choice_cache",
+  {
+    choiceId: serial("choice_id").primaryKey(),
+    tableName: text("table_name").notNull(), // e.g., "sn_customerservice_case"
+    element: text("element").notNull(), // e.g., "category", "subcategory"
+    value: text("value").notNull(), // ServiceNow internal value (e.g., "12", "15")
+    label: text("label").notNull(), // Display label (e.g., "Hardware issue")
+    sequence: integer("sequence").default(0).notNull(), // Display order
+    inactive: boolean("inactive").default(false).notNull(), // Whether choice is inactive
+    dependentValue: text("dependent_value"), // For subcategories, parent category value
+    lastSyncedUtc: timestamp("last_synced_utc"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueChoice: index("idx_unique_choice").on(table.tableName, table.element, table.value, table.dependentValue),
+    elementIdx: index("idx_element").on(table.element),
+    inactiveIdx: index("idx_inactive").on(table.inactive),
+    lastSyncedIdx: index("idx_last_synced").on(table.lastSyncedUtc),
+  })
+);
+
+/**
+ * ServiceNow Category Sync Log Table
+ * Tracks category sync job execution history
+ *
+ * Original: sql/create_servicenow_category_cache.sql
+ */
+export const servicenowCategorySyncLog = pgTable(
+  "servicenow_category_sync_log",
+  {
+    syncId: serial("sync_id").primaryKey(),
+    tableName: text("table_name").notNull(),
+    element: text("element").notNull(),
+    startedAtUtc: timestamp("started_at_utc").notNull(),
+    completedAtUtc: timestamp("completed_at_utc"),
+    status: text("status").notNull(), // "running", "success", "failed"
+    choicesFetched: integer("choices_fetched"),
+    choicesAdded: integer("choices_added"),
+    choicesUpdated: integer("choices_updated"),
+    choicesRemoved: integer("choices_removed"),
+    errorMessage: text("error_message"),
+  },
+  (table) => ({
+    statusIdx: index("idx_sync_status").on(table.status),
+    startedAtIdx: index("idx_sync_started_at").on(table.startedAtUtc),
+  })
+);
+
+export type ServiceNowChoiceCache = typeof servicenowChoiceCache.$inferSelect;
+export type NewServiceNowChoiceCache = typeof servicenowChoiceCache.$inferInsert;
+
+export type ServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferSelect;
+export type NewServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferInsert;

@@ -6,13 +6,14 @@
 import { generateText } from 'ai';
 import { modelProvider } from '../model-provider';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
-import { createAzureSearchService, type SimilarCase } from './azure-search';
 import { searchKBArticles, type KBArticle } from './kb-article-search';
 import { getWorkflowRouter, type RoutingResult } from './workflow-router';
 import { getBusinessContextService as getNewBusinessContextService } from './business-context';
 import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
+import { createAzureSearchClient } from './azure-search-client';
+import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
 export interface CaseData {
   case_number: string;
@@ -51,6 +52,10 @@ export interface BusinessIntelligence {
   compliance_impact_reason?: string;
   financial_impact?: boolean;
   financial_impact_reason?: string;
+  // NEW: Pattern recognition for systemic issues
+  systemic_issue_detected?: boolean;
+  systemic_issue_reason?: string;
+  affected_cases_same_client?: number;
 }
 
 export interface CaseClassification {
@@ -71,8 +76,8 @@ export interface CaseClassification {
   // Model info
   model_used?: string;
   llm_provider?: string;
-  // Context from search
-  similar_cases?: SimilarCase[];
+  // Context from search - using new SimilarCaseResult with MSP attribution
+  similar_cases?: SimilarCaseResult[];
   kb_articles?: KBArticle[];
   similar_cases_count?: number;
   kb_articles_count?: number;
@@ -80,12 +85,24 @@ export interface CaseClassification {
 
 export class CaseClassifier {
   private businessContextService = getBusinessContextService();
-  private searchService = createAzureSearchService();
+  private searchClient = createAzureSearchClient(); // NEW: Use vector search client with MSP attribution
   private workflowRouter = getWorkflowRouter();
   private newBusinessContextService = getNewBusinessContextService();
   private caseIntelligenceService = getCaseIntelligenceService();
   private entityStoreService = getEntityStoreService();
   private repository = getCaseClassificationRepository();
+  private availableCategories: string[] = []; // Will be set by setCategories()
+  private availableSubcategories: string[] = []; // Will be set by setCategories()
+
+  /**
+   * Set available categories from ServiceNow cache
+   * Should be called before classification to use real ServiceNow categories
+   */
+  setCategories(categories: string[], subcategories: string[] = []): void {
+    this.availableCategories = categories;
+    this.availableSubcategories = subcategories;
+    console.log(`[CaseClassifier] Loaded ${categories.length} categories, ${subcategories.length} subcategories from ServiceNow`);
+  }
 
   /**
    * Enhanced classification using new architecture services
@@ -280,16 +297,17 @@ export class CaseClassifier {
 
     const startTime = Date.now();
 
-    // Fetch similar cases if enabled
-    let similarCases: SimilarCase[] = [];
-    if (includeSimilarCases && this.searchService) {
+    // Fetch similar cases if enabled (using NEW vector search with MSP attribution)
+    let similarCases: SimilarCaseResult[] = [];
+    if (includeSimilarCases && this.searchClient) {
       try {
         const queryText = `${caseData.short_description} ${caseData.description || ''}`.trim();
-        similarCases = await this.searchService.searchSimilarCases(queryText, {
+        similarCases = await this.searchClient.searchSimilarCases(queryText, {
           topK: 5,
-          clientId: caseData.company, // Multi-tenant filtering
+          accountSysId: caseData.company, // For MSP attribution
+          crossClient: true, // Enable cross-client search
         });
-        console.log(`[CaseClassifier] Found ${similarCases.length} similar cases`);
+        console.log(`[CaseClassifier] Found ${similarCases.length} similar cases via vector search`);
       } catch (error) {
         console.warn('[CaseClassifier] Failed to fetch similar cases:', error);
       }
@@ -377,37 +395,79 @@ export class CaseClassifier {
   private async buildClassificationPrompt(
     caseData: CaseData,
     businessContext?: BusinessEntityContext | null,
-    similarCases?: SimilarCase[],
+    similarCases?: SimilarCaseResult[],
     kbArticles?: KBArticle[]
   ): Promise<string> {
     const businessContextText = businessContext
       ? this.businessContextService.toPromptText(businessContext)
       : 'No specific business context available.';
 
-    let prompt = `You are classifying a ServiceNow case for Mobiz IT, a managed service provider.
+    // CRITICAL: Use the EXACT system prompt from Python for quality
+    let prompt = `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.
 
-CASE DETAILS:
-- Number: ${caseData.case_number}
-- Short Description: ${caseData.short_description}
-- Description: ${caseData.description || 'No description provided'}
-- Priority: ${caseData.priority || 'Not specified'}
-- Urgency: ${caseData.urgency || 'Not specified'}
-- Current Category: ${caseData.current_category || 'Not categorized'}
+Case Information:
+- Case Number: ${caseData.case_number}
+- Short Description: ${caseData.short_description}`;
 
-BUSINESS CONTEXT:
-${businessContextText}`;
+    if (caseData.description) {
+      prompt += `\n- Detailed Description: ${caseData.description}`;
+    }
 
-    // Add similar cases context if available
+    if (caseData.priority) {
+      prompt += `\n- Priority: ${caseData.priority}`;
+    }
+
+    if (caseData.urgency) {
+      prompt += `\n- Urgency: ${caseData.urgency}`;
+    }
+
+    if (caseData.current_category) {
+      prompt += `\n- Current Category: ${caseData.current_category}`;
+    }
+
+    if (caseData.company_name || caseData.company) {
+      prompt += `\n- Company: ${caseData.company_name || caseData.company}`;
+    }
+
+    // Add business context (client-specific intelligence)
+    if (businessContext) {
+      prompt += `\n\n--- BUSINESS CONTEXT ---\n`;
+      prompt += businessContextText;
+      prompt += `\n`;
+    }
+
+    // Add similar cases context if available (using NEW structure with MSP attribution)
     if (similarCases && similarCases.length > 0) {
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
-      prompt += `These are similar cases that were previously resolved:\n\n`;
+      prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n\n`;
+
+      // Pattern analysis instruction
+      const sameClientCases = similarCases.filter(c => c.same_client);
+      if (sameClientCases.length >= 2) {
+        prompt += `⚠️ PATTERN ALERT: ${sameClientCases.length} similar cases from THE SAME CLIENT detected.\n`;
+        prompt += `This suggests a SYSTEMIC/INFRASTRUCTURE issue, not isolated user problems.\n`;
+        prompt += `Escalate your troubleshooting from user-level to infrastructure/server-level.\n\n`;
+      }
+
+      prompt += `Similar cases:\n\n`;
 
       similarCases.slice(0, 5).forEach((case_, index) => {
-        prompt += `${index + 1}. Case ${case_.case_number} (similarity: ${case_.score.toFixed(2)}):\n`;
-        prompt += `   - Description: ${case_.content.substring(0, 200)}...\n\n`;
+        const clientLabel = case_.same_client ? '[Same Client]' :
+                           case_.client_name ? `[${case_.client_name}]` : '[Different Client]';
+        prompt += `${index + 1}. Case ${case_.case_number} ${clientLabel} (similarity: ${(case_.similarity_score || 0).toFixed(2)}):\n`;
+        prompt += `   - Description: ${(case_.short_description || case_.description || '').substring(0, 200)}...\n`;
+        if (case_.category) {
+          prompt += `   - Category: ${case_.category}\n`;
+        }
+        prompt += `\n`;
       });
 
-      prompt += `Use these similar cases as reference, but analyze the current case independently.\n`;
+      prompt += `\nIMPORTANT PATTERN ANALYSIS RULES:\n`;
+      prompt += `- If 2+ cases from SAME CLIENT with SAME ISSUE → This is a SYSTEMIC problem (server down, infrastructure failure, widespread misconfiguration)\n`;
+      prompt += `- If cases are from DIFFERENT CLIENTS → Individual/isolated issues, standard troubleshooting applies\n`;
+      prompt += `- Check client labels [Same Client] vs [Different Client] to identify patterns\n`;
+      prompt += `- For systemic issues: Focus on infrastructure (servers, network, AD), not individual user permissions\n`;
+      prompt += `- For systemic issues: Add business intelligence alert: systemic_issue_detected=true\n\n`;
     }
 
     // Add KB articles context if available
@@ -429,67 +489,102 @@ ${businessContextText}`;
       prompt += `Consider these KB articles when suggesting next steps or troubleshooting guidance.\n`;
     }
 
+    // Use real ServiceNow categories if available, otherwise use default list
+    const categoryList = this.availableCategories.length > 0
+      ? this.availableCategories.map(c => `- ${c}`).join('\n')
+      : `- User Access Management
+- Networking
+- Application Support
+- Infrastructure
+- Security
+- Database
+- Hardware
+- Email & Collaboration
+- Telephony
+- Cloud Services
+- Unclassified`;
+
     prompt += `
 
-AVAILABLE CATEGORIES:
-- User Access Management (password resets, account locks, permissions, VPN access)
-- Networking (connectivity issues, firewall rules, DNS, DHCP, VPN performance)
-- Application Support (software issues, crashes, performance, configuration)
-- Infrastructure (server issues, storage, virtualization, cloud services)
-- Security (malware, vulnerabilities, access control, security incidents)
-- Hardware (laptops, desktops, printers, mobile devices)
-- Email & Collaboration (Outlook, Teams, SharePoint, Office 365)
-- Database (performance issues, backups, queries, connectivity)
-- Backup & Recovery (backup failures, restore requests, disaster recovery)
-- Monitoring & Alerts (system monitoring, alerts, performance issues)
+Available Categories:
+${categoryList}
 
-CLASSIFICATION RULES:
-1. Choose the most specific category that fits the issue
-2. Provide a subcategory for more granular classification (e.g., "Password Reset" under "User Access Management")
-3. Consider the business context - client-specific issues may need special handling
-4. Look for keywords that indicate the technical area
-5. Assess urgency based on business impact
+Analyze the case and provide:
+1. The most appropriate category from the list above
+2. An optional subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
+3. A confidence score between 0.0 and 1.0
+4. A brief reasoning (1-2 sentences) explaining why this category was chosen
+5. Key keywords that influenced your decision (list 3-5 relevant terms)
 
-Provide a JSON response with this exact structure:
+Additionally, provide quick triage guidance for the support agent:
+6. SUMMARY: Write a brief technical diagnostic as a senior engineer would explain it to a junior (2-3 sentences):
+   - What's happening (the symptom)
+   - What's likely causing it (root cause hypothesis with reasoning)
+   - What this means for troubleshooting (diagnostic direction)
+   Style: Conversational but technical. Include "likely" or "probably" for hypotheses.
+
+7. NEXT STEPS: List 3-5 diagnostic steps like you're walking a junior engineer through the triage. Format each step as: [Action with command/path] - [Brief rationale or what to look for]
+   - Start with what to check/gather (include WHY briefly)
+   - Provide specific commands/paths/settings
+   - Note prerequisites inline only when critical (e.g., licensing, permissions)
+   - Explain what you're looking for in results
+
+8. ENTITIES: Extract technical entities like IP addresses, hostnames, usernames, software names, error codes
+9. URGENCY: Assess urgency as Low/Medium/High/Critical based on business impact
+
+EXCEPTION-BASED BUSINESS INTELLIGENCE:
+If you detect any of the following exceptions based on the client's business context (technology, service hours, related entities), populate the relevant fields. ONLY populate when exceptions are detected - leave fields null/empty otherwise:
+10. PROJECT SCOPE: If work appears to require professional services engagement (server migrations, new infrastructure, extensive coordination, not typical BAU support), set project_scope_detected=true and explain why
+11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
+12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
+13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
+14. SYSTEMIC ISSUE: If you found 2+ similar cases from SAME CLIENT in the similar cases list above, set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem, not isolated user issue.
+
+Example next steps (teaching style):
+- "Grab AnyConnect client logs from %ProgramData%\\Cisco\\Cisco AnyConnect Secure Mobility Client\\Logs - look for DTLS negotiation failures or keepalive timeouts around the disconnect times"
+- "Check gateway session protocol: show vpn-sessiondb detail anyconnect | include Protocol - if it says 'DTLS-Tunnel' we know UDP is working, if 'TLS-Tunnel' it fell back to TCP which suggests DTLS issues"
+- "Pull Exchange mailbox permissions: Get-MailboxPermission -Identity <mailbox> - should show 'FullAccess' for the delegated user; if missing, that's your root cause (prereq: Exchange Admin role)"
+- "Check licensing tier: Get-MgSubscribedSku | where {$_.ServicePlans.ServicePlanName -match 'AAD_PREMIUM'} - Group-Based Licensing needs P1 or P2, if you only see 'AAD_FREE' the feature won't be available in portal"
+- "Verify AVD USB redirection policy: Computer Config → Admin Templates → Windows Components → RDS → Enable USB redirection - needs to be 'Enabled' for passthrough to work"
+- "Review ADF pipeline run history for last 7 days - look for pattern of failures at same time/same activity; if consistent, likely a permissions/token expiry issue rather than data problem"
+
+Respond with a JSON object in this exact format:
 {
-  "category": "Category name from list above",
-  "subcategory": "Specific subcategory",
-  "confidence_score": 0.85,
-  "reasoning": "Brief explanation of why this category was chosen",
+  "category": "exact category name from list",
+  "subcategory": "specific subcategory or null",
+  "confidence_score": 0.95,
+  "reasoning": "explanation here",
   "keywords": ["keyword1", "keyword2", "keyword3"],
-  "quick_summary": "3-sentence technical summary of the issue",
-  "immediate_next_steps": ["Step 1", "Step 2", "Step 3"],
+  "quick_summary": "VPN dropping every 5-10min - textbook DTLS keepalive or NAT timeout issue. AnyConnect defaults to UDP (DTLS) for performance but it's sensitive to NAT session timers and firewall idle timeouts. Need to see if it's failing over to TCP or just dying, plus check for any network-side packet loss during disconnect windows.",
+  "immediate_next_steps": [
+    "Grab AnyConnect client logs from %ProgramData%\\\\Cisco\\\\Cisco AnyConnect Secure Mobility Client\\\\Logs - look for DTLS negotiation failures or keepalive timeouts around the disconnect times",
+    "Check gateway session protocol: show vpn-sessiondb detail anyconnect | include Protocol - if it says 'DTLS-Tunnel' we know UDP is working, if 'TLS-Tunnel' it fell back to TCP",
+    "Test with DTLS disabled: edit AnyConnect profile XML, set <DTLSEnable>false</DTLSEnable> and reconnect - if drops stop, confirms DTLS/NAT issue",
+    "Run continuous ping to gateway during next disconnect: ping -t <gateway_ip> - we're looking for packet loss or timeout patterns when VPN fails"
+  ],
   "technical_entities": {
-    "ip_addresses": ["192.168.1.1"],
-    "systems": ["Exchange Server", "Azure AD"],
-    "users": ["john.doe"],
-    "software": ["Microsoft Teams", "Outlook"],
-    "error_codes": ["0x80070005"]
+    "ip_addresses": ["192.168.1.79"],
+    "systems": ["AVD thin client", "Palo Alto PA-460"],
+    "users": ["laura.garciamata"],
+    "software": ["Mainline", "Azure Virtual Desktop"],
+    "error_codes": []
   },
-  "urgency_level": "High|Medium|Low",
+  "urgency_level": "Medium",
   "business_intelligence": {
-    "project_scope_detected": false,
-    "project_scope_reason": "Optional: explain if this requires professional services",
-    "client_technology": "Optional: client-specific technology mentioned",
-    "client_technology_context": "Optional: context about the technology",
-    "related_entities": ["Optional: sibling companies that may be affected"],
+    "project_scope_detected": true,
+    "project_scope_reason": "Server migration mentioned requiring professional services",
+    "client_technology": "EPD EMR",
+    "client_technology_context": "Epowerdocs EMR hosted on 10.101.1.11",
+    "related_entities": ["Neighbors Emergency Center"],
     "outside_service_hours": false,
-    "service_hours_note": "Optional: service hours context"
+    "service_hours_note": null,
+    "systemic_issue_detected": false,
+    "systemic_issue_reason": null,
+    "affected_cases_same_client": 0
   }
 }
 
-Requirements:
-- category must exactly match one from the list above
-- confidence_score must be between 0.0 and 1.0
-- reasoning should be 2-3 sentences
-- keywords should be 3-5 relevant terms
-- quick_summary should be exactly 3 sentences
-- immediate_next_steps should be 2-4 actionable, specific steps
-- technical_entities: extract all technical entities from the case description
-- urgency_level should be based on business impact
-- business_intelligence: ONLY populate fields when exceptions are detected (project scope, client tech, service hours)
-
-Return only the JSON, no other text.`;
+Important: Return ONLY the JSON object, no additional text.`;
 
     return prompt;
   }

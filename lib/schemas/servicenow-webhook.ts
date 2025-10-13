@@ -94,6 +94,10 @@ export const BusinessIntelligenceSchema = z.object({
   compliance_impact_reason: z.string().optional().describe("Compliance impact details"),
   financial_impact: z.boolean().optional().describe("True if case has financial impact"),
   financial_impact_reason: z.string().optional().describe("Financial impact details"),
+  // Pattern recognition for systemic issues
+  systemic_issue_detected: z.boolean().optional().describe("True if 2+ similar cases from same client detected"),
+  systemic_issue_reason: z.string().optional().describe("What pattern was detected (e.g., '3 L drive cases from Neighbors')"),
+  affected_cases_same_client: z.number().optional().describe("Number of similar cases from same client"),
 });
 
 export type BusinessIntelligence = z.infer<typeof BusinessIntelligenceSchema>;

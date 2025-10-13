@@ -206,19 +206,14 @@ export class BusinessContextService {
 
   /**
    * Get business context for a company/entity name.
-   * First tries database, then falls back to static context.
+   * CRITICAL: Checks database FIRST (has full data), then falls back to cache (static/incomplete).
    */
   async getContextForCompany(companyName: string | undefined): Promise<BusinessEntityContext | null> {
     if (!companyName) return null;
 
     const companyKey = companyName.toLowerCase().trim();
 
-    // Check cache first
-    if (this.contextCache.has(companyKey)) {
-      return this.contextCache.get(companyKey)!;
-    }
-
-    // Try database lookup
+    // Try database lookup FIRST (has complete data with technologyPortfolio, etc.)
     try {
       const dbContext = await this.repository.findByNameOrAlias(companyName);
 
@@ -226,6 +221,7 @@ export class BusinessContextService {
         console.log(`✅ [Business Context] Loaded from database: ${companyName}`);
 
         const context = this.buildContextFromDbRecord(dbContext);
+        // Update cache with database version (overwrites static fallback)
         this.storeContextInCache(context);
         return context;
       }
@@ -233,7 +229,13 @@ export class BusinessContextService {
       console.warn(`[Business Context] Database lookup failed for "${companyName}":`, error);
     }
 
-    // Not found in cache or database
+    // Fall back to cache (static contexts) if database has no entry
+    if (this.contextCache.has(companyKey)) {
+      console.log(`⚠️  [Business Context] Using static fallback for: ${companyName}`);
+      return this.contextCache.get(companyKey)!;
+    }
+
+    // Not found in database or cache
     return null;
   }
 
