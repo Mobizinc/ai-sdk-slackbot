@@ -1,6 +1,8 @@
 /**
  * Work Note Formatter
- * Formats classification results as ServiceNow work notes
+ * Formats classification results as ServiceNow work notes with HTML formatting
+ *
+ * Original: api/app/routers_minimal/webhooks.py:378-113 (_build_compact_work_note)
  */
 
 import type { CaseClassification, BusinessIntelligence, TechnicalEntities } from './case-classifier';
@@ -24,84 +26,108 @@ export interface CompleteClassification {
 }
 
 /**
- * Format classification result as compact work note
+ * HTML escape helper for ServiceNow
+ */
+function escapeHtml(text: string | undefined): string {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Format classification result as compact work note with HTML formatting
+ *
+ * Original: api/app/routers_minimal/webhooks.py:378-113
  */
 export function formatWorkNote(classification: CompleteClassification): string {
-  let note = `━━━ AI TRIAGE ━━━\n`;
-  note += `${classification.category}`;
-  
+  // Start [code] wrapper for HTML formatting in ServiceNow
+  let note = '[code]\n';
+
+  // Header with HTML formatting
+  note += `<strong>━━━ AI TRIAGE ━━━</strong><br>\n`;
+  note += `<strong>Category:</strong> ${escapeHtml(classification.category)}`;
+
   if (classification.subcategory) {
-    note += ` > ${classification.subcategory}`;
+    note += ` &gt; ${escapeHtml(classification.subcategory)}`;
   }
 
   if (classification.urgency_level) {
-    const emoji = classification.urgency_level === 'High' ? '🔴' : 
+    const emoji = classification.urgency_level === 'High' ? '🔴' :
                   classification.urgency_level === 'Medium' ? '🟡' : '🟢';
-    note += ` | ${emoji} ${classification.urgency_level}`;
+    const color = classification.urgency_level === 'High' ? 'red' :
+                  classification.urgency_level === 'Medium' ? 'orange' : 'green';
+    note += ` | <span style="color:${color}">${emoji} ${escapeHtml(classification.urgency_level)}</span>`;
   }
 
   if (classification.confidence_score) {
     note += ` | ${(classification.confidence_score * 100).toFixed(0)}% confidence`;
   }
 
-  note += `\n\n`;
+  note += `<br><br>\n\n`;
 
-  // Business alerts (exception-based)
+  // Business alerts (exception-based) with HTML formatting
   if (classification.business_intelligence) {
     const bi = classification.business_intelligence;
-    const alerts: string[] = [];
+    const hasAlerts = bi.systemic_issue_detected || bi.project_scope_detected ||
+                      bi.executive_visibility || bi.compliance_impact ||
+                      bi.financial_impact || bi.client_technology || bi.outside_service_hours;
 
-    // CRITICAL: Systemic issue alert FIRST (most important)
-    if (bi.systemic_issue_detected) {
-      alerts.push(`🚨 SYSTEMIC ISSUE: ${bi.systemic_issue_reason || `${bi.affected_cases_same_client || 'Multiple'} similar cases from same client - infrastructure problem likely`}`);
-    }
+    if (hasAlerts) {
+      note += `<strong>⚠️ BUSINESS ALERTS:</strong><br>\n<ul>\n`;
 
-    if (bi.project_scope_detected) {
-      alerts.push(`• PROJECT SCOPE: ${bi.project_scope_reason}`);
-    }
+      // CRITICAL: Systemic issue alert FIRST (most important)
+      if (bi.systemic_issue_detected) {
+        const reason = bi.systemic_issue_reason || `${bi.affected_cases_same_client || 'Multiple'} similar cases from same client - infrastructure problem likely`;
+        note += `<li><span style="color:red"><strong>🚨 SYSTEMIC ISSUE:</strong></span> ${escapeHtml(reason)}</li>\n`;
+      }
 
-    if (bi.executive_visibility) {
-      alerts.push(`• EXECUTIVE VISIBILITY: ${bi.executive_visibility_reason}`);
-    }
+      if (bi.project_scope_detected) {
+        note += `<li><strong>PROJECT SCOPE:</strong> ${escapeHtml(bi.project_scope_reason || '')}</li>\n`;
+      }
 
-    if (bi.compliance_impact) {
-      alerts.push(`• COMPLIANCE IMPACT: ${bi.compliance_impact_reason}`);
-    }
+      if (bi.executive_visibility) {
+        note += `<li><strong>EXECUTIVE VISIBILITY:</strong> ${escapeHtml(bi.executive_visibility_reason || '')}</li>\n`;
+      }
 
-    if (bi.financial_impact) {
-      alerts.push(`• FINANCIAL IMPACT: ${bi.financial_impact_reason}`);
-    }
+      if (bi.compliance_impact) {
+        note += `<li><strong>COMPLIANCE IMPACT:</strong> ${escapeHtml(bi.compliance_impact_reason || '')}</li>\n`;
+      }
 
-    if (bi.client_technology) {
-      alerts.push(`• CLIENT TECH: ${bi.client_technology}`);
-    }
+      if (bi.financial_impact) {
+        note += `<li><strong>FINANCIAL IMPACT:</strong> ${escapeHtml(bi.financial_impact_reason || '')}</li>\n`;
+      }
 
-    if (bi.outside_service_hours) {
-      alerts.push(`• OUTSIDE SLA HOURS: ${bi.service_hours_note}`);
-    }
+      if (bi.client_technology) {
+        note += `<li><strong>CLIENT TECH:</strong> ${escapeHtml(bi.client_technology)}</li>\n`;
+      }
 
-    if (alerts.length > 0) {
-      note += `⚠️ BUSINESS ALERTS:\n`;
-      alerts.forEach(alert => {
-        note += `${alert}\n`;
-      });
-      note += `\n`;
+      if (bi.outside_service_hours) {
+        note += `<li><strong>OUTSIDE SLA HOURS:</strong> ${escapeHtml(bi.service_hours_note || '')}</li>\n`;
+      }
+
+      note += `</ul>\n<br>\n\n`;
     }
   }
 
-  // Next steps
+  // Next steps with HTML formatting
   if (classification.immediate_next_steps?.length) {
-    note += `NEXT STEPS:\n`;
-    classification.immediate_next_steps.slice(0, 3).forEach((step, i) => {
-      note += `${i + 1}. ${step}\n`;
+    note += `<strong>NEXT STEPS:</strong><br>\n<ol>\n`;
+    classification.immediate_next_steps.slice(0, 5).forEach((step) => {
+      note += `<li>${escapeHtml(step)}</li>\n`;
     });
-    note += `\n`;
+    note += `</ol>\n<br>\n\n`;
   }
 
   // Technical summary
-  if (classification.reasoning) {
-    const summary = classification.reasoning.split('\n')[0].substring(0, 150);
-    note += `TECHNICAL: ${summary}\n\n`;
+  if (classification.quick_summary) {
+    note += `<strong>SUMMARY:</strong> ${escapeHtml(classification.quick_summary)}<br><br>\n\n`;
+  } else if (classification.reasoning) {
+    const summary = classification.reasoning.split('\n')[0].substring(0, 200);
+    note += `<strong>Tech Summary:</strong> ${escapeHtml(summary)}<br><br>\n\n`;
   }
 
   // Technical entities
@@ -130,15 +156,14 @@ export function formatWorkNote(classification: CompleteClassification): string {
     }
   }
 
-  // Similar Cases with MSP Attribution
-  // Original: api/app/routers/webhooks.py:654-673
+  // Similar Cases with MSP Attribution and HTML formatting
+  // Original: api/app/routers_minimal/webhooks.py:450-471
   if (classification.similar_cases?.length) {
-    note += `📚 SIMILAR CASES (${classification.similar_cases.length} found):\n`;
+    note += `<strong>📚 SIMILAR CASES (${classification.similar_cases.length} found):</strong><br>\n<ul>\n`;
 
-    classification.similar_cases.slice(0, 3).forEach((similarCase: any, i) => {
-      const caseNum = similarCase.case_number || 'N/A';
-      const desc = similarCase.short_description ?
-        similarCase.short_description.substring(0, 50) : 'N/A';
+    classification.similar_cases.slice(0, 3).forEach((similarCase: any) => {
+      const caseNum = escapeHtml(similarCase.case_number || 'N/A');
+      const desc = escapeHtml(similarCase.short_description?.substring(0, 50) || 'N/A');
       const score = similarCase.similarity_score || 0;
 
       // MSP Client attribution label
@@ -149,37 +174,39 @@ export function formatWorkNote(classification: CompleteClassification): string {
       if (sameClient) {
         clientLabel = '[Your Organization]';
       } else if (clientName) {
-        clientLabel = `[${clientName}]`;
+        clientLabel = `[${escapeHtml(clientName)}]`;
       } else {
         clientLabel = '[Different Client]';
       }
 
-      note += `${i + 1}. ${caseNum} ${clientLabel} - ${desc} (Score: ${score.toFixed(2)})\n`;
+      note += `<li><strong>${caseNum}</strong> ${clientLabel} - ${desc} (Score: ${score.toFixed(2)})</li>\n`;
     });
-    note += `\n`;
+    note += `</ul>\n<br>\n\n`;
   }
 
-  // KB Articles
-  // Original: api/app/routers/webhooks.py:675-684
+  // KB Articles with HTML formatting
+  // Original: api/app/routers_minimal/webhooks.py:474-478 (currently disabled in Python)
   if (classification.kb_articles?.length) {
-    note += `📖 KB ARTICLES (${classification.kb_articles.length} found):\n`;
+    note += `<strong>📖 KB ARTICLES (${classification.kb_articles.length} found):</strong><br>\n<ul>\n`;
 
-    classification.kb_articles.slice(0, 3).forEach((kb: any, i) => {
-      const kbNum = kb.kb_number || 'N/A';
-      const title = kb.title ? kb.title.substring(0, 50) : 'N/A';
+    classification.kb_articles.slice(0, 3).forEach((kb: any) => {
+      const kbNum = escapeHtml(kb.kb_number || 'N/A');
+      const title = escapeHtml(kb.title?.substring(0, 50) || 'N/A');
       const score = kb.similarity_score || 0;
 
-      note += `${i + 1}. ${kbNum} - ${title} (Score: ${score.toFixed(2)})\n`;
+      note += `<li><strong>${kbNum}</strong> - ${title} (Score: ${score.toFixed(2)})</li>\n`;
     });
-    note += `\n`;
+    note += `</ul>\n<br>\n\n`;
   }
 
   // Keywords
   if (classification.keywords?.length) {
-    note += `\n🏷️ KEYWORDS: ${classification.keywords.slice(0, 5).join(', ')}`;
+    const keywords = classification.keywords.slice(0, 5).map(k => escapeHtml(k)).join(', ');
+    note += `<br>\n<strong>🏷️ KEYWORDS:</strong> ${keywords}\n`;
   }
 
-  note += `\n━━━ END AI TRIAGE ━━━`;
+  // Close [code] wrapper
+  note += `[/code]`;
 
   return note;
 }
