@@ -341,6 +341,8 @@ export class CaseClassifier {
         model,
         prompt,
         temperature: 0.1, // Low temperature for consistent classification
+        // Note: Sonnet 4.5 has 200K context window, no maxTokens needed
+        // Output will be complete based on prompt complexity
       });
 
       // Parse the JSON response
@@ -441,10 +443,45 @@ Case Information:
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
       prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n\n`;
 
-      // Pattern analysis instruction
-      const sameClientCases = similarCases.filter(c => c.same_client);
-      if (sameClientCases.length >= 2) {
-        prompt += `⚠️ PATTERN ALERT: ${sameClientCases.length} similar cases from THE SAME CLIENT detected.\n`;
+      // Get current case client name from business context or company name
+      const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
+
+      // Pattern analysis: Count cases from same client using BOTH same_client flag AND name matching
+      const sameClientCases = similarCases.filter(c => {
+        // Check same_client flag first (ID-based matching)
+        if (c.same_client) return true;
+
+        // Fallback to name-based matching if client names available
+        if (currentClientName && c.client_name) {
+          const caseClientName = c.client_name.toLowerCase();
+          // Check if names match (exact or contains)
+          if (caseClientName === currentClientName) return true;
+          if (caseClientName.includes(currentClientName) || currentClientName.includes(caseClientName)) return true;
+        }
+
+        return false;
+      });
+
+      // Check for related entity patterns (subsidiaries, sister companies)
+      let relatedEntityCases = 0;
+      if (businessContext?.relatedEntities && businessContext.relatedEntities.length > 0) {
+        const relatedEntityNames = businessContext.relatedEntities.map(e => e.toLowerCase());
+        relatedEntityCases = similarCases.filter(c =>
+          !sameClientCases.includes(c) && // Don't double-count
+          c.client_name && relatedEntityNames.some(re =>
+            c.client_name!.toLowerCase().includes(re.toLowerCase()) ||
+            re.toLowerCase().includes(c.client_name!.toLowerCase())
+          )
+        ).length;
+      }
+
+      const totalRelatedCases = sameClientCases.length + relatedEntityCases;
+
+      if (totalRelatedCases >= 2) {
+        prompt += `⚠️ PATTERN ALERT: ${totalRelatedCases} similar cases from THE SAME CLIENT/RELATED ENTITIES detected.\n`;
+        if (relatedEntityCases > 0) {
+          prompt += `   (${sameClientCases.length} from same client + ${relatedEntityCases} from related entities sharing infrastructure)\n`;
+        }
         prompt += `This suggests a SYSTEMIC/INFRASTRUCTURE issue, not isolated user problems.\n`;
         prompt += `Escalate your troubleshooting from user-level to infrastructure/server-level.\n\n`;
       }
@@ -463,11 +500,24 @@ Case Information:
       });
 
       prompt += `\nIMPORTANT PATTERN ANALYSIS RULES:\n`;
-      prompt += `- If 2+ cases from SAME CLIENT with SAME ISSUE → This is a SYSTEMIC problem (server down, infrastructure failure, widespread misconfiguration)\n`;
-      prompt += `- If cases are from DIFFERENT CLIENTS → Individual/isolated issues, standard troubleshooting applies\n`;
-      prompt += `- Check client labels [Same Client] vs [Different Client] to identify patterns\n`;
-      prompt += `- For systemic issues: Focus on infrastructure (servers, network, AD), not individual user permissions\n`;
-      prompt += `- For systemic issues: Add business intelligence alert: systemic_issue_detected=true\n\n`;
+      prompt += `- If 2+ cases from SAME CLIENT or RELATED ENTITIES with SAME ISSUE → This is a SYSTEMIC problem\n`;
+      prompt += `- Related entities = subsidiaries/sister companies sharing infrastructure (check business context)\n`;
+      prompt += `- If cases are from DIFFERENT UNRELATED CLIENTS → Individual/isolated issues\n`;
+      prompt += `- Check client labels [Same Client] vs [Different Client] vs [Related Entity] to identify patterns\n\n`;
+
+      prompt += `CRITICAL TROUBLESHOOTING LOGIC:\n`;
+      prompt += `IF systemic_issue_detected=true (2+ cases from same client/related entities):\n`;
+      prompt += `→ Your NEXT STEPS **MUST** focus on INFRASTRUCTURE/SERVERS affecting ALL users\n`;
+      prompt += `→ Examples: "Check domain controller replication", "Verify file server status for ALL users", "Review AD infrastructure health"\n`;
+      prompt += `→ DO NOT provide individual user account troubleshooting (no "Check kdevries account")\n`;
+      prompt += `→ Start with: "Verify if [server/service] is operational for ALL users"\n\n`;
+
+      prompt += `IF systemic_issue_detected=false (appears individual/isolated):\n`;
+      prompt += `→ ALWAYS start with infrastructure validation FIRST (user might be first to report systemic issue)\n`;
+      prompt += `→ Step 1: Ask "Can OTHER users access [resource]?" - determines if systemic or individual\n`;
+      prompt += `→ Step 2: Quick infrastructure check - ping server, verify service running\n`;
+      prompt += `→ Step 3-5: THEN proceed to individual user troubleshooting IF infrastructure checks pass\n`;
+      prompt += `→ Rationale: Validates shared resources work before assuming user-specific problem\n\n`;
     }
 
     // Add KB articles context if available
@@ -521,6 +571,7 @@ Additionally, provide quick triage guidance for the support agent:
    - What's happening (the symptom)
    - What's likely causing it (root cause hypothesis with reasoning)
    - What this means for troubleshooting (diagnostic direction)
+   - **CRITICAL:** If you found a pattern in similar cases (2+ from same client), EXPLICITLY MENTION IT in summary
    Style: Conversational but technical. Include "likely" or "probably" for hypotheses.
 
 7. NEXT STEPS: List 3-5 diagnostic steps like you're walking a junior engineer through the triage. Format each step as: [Action with command/path] - [Brief rationale or what to look for]
@@ -538,15 +589,33 @@ If you detect any of the following exceptions based on the client's business con
 11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
-14. SYSTEMIC ISSUE: If you found 2+ similar cases from SAME CLIENT in the similar cases list above, set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem, not isolated user issue.
+14. SYSTEMIC ISSUE: **CRITICAL** - If you found 2+ similar cases from SAME CLIENT (check both same_client flag AND client_name text) in the similar cases list above, you MUST set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem affecting multiple users, not isolated issue. DO NOT miss this - patterns are the most valuable intelligence we can provide.
 
-Example next steps (teaching style):
-- "Grab AnyConnect client logs from %ProgramData%\\Cisco\\Cisco AnyConnect Secure Mobility Client\\Logs - look for DTLS negotiation failures or keepalive timeouts around the disconnect times"
-- "Check gateway session protocol: show vpn-sessiondb detail anyconnect | include Protocol - if it says 'DTLS-Tunnel' we know UDP is working, if 'TLS-Tunnel' it fell back to TCP which suggests DTLS issues"
-- "Pull Exchange mailbox permissions: Get-MailboxPermission -Identity <mailbox> - should show 'FullAccess' for the delegated user; if missing, that's your root cause (prereq: Exchange Admin role)"
-- "Check licensing tier: Get-MgSubscribedSku | where {$_.ServicePlans.ServicePlanName -match 'AAD_PREMIUM'} - Group-Based Licensing needs P1 or P2, if you only see 'AAD_FREE' the feature won't be available in portal"
-- "Verify AVD USB redirection policy: Computer Config → Admin Templates → Windows Components → RDS → Enable USB redirection - needs to be 'Enabled' for passthrough to work"
-- "Review ADF pipeline run history for last 7 days - look for pattern of failures at same time/same activity; if consistent, likely a permissions/token expiry issue rather than data problem"
+FEW-SHOT EXAMPLES (follow these patterns):
+
+EXAMPLE 1 - SYSTEMIC ISSUE (2+ cases from same client):
+Input: "User can't access L drive" + Similar cases: 3 L drive issues from Neighbors
+Pattern: SYSTEMIC (3 cases from same client with same issue)
+Summary: "Shift-wide L drive failures affecting multiple Neighbors users - file server or network infrastructure problem"
+Next Steps (INFRASTRUCTURE-FOCUSED):
+1. "Verify file server status: Check if file server hosting L drive is online for ALL users - ping server, check SMB service (Test-NetConnection -Port 445)"
+2. "Test UNC path from different workstation: Access \\\\servername\\sharename from another user's PC - confirms if issue is server-wide"
+3. "Check domain controller health: Verify AD replication status (repadmin /showrepl) - AD auth failures affect all file share access"
+4. "Review file server event logs: Check for SMB errors (EventID 1020) or disk failures affecting all connections"
+Business Intelligence: systemic_issue_detected=true, affected_cases_same_client=3
+
+EXAMPLE 2 - INDIVIDUAL ISSUE (no pattern, appears isolated):
+Input: "User kdevries can't access L drive" + Similar cases: None from same client
+Pattern: INDIVIDUAL (no similar cases from same client)
+Summary: "Single user L drive access issue - need to validate if infrastructure problem or user-specific"
+Next Steps (INFRASTRUCTURE VALIDATION FIRST, THEN INDIVIDUAL):
+1. "Verify if systemic: Ask if OTHER users can currently access L drive - if multiple can't, escalate to infrastructure team; if only kdevries affected, proceed to user troubleshooting"
+2. "Quick infrastructure sanity check: Ping file server hostname and test UNC path \\\\servername\\sharename from your workstation - confirms server is operational before troubleshooting user"
+3. "Check kdevries AD account status: ADUC → Find user → Account tab - look for locked/disabled/expired"
+4. "Verify kdevries group memberships: Get-ADUser kdevries -Properties MemberOf - confirm has security group for L drive access"
+Business Intelligence: systemic_issue_detected=false
+
+Key Difference: Systemic = infrastructure-only steps. Individual = infrastructure validation FIRST, then user troubleshooting.
 
 Respond with a JSON object in this exact format:
 {
