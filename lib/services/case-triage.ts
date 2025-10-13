@@ -37,6 +37,7 @@ import { getWorkflowRouter } from "./workflow-router";
 import { getCaseClassifier } from "./case-classifier";
 import { createAzureSearchClient } from "./azure-search-client";
 import { formatWorkNote } from "./work-note-formatter";
+import { getCategorySyncService } from "./servicenow-category-sync";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -102,6 +103,7 @@ export class CaseTriageService {
   private workflowRouter = getWorkflowRouter();
   private classifier = getCaseClassifier();
   private azureSearchClient = createAzureSearchClient();
+  private categorySyncService = getCategorySyncService();
 
   /**
    * Execute complete case triage workflow
@@ -182,43 +184,30 @@ export class CaseTriageService {
         }
       }
 
-      // Step 4: Convert webhook to classification request
+      // Step 4: Fetch ServiceNow categories from database cache
+      const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
+        process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case',
+        13 // maxAgeHours
+      );
+
+      if (categoriesData.isStale) {
+        console.warn('[Case Triage] Categories are stale - consider running sync');
+      }
+
+      console.log(
+        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache`
+      );
+
+      // Step 5: Convert webhook to classification request
       const classificationRequest = this.webhookToClassificationRequest(webhook);
 
-      // Step 5: Fetch similar cases (if enabled)
-      let similarCases: SimilarCaseResult[] = [];
-      if (enableSimilarCases && this.azureSearchClient) {
-        try {
-          const queryText = `${webhook.short_description} ${webhook.description || ""}`.trim();
-          similarCases = await this.azureSearchClient.searchSimilarCases(queryText, {
-            accountSysId: webhook.account_id || webhook.company,
-            topK: 5,
-            crossClient: true, // Enable MSP cross-client search
-          });
+      // Note: Similar cases and KB articles are fetched by the classifier internally
+      // The classifier uses the new Azure Search client with vector search and MSP attribution
 
-          console.log(`[Case Triage] Found ${similarCases.length} similar cases`);
-        } catch (error) {
-          console.warn("[Case Triage] Failed to fetch similar cases:", error);
-        }
-      }
+      // Step 6: Set real ServiceNow categories in classifier
+      this.classifier.setCategories(categoriesData.categories, categoriesData.subcategories);
 
-      // Step 6: Fetch KB articles (if enabled)
-      let kbArticles: KBArticleResult[] = [];
-      if (enableKBArticles) {
-        try {
-          // Note: KB article search is handled by case classifier
-          // This is a placeholder for future direct KB search
-          console.log("[Case Triage] KB article search delegated to classifier");
-        } catch (error) {
-          console.warn("[Case Triage] Failed to fetch KB articles:", error);
-        }
-      }
-
-      // Step 7: Get business context (if enabled)
-      // Business context is enriched by case classifier service
-      // via lib/services/business-context-service.ts
-
-      // Step 8: Perform classification with retry logic
+      // Step 7: Perform classification with retry logic (using real ServiceNow categories)
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 
@@ -332,8 +321,8 @@ export class CaseTriageService {
         caseSysId: webhook.sys_id,
         workflowId: workflowDecision.workflowId,
         classification: classificationResult,
-        similarCases: similarCases,
-        kbArticles: kbArticles,
+        similarCases: classificationResult.similar_cases || [],
+        kbArticles: classificationResult.kb_articles || [],
         servicenowUpdated,
         updateError,
         processingTimeMs: processingTime,

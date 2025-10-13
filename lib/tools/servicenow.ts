@@ -484,6 +484,134 @@ export class ServiceNowClient {
   ): Promise<void> {
     await this.addCaseWorkNote(sysId, comment, false);
   }
+
+  /**
+   * Fetch choice list values from ServiceNow sys_choice table
+   *
+   * This retrieves the available dropdown/select values for a specific field,
+   * such as categories, subcategories, priorities, etc.
+   *
+   * Original: api/app/services/servicenow_api_client.py:101-182
+   */
+  public async getChoiceList(input: {
+    table: string;
+    element: string;
+    includeInactive?: boolean;
+  }): Promise<Array<{
+    label: string;
+    value: string;
+    sequence: number;
+    inactive: boolean;
+    dependent_value?: string;
+  }>> {
+    const { table, element, includeInactive = false } = input;
+
+    // Build query to filter by table and element
+    const queryParts = [`name=${table}`, `element=${element}`];
+    if (!includeInactive) {
+      queryParts.push('inactive=false');
+    }
+
+    const query = queryParts.join('^');
+
+    const data = await request<{
+      result: Array<{
+        label: string;
+        value: string;
+        sequence: string | number;
+        inactive: string | boolean;
+        dependent_value?: string;
+      }>;
+    }>(
+      `/api/now/table/sys_choice?sysparm_query=${encodeURIComponent(query)}&sysparm_fields=label,value,sequence,inactive,dependent_value&sysparm_limit=1000`
+    );
+
+    const choices = data.result ?? [];
+
+    // Deduplicate choices (ServiceNow may return exact duplicates)
+    const seenKeys = new Set<string>();
+    const uniqueChoices: Array<{
+      label: string;
+      value: string;
+      sequence: number;
+      inactive: boolean;
+      dependent_value?: string;
+    }> = [];
+
+    for (const choice of choices) {
+      const depVal = choice.dependent_value || '';
+      const key = `${choice.value}:${depVal}`;
+
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+
+        // Parse sequence to number
+        let sequence = 0;
+        if (choice.sequence) {
+          const seqStr = String(choice.sequence).trim();
+          sequence = seqStr ? parseInt(seqStr, 10) || 0 : 0;
+        }
+
+        // Parse inactive to boolean
+        const inactive = choice.inactive === true || choice.inactive === 'true' || choice.inactive === '1';
+
+        uniqueChoices.push({
+          label: choice.label,
+          value: choice.value,
+          sequence,
+          inactive,
+          dependent_value: choice.dependent_value,
+        });
+      }
+    }
+
+    // Sort by sequence for proper display order
+    uniqueChoices.sort((a, b) => a.sequence - b.sequence);
+
+    return uniqueChoices;
+  }
+
+  /**
+   * Fetch all categories and subcategories for a ServiceNow table
+   */
+  public async getCategoriesForTable(table: string = 'sn_customerservice_case'): Promise<{
+    categories: string[];
+    subcategories: string[];
+    categoryDetails: Array<any>;
+    subcategoryDetails: Array<any>;
+  }> {
+    try {
+      const categories = await this.getChoiceList({ table, element: 'category' });
+      const subcategories = await this.getChoiceList({ table, element: 'subcategory' });
+
+      return {
+        categories: categories.map(c => c.label),
+        subcategories: subcategories.map(c => c.label),
+        categoryDetails: categories,
+        subcategoryDetails: subcategories,
+      };
+    } catch (error) {
+      console.error('Failed to fetch categories from ServiceNow:', error);
+      // Return fallback categories
+      return {
+        categories: [
+          'User Access Management',
+          'Networking',
+          'Application Support',
+          'Infrastructure',
+          'Security',
+          'Database',
+          'Hardware',
+          'Email & Collaboration',
+          'Telephony',
+          'Cloud Services',
+        ],
+        subcategories: [],
+        categoryDetails: [],
+        subcategoryDetails: [],
+      };
+    }
+  }
 }
 
 export const serviceNowClient = new ServiceNowClient();
