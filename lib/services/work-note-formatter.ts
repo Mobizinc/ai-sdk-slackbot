@@ -122,12 +122,13 @@ export function formatWorkNote(classification: CompleteClassification): string {
     note += `</ol>\n<br>\n\n`;
   }
 
-  // Technical summary
+  // Technical summary - use quick_summary if available, otherwise full reasoning
   if (classification.quick_summary) {
     note += `<strong>SUMMARY:</strong> ${escapeHtml(classification.quick_summary)}<br><br>\n\n`;
   } else if (classification.reasoning) {
-    const summary = classification.reasoning.split('\n')[0].substring(0, 200);
-    note += `<strong>Tech Summary:</strong> ${escapeHtml(summary)}<br><br>\n\n`;
+    // Use full reasoning, don't truncate - let Claude complete the thought
+    const summary = classification.reasoning.split('\n')[0]; // First paragraph only
+    note += `<strong>TECHNICAL:</strong> ${escapeHtml(summary)}<br><br>\n\n`;
   }
 
   // Technical entities
