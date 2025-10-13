@@ -58,6 +58,12 @@ export interface BusinessIntelligence {
   affected_cases_same_client?: number;
 }
 
+export interface RecordTypeSuggestion {
+  type: "Problem" | "Incident" | "Change" | "Case";
+  is_major_incident: boolean;
+  reasoning: string;
+}
+
 export interface CaseClassification {
   category: string;
   subcategory?: string;
@@ -69,6 +75,8 @@ export interface CaseClassification {
   technical_entities?: TechnicalEntities;
   urgency_level?: string;
   business_intelligence?: BusinessIntelligence;
+  // ITSM record type suggestion
+  record_type_suggestion?: RecordTypeSuggestion;
   // Token usage and cost tracking
   token_usage_input?: number;
   token_usage_output?: number;
@@ -591,6 +599,51 @@ If you detect any of the following exceptions based on the client's business con
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - If you found 2+ similar cases from SAME CLIENT (check both same_client flag AND client_name text) in the similar cases list above, you MUST set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem affecting multiple users, not isolated issue. DO NOT miss this - patterns are the most valuable intelligence we can provide.
 
+--- ITSM RECORD TYPE SYNTHESIS ---
+
+Based on the business intelligence you just analyzed, determine the correct ITSM record type using these synthesis rules:
+
+**Rule 1: PROBLEM** (Highest Priority)
+IF business_intelligence.systemic_issue_detected === true
+→ type: "Problem"
+→ reasoning: "Recurring pattern from [X] similar cases indicates root cause investigation needed"
+→ Example: 3+ file server access failures from same client = underlying problem requiring RCA
+
+**Rule 2: MAJOR INCIDENT**
+IF business_intelligence.executive_visibility === true
+OR keywords present: "production down", "entire team", "all users", "system unavailable", "outage affecting"
+→ type: "Incident"
+→ is_major_incident: true
+→ reasoning: "High-impact service disruption requiring coordinated response"
+→ Escalation: Immediate on-call notification
+
+**Rule 3: STANDARD INCIDENT**
+IF unplanned service disruption (doesn't meet above criteria)
+→ type: "Incident"
+→ is_major_incident: false
+→ Indicators: Something that should be working is broken/unavailable/degraded/erroring
+→ Examples: "cannot connect to VPN", "email not working", "error when logging in"
+
+**Rule 4: CHANGE**
+IF requesting new service, modification, access, or planned work
+→ type: "Change"
+→ Keywords: "install", "add user", "new server", "upgrade", "configure", "provision", "setup new"
+→ Examples: "install Photoshop", "add me to Marketing group", "configure new printer"
+→ Note: Changes require Change Management approval process
+
+**Rule 5: CASE (Default)**
+IF question, how-to, inquiry, or doesn't match above
+→ type: "Case"
+→ Examples: "How do I reset password?", "What are service desk hours?", "Request laptop for new hire"
+→ Indicators: "how do I", "what is", "can you explain", general inquiry
+
+SYNTHESIS DECISION TREE:
+1. First check: systemic_issue_detected=true? → Problem
+2. Then check: executive_visibility OR widespread outage keywords? → Major Incident
+3. Then check: Service disruption (broken/down/error)? → Standard Incident
+4. Then check: Requesting something new/different? → Change
+5. Default: → Case
+
 FEW-SHOT EXAMPLES (follow these patterns):
 
 EXAMPLE 1 - SYSTEMIC ISSUE (2+ cases from same client):
@@ -603,6 +656,7 @@ Next Steps (INFRASTRUCTURE-FOCUSED):
 3. "Check domain controller health: Verify AD replication status (repadmin /showrepl) - AD auth failures affect all file share access"
 4. "Review file server event logs: Check for SMB errors (EventID 1020) or disk failures affecting all connections"
 Business Intelligence: systemic_issue_detected=true, affected_cases_same_client=3
+Record Type: Problem (systemic pattern detected requiring RCA)
 
 EXAMPLE 2 - INDIVIDUAL ISSUE (no pattern, appears isolated):
 Input: "User kdevries can't access L drive" + Similar cases: None from same client
@@ -614,6 +668,7 @@ Next Steps (INFRASTRUCTURE VALIDATION FIRST, THEN INDIVIDUAL):
 3. "Check kdevries AD account status: ADUC → Find user → Account tab - look for locked/disabled/expired"
 4. "Verify kdevries group memberships: Get-ADUser kdevries -Properties MemberOf - confirm has security group for L drive access"
 Business Intelligence: systemic_issue_detected=false
+Record Type: Incident (service disruption, but individual user - not systemic)
 
 Key Difference: Systemic = infrastructure-only steps. Individual = infrastructure validation FIRST, then user troubleshooting.
 
@@ -650,6 +705,11 @@ Respond with a JSON object in this exact format:
     "systemic_issue_detected": false,
     "systemic_issue_reason": null,
     "affected_cases_same_client": 0
+  },
+  "record_type_suggestion": {
+    "type": "Incident",
+    "is_major_incident": false,
+    "reasoning": "VPN connectivity failure is an unplanned service disruption. Not major incident as it affects single user and no executive visibility flags."
   }
 }
 

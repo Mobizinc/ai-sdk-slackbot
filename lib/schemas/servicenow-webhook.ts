@@ -103,6 +103,18 @@ export const BusinessIntelligenceSchema = z.object({
 export type BusinessIntelligence = z.infer<typeof BusinessIntelligenceSchema>;
 
 /**
+ * Record Type Suggestion Schema
+ * AI's determination of correct ITSM record type based on business intelligence synthesis
+ */
+export const RecordTypeSuggestionSchema = z.object({
+  type: z.enum(["Problem", "Incident", "Change", "Case"]).describe("ITSM record type determined via synthesis rules"),
+  is_major_incident: z.boolean().default(false).describe("True if Incident meets Major Incident criteria (executive impact, widespread outage)"),
+  reasoning: z.string().describe("Explanation of record type decision based on business intelligence flags")
+});
+
+export type RecordTypeSuggestion = z.infer<typeof RecordTypeSuggestionSchema>;
+
+/**
  * Technical Entities Schema
  * Extracted technical entities from case description
  */
@@ -197,6 +209,9 @@ export const CaseClassificationResultSchema = z.object({
 
   // Exception-based business intelligence
   business_intelligence: BusinessIntelligenceSchema.optional().describe("Exception-based business intelligence (only populated when exceptions detected)"),
+
+  // ITSM record type suggestion
+  record_type_suggestion: RecordTypeSuggestionSchema.optional().describe("AI's suggested ITSM record type based on business intelligence synthesis"),
 });
 
 export type CaseClassificationResult = z.infer<typeof CaseClassificationResultSchema>;

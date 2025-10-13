@@ -96,6 +96,16 @@ export interface CaseTriageResult {
   entitiesDiscovered: number;
   cached: boolean;
   cacheReason?: string;
+  // ITSM record type fields
+  incidentCreated: boolean;
+  incidentNumber?: string;
+  incidentSysId?: string;
+  incidentUrl?: string;
+  recordTypeSuggestion?: {
+    type: string;
+    is_major_incident: boolean;
+    reasoning: string;
+  };
 }
 
 export class CaseTriageService {
@@ -300,7 +310,75 @@ export class CaseTriageService {
         classificationResult
       );
 
-      // Step 13: Mark inbound as processed
+      // Step 13: Check record type suggestion and auto-create Incident if needed
+      let incidentCreated = false;
+      let incidentNumber: string | undefined;
+      let incidentSysId: string | undefined;
+      let incidentUrl: string | undefined;
+
+      if (classificationResult.record_type_suggestion) {
+        const suggestion = classificationResult.record_type_suggestion;
+
+        console.log(
+          `[Case Triage] Record type suggested: ${suggestion.type}` +
+          `${suggestion.type === 'Incident' ? ` (Major: ${suggestion.is_major_incident})` : ''}`
+        );
+
+        // Create Incident for service disruptions (Incident or Problem)
+        if (suggestion.type === 'Incident' || suggestion.type === 'Problem') {
+          try {
+            const { serviceNowClient } = await import('../tools/servicenow');
+
+            // Create Incident record
+            const incidentResult = await serviceNowClient.createIncidentFromCase({
+              caseSysId: webhook.sys_id,
+              caseNumber: webhook.case_number,
+              category: classificationResult.category,
+              subcategory: classificationResult.subcategory,
+              shortDescription: webhook.short_description,
+              description: webhook.description,
+              urgency: webhook.urgency,
+              priority: webhook.priority,
+              callerId: webhook.caller_id,
+              assignmentGroup: webhook.assignment_group,
+              isMajorIncident: suggestion.is_major_incident
+            });
+
+            incidentCreated = true;
+            incidentNumber = incidentResult.incident_number;
+            incidentSysId = incidentResult.incident_sys_id;
+            incidentUrl = incidentResult.incident_url;
+
+            // Add work note to parent Case
+            const workNote =
+              `🚨 ${suggestion.is_major_incident ? 'MAJOR ' : ''}${suggestion.type.toUpperCase()} CREATED\n\n` +
+              `${suggestion.type}: ${incidentNumber}\n` +
+              `Reason: ${suggestion.reasoning}\n\n` +
+              `Category: ${classificationResult.category}` +
+              `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}\n\n` +
+              `${suggestion.is_major_incident ? '⚠️ MAJOR INCIDENT - Immediate escalation required\n\n' : ''}` +
+              `Link: ${incidentUrl}`;
+
+            await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
+
+            console.log(
+              `[Case Triage] Created ${suggestion.is_major_incident ? 'MAJOR ' : ''}` +
+              `${suggestion.type} ${incidentNumber} from Case ${webhook.case_number}`
+            );
+          } catch (error) {
+            console.error('[Case Triage] Failed to create Incident:', error);
+            // Don't fail the entire triage - log error but continue
+          }
+        } else if (suggestion.type === 'Change') {
+          // Log but don't auto-create (Changes require CAB approval)
+          console.log(
+            `[Case Triage] Change suggested for ${webhook.case_number} - ` +
+            `manual Change Management process required`
+          );
+        }
+      }
+
+      // Step 14: Mark inbound as processed
       if (inboundId) {
         await this.repository.markPayloadAsProcessed(
           inboundId,
@@ -313,7 +391,8 @@ export class CaseTriageService {
           `${classificationResult.category || "Unknown"}` +
           `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ""}` +
           ` (${Math.round((classificationResult.confidence_score || 0) * 100)}% confidence) ` +
-          `in ${processingTime}ms`
+          `in ${processingTime}ms` +
+          `${incidentCreated ? ` | Incident ${incidentNumber} created` : ''}`
       );
 
       return {
@@ -328,6 +407,11 @@ export class CaseTriageService {
         processingTimeMs: processingTime,
         entitiesDiscovered: entitiesStored,
         cached: false,
+        incidentCreated,
+        incidentNumber,
+        incidentSysId,
+        incidentUrl,
+        recordTypeSuggestion: classificationResult.record_type_suggestion
       };
     } catch (error) {
       console.error(`[Case Triage] Failed to triage case ${webhook.case_number}:`, error);
@@ -430,11 +514,13 @@ export class CaseTriageService {
         `[Case Triage] Cache HIT for ${caseNumber} + ${workflowId} (classified at: ${latestResult.createdAt})`
       );
 
+      const cachedClassification = latestResult.classificationJson as any;
+
       return {
         caseNumber,
         caseSysId: cachedRouting.sys_id || "",
         workflowId: latestResult.workflowId,
-        classification: latestResult.classificationJson as any,
+        classification: cachedClassification,
         similarCases: (cachedRouting.similar_cases || []) as SimilarCaseResult[],
         kbArticles: (cachedRouting.kb_articles || []) as KBArticleResult[],
         servicenowUpdated: latestResult.servicenowUpdated,
@@ -442,6 +528,9 @@ export class CaseTriageService {
         entitiesDiscovered: latestResult.entitiesCount,
         cached: true,
         cacheReason: "Previous classification found for same case + workflow + assignment",
+        // Incident fields from cached classification
+        incidentCreated: false, // Cached results don't trigger new incident creation
+        recordTypeSuggestion: cachedClassification.record_type_suggestion,
       };
     } catch (error) {
       console.error("[Case Triage] Error checking cache:", error);
