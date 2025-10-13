@@ -124,7 +124,8 @@ export async function POST(request: Request) {
       `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
       ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
       ` in ${processingTime}ms` +
-      `${triageResult.cached ? ' [CACHED]' : ''}`
+      `${triageResult.cached ? ' [CACHED]' : ''}` +
+      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}`
     );
 
     // Return comprehensive response matching original format
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
         immediate_next_steps: triageResult.classification.immediate_next_steps,
         technical_entities: triageResult.classification.technical_entities,
         business_intelligence: triageResult.classification.business_intelligence,
+        record_type_suggestion: triageResult.classification.record_type_suggestion,
       },
       similar_cases: triageResult.similarCases,
       kb_articles: triageResult.kbArticles,
@@ -153,6 +155,12 @@ export async function POST(request: Request) {
       workflow_id: triageResult.workflowId,
       cached: triageResult.cached,
       cache_reason: triageResult.cacheReason,
+      // ITSM record type fields
+      incident_created: triageResult.incidentCreated,
+      incident_number: triageResult.incidentNumber,
+      incident_sys_id: triageResult.incidentSysId,
+      incident_url: triageResult.incidentUrl,
+      record_type_suggestion: triageResult.recordTypeSuggestion,
     });
 
   } catch (error) {

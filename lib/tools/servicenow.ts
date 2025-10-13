@@ -486,6 +486,76 @@ export class ServiceNowClient {
   }
 
   /**
+   * Create Incident from Case
+   * Implements ITSM best practice: service disruptions become Incident records
+   *
+   * Original: Issue #9 - AI-Driven Incident Creation from Cases
+   */
+  public async createIncidentFromCase(input: {
+    caseSysId: string;
+    caseNumber: string;
+    category?: string;
+    subcategory?: string;
+    shortDescription: string;
+    description?: string;
+    urgency?: string;
+    priority?: string;
+    callerId?: string;
+    assignmentGroup?: string;
+    isMajorIncident?: boolean;
+  }): Promise<{
+    incident_number: string;
+    incident_sys_id: string;
+    incident_url: string;
+  }> {
+    const table = "incident";
+
+    // Build incident payload
+    const payload: Record<string, any> = {
+      short_description: input.shortDescription,
+      description: input.description || input.shortDescription,
+      category: input.category,
+      subcategory: input.subcategory,
+      urgency: input.urgency || "3", // Default to medium urgency
+      priority: input.priority || "3", // Default to medium priority
+      caller_id: input.callerId,
+      assignment_group: input.assignmentGroup,
+      // Link to parent Case
+      parent: input.caseSysId,
+      // Add work notes documenting source
+      work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
+    };
+
+    // Set severity for major incidents
+    if (input.isMajorIncident) {
+      payload.severity = "1"; // SEV-1 for major incidents
+      payload.impact = "1"; // High impact
+    }
+
+    // Create incident via ServiceNow Table API
+    const response = await request<{ result: any }>(
+      `/api/now/table/${table}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const incident = response.result;
+
+    console.log(
+      `[ServiceNow] Created ${input.isMajorIncident ? 'MAJOR ' : ''}` +
+      `Incident ${incident.number} from Case ${input.caseNumber}`
+    );
+
+    return {
+      incident_number: incident.number,
+      incident_sys_id: incident.sys_id,
+      incident_url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
+    };
+  }
+
+  /**
    * Fetch choice list values from ServiceNow sys_choice table
    *
    * This retrieves the available dropdown/select values for a specific field,
