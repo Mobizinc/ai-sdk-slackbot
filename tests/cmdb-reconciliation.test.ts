@@ -9,6 +9,15 @@ vi.mock("../lib/db/repositories/cmdb-reconciliation-repository");
 vi.mock("../lib/services/business-context");
 vi.mock("../lib/tools/servicenow");
 
+// Mock Slack client
+vi.mock("@slack/web-api", () => ({
+  WebClient: vi.fn().mockImplementation(() => ({
+    chat: {
+      postMessage: vi.fn().mockResolvedValue({ ok: true }),
+    },
+  })),
+}));
+
 describe("CmdbReconciliationService", () => {
   let service: CmdbReconciliationService;
   let mockRepository: any;
@@ -30,6 +39,7 @@ describe("CmdbReconciliationService", () => {
       getCaseStatistics: vi.fn(),
       getRecent: vi.fn(),
       getUnmatchedEntities: vi.fn(),
+      findById: vi.fn(),
     };
 
     mockBusinessContextService = {
@@ -39,6 +49,7 @@ describe("CmdbReconciliationService", () => {
     mockServiceNowClient = {
       searchConfigurationItems: vi.fn(),
       addCaseWorkNote: vi.fn(),
+      createChildTask: vi.fn(),
     };
 
     // Mock the singleton getters
@@ -83,12 +94,28 @@ describe("CmdbReconciliationService", () => {
         reconciliationStatus: "skipped",
       });
 
+      // Mock findById for child task creation
+      mockRepository.findById.mockResolvedValue({
+        id: 1,
+        caseNumber: input.caseNumber,
+        entityValue: "192.168.1.1",
+        entityType: "IP_ADDRESS",
+        confidence: 0.8,
+      } as any);
+
       mockRepository.getCaseStatistics.mockResolvedValue({
         total: 5,
         matched: 0,
         unmatched: 0,
         skipped: 5,
         ambiguous: 0,
+      });
+
+      // Mock ServiceNow task creation
+      mockServiceNowClient.createChildTask.mockResolvedValue({
+        sys_id: "task_sys_id_123",
+        number: "TASK001001",
+        url: "http://servicenow.com/task_sys_id_123",
       });
 
       const result = await service.reconcileEntities(input);
@@ -98,6 +125,7 @@ describe("CmdbReconciliationService", () => {
       expect(result.matched).toBe(0);
       expect(result.skipped).toBe(5);
       expect(mockRepository.create).toHaveBeenCalledTimes(5);
+      expect(mockServiceNowClient.createChildTask).toHaveBeenCalledTimes(3); // Only IP_ADDRESS, SYSTEM, SOFTWARE are CI-worthy
     });
 
     it("should handle errors gracefully and continue processing other entities", async () => {
@@ -219,7 +247,30 @@ describe("CmdbReconciliationService", () => {
       // No CMDB matches
       mockServiceNowClient.searchConfigurationItems.mockResolvedValue([]);
 
-      mockRepository.create.mockResolvedValue({ id: 1 });
+      mockRepository.create.mockResolvedValue({ 
+        id: 1,
+        caseNumber: "CASE001",
+        caseSysId: "sys_id_123",
+        entityValue: "unknown alias",
+        entityType: "SYSTEM",
+        confidence: 0.8,
+      });
+      
+      mockRepository.findById.mockResolvedValue({
+        id: 1,
+        caseNumber: "CASE001",
+        caseSysId: "sys_id_123",
+        entityValue: "unknown alias",
+        entityType: "SYSTEM",
+        confidence: 0.8,
+      } as any);
+      
+      mockRepository.updateWithChildTask.mockResolvedValue({
+        id: 1,
+        childTaskNumber: "TASK001001",
+        childTaskSysId: "task_sys_id_123",
+      });
+      
       mockRepository.markAsSkipped.mockResolvedValue({ id: 1 });
       mockRepository.getCaseStatistics.mockResolvedValue({
         total: 1,
@@ -229,13 +280,28 @@ describe("CmdbReconciliationService", () => {
         ambiguous: 0,
       });
 
+      // Mock ServiceNow task creation
+      mockServiceNowClient.createChildTask.mockResolvedValue({
+        sys_id: "task_sys_id_123",
+        number: "TASK001001",
+        url: "http://servicenow.com/task_sys_id_123",
+      });
+
       const result = await service.reconcileEntities(input);
 
       expect(result.skipped).toBe(1);
-      expect(mockRepository.markAsSkipped).toHaveBeenCalledWith(
-        1,
-        "No CMDB match found - child task created"
-      );
+      expect(mockServiceNowClient.createChildTask).toHaveBeenCalledWith({
+        caseSysId: "sys_id_123",
+        caseNumber: "CASE001",
+        description: expect.stringContaining("unknown alias"),
+        assignmentGroup: "CMDB Administrators",
+        shortDescription: "Create CMDB CI: unknown alias",
+        priority: "3",
+      });
+      expect(mockRepository.updateWithChildTask).toHaveBeenCalledWith(1, {
+        childTaskNumber: "TASK001001",
+        childTaskSysId: "task_sys_id_123",
+      });
     });
 
     it("should skip non-CI-worthy entities like users", async () => {
@@ -341,12 +407,32 @@ describe("CmdbReconciliationService", () => {
       mockBusinessContextService.searchContextsByEntity.mockResolvedValue([]);
       mockServiceNowClient.searchConfigurationItems.mockResolvedValue([]);
 
-      mockRepository.create.mockResolvedValue({ id: 1 });
+      // Mock repository methods
+      mockRepository.create.mockResolvedValue({ 
+        id: 1,
+        caseNumber: "CASE001",
+        caseSysId: "sys_id_123",
+        entityValue: "missing-server",
+        entityType: "SYSTEM",
+        confidence: 0.8,
+      });
+      
+      mockRepository.findById.mockResolvedValue({
+        id: 1,
+        caseNumber: "CASE001",
+        caseSysId: "sys_id_123",
+        entityValue: "missing-server",
+        entityType: "SYSTEM",
+        confidence: 0.8,
+      } as any);
+
       mockRepository.updateWithChildTask.mockResolvedValue({
         id: 1,
-        childTaskNumber: expect.stringMatching(/^TASK\d+$/),
-        childTaskSysId: expect.stringMatching(/^task_\d+$/),
+        childTaskNumber: "TASK001001",
+        childTaskSysId: "task_sys_id_123",
       });
+
+      mockRepository.markAsSkipped.mockResolvedValue({ id: 1 });
 
       mockRepository.getCaseStatistics.mockResolvedValue({
         total: 1,
@@ -356,12 +442,29 @@ describe("CmdbReconciliationService", () => {
         ambiguous: 0,
       });
 
+      // Mock ServiceNow task creation
+      mockServiceNowClient.createChildTask.mockResolvedValue({
+        sys_id: "task_sys_id_123",
+        number: "TASK001001",
+        url: "http://servicenow.com/task_sys_id_123",
+      });
+
       const result = await service.reconcileEntities(input);
 
-      expect(mockRepository.updateWithChildTask).toHaveBeenCalledWith(1, {
-        childTaskNumber: expect.stringMatching(/^TASK\d+$/),
-        childTaskSysId: expect.stringMatching(/^task_\d+$/),
+      expect(mockServiceNowClient.createChildTask).toHaveBeenCalledWith({
+        caseSysId: "sys_id_123",
+        caseNumber: "CASE001",
+        description: expect.stringContaining("missing-server"),
+        assignmentGroup: "CMDB Administrators",
+        shortDescription: "Create CMDB CI: missing-server",
+        priority: "3",
       });
+      
+      expect(mockRepository.updateWithChildTask).toHaveBeenCalledWith(1, {
+        childTaskNumber: "TASK001001",
+        childTaskSysId: "task_sys_id_123",
+      });
+      
       expect(result.skipped).toBe(1);
     });
 
