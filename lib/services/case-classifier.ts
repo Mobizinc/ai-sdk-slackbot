@@ -443,14 +443,31 @@ Case Information:
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
       prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n\n`;
 
-      // Pattern analysis instruction - check same client AND related entities
-      const sameClientCases = similarCases.filter(c => c.same_client);
+      // Get current case client name from business context or company name
+      const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
+
+      // Pattern analysis: Count cases from same client using BOTH same_client flag AND name matching
+      const sameClientCases = similarCases.filter(c => {
+        // Check same_client flag first (ID-based matching)
+        if (c.same_client) return true;
+
+        // Fallback to name-based matching if client names available
+        if (currentClientName && c.client_name) {
+          const caseClientName = c.client_name.toLowerCase();
+          // Check if names match (exact or contains)
+          if (caseClientName === currentClientName) return true;
+          if (caseClientName.includes(currentClientName) || currentClientName.includes(caseClientName)) return true;
+        }
+
+        return false;
+      });
 
       // Check for related entity patterns (subsidiaries, sister companies)
       let relatedEntityCases = 0;
       if (businessContext?.relatedEntities && businessContext.relatedEntities.length > 0) {
         const relatedEntityNames = businessContext.relatedEntities.map(e => e.toLowerCase());
         relatedEntityCases = similarCases.filter(c =>
+          !sameClientCases.includes(c) && // Don't double-count
           c.client_name && relatedEntityNames.some(re =>
             c.client_name!.toLowerCase().includes(re.toLowerCase()) ||
             re.toLowerCase().includes(c.client_name!.toLowerCase())
