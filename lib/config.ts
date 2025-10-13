@@ -69,4 +69,11 @@ export const config = {
   proactiveTroubleshootingEnabled: getBooleanEnv("PROACTIVE_TROUBLESHOOTING_ENABLED", true),
   autoCmdbLookupEnabled: getBooleanEnv("AUTO_CMDB_LOOKUP_ENABLED", true),
   maxClarifyingQuestions: getNumberEnv("MAX_CLARIFYING_QUESTIONS", 4),
+
+  // CMDB Reconciliation configuration
+  cmdbReconciliationEnabled: getBooleanEnv("CMDB_RECONCILIATION_ENABLED", false),
+  cmdbReconciliationConfidenceThreshold: getNumberEnv("CMDB_RECONCILIATION_CONFIDENCE_THRESHOLD", 0.7),
+  cmdbReconciliationCacheResults: getBooleanEnv("CMDB_RECONCILIATION_CACHE_RESULTS", true),
+  cmdbReconciliationAssignmentGroup: process.env.CMDB_RECONCILIATION_ASSIGNMENT_GROUP || "CMDB Administrators",
+  cmdbReconciliationSlackChannel: process.env.CMDB_RECONCILIATION_SLACK_CHANNEL || "cmdb-alerts",
 };

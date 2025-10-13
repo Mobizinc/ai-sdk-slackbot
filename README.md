@@ -11,11 +11,13 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - Works both with app mentions and as an assistant in direct messages
 - Maintains conversation context within both threads and direct messages
 - **Passive Case Number Monitoring**: Automatically detects case numbers (e.g., SCS0048402) in channel conversations and tracks context for knowledge base generation
+- **CMDB Reconciliation**: Automatically links Configuration Items (CIs) from ServiceNow to cases and creates child tasks for missing CIs, turning entity extraction into actionable CMDB data governance
 - Built-in tools for enhanced capabilities:
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
   - ServiceNow incident, case, and knowledge-base lookups (when configured)
   - Similar cases search using Azure AI Search vector store (when configured)
+  - Entity extraction and CMDB reconciliation (when configured)
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
 - **Inbound Relay Gateway**: Authenticated `/api/relay` endpoint lets upstream agents and services deliver Slack messages without creating their own Slack apps
 
@@ -26,6 +28,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - [OpenAI API key](https://platform.openai.com/api-keys)
 - [Exa API key](https://exa.ai) (for web search functionality)
 - Azure AI Search service (optional, for similar cases search)
+- ServiceNow instance with CMDB access (optional, for CMDB reconciliation)
 - A server or hosting platform (e.g., [Vercel](https://vercel.com)) to deploy the bot
 
 ## Setup
@@ -138,6 +141,13 @@ KB_SIMILAR_CASES_TOP_K=3
 
 # Database (optional, for persisting context and KB generation state)
 DATABASE_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
+
+# CMDB Reconciliation (optional)
+CMDB_RECONCILIATION_ENABLED=false
+CMDB_RECONCILIATION_CONFIDENCE_THRESHOLD=0.7
+CMDB_RECONCILIATION_CACHE_RESULTS=true
+CMDB_RECONCILIATION_ASSIGNMENT_GROUP="CMDB Administrators"
+CMDB_RECONCILIATION_SLACK_CHANNEL="cmdb-alerts"
 ```
 
 Replace the placeholder values with your actual tokens.

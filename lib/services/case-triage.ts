@@ -38,6 +38,8 @@ import { getCaseClassifier } from "./case-classifier";
 import { createAzureSearchClient } from "./azure-search-client";
 import { formatWorkNote } from "./work-note-formatter";
 import { getCategorySyncService } from "./servicenow-category-sync";
+import { getCmdbReconciliationService } from "./cmdb-reconciliation";
+import { config } from "../config";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -94,6 +96,7 @@ export interface CaseTriageResult {
   updateError?: string;
   processingTimeMs: number;
   entitiesDiscovered: number;
+  cmdbReconciliation?: any; // TODO: Import proper type from cmdb-reconciliation
   cached: boolean;
   cacheReason?: string;
 }
@@ -300,6 +303,34 @@ export class CaseTriageService {
         classificationResult
       );
 
+      // Step 12.5: CMDB Reconciliation (if enabled)
+      let cmdbReconciliationResults = null;
+      if (config.cmdbReconciliationEnabled) {
+        try {
+          const cmdbService = getCmdbReconciliationService();
+          cmdbReconciliationResults = await cmdbService.reconcileEntities({
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            entities: classificationResult.technical_entities || {
+              ip_addresses: [],
+              systems: [],
+              users: [],
+              software: [],
+              error_codes: []
+            }
+          });
+          console.log(`[Case Triage] CMDB reconciliation completed for ${webhook.case_number}:`, {
+            total: cmdbReconciliationResults.totalEntities,
+            matched: cmdbReconciliationResults.matched,
+            unmatched: cmdbReconciliationResults.unmatched,
+            skipped: cmdbReconciliationResults.skipped
+          });
+        } catch (error) {
+          console.error(`[Case Triage] CMDB reconciliation failed for ${webhook.case_number}:`, error);
+          // Don't fail the entire triage process, just log the error
+        }
+      }
+
       // Step 13: Mark inbound as processed
       if (inboundId) {
         await this.repository.markPayloadAsProcessed(
@@ -327,6 +358,7 @@ export class CaseTriageService {
         updateError,
         processingTimeMs: processingTime,
         entitiesDiscovered: entitiesStored,
+        cmdbReconciliation: cmdbReconciliationResults,
         cached: false,
       };
     } catch (error) {

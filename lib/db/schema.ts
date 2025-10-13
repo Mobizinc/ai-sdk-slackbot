@@ -385,3 +385,45 @@ export type NewServiceNowChoiceCache = typeof servicenowChoiceCache.$inferInsert
 
 export type ServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferSelect;
 export type NewServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferInsert;
+
+/**
+ * CMDB Reconciliation Results Table
+ * Tracks results of CMDB reconciliation process for case entities
+ */
+export const cmdbReconciliationResults = pgTable(
+  "cmdb_reconciliation_results",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    entityValue: text("entity_value").notNull(),
+    entityType: text("entity_type").notNull(), // IP_ADDRESS, SYSTEM, USER, SOFTWARE, ERROR_CODE
+    originalEntityValue: text("original_entity_value").notNull(), // Before alias resolution
+    resolvedEntityValue: text("resolved_entity_value"), // After alias resolution
+    reconciliationStatus: text("reconciliation_status").notNull(), // matched, unmatched, ambiguous, skipped
+    cmdbSysId: text("cmdb_sys_id"),
+    cmdbName: text("cmdb_name"),
+    cmdbClass: text("cmdb_class"),
+    cmdbUrl: text("cmdb_url"),
+    confidence: real("confidence").notNull(),
+    businessContextMatch: text("business_context_match"), // Name of matching business context
+    childTaskNumber: text("child_task_number"), // If task was created
+    childTaskSysId: text("child_task_sys_id"), // If task was created
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_cmdb_reconcile_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_cmdb_reconcile_case_sys_id").on(table.caseSysId),
+    entityValueIdx: index("idx_cmdb_reconcile_entity_value").on(table.entityValue),
+    entityTypeIdx: index("idx_cmdb_reconcile_entity_type").on(table.entityType),
+    statusIdx: index("idx_cmdb_reconcile_status").on(table.reconciliationStatus),
+    confidenceIdx: index("idx_cmdb_reconcile_confidence").on(table.confidence),
+    createdAtIdx: index("idx_cmdb_reconcile_created_at").on(table.createdAt),
+  })
+);
+
+export type CmdbReconciliationResult = typeof cmdbReconciliationResults.$inferSelect;
+export type NewCmdbReconciliationResult = typeof cmdbReconciliationResults.$inferInsert;
