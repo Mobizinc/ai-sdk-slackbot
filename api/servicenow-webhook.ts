@@ -1,34 +1,38 @@
 /**
- * ServiceNow Webhook Endpoint (SIMPLIFIED VERSION)
+ * ServiceNow Webhook Endpoint (PRODUCTION VERSION)
  * Handles incoming case classification requests from ServiceNow
  *
- * This version removes duplicate database persistence since classifyCaseEnhanced()
- * already handles saving classification results and discovered entities.
+ * This version uses the centralized case triage service for full feature parity with
+ * the original Python implementation (mobiz-intelligence-analytics).
+ *
+ * Features:
+ * - Schema validation with Zod
+ * - Classification caching (prevents duplicate LLM calls)
+ * - Workflow routing (different approaches for different case types)
+ * - Azure AI Search integration (similar cases with MSP attribution)
+ * - Business context enrichment (company-specific intelligence)
+ * - Comprehensive error handling with retries
+ *
+ * Original: api/app/routers/webhooks.py:379-531
  */
 
 import { createHmac } from 'crypto';
-import { getCaseClassificationRepository } from '../lib/db/repositories/case-classification-repository';
-import { getCaseClassifier } from '../lib/services/case-classifier';
-import { serviceNowClient } from '../lib/tools/servicenow';
-import { formatWorkNote } from '../lib/services/work-note-formatter';
+import { getCaseTriageService } from '../lib/services/case-triage';
+import {
+  validateServiceNowWebhook,
+  type ServiceNowCaseWebhook,
+} from '../lib/schemas/servicenow-webhook';
 
 // Initialize services
-const caseClassificationRepository = getCaseClassificationRepository();
-const caseClassifier = getCaseClassifier();
-const servicenow = serviceNowClient;
+const caseTriageService = getCaseTriageService();
 
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
-const WRITE_WORK_NOTES = process.env.CASE_CLASSIFICATION_WRITE_NOTES === 'true';
-const MAX_RETRIES = parseInt(process.env.CASE_CLASSIFICATION_MAX_RETRIES || '3');
-
-// Cache for duplicate detection (simple in-memory cache)
-const duplicateCache = new Map<string, { timestamp: number; processed: boolean }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Validate webhook signature
+ * Original: api/app/services/batch_processing/auth.py
  */
 function validateSignature(payload: string, signature: string): boolean {
   if (!WEBHOOK_SECRET) {
@@ -44,92 +48,8 @@ function validateSignature(payload: string, signature: string): boolean {
 }
 
 /**
- * Check for duplicate requests
- */
-function isDuplicate(caseId: string): boolean {
-  const cached = duplicateCache.get(caseId);
-  if (!cached) return false;
-
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_TTL) {
-    duplicateCache.delete(caseId);
-    return false;
-  }
-
-  return cached.processed;
-}
-
-/**
- * Mark request as processed
- */
-function markAsProcessed(caseId: string): void {
-  duplicateCache.set(caseId, {
-    timestamp: Date.now(),
-    processed: true
-  });
-}
-
-/**
- * Clean old cache entries
- */
-function cleanCache(): void {
-  const now = Date.now();
-  for (const [key, value] of duplicateCache.entries()) {
-    if (now - value.timestamp > CACHE_TTL) {
-      duplicateCache.delete(key);
-    }
-  }
-}
-
-/**
- * Extract case information from webhook payload
- */
-function extractCaseInfo(payload: any) {
-  return {
-    caseId: payload.sys_id || payload.case_id,
-    caseNumber: payload.number || payload.case_number,
-    shortDescription: payload.short_description || payload.description || '',
-    description: payload.description || payload.comments || '',
-    assignmentGroup: payload.assignment_group || '',
-    assignedTo: payload.assigned_to || '',
-    urgency: payload.urgency || '',
-    impact: payload.impact || '',
-    configurationItem: payload.configuration_item || payload.cmdb_ci || '',
-    caller: payload.caller_id || payload.opened_by || '',
-    category: payload.category || '',
-    subcategory: payload.subcategory || '',
-    businessService: payload.business_service || '',
-    contactType: payload.contact_type || '',
-    state: payload.state || '',
-    priority: payload.priority || ''
-  };
-}
-
-/**
- * Write work note to ServiceNow
- */
-async function writeWorkNote(caseId: string, workNote: string): Promise<boolean> {
-  if (!WRITE_WORK_NOTES) {
-    console.info('[Webhook] Work note writing disabled, skipping ServiceNow update');
-    return true;
-  }
-
-  try {
-    await servicenow.updateCase(caseId, {
-      work_notes: workNote,
-      comments: ''
-    });
-
-    console.info(`[Webhook] Work note written to case ${caseId}`);
-    return true;
-  } catch (error) {
-    console.error(`[Webhook] Failed to write work note to case ${caseId}:`, error);
-    return false;
-  }
-}
-
-/**
  * Main webhook handler
+ * Original: api/app/routers/webhooks.py:379-531
  */
 export async function POST(request: Request) {
   const startTime = Date.now();
@@ -157,10 +77,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse payload
-    let webhookData;
+    // Parse and validate payload with Zod schema
+    let webhookData: ServiceNowCaseWebhook;
     try {
-      webhookData = JSON.parse(payload);
+      const parsedPayload = JSON.parse(payload);
+      const validationResult = validateServiceNowWebhook(parsedPayload);
+
+      if (!validationResult.success) {
+        console.error('[Webhook] Schema validation failed:', validationResult.errors);
+        return Response.json(
+          {
+            error: 'Invalid webhook payload schema',
+            details: validationResult.errors,
+          },
+          { status: 422 } // Unprocessable Entity
+        );
+      }
+
+      webhookData = validationResult.data!;
     } catch (error) {
       console.error('[Webhook] Failed to parse webhook payload:', error);
       return Response.json(
@@ -169,138 +103,56 @@ export async function POST(request: Request) {
       );
     }
 
-    // Extract case information
-    const caseInfo = extractCaseInfo(webhookData);
+    console.info(
+      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})`
+    );
 
-    if (!caseInfo.caseId) {
-      console.error('[Webhook] No case ID found in webhook payload');
-      return Response.json(
-        { error: 'Missing case ID' },
-        { status: 400 }
-      );
-    }
-
-    // Check for duplicates
-    if (isDuplicate(caseInfo.caseId)) {
-      console.info(`[Webhook] Duplicate request for case ${caseInfo.caseId}, skipping`);
-      return Response.json(
-        { message: 'Duplicate request ignored' },
-        { status: 200 }
-      );
-    }
-
-    // Clean old cache entries
-    cleanCache();
-
-    // Record inbound payload (for webhook tracking)
-    await caseClassificationRepository.saveInboundPayload({
-      caseNumber: caseInfo.caseNumber,
-      caseSysId: caseInfo.caseId,
-      rawPayload: webhookData,
-      routingContext: {
-        assignmentGroup: caseInfo.assignmentGroup,
-        assignedTo: caseInfo.assignedTo,
-        category: caseInfo.category,
-        subcategory: caseInfo.subcategory,
-        priority: caseInfo.priority,
-        state: caseInfo.state
-      }
+    // Execute centralized triage workflow
+    const triageResult = await caseTriageService.triageCase(webhookData, {
+      enableCaching: true,
+      enableSimilarCases: true,
+      enableKBArticles: true,
+      enableBusinessContext: true,
+      enableWorkflowRouting: true,
+      writeToServiceNow: true,
     });
-
-    console.info(`[Webhook] Processing case ${caseInfo.caseNumber} (${caseInfo.caseId})`);
-
-    // Perform classification with retry logic
-    let classificationResult = null;
-    let lastError = null;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        // Use enhanced classifier - handles classification, entity extraction,
-        // business intelligence, similar cases, KB articles, AND database persistence
-        classificationResult = await caseClassifier.classifyCaseEnhanced({
-          case_number: caseInfo.caseNumber,
-          sys_id: caseInfo.caseId,
-          short_description: caseInfo.shortDescription,
-          description: caseInfo.description,
-          assignment_group: caseInfo.assignmentGroup,
-          urgency: caseInfo.urgency,
-          current_category: caseInfo.category,
-          priority: caseInfo.priority,
-          state: caseInfo.state
-        });
-
-        if (classificationResult) {
-          break;
-        }
-      } catch (error) {
-        lastError = error as Error;
-        console.warn(`[Webhook] Classification attempt ${attempt} failed for case ${caseInfo.caseId}:`, error);
-
-        if (attempt < MAX_RETRIES) {
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
-      }
-    }
-
-    if (!classificationResult) {
-      console.error(`[Webhook] All classification attempts failed for case ${caseInfo.caseId}:`, lastError);
-
-      // Mark inbound payload as failed
-      const inboundRecord = await caseClassificationRepository.getUnprocessedPayload(caseInfo.caseNumber);
-      if (inboundRecord) {
-        await caseClassificationRepository.markPayloadAsProcessed(
-          inboundRecord.id,
-          undefined,
-          lastError?.message || 'Classification failed'
-        );
-      }
-
-      return Response.json(
-        { error: 'Classification failed after retries' },
-        { status: 500 }
-      );
-    }
-
-    // Format and write work note to ServiceNow
-    const workNote = formatWorkNote(classificationResult as any);
-    const workNoteWritten = await writeWorkNote(caseInfo.caseId, workNote);
-
-    // Mark inbound payload as processed
-    const inboundRecord = await caseClassificationRepository.getUnprocessedPayload(caseInfo.caseNumber);
-    if (inboundRecord) {
-      await caseClassificationRepository.markPayloadAsProcessed(
-        inboundRecord.id,
-        classificationResult.workflowId
-      );
-    }
-
-    // Mark as processed in cache to prevent duplicates
-    markAsProcessed(caseInfo.caseId);
 
     const processingTime = Date.now() - startTime;
 
     console.info(
-      `[Webhook] Case ${caseInfo.caseNumber} classified as ${classificationResult.category}` +
-      `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}` +
-      ` (${classificationResult.confidence_score ? Math.round(classificationResult.confidence_score * 100) : 0}% confidence)` +
-      ` in ${processingTime}ms`
+      `[Webhook] Case ${triageResult.caseNumber} classified as ${triageResult.classification.category}` +
+      `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
+      ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
+      ` in ${processingTime}ms` +
+      `${triageResult.cached ? ' [CACHED]' : ''}`
     );
 
+    // Return comprehensive response matching original format
     return Response.json({
       success: true,
-      caseId: caseInfo.caseId,
-      caseNumber: caseInfo.caseNumber,
-      workflowId: classificationResult.workflowId,
+      case_number: triageResult.caseNumber,
       classification: {
-        category: classificationResult.category,
-        subcategory: classificationResult.subcategory,
-        confidenceScore: classificationResult.confidence_score,
-        urgencyLevel: classificationResult.urgency_level
+        category: triageResult.classification.category,
+        subcategory: triageResult.classification.subcategory,
+        confidence_score: triageResult.classification.confidence_score,
+        urgency_level: triageResult.classification.urgency_level,
+        reasoning: triageResult.classification.reasoning,
+        keywords: (triageResult.classification as any).keywords ||
+                 (triageResult.classification as any).keywords_detected || [],
+        quick_summary: triageResult.classification.quick_summary,
+        immediate_next_steps: triageResult.classification.immediate_next_steps,
+        technical_entities: triageResult.classification.technical_entities,
+        business_intelligence: triageResult.classification.business_intelligence,
       },
-      entitiesDiscovered: classificationResult.discoveredEntities?.length || 0,
-      processingTimeMs: processingTime,
-      workNoteWritten
+      similar_cases: triageResult.similarCases,
+      kb_articles: triageResult.kbArticles,
+      servicenow_updated: triageResult.servicenowUpdated,
+      update_error: triageResult.updateError,
+      processing_time_ms: triageResult.processingTimeMs,
+      entities_discovered: triageResult.entitiesDiscovered,
+      workflow_id: triageResult.workflowId,
+      cached: triageResult.cached,
+      cache_reason: triageResult.cacheReason,
     });
 
   } catch (error) {
@@ -318,13 +170,39 @@ export async function POST(request: Request) {
 
 /**
  * Health check endpoint
+ * Tests connectivity to all required services
  */
 export async function GET() {
-  return Response.json({
-    status: 'healthy',
-    classificationEnabled: ENABLE_CLASSIFICATION,
-    workNoteWritingEnabled: WRITE_WORK_NOTES,
-    maxRetries: MAX_RETRIES,
-    timestamp: new Date().toISOString()
-  });
+  try {
+    const connectivity = await caseTriageService.testConnectivity();
+    const stats = await caseTriageService.getTriageStats(7);
+
+    return Response.json({
+      status: 'healthy',
+      classification_enabled: ENABLE_CLASSIFICATION,
+      connectivity: {
+        azure_search: connectivity.azureSearch,
+        database: connectivity.database,
+        servicenow: connectivity.serviceNow,
+      },
+      stats: {
+        total_cases_7d: stats.totalCases,
+        avg_processing_time_ms: Math.round(stats.averageProcessingTime),
+        avg_confidence: Math.round(stats.averageConfidence * 100),
+        cache_hit_rate: Math.round(stats.cacheHitRate * 100),
+        top_workflows: stats.topWorkflows,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[Webhook] Health check failed:', error);
+    return Response.json(
+      {
+        status: 'unhealthy',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
+  }
 }
