@@ -185,40 +185,10 @@ export class CaseTriageService {
       // Step 4: Convert webhook to classification request
       const classificationRequest = this.webhookToClassificationRequest(webhook);
 
-      // Step 5: Fetch similar cases (if enabled)
-      let similarCases: SimilarCaseResult[] = [];
-      if (enableSimilarCases && this.azureSearchClient) {
-        try {
-          const queryText = `${webhook.short_description} ${webhook.description || ""}`.trim();
-          similarCases = await this.azureSearchClient.searchSimilarCases(queryText, {
-            accountSysId: webhook.account_id || webhook.company,
-            topK: 5,
-            crossClient: true, // Enable MSP cross-client search
-          });
+      // Note: Similar cases and KB articles are fetched by the classifier internally
+      // The classifier uses the new Azure Search client with vector search and MSP attribution
 
-          console.log(`[Case Triage] Found ${similarCases.length} similar cases`);
-        } catch (error) {
-          console.warn("[Case Triage] Failed to fetch similar cases:", error);
-        }
-      }
-
-      // Step 6: Fetch KB articles (if enabled)
-      let kbArticles: KBArticleResult[] = [];
-      if (enableKBArticles) {
-        try {
-          // Note: KB article search is handled by case classifier
-          // This is a placeholder for future direct KB search
-          console.log("[Case Triage] KB article search delegated to classifier");
-        } catch (error) {
-          console.warn("[Case Triage] Failed to fetch KB articles:", error);
-        }
-      }
-
-      // Step 7: Get business context (if enabled)
-      // Business context is enriched by case classifier service
-      // via lib/services/business-context-service.ts
-
-      // Step 8: Perform classification with retry logic
+      // Step 5: Perform classification with retry logic
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 
@@ -332,8 +302,8 @@ export class CaseTriageService {
         caseSysId: webhook.sys_id,
         workflowId: workflowDecision.workflowId,
         classification: classificationResult,
-        similarCases: similarCases,
-        kbArticles: kbArticles,
+        similarCases: classificationResult.similar_cases || [],
+        kbArticles: classificationResult.kb_articles || [],
         servicenowUpdated,
         updateError,
         processingTimeMs: processingTime,

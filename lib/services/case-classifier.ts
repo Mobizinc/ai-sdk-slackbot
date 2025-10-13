@@ -6,13 +6,14 @@
 import { generateText } from 'ai';
 import { modelProvider } from '../model-provider';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
-import { createAzureSearchService, type SimilarCase } from './azure-search';
 import { searchKBArticles, type KBArticle } from './kb-article-search';
 import { getWorkflowRouter, type RoutingResult } from './workflow-router';
 import { getBusinessContextService as getNewBusinessContextService } from './business-context';
 import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
+import { createAzureSearchClient } from './azure-search-client';
+import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
 export interface CaseData {
   case_number: string;
@@ -71,8 +72,8 @@ export interface CaseClassification {
   // Model info
   model_used?: string;
   llm_provider?: string;
-  // Context from search
-  similar_cases?: SimilarCase[];
+  // Context from search - using new SimilarCaseResult with MSP attribution
+  similar_cases?: SimilarCaseResult[];
   kb_articles?: KBArticle[];
   similar_cases_count?: number;
   kb_articles_count?: number;
@@ -80,7 +81,7 @@ export interface CaseClassification {
 
 export class CaseClassifier {
   private businessContextService = getBusinessContextService();
-  private searchService = createAzureSearchService();
+  private searchClient = createAzureSearchClient(); // NEW: Use vector search client with MSP attribution
   private workflowRouter = getWorkflowRouter();
   private newBusinessContextService = getNewBusinessContextService();
   private caseIntelligenceService = getCaseIntelligenceService();
@@ -280,16 +281,17 @@ export class CaseClassifier {
 
     const startTime = Date.now();
 
-    // Fetch similar cases if enabled
-    let similarCases: SimilarCase[] = [];
-    if (includeSimilarCases && this.searchService) {
+    // Fetch similar cases if enabled (using NEW vector search with MSP attribution)
+    let similarCases: SimilarCaseResult[] = [];
+    if (includeSimilarCases && this.searchClient) {
       try {
         const queryText = `${caseData.short_description} ${caseData.description || ''}`.trim();
-        similarCases = await this.searchService.searchSimilarCases(queryText, {
+        similarCases = await this.searchClient.searchSimilarCases(queryText, {
           topK: 5,
-          clientId: caseData.company, // Multi-tenant filtering
+          accountSysId: caseData.company, // For MSP attribution
+          crossClient: true, // Enable cross-client search
         });
-        console.log(`[CaseClassifier] Found ${similarCases.length} similar cases`);
+        console.log(`[CaseClassifier] Found ${similarCases.length} similar cases via vector search`);
       } catch (error) {
         console.warn('[CaseClassifier] Failed to fetch similar cases:', error);
       }
@@ -377,7 +379,7 @@ export class CaseClassifier {
   private async buildClassificationPrompt(
     caseData: CaseData,
     businessContext?: BusinessEntityContext | null,
-    similarCases?: SimilarCase[],
+    similarCases?: SimilarCaseResult[],
     kbArticles?: KBArticle[]
   ): Promise<string> {
     const businessContextText = businessContext
@@ -397,14 +399,20 @@ CASE DETAILS:
 BUSINESS CONTEXT:
 ${businessContextText}`;
 
-    // Add similar cases context if available
+    // Add similar cases context if available (using NEW structure with MSP attribution)
     if (similarCases && similarCases.length > 0) {
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
       prompt += `These are similar cases that were previously resolved:\n\n`;
 
       similarCases.slice(0, 5).forEach((case_, index) => {
-        prompt += `${index + 1}. Case ${case_.case_number} (similarity: ${case_.score.toFixed(2)}):\n`;
-        prompt += `   - Description: ${case_.content.substring(0, 200)}...\n\n`;
+        const clientLabel = case_.same_client ? '[Same Client]' :
+                           case_.client_name ? `[${case_.client_name}]` : '[Different Client]';
+        prompt += `${index + 1}. Case ${case_.case_number} ${clientLabel} (similarity: ${(case_.similarity_score || 0).toFixed(2)}):\n`;
+        prompt += `   - Description: ${(case_.short_description || case_.description || '').substring(0, 200)}...\n`;
+        if (case_.category) {
+          prompt += `   - Category: ${case_.category}\n`;
+        }
+        prompt += `\n`;
       });
 
       prompt += `Use these similar cases as reference, but analyze the current case independently.\n`;
