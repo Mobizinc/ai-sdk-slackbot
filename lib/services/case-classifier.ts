@@ -571,6 +571,7 @@ Additionally, provide quick triage guidance for the support agent:
    - What's happening (the symptom)
    - What's likely causing it (root cause hypothesis with reasoning)
    - What this means for troubleshooting (diagnostic direction)
+   - **CRITICAL:** If you found a pattern in similar cases (2+ from same client), EXPLICITLY MENTION IT in summary
    Style: Conversational but technical. Include "likely" or "probably" for hypotheses.
 
 7. NEXT STEPS: List 3-5 diagnostic steps like you're walking a junior engineer through the triage. Format each step as: [Action with command/path] - [Brief rationale or what to look for]
@@ -588,7 +589,7 @@ If you detect any of the following exceptions based on the client's business con
 11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
-14. SYSTEMIC ISSUE: If you found 2+ similar cases from SAME CLIENT in the similar cases list above, set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem, not isolated user issue.
+14. SYSTEMIC ISSUE: **CRITICAL** - If you found 2+ similar cases from SAME CLIENT (check both same_client flag AND client_name text) in the similar cases list above, you MUST set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem affecting multiple users, not isolated issue. DO NOT miss this - patterns are the most valuable intelligence we can provide.
 
 FEW-SHOT EXAMPLES (follow these patterns):
 
