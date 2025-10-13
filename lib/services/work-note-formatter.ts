@@ -53,6 +53,11 @@ export function formatWorkNote(classification: CompleteClassification): string {
     const bi = classification.business_intelligence;
     const alerts: string[] = [];
 
+    // CRITICAL: Systemic issue alert FIRST (most important)
+    if (bi.systemic_issue_detected) {
+      alerts.push(`🚨 SYSTEMIC ISSUE: ${bi.systemic_issue_reason || `${bi.affected_cases_same_client || 'Multiple'} similar cases from same client - infrastructure problem likely`}`);
+    }
+
     if (bi.project_scope_detected) {
       alerts.push(`• PROJECT SCOPE: ${bi.project_scope_reason}`);
     }

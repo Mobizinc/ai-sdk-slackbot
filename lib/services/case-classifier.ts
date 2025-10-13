@@ -52,6 +52,10 @@ export interface BusinessIntelligence {
   compliance_impact_reason?: string;
   financial_impact?: boolean;
   financial_impact_reason?: string;
+  // NEW: Pattern recognition for systemic issues
+  systemic_issue_detected?: boolean;
+  systemic_issue_reason?: string;
+  affected_cases_same_client?: number;
 }
 
 export interface CaseClassification {
@@ -435,7 +439,17 @@ Case Information:
     // Add similar cases context if available (using NEW structure with MSP attribution)
     if (similarCases && similarCases.length > 0) {
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
-      prompt += `These are similar cases that were previously resolved:\n\n`;
+      prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n\n`;
+
+      // Pattern analysis instruction
+      const sameClientCases = similarCases.filter(c => c.same_client);
+      if (sameClientCases.length >= 2) {
+        prompt += `⚠️ PATTERN ALERT: ${sameClientCases.length} similar cases from THE SAME CLIENT detected.\n`;
+        prompt += `This suggests a SYSTEMIC/INFRASTRUCTURE issue, not isolated user problems.\n`;
+        prompt += `Escalate your troubleshooting from user-level to infrastructure/server-level.\n\n`;
+      }
+
+      prompt += `Similar cases:\n\n`;
 
       similarCases.slice(0, 5).forEach((case_, index) => {
         const clientLabel = case_.same_client ? '[Same Client]' :
@@ -448,7 +462,12 @@ Case Information:
         prompt += `\n`;
       });
 
-      prompt += `Use these similar cases as reference, but analyze the current case independently.\n`;
+      prompt += `\nIMPORTANT PATTERN ANALYSIS RULES:\n`;
+      prompt += `- If 2+ cases from SAME CLIENT with SAME ISSUE → This is a SYSTEMIC problem (server down, infrastructure failure, widespread misconfiguration)\n`;
+      prompt += `- If cases are from DIFFERENT CLIENTS → Individual/isolated issues, standard troubleshooting applies\n`;
+      prompt += `- Check client labels [Same Client] vs [Different Client] to identify patterns\n`;
+      prompt += `- For systemic issues: Focus on infrastructure (servers, network, AD), not individual user permissions\n`;
+      prompt += `- For systemic issues: Add business intelligence alert: systemic_issue_detected=true\n\n`;
     }
 
     // Add KB articles context if available
@@ -519,6 +538,7 @@ If you detect any of the following exceptions based on the client's business con
 11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
+14. SYSTEMIC ISSUE: If you found 2+ similar cases from SAME CLIENT in the similar cases list above, set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem, not isolated user issue.
 
 Example next steps (teaching style):
 - "Grab AnyConnect client logs from %ProgramData%\\Cisco\\Cisco AnyConnect Secure Mobility Client\\Logs - look for DTLS negotiation failures or keepalive timeouts around the disconnect times"
@@ -557,7 +577,10 @@ Respond with a JSON object in this exact format:
     "client_technology_context": "Epowerdocs EMR hosted on 10.101.1.11",
     "related_entities": ["Neighbors Emergency Center"],
     "outside_service_hours": false,
-    "service_hours_note": null
+    "service_hours_note": null,
+    "systemic_issue_detected": false,
+    "systemic_issue_reason": null,
+    "affected_cases_same_client": 0
   }
 }
 
