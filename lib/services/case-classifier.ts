@@ -413,6 +413,13 @@ Case Information:
       prompt += `\n- Company: ${caseData.company_name || caseData.company}`;
     }
 
+    // Add business context (client-specific intelligence)
+    if (businessContext) {
+      prompt += `\n\n--- BUSINESS CONTEXT ---\n`;
+      prompt += businessContextText;
+      prompt += `\n`;
+    }
+
     // Add similar cases context if available (using NEW structure with MSP attribution)
     if (similarCases && similarCases.length > 0) {
       prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
