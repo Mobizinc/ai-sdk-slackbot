@@ -15,7 +15,8 @@ import { getCaseClassificationRepository } from '../../lib/db/repositories/case-
 import { isQStashEnabled, getSigningKeys } from '../../lib/queue/qstash-client';
 
 const repository = getCaseClassificationRepository();
-const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
+// Async triage is ON by default - explicitly set to 'false' to disable
+const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
 
 /**
  * Get queue statistics
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
         async_triage_enabled: ENABLE_ASYNC_TRIAGE,
         qstash_enabled: isQStashEnabled(),
         qstash_configured: !!(signingKeys.current && signingKeys.next),
-        worker_url: process.env.WORKER_BASE_URL || process.env.VERCEL_URL,
+        worker_url: process.env.VERCEL_URL || 'localhost:3000', // Auto-detected
       },
       stats_7d: {
         total_classifications: stats7d.totalClassifications,

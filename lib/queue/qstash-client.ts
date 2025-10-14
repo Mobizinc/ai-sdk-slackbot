@@ -9,15 +9,10 @@ import { Client } from '@upstash/qstash';
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN;
 const QSTASH_CURRENT_SIGNING_KEY = process.env.QSTASH_CURRENT_SIGNING_KEY;
 const QSTASH_NEXT_SIGNING_KEY = process.env.QSTASH_NEXT_SIGNING_KEY;
-const WORKER_BASE_URL = process.env.WORKER_BASE_URL || process.env.VERCEL_URL;
 
 // Validate required environment variables
 if (!QSTASH_TOKEN) {
   console.warn('[QStash] QSTASH_TOKEN not configured - queue functionality disabled');
-}
-
-if (!WORKER_BASE_URL) {
-  console.warn('[QStash] WORKER_BASE_URL not configured - using localhost fallback');
 }
 
 /**
@@ -35,9 +30,11 @@ export function createQStashClient(): Client | null {
 
 /**
  * Get worker endpoint URL
+ * Auto-detects from VERCEL_URL (always available in Vercel deployments)
  */
 export function getWorkerUrl(path: string): string {
-  const baseUrl = WORKER_BASE_URL || 'http://localhost:3000';
+  // Auto-detect from Vercel environment
+  const baseUrl = process.env.VERCEL_URL || 'localhost:3000';
   const normalizedBase = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
@@ -73,9 +70,10 @@ export function getSigningKeys(): { current: string | undefined; next: string | 
 
 /**
  * Check if QStash is enabled
+ * Only requires QSTASH_TOKEN - worker URL is auto-detected from VERCEL_URL
  */
 export function isQStashEnabled(): boolean {
-  return !!(QSTASH_TOKEN && WORKER_BASE_URL);
+  return !!QSTASH_TOKEN;
 }
 
 // Singleton instance
