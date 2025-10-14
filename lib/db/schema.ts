@@ -526,3 +526,38 @@ export type NewClientSettings = typeof clientSettings.$inferInsert;
 
 export type CatalogRedirectLog = typeof catalogRedirectLog.$inferSelect;
 export type NewCatalogRedirectLog = typeof catalogRedirectLog.$inferInsert;
+
+/**
+ * Category Mismatch Log Table
+ * Tracks when AI suggests categories that don't exist in ServiceNow
+ * Used to identify categories that should be added to ServiceNow
+ *
+ * DUAL CATEGORIZATION: Tracks which table (Cases vs Incidents) the mismatch is for
+ */
+export const categoryMismatchLog = pgTable(
+  "category_mismatch_log",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id"),
+    targetTable: text("target_table").notNull().default("sn_customerservice_case"), // "sn_customerservice_case" or "incident"
+    aiSuggestedCategory: text("ai_suggested_category").notNull(),
+    aiSuggestedSubcategory: text("ai_suggested_subcategory"),
+    correctedCategory: text("corrected_category").notNull(), // What we used instead
+    confidenceScore: real("confidence_score").notNull(),
+    caseDescription: text("case_description").notNull(),
+    reviewed: boolean("reviewed").default(false).notNull(), // Has ServiceNow team reviewed this?
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_mismatch_case_number").on(table.caseNumber),
+    suggestedCategoryIdx: index("idx_mismatch_suggested_category").on(table.aiSuggestedCategory),
+    targetTableIdx: index("idx_mismatch_target_table").on(table.targetTable),
+    reviewedIdx: index("idx_mismatch_reviewed").on(table.reviewed),
+    createdAtIdx: index("idx_mismatch_created_at").on(table.createdAt),
+    confidenceIdx: index("idx_mismatch_confidence").on(table.confidenceScore),
+  })
+);
+
+export type CategoryMismatchLog = typeof categoryMismatchLog.$inferSelect;
+export type NewCategoryMismatchLog = typeof categoryMismatchLog.$inferInsert;
