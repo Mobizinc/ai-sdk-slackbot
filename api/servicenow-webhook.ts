@@ -30,7 +30,8 @@ const caseTriageService = getCaseTriageService();
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
-const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
+// Async triage is ON by default - explicitly set to 'false' to disable
+const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
 
 /**
  * Validate webhook request

@@ -21,7 +21,7 @@ ServiceNow → /api/servicenow-webhook → QStash Queue → /api/workers/process
 ### Required for Async Mode
 ```bash
 # Feature flags
-ENABLE_ASYNC_TRIAGE=false           # Set to true to enable async processing
+# ENABLE_ASYNC_TRIAGE is ON by default (omit or set to 'false' to disable)
 ENABLE_CASE_CLASSIFICATION=true     # Master switch for classification
 
 # QStash Configuration (already configured in .env.local)
@@ -29,17 +29,16 @@ QSTASH_TOKEN=eyJVc2VySUQiOiJjNTRlMDVmNS0yMWJhLTRkYzYtOGY2NS05OTFjMzcwNGM2OTIiLCJ
 QSTASH_CURRENT_SIGNING_KEY=sig_5HVwS3ERt1cwUirw5SYVUMdPpeXW
 QSTASH_NEXT_SIGNING_KEY=sig_4rYAFHd5gg4xn1wTZhVwYwQrUcGC
 
-# Worker URL (production)
-WORKER_BASE_URL=https://slack.mobiz.solutions
+# Worker URL is auto-detected from VERCEL_URL (no configuration needed)
 ```
 
 ## Testing Phases
 
-### Phase 1: Sync Mode Validation (Current State)
-**Objective:** Verify existing sync processing still works
+### Phase 1: Sync Mode Validation (Optional - Async is default)
+**Objective:** Verify sync processing still works if explicitly disabled
 
 **Steps:**
-1. Ensure `ENABLE_ASYNC_TRIAGE=false` in environment
+1. Set `ENABLE_ASYNC_TRIAGE=false` in Vercel environment
 2. Send test webhook to `/api/servicenow-webhook`
 3. Expect 200 response with full classification result
 4. Verify ServiceNow update occurred
@@ -47,14 +46,14 @@ WORKER_BASE_URL=https://slack.mobiz.solutions
 
 **Expected Behavior:**
 - HTTP 200 with classification data
-- Processing time < 60s (with new timeouts)
+- Processing time < 180s (with new timeouts)
 - ServiceNow work notes updated
 
-### Phase 2: Async Mode - Happy Path
+### Phase 2: Async Mode - Happy Path (Default Mode)
 **Objective:** Verify async processing works end-to-end
 
 **Steps:**
-1. Set `ENABLE_ASYNC_TRIAGE=true` in Vercel environment variables
+1. Ensure `ENABLE_ASYNC_TRIAGE` is NOT set to 'false' (async is on by default)
 2. Deploy to Vercel
 3. Send test webhook:
 ```bash
@@ -253,39 +252,40 @@ curl "https://slack.mobiz.solutions/api/servicenow-webhook"
 
 ## Rollout Strategy
 
-### Step 1: Deploy with Feature Flag OFF
+### Step 1: Deploy with Async Mode (Default)
 ```bash
-# Deploy to Vercel with ENABLE_ASYNC_TRIAGE=false
+# Async is ON by default - just deploy
 vercel --prod
 ```
-- Verify sync mode still works
+- Async mode is enabled automatically (no env var needed)
 - Monitor for 1 hour
+- Check `/api/admin/queue-stats` for queue health
 
-### Step 2: Enable for Single Test Case
+### Step 2: Verify Async Processing
 ```bash
-# Set ENABLE_ASYNC_TRIAGE=true in Vercel dashboard
-# Send single test webhook
+# Send test webhook
 # Verify async processing works end-to-end
+# Check QStash dashboard for message flow
 ```
 
-### Step 3: Enable for 10% of Cases (Optional)
-Modify `/api/servicenow-webhook.ts` to enable async for 10%:
-```typescript
-const enableAsyncForThisCase = ENABLE_ASYNC_TRIAGE &&
-  (webhookData.case_number.slice(-1) === '0'); // 10% sample
-```
-
-### Step 4: Monitor for 24 Hours
+### Step 3: Monitor for 24 Hours
 - Check `/api/admin/queue-stats` every 4 hours
 - Monitor QStash dashboard for failures
 - Review Vercel logs for errors
 - Verify ServiceNow updates still occurring
 
-### Step 5: Enable 100%
+### Step 4: Gradual Rollback if Needed (Optional)
+If issues arise, disable async mode temporarily:
 ```bash
-# Keep ENABLE_ASYNC_TRIAGE=true
-# Remove sampling logic if added
+# Set ENABLE_ASYNC_TRIAGE=false in Vercel dashboard
+# Falls back to sync processing immediately
+```
+
+### Step 5: Scale Monitoring
+```bash
 # Monitor for 48 hours
+# Watch for dead letter queue messages
+# Track average processing time trends
 ```
 
 ## Success Criteria
