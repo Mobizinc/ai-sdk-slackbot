@@ -349,6 +349,12 @@ export class CaseTriageService {
             incidentSysId = incidentResult.incident_sys_id;
             incidentUrl = incidentResult.incident_url;
 
+            // Update case with incident reference (bidirectional link)
+            // This makes the incident appear in "Related Records > Incident" tab
+            await serviceNowClient.updateCase(webhook.sys_id, {
+              incident: incidentSysId
+            });
+
             // Add work note to parent Case
             const workNote =
               `🚨 ${suggestion.is_major_incident ? 'MAJOR ' : ''}${suggestion.type.toUpperCase()} CREATED\n\n` +
