@@ -50,6 +50,20 @@
       "when": 1760472819850,
       "tag": "0006_eminent_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760408891521,
+      "tag": "0007_add_business_context_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1760408891522,
+      "tag": "0008_add_context_stewards",
+      "breakpoints": true
     }
   ]
 }
