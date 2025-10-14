@@ -398,6 +398,19 @@ export class CaseClassifier {
       // Parse the JSON response
       const classificationText = result.text.trim();
 
+      // Log AI response for debugging (truncate if too long)
+      if (classificationText.length > 2000) {
+        console.log(
+          `[CaseClassifier] AI response for ${caseData.case_number} (truncated): ` +
+          classificationText.substring(0, 2000) + '... [+' +
+          (classificationText.length - 2000) + ' more chars]'
+        );
+      } else {
+        console.log(
+          `[CaseClassifier] AI response for ${caseData.case_number}:\n${classificationText}`
+        );
+      }
+
       // Try to extract JSON from the response
       const jsonMatch = classificationText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -405,6 +418,14 @@ export class CaseClassifier {
       }
 
       const classification = JSON.parse(jsonMatch[0]);
+
+      // Log parsed classification for visibility
+      console.log(
+        `[CaseClassifier] Parsed classification for ${caseData.case_number}: ` +
+        `${classification.category}` +
+        `${classification.subcategory ? ` > ${classification.subcategory}` : ''}` +
+        ` (${Math.round((classification.confidence_score || 0) * 100)}% confidence)`
+      );
 
       // Validate and normalize the classification
       const validatedClassification = this.validateClassification(classification);
