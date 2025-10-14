@@ -114,6 +114,11 @@ export const businessContexts = pgTable(
     description: text("description"),
     aliases: jsonb("aliases").$type<string[]>().default([]).notNull(),
     relatedEntities: jsonb("related_entities").$type<string[]>().default([]).notNull(),
+    relatedCompanies: jsonb("related_companies").$type<Array<{
+      companyName: string;
+      relationship: string;
+      notes?: string;
+    }>>().default([]).notNull(),
     technologyPortfolio: text("technology_portfolio"),
     serviceDetails: text("service_details"),
     keyContacts: jsonb("key_contacts").$type<Array<{name: string; role: string; email?: string}>>().default([]).notNull(),
