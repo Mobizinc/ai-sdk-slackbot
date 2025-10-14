@@ -156,9 +156,11 @@ export class CaseClassifier {
       );
 
       // Get existing business context for compatibility
+      console.log(`[DEBUG] Looking up business context for company: ${caseData.company_name || caseData.company || 'unknown'}`);
       const businessContext = await this.businessContextService.getContextForCompany(
         caseData.company_name || caseData.company || 'unknown'
       );
+      console.log(`[DEBUG] Fetched business context:`, JSON.stringify(businessContext, null, 2));
 
       // Use existing classification method with enhanced context
       const classification = await this.classifyCase(caseData, businessContext, {
@@ -411,6 +413,8 @@ export class CaseClassifier {
     const businessContextText = businessContext
       ? this.businessContextService.toPromptText(businessContext)
       : 'No specific business context available.';
+
+    console.log(`[DEBUG] Business context text for prompt:\n---\n${businessContextText}\n---`);
 
     // CRITICAL: Use the EXACT system prompt from Python for quality
     let prompt = `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.
