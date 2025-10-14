@@ -32,7 +32,7 @@ export const ServiceNowCaseWebhookSchema = z.object({
   contact_type: z.string().optional().describe("How case was created"),
   company: z.string().optional().describe("Customer company sys_id"),
   account_id: z.string().optional().describe("Customer account sys_id"),
-  opened_at: z.string().datetime().optional().describe("Case creation timestamp"),
+  opened_at: z.coerce.date().optional().describe("Case creation timestamp"),
 
   // Additional metadata
   configuration_item: z.string().optional().describe("Related CI from CMDB"),
