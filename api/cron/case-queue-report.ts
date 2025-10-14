@@ -34,14 +34,14 @@ async function run(trigger: URL): Promise<Response> {
     const channelId = channelParam
       ?? (await getAppSettingWithFallback(
         APP_SETTING_KEYS.queueReportChannel,
-        process.env.CASE_QUEUE_CHANNEL_ID ?? null,
+        process.env.CASE_QUEUE_CHANNEL_ID ?? undefined,
       ));
 
     if (!channelId) {
       return json({ status: "error", message: "Missing channel parameter" }, 400);
     }
 
-    const mentionIds = parseMentions(trigger.searchParams.get("mentions"));
+    const mentionIds = parseMentions(trigger.searchParams.get("mentions") ?? undefined);
     const maxAgeMinutesParam = trigger.searchParams.get("maxAgeMinutes");
     const maxAgeMinutes = maxAgeMinutesParam ? Number(maxAgeMinutesParam) : undefined;
     const includeUnassignedParam = trigger.searchParams.get("includeUnassigned");
