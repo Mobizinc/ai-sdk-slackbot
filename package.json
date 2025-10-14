@@ -28,6 +28,7 @@
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@neondatabase/serverless": "^1.0.2",
     "@slack/web-api": "^7.9.3",
+    "@upstash/qstash": "^2.8.4",
     "@vercel/functions": "^2.0.0",
     "ai": "^5.0.26",
     "dotenv": "^17.2.3",
@@ -37,6 +38,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/mssql": "^9.1.8",
     "@types/node": "^20.11.17",
     "drizzle-kit": "^0.31.5",
     "msw": "^2.3.1",
