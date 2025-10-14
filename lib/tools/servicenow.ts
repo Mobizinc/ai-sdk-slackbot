@@ -155,10 +155,6 @@ export interface ServiceNowCaseResult {
   opened_by?: string;
   caller_id?: string;
   submitted_by?: string;
-  company?: string;
-  company_name?: string;
-  account?: string;
-  account_name?: string;
   url?: string;
 }
 
@@ -198,29 +194,6 @@ export interface ServiceNowCaseSummary {
   company?: string;
   opened_at?: string;
   updated_on?: string;
-  url: string;
-}
-
-export interface ServiceNowCatalogItem {
-  sys_id: string;
-  name: string;
-  short_description?: string;
-  description?: string;
-  category?: string;
-  active: boolean;
-  url: string;
-}
-
-export interface ServiceNowRequestItem {
-  sys_id: string;
-  number: string;
-  short_description?: string;
-  state?: string;
-  opened_at?: string;
-  cat_item?: string;           // Catalog item sys_id
-  cat_item_name?: string;      // Catalog item name
-  request?: string;            // Parent request sys_id
-  request_number?: string;     // Parent request number
   url: string;
 }
 
@@ -286,7 +259,7 @@ export class ServiceNowClient {
 
     return {
       sys_id: sysId,
-      number: extractDisplayValue(raw.number),
+      number: raw.number,
       short_description: extractDisplayValue(raw.short_description),
       description: extractDisplayValue(raw.description),
       priority: extractDisplayValue(raw.priority),
@@ -299,10 +272,6 @@ export class ServiceNowClient {
       opened_by: openedBy,
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
-      company: typeof raw.company === 'object' && raw.company?.value ? raw.company.value : extractDisplayValue(raw.company),
-      company_name: typeof raw.company === 'object' ? extractDisplayValue(raw.company?.display_value) : undefined,
-      account: typeof raw.account === 'object' && raw.account?.value ? raw.account.value : extractDisplayValue(raw.account),
-      account_name: typeof raw.account === 'object' ? extractDisplayValue(raw.account?.display_value) : undefined,
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
     };
   }
@@ -712,142 +681,6 @@ export class ServiceNowClient {
         subcategoryDetails: [],
       };
     }
-  }
-
-  /**
-   * Search for catalog items
-   * Retrieves Service Catalog items from ServiceNow
-   */
-  public async getCatalogItems(input: {
-    category?: string;
-    keywords?: string[];
-    active?: boolean;
-    limit?: number;
-  }): Promise<ServiceNowCatalogItem[]> {
-    const limit = input.limit ?? 10;
-    const queryParts: string[] = [];
-
-    // Filter by active status (default to active only)
-    if (input.active !== false) {
-      queryParts.push('active=true');
-    }
-
-    // Filter by category
-    if (input.category) {
-      queryParts.push(`category.nameLIKE${input.category}`);
-    }
-
-    // Keyword search in name and short description
-    if (input.keywords && input.keywords.length > 0) {
-      const keywordQuery = input.keywords
-        .map(keyword => `nameLIKE${keyword}^ORshort_descriptionLIKE${keyword}`)
-        .join('^OR');
-      queryParts.push(`(${keywordQuery})`);
-    }
-
-    const query = queryParts.length > 0 ? queryParts.join('^') : 'active=true';
-
-    const data = await request<{
-      result: Array<Record<string, any>>;
-    }>(
-      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
-        query
-      )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=sys_id,name,short_description,description,category,active,order`
-    );
-
-    return (data.result ?? []).map((item) => {
-      const sysId = extractDisplayValue(item.sys_id);
-      return {
-        sys_id: sysId,
-        name: extractDisplayValue(item.name) || 'Untitled',
-        short_description: extractDisplayValue(item.short_description) || undefined,
-        description: extractDisplayValue(item.description) || undefined,
-        category: extractDisplayValue(item.category) || undefined,
-        active: item.active === true || item.active === 'true',
-        url: this.getCatalogItemUrl(sysId),
-      } satisfies ServiceNowCatalogItem;
-    });
-  }
-
-  /**
-   * Get a specific catalog item by name
-   */
-  public async getCatalogItemByName(name: string): Promise<ServiceNowCatalogItem | null> {
-    const data = await request<{
-      result: Array<Record<string, any>>;
-    }>(
-      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
-        `name=${name}`
-      )}&sysparm_display_value=all&sysparm_limit=1&sysparm_fields=sys_id,name,short_description,description,category,active,order`
-    );
-
-    if (!data.result || data.result.length === 0) {
-      return null;
-    }
-
-    const item = data.result[0];
-    const sysId = extractDisplayValue(item.sys_id);
-
-    return {
-      sys_id: sysId,
-      name: extractDisplayValue(item.name) || 'Untitled',
-      short_description: extractDisplayValue(item.short_description) || undefined,
-      description: extractDisplayValue(item.description) || undefined,
-      category: extractDisplayValue(item.category) || undefined,
-      active: item.active === true || item.active === 'true',
-      url: this.getCatalogItemUrl(sysId),
-    } satisfies ServiceNowCatalogItem;
-  }
-
-  /**
-   * Generate user-friendly URL for a catalog item
-   */
-  public getCatalogItemUrl(sysId: string): string {
-    if (!config.instanceUrl) {
-      return `[Catalog Item ${sysId}]`;
-    }
-    return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
-  }
-
-  /**
-   * Get a request item (RITM) by number
-   * Request items are instances of catalog items that users have submitted
-   */
-  public async getRequestItem(number: string): Promise<ServiceNowRequestItem | null> {
-    const table = 'sc_req_item';
-    const data = await request<{
-      result: Array<any>;
-    }>(
-      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
-        `number=${number}`
-      )}&sysparm_limit=1&sysparm_display_value=all`
-    );
-
-    if (!data.result?.length) return null;
-
-    const raw = data.result[0];
-    const sysId = extractDisplayValue(raw.sys_id);
-
-    return {
-      sys_id: sysId,
-      number: extractDisplayValue(raw.number),
-      short_description: extractDisplayValue(raw.short_description) || undefined,
-      state: extractDisplayValue(raw.state) || undefined,
-      opened_at: extractDisplayValue(raw.opened_at) || undefined,
-      cat_item: typeof raw.cat_item === 'object' && raw.cat_item?.value
-        ? raw.cat_item.value
-        : extractDisplayValue(raw.cat_item),
-      cat_item_name: typeof raw.cat_item === 'object'
-        ? extractDisplayValue(raw.cat_item?.display_value)
-        : undefined,
-      request: typeof raw.request === 'object' && raw.request?.value
-        ? raw.request.value
-        : extractDisplayValue(raw.request),
-      request_number: typeof raw.request === 'object'
-        ? extractDisplayValue(raw.request?.display_value)
-        : undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
-    };
   }
 }
 

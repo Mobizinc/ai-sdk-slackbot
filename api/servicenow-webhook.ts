@@ -22,6 +22,7 @@ import {
   validateServiceNowWebhook,
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
+import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -29,6 +30,8 @@ const caseTriageService = getCaseTriageService();
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
+// Async triage is ON by default - explicitly set to 'false' to disable
+const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
 
 /**
  * Validate webhook request
@@ -83,6 +86,20 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
+ * Sanitize payload by removing problematic control characters
+ * Keeps properly escaped newlines, tabs, and carriage returns
+ * Removes other ASCII control characters that can break JSON.parse()
+ */
+function sanitizePayload(payload: string): string {
+  // Remove ASCII control characters (0x00-0x1F) except:
+  // - \t (tab, 0x09)
+  // - \n (newline, 0x0A)
+  // - \r (carriage return, 0x0D)
+  // Also remove DEL character (0x7F)
+  return payload.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+/**
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
@@ -113,7 +130,21 @@ export async function POST(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      const parsedPayload = JSON.parse(payload);
+      // Try parsing raw payload first
+      let parsedPayload;
+      try {
+        parsedPayload = JSON.parse(payload);
+      } catch (parseError) {
+        // If parse fails due to control characters, sanitize and retry
+        console.warn(
+          '[Webhook] Initial JSON parse failed (likely control characters), ' +
+          'attempting with sanitized payload'
+        );
+        const sanitizedPayload = sanitizePayload(payload);
+        parsedPayload = JSON.parse(sanitizedPayload);
+        console.info('[Webhook] Successfully parsed sanitized payload');
+      }
+
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
       if (!validationResult.success) {
@@ -136,11 +167,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log webhook with company/account info for debugging
+    const companyInfo = webhookData.company ? `Company: ${webhookData.company}` : '';
+    const accountInfo = webhookData.account_id ? `Account: ${webhookData.account_id}` : '';
+    const clientInfo = [companyInfo, accountInfo].filter(Boolean).join(' | ');
+
     console.info(
-      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})`
+      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})` +
+      (clientInfo ? ` | ${clientInfo}` : '')
     );
 
-    // Execute centralized triage workflow
+    // Check if async triage is enabled
+    if (ENABLE_ASYNC_TRIAGE && isQStashEnabled()) {
+      // Async mode: Enqueue to QStash and return immediately
+      try {
+        const qstashClient = getQStashClient();
+        if (!qstashClient) {
+          throw new Error('QStash client not initialized');
+        }
+
+        const workerUrl = getWorkerUrl('/api/workers/process-case');
+        console.info(`[Webhook] Enqueueing case ${webhookData.case_number} to ${workerUrl}`);
+
+        await qstashClient.publishJSON({
+          url: workerUrl,
+          body: webhookData,
+          retries: 3,
+          delay: 0,
+        });
+
+        console.info(
+          `[Webhook] Case ${webhookData.case_number} queued successfully (async mode)`
+        );
+
+        // Return 202 Accepted - processing will happen asynchronously
+        return Response.json({
+          success: true,
+          queued: true,
+          case_number: webhookData.case_number,
+          message: 'Case queued for async processing',
+        }, { status: 202 });
+
+      } catch (error) {
+        console.error('[Webhook] Failed to enqueue to QStash:', error);
+        // Fall through to sync processing as fallback
+        console.warn('[Webhook] Falling back to synchronous processing');
+      }
+    }
+
+    // Sync mode: Execute centralized triage workflow immediately
     const triageResult = await caseTriageService.triageCase(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
