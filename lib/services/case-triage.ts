@@ -38,6 +38,7 @@ import { getCaseClassifier } from "./case-classifier";
 import { createAzureSearchClient } from "./azure-search-client";
 import { formatWorkNote } from "./work-note-formatter";
 import { getCategorySyncService } from "./servicenow-category-sync";
+import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -78,6 +79,12 @@ export interface CaseTriageOptions {
   writeToServiceNow?: boolean;
 
   /**
+   * Enable catalog redirect for HR requests
+   * If true, automatically redirects misrouted HR requests to catalog items
+   */
+  enableCatalogRedirect?: boolean;
+
+  /**
    * Max retry attempts for classification
    */
   maxRetries?: number;
@@ -106,6 +113,10 @@ export interface CaseTriageResult {
     is_major_incident: boolean;
     reasoning: string;
   };
+  // Catalog redirect fields
+  catalogRedirected: boolean;
+  catalogRedirectReason?: string;
+  catalogItemsProvided?: number;
 }
 
 export class CaseTriageService {
@@ -114,6 +125,7 @@ export class CaseTriageService {
   private classifier = getCaseClassifier();
   private azureSearchClient = createAzureSearchClient();
   private categorySyncService = getCategorySyncService();
+  private catalogRedirectHandler = getCatalogRedirectHandler();
 
   /**
    * Execute complete case triage workflow
@@ -134,6 +146,7 @@ export class CaseTriageService {
       enableBusinessContext = true,
       enableWorkflowRouting = true,
       writeToServiceNow = process.env.CASE_CLASSIFICATION_WRITE_NOTES === "true",
+      enableCatalogRedirect = process.env.CATALOG_REDIRECT_ENABLED === "true",
       maxRetries = parseInt(process.env.CASE_CLASSIFICATION_MAX_RETRIES || "3"),
     } = options;
 
@@ -375,7 +388,7 @@ export class CaseTriageService {
               `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
             );
 
-            // Create Incident record
+            // Create Incident record with full company/context information
             const incidentResult = await serviceNowClient.createIncidentFromCase({
               caseSysId: webhook.sys_id,
               caseNumber: webhook.case_number,
@@ -387,7 +400,21 @@ export class CaseTriageService {
               priority: webhook.priority,
               callerId: webhook.caller_id,
               assignmentGroup: webhook.assignment_group,
-              isMajorIncident: suggestion.is_major_incident
+              isMajorIncident: suggestion.is_major_incident,
+              // Company/Account context (prevents orphaned incidents)
+              company: webhook.company,
+              account: webhook.account || webhook.account_id,
+              businessService: webhook.business_service,
+              location: webhook.location,
+              // Contact information
+              contact: webhook.contact,
+              contactType: webhook.contact_type,
+              openedBy: webhook.opened_by,
+              // Technical context
+              cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
+              // Multi-tenancy / Domain separation
+              sysDomain: webhook.sys_domain,
+              sysDomainPath: webhook.sys_domain_path,
             });
 
             incidentCreated = true;
@@ -430,7 +457,46 @@ export class CaseTriageService {
         }
       }
 
-      // Step 14: Mark inbound as processed
+      // Step 14: Check for catalog redirect (HR requests submitted incorrectly)
+      let catalogRedirected = false;
+      let catalogRedirectReason: string | undefined;
+      let catalogItemsProvided = 0;
+
+      if (enableCatalogRedirect && !incidentCreated) {
+        try {
+          console.log(`[Case Triage] Checking catalog redirect for ${webhook.case_number}`);
+
+          const redirectResult = await this.catalogRedirectHandler.processCase({
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            shortDescription: webhook.short_description,
+            description: webhook.description,
+            category: classificationResult.category,
+            subcategory: classificationResult.subcategory,
+            companyId: webhook.company,
+            submittedBy: webhook.caller_id,
+            clientName: webhook.account_id, // Use account_id as client name
+          });
+
+          if (redirectResult.redirected) {
+            catalogRedirected = true;
+            catalogItemsProvided = redirectResult.catalogItems.length;
+            catalogRedirectReason = `HR request detected and redirected to catalog. ` +
+              `${redirectResult.caseClosed ? 'Case automatically closed.' : 'Work note added.'}`;
+
+            console.log(
+              `[Case Triage] Catalog redirect successful for ${webhook.case_number}: ` +
+              `${catalogItemsProvided} catalog items provided, ` +
+              `case closed: ${redirectResult.caseClosed}`
+            );
+          }
+        } catch (error) {
+          console.error(`[Case Triage] Catalog redirect failed for ${webhook.case_number}:`, error);
+          // Don't fail the entire triage - log error but continue
+        }
+      }
+
+      // Step 15: Mark inbound as processed
       if (inboundId) {
         await this.repository.markPayloadAsProcessed(
           inboundId,
@@ -452,7 +518,8 @@ export class CaseTriageService {
           `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ""}` +
           ` (${Math.round((classificationResult.confidence_score || 0) * 100)}% confidence) ` +
           `in ${processingTime}ms` +
-          `${incidentCreated ? ` | Incident ${incidentNumber} created` : ''}`
+          `${incidentCreated ? ` | Incident ${incidentNumber} created` : ''}` +
+          `${catalogRedirected ? ` | Redirected to catalog (${catalogItemsProvided} items)` : ''}`
       );
 
       return {
@@ -471,7 +538,10 @@ export class CaseTriageService {
         incidentNumber,
         incidentSysId,
         incidentUrl,
-        recordTypeSuggestion: classificationResult.record_type_suggestion
+        recordTypeSuggestion: classificationResult.record_type_suggestion,
+        catalogRedirected,
+        catalogRedirectReason,
+        catalogItemsProvided,
       };
     } catch (error) {
       console.error(`[Case Triage] Failed to triage case ${webhook.case_number}:`, error);
@@ -557,6 +627,7 @@ export class CaseTriageService {
         entitiesDiscovered: latestResult.entitiesCount,
         cached: true,
         incidentCreated: false,
+        catalogRedirected: false,
         recordTypeSuggestion: (cachedClassification as any).record_type_suggestion,
         classifiedAt: latestResult.createdAt,
       };
@@ -646,6 +717,9 @@ export class CaseTriageService {
         // Incident fields from cached classification
         incidentCreated: false, // Cached results don't trigger new incident creation
         recordTypeSuggestion: cachedClassification.record_type_suggestion,
+        // Catalog redirect fields (cached results don't trigger new redirects)
+        catalogRedirected: false,
+        catalogItemsProvided: 0,
       };
     } catch (error) {
       console.error("[Case Triage] Error checking cache:", error);

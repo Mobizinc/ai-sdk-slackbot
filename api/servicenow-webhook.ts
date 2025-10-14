@@ -223,6 +223,7 @@ export async function POST(request: Request) {
       enableBusinessContext: true,
       enableWorkflowRouting: true,
       writeToServiceNow: true,
+      enableCatalogRedirect: true,
     });
 
     const processingTime = Date.now() - startTime;
@@ -233,7 +234,8 @@ export async function POST(request: Request) {
       ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
       ` in ${processingTime}ms` +
       `${triageResult.cached ? ' [CACHED]' : ''}` +
-      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}`
+      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}` +
+      `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
     );
 
     // Return comprehensive response matching original format
@@ -269,6 +271,10 @@ export async function POST(request: Request) {
       incident_sys_id: triageResult.incidentSysId,
       incident_url: triageResult.incidentUrl,
       record_type_suggestion: triageResult.recordTypeSuggestion,
+      // Catalog redirect fields
+      catalog_redirected: triageResult.catalogRedirected,
+      catalog_redirect_reason: triageResult.catalogRedirectReason,
+      catalog_items_provided: triageResult.catalogItemsProvided,
     });
 
   } catch (error) {

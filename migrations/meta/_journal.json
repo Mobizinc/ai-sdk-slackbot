@@ -64,6 +64,13 @@
       "when": 1760408891522,
       "tag": "0008_add_context_stewards",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1760414433400,
+      "tag": "0009_catalog_redirect_tables",
+      "breakpoints": true
     }
   ]
 }
