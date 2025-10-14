@@ -219,10 +219,9 @@ export class CaseTriageService {
         }
       }
 
-      // Step 4: Fetch ServiceNow categories from database cache
+      // Step 4: Fetch ServiceNow categories from database cache (merged from all ITSM tables)
       const categoriesStart = Date.now();
       const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
-        process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case',
         13 // maxAgeHours
       );
       const categoriesTime = Date.now() - categoriesStart;
@@ -232,7 +231,8 @@ export class CaseTriageService {
       }
 
       console.log(
-        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache (${categoriesTime}ms)`
+        `[Case Triage] Using ${categoriesData.categories.length} categories from ` +
+        `${categoriesData.tablesCovered.length}/4 ITSM tables (${categoriesTime}ms)`
       );
 
       // Step 5: Convert webhook to classification request
