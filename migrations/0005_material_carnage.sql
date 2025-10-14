@@ -1,0 +1,1 @@
+ALTER TABLE "business_contexts" ADD COLUMN "related_companies" jsonb DEFAULT '[]'::jsonb NOT NULL;

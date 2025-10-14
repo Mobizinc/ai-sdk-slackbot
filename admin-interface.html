@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Context Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .context-card {
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .context-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .badge-CLIENT { background-color: #0d6efd; }
+    .badge-VENDOR { background-color: #6610f2; }
+    .badge-PLATFORM { background-color: #0dcaf0; }
+    .array-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .array-item input {
+      flex: 1;
+    }
+    .complex-item {
+      border: 1px solid #dee2e6;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row mb-4">
+      <div class="col">
+        <h1>Business Context Admin</h1>
+        <p class="text-muted">Manage clients, vendors, and platforms</p>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-success me-2" onclick="window.showCreateForm()">
+          ➕ Add New
+        </button>
+        <button class="btn btn-primary me-2" onclick="window.importFromJSON()">
+          📥 Import JSON
+        </button>
+        <button class="btn btn-secondary" onclick="window.exportToJSON()">
+          📤 Export JSON
+        </button>
+      </div>
+    </div>
+
+    <!-- Context List -->
+    <div id="contextList" class="row">
+      <div class="col-12 text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Business Context</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm">
+            <input type="hidden" id="editId">
+
+            <!-- Basic Fields -->
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Entity Name *</label>
+                <input type="text" class="form-control" id="entityName" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Type *</label>
+                <select class="form-select" id="entityType" required>
+                  <option value="CLIENT">CLIENT</option>
+                  <option value="VENDOR">VENDOR</option>
+                  <option value="PLATFORM">PLATFORM</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Industry</label>
+                <input type="text" class="form-control" id="industry">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="description" rows="2"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Technology Portfolio</label>
+              <textarea class="form-control" id="technologyPortfolio" rows="2" placeholder="e.g., Microsoft 365, Azure, Cisco networking"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Service Details</label>
+              <textarea class="form-control" id="serviceDetails" rows="2" placeholder="e.g., 24/7 managed services, helpdesk support"></textarea>
+            </div>
+
+            <!-- Aliases -->
+            <div class="mb-3">
+              <label class="form-label">Aliases (alternative names)</label>
+              <div id="aliasesList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addAlias()">+ Add Alias</button>
+            </div>
+
+            <!-- Related Entities -->
+            <div class="mb-3">
+              <label class="form-label">Related Entities</label>
+              <div id="relatedEntitiesList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addRelatedEntity()">+ Add Entity</button>
+            </div>
+
+            <!-- Related Companies -->
+            <div class="mb-3">
+              <label class="form-label">Related Companies (Sibling/Associated Companies)</label>
+              <div id="relatedCompaniesList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addRelatedCompany()">+ Add Company</button>
+            </div>
+
+            <!-- Key Contacts -->
+            <div class="mb-3">
+              <label class="form-label">Key Contacts</label>
+              <div id="keyContactsList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addContact()">+ Add Contact</button>
+            </div>
+
+            <!-- Slack Channels -->
+            <div class="mb-3">
+              <label class="form-label">Slack Channels</label>
+              <div id="slackChannelsList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addSlackChannel()">+ Add Channel</button>
+            </div>
+
+            <!-- CMDB Identifiers -->
+            <div class="mb-3">
+              <label class="form-label">CMDB Identifiers</label>
+              <div id="cmdbIdentifiersList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addCMDBIdentifier()">+ Add CI</button>
+            </div>
+
+            <!-- Context Stewards -->
+            <div class="mb-3">
+              <label class="form-label">Context Stewards</label>
+              <div id="contextStewardsList"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.addSteward()">+ Add Steward</button>
+            </div>
+
+            <!-- Active Status -->
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="isActive" checked>
+                <label class="form-check-label" for="isActive">
+                  Active
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger me-auto" onclick="window.deleteContext()" id="deleteBtn">
+            🗑️ Delete
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="window.saveContext()">
+            💾 Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_BASE = '/api/business-contexts';
+    let contexts = [];
+    let editingId = null;
+    let modal = null;
+
+    // Load contexts on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      modal = new bootstrap.Modal(document.getElementById('editModal'));
+      await loadContexts();
+    });
+
+    window.loadContexts = async function loadContexts() {
+      try {
+        const response = await fetch(API_BASE);
+        const result = await response.json();
+
+        if (result.success) {
+          contexts = result.data;
+          renderContextList();
+        } else {
+          alert('Error loading contexts: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error loading contexts: ' + error.message);
+      }
+    }
+
+    window.renderContextList = function renderContextList() {
+      const container = document.getElementById('contextList');
+
+      if (contexts.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center text-muted">No business contexts found. Click "Add New" to create one.</div>';
+        return;
+      }
+
+      // Group by type
+      const grouped = {
+        CLIENT: contexts.filter(c => c.entityType === 'CLIENT'),
+        VENDOR: contexts.filter(c => c.entityType === 'VENDOR'),
+        PLATFORM: contexts.filter(c => c.entityType === 'PLATFORM'),
+      };
+
+      let html = '';
+
+      for (const [type, items] of Object.entries(grouped)) {
+        if (items.length === 0) continue;
+
+        html += `<div class="col-12 mb-3"><h4>${type}S</h4></div>`;
+
+        items.forEach(context => {
+          html += `
+            <div class="col-md-6 col-lg-4">
+              <div class="card context-card" onclick="window.editContext(${context.id})">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    ${context.entityName}
+                    <span class="badge badge-${context.entityType} float-end">${context.entityType}</span>
+                  </h5>
+                  ${context.industry ? `<p class="text-muted small mb-2">${context.industry}</p>` : ''}
+                  ${context.description ? `<p class="card-text small">${context.description.substring(0, 100)}...</p>` : ''}
+                  ${context.aliases && context.aliases.length > 0 ? `<p class="small mb-1"><strong>Aliases:</strong> ${context.aliases.join(', ')}</p>` : ''}
+                  ${context.cmdbIdentifiers && context.cmdbIdentifiers.length > 0 ? `<p class="small mb-0"><strong>CMDB CIs:</strong> ${context.cmdbIdentifiers.length}</p>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = html;
+    }
+
+    window.showCreateForm = function showCreateForm() {
+      editingId = null;
+      document.getElementById('deleteBtn').style.display = 'none';
+      document.getElementById('editId').value = '';
+      document.getElementById('editForm').reset();
+      clearDynamicFields();
+      modal.show();
+    }
+
+    window.editContext = function editContext(id) {
+      const context = contexts.find(c => c.id === id);
+      if (!context) return;
+
+      editingId = id;
+      document.getElementById('deleteBtn').style.display = 'block';
+      document.getElementById('editId').value = id;
+
+      // Fill basic fields
+      document.getElementById('entityName').value = context.entityName || '';
+      document.getElementById('entityType').value = context.entityType || 'CLIENT';
+      document.getElementById('industry').value = context.industry || '';
+      document.getElementById('description').value = context.description || '';
+      document.getElementById('technologyPortfolio').value = context.technologyPortfolio || '';
+      document.getElementById('serviceDetails').value = context.serviceDetails || '';
+      document.getElementById('isActive').checked = context.isActive !== false;
+
+      // Fill arrays
+      renderAliases(context.aliases || []);
+      renderRelatedEntities(context.relatedEntities || []);
+      renderRelatedCompanies(context.relatedCompanies || []);
+      renderContacts(context.keyContacts || []);
+      renderSlackChannels(context.slackChannels || []);
+      renderCMDBIdentifiers(context.cmdbIdentifiers || []);
+      renderStewards(context.contextStewards || []);
+
+      modal.show();
+    }
+
+    window.clearDynamicFields = function clearDynamicFields() {
+      renderAliases([]);
+      renderRelatedEntities([]);
+      renderRelatedCompanies([]);
+      renderContacts([]);
+      renderSlackChannels([]);
+      renderCMDBIdentifiers([]);
+      renderStewards([]);
+    }
+
+    // Aliases
+    window.renderAliases = function renderAliases(aliases) {
+      const container = document.getElementById('aliasesList');
+      container.innerHTML = aliases.map((alias, i) => `
+        <div class="array-item">
+          <input type="text" class="form-control" value="${alias}" data-alias-index="${i}">
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      `).join('');
+    }
+
+    window.addAlias = function addAlias() {
+      const container = document.getElementById('aliasesList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="array-item">
+          <input type="text" class="form-control" placeholder="Alias name" data-alias-index="${index}">
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      `);
+    }
+
+    // Related Entities
+    window.renderRelatedEntities = function renderRelatedEntities(entities) {
+      const container = document.getElementById('relatedEntitiesList');
+      container.innerHTML = entities.map((entity, i) => `
+        <div class="array-item">
+          <input type="text" class="form-control" value="${entity}" data-entity-index="${i}">
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      `).join('');
+    }
+
+    window.addRelatedEntity = function addRelatedEntity() {
+      const container = document.getElementById('relatedEntitiesList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="array-item">
+          <input type="text" class="form-control" placeholder="Entity name" data-entity-index="${index}">
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      `);
+    }
+
+    // Related Companies
+    window.renderRelatedCompanies = function renderRelatedCompanies(companies) {
+      const container = document.getElementById('relatedCompaniesList');
+      container.innerHTML = companies.map((company, i) => `
+        <div class="complex-item" data-company-index="${i}">
+          <div class="row g-2">
+            <div class="col-md-5">
+              <input type="text" class="form-control" placeholder="Company Name" value="${company.companyName || ''}" data-field="companyName">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" data-field="relationship">
+                <option value="Parent Company" ${company.relationship === 'Parent Company' ? 'selected' : ''}>Parent Company</option>
+                <option value="Subsidiary" ${company.relationship === 'Subsidiary' ? 'selected' : ''}>Subsidiary</option>
+                <option value="Sister Company" ${company.relationship === 'Sister Company' ? 'selected' : ''}>Sister Company</option>
+                <option value="Partner" ${company.relationship === 'Partner' ? 'selected' : ''}>Partner</option>
+                <option value="Acquired Company" ${company.relationship === 'Acquired Company' ? 'selected' : ''}>Acquired Company</option>
+                <option value="Joint Venture" ${company.relationship === 'Joint Venture' ? 'selected' : ''}>Joint Venture</option>
+                <option value="Other" ${company.relationship === 'Other' ? 'selected' : ''}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Notes" value="${company.notes || ''}" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addRelatedCompany = function addRelatedCompany() {
+      const container = document.getElementById('relatedCompaniesList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="complex-item" data-company-index="${index}">
+          <div class="row g-2">
+            <div class="col-md-5">
+              <input type="text" class="form-control" placeholder="Company Name" data-field="companyName">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" data-field="relationship">
+                <option value="Parent Company">Parent Company</option>
+                <option value="Subsidiary">Subsidiary</option>
+                <option value="Sister Company" selected>Sister Company</option>
+                <option value="Partner">Partner</option>
+                <option value="Acquired Company">Acquired Company</option>
+                <option value="Joint Venture">Joint Venture</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Notes" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    // Key Contacts
+    window.renderContacts = function renderContacts(contacts) {
+      const container = document.getElementById('keyContactsList');
+      container.innerHTML = contacts.map((contact, i) => `
+        <div class="complex-item" data-contact-index="${i}">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Name" value="${contact.name || ''}" data-field="name">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Role" value="${contact.role || ''}" data-field="role">
+            </div>
+            <div class="col-md-3">
+              <input type="email" class="form-control" placeholder="Email" value="${contact.email || ''}" data-field="email">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addContact = function addContact() {
+      const container = document.getElementById('keyContactsList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="complex-item" data-contact-index="${index}">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Name" data-field="name">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Role" data-field="role">
+            </div>
+            <div class="col-md-3">
+              <input type="email" class="form-control" placeholder="Email" data-field="email">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    // Slack Channels
+    window.renderSlackChannels = function renderSlackChannels(channels) {
+      const container = document.getElementById('slackChannelsList');
+      container.innerHTML = channels.map((channel, i) => `
+        <div class="complex-item" data-channel-index="${i}">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Channel name" value="${channel.name || ''}" data-field="name">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Channel ID" value="${channel.channelId || ''}" data-field="channelId">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Notes" value="${channel.notes || ''}" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addSlackChannel = function addSlackChannel() {
+      const container = document.getElementById('slackChannelsList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="complex-item" data-channel-index="${index}">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Channel name" data-field="name">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Channel ID" data-field="channelId">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Notes" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    // CMDB Identifiers
+    window.renderCMDBIdentifiers = function renderCMDBIdentifiers(identifiers) {
+      const container = document.getElementById('cmdbIdentifiersList');
+      container.innerHTML = identifiers.map((ci, i) => `
+        <div class="complex-item" data-ci-index="${i}">
+          <div class="row g-2 mb-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="CI Name" value="${ci.ciName || ''}" data-field="ciName">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Sys ID" value="${ci.sysId || ''}" data-field="sysId">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Owner Group" value="${ci.ownerGroup || ''}" data-field="ownerGroup">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-12">
+              <input type="text" class="form-control" placeholder="IP Addresses (comma-separated)" value="${(ci.ipAddresses || []).join(', ')}" data-field="ipAddresses">
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-12">
+              <textarea class="form-control" placeholder="Description" rows="2" data-field="description">${ci.description || ''}</textarea>
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-12">
+              <textarea class="form-control" placeholder="Documentation URLs (one per line)" rows="2" data-field="documentation">${(ci.documentation || []).join('\n')}</textarea>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addCMDBIdentifier = function addCMDBIdentifier() {
+      const container = document.getElementById('cmdbIdentifiersList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="complex-item" data-ci-index="${index}">
+          <div class="row g-2 mb-2">
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="CI Name" data-field="ciName">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Sys ID" data-field="sysId">
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" placeholder="Owner Group" data-field="ownerGroup">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-12">
+              <input type="text" class="form-control" placeholder="IP Addresses (comma-separated)" data-field="ipAddresses">
+            </div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-md-12">
+              <textarea class="form-control" placeholder="Description" rows="2" data-field="description"></textarea>
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-12">
+              <textarea class="form-control" placeholder="Documentation URLs (one per line)" rows="2" data-field="documentation"></textarea>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    // Context Stewards
+    window.renderStewards = function renderStewards(stewards) {
+      const container = document.getElementById('contextStewardsList');
+      container.innerHTML = stewards.map((steward, i) => `
+        <div class="complex-item" data-steward-index="${i}">
+          <div class="row g-2">
+            <div class="col-md-3">
+              <select class="form-select" data-field="type">
+                <option value="channel" ${steward.type === 'channel' ? 'selected' : ''}>Channel</option>
+                <option value="user" ${steward.type === 'user' ? 'selected' : ''}>User</option>
+                <option value="usergroup" ${steward.type === 'usergroup' ? 'selected' : ''}>User Group</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="ID" value="${steward.id || ''}" data-field="id">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Name" value="${steward.name || ''}" data-field="name">
+            </div>
+            <div class="col-md-2">
+              <input type="text" class="form-control" placeholder="Notes" value="${steward.notes || ''}" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.addSteward = function addSteward() {
+      const container = document.getElementById('contextStewardsList');
+      const index = container.children.length;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="complex-item" data-steward-index="${index}">
+          <div class="row g-2">
+            <div class="col-md-3">
+              <select class="form-select" data-field="type">
+                <option value="channel">Channel</option>
+                <option value="user">User</option>
+                <option value="usergroup">User Group</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="ID" data-field="id">
+            </div>
+            <div class="col-md-3">
+              <input type="text" class="form-control" placeholder="Name" data-field="name">
+            </div>
+            <div class="col-md-2">
+              <input type="text" class="form-control" placeholder="Notes" data-field="notes">
+            </div>
+            <div class="col-md-1">
+              <button type="button" class="btn btn-sm btn-danger w-100" onclick="this.closest('.complex-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    // Save Context
+    window.saveContext = async function saveContext() {
+      const data = {
+        entityName: document.getElementById('entityName').value,
+        entityType: document.getElementById('entityType').value,
+        industry: document.getElementById('industry').value || undefined,
+        description: document.getElementById('description').value || undefined,
+        technologyPortfolio: document.getElementById('technologyPortfolio').value || undefined,
+        serviceDetails: document.getElementById('serviceDetails').value || undefined,
+        isActive: document.getElementById('isActive').checked,
+        aliases: Array.from(document.querySelectorAll('[data-alias-index]')).map(el => el.value).filter(v => v),
+        relatedEntities: Array.from(document.querySelectorAll('[data-entity-index]')).map(el => el.value).filter(v => v),
+        relatedCompanies: Array.from(document.querySelectorAll('[data-company-index]')).map(el => ({
+          companyName: el.querySelector('[data-field="companyName"]').value,
+          relationship: el.querySelector('[data-field="relationship"]').value,
+          notes: el.querySelector('[data-field="notes"]').value || undefined,
+        })).filter(c => c.companyName),
+        keyContacts: Array.from(document.querySelectorAll('[data-contact-index]')).map(el => ({
+          name: el.querySelector('[data-field="name"]').value,
+          role: el.querySelector('[data-field="role"]').value,
+          email: el.querySelector('[data-field="email"]').value || undefined,
+        })).filter(c => c.name || c.role),
+        slackChannels: Array.from(document.querySelectorAll('[data-channel-index]')).map(el => ({
+          name: el.querySelector('[data-field="name"]').value,
+          channelId: el.querySelector('[data-field="channelId"]').value || undefined,
+          notes: el.querySelector('[data-field="notes"]').value || undefined,
+        })).filter(c => c.name),
+        cmdbIdentifiers: Array.from(document.querySelectorAll('[data-ci-index]')).map(el => {
+          const ipStr = el.querySelector('[data-field="ipAddresses"]').value;
+          const docStr = el.querySelector('[data-field="documentation"]').value;
+          return {
+            ciName: el.querySelector('[data-field="ciName"]').value || undefined,
+            sysId: el.querySelector('[data-field="sysId"]').value || undefined,
+            ownerGroup: el.querySelector('[data-field="ownerGroup"]').value || undefined,
+            ipAddresses: ipStr ? ipStr.split(',').map(s => s.trim()).filter(s => s) : undefined,
+            description: el.querySelector('[data-field="description"]').value || undefined,
+            documentation: docStr ? docStr.split('\n').map(s => s.trim()).filter(s => s) : undefined,
+          };
+        }).filter(ci => ci.ciName || ci.sysId),
+        contextStewards: Array.from(document.querySelectorAll('[data-steward-index]')).map(el => ({
+          type: el.querySelector('[data-field="type"]').value,
+          id: el.querySelector('[data-field="id"]').value || undefined,
+          name: el.querySelector('[data-field="name"]').value || undefined,
+          notes: el.querySelector('[data-field="notes"]').value || undefined,
+        })).filter(s => s.id || s.name),
+      };
+
+      try {
+        let response;
+        if (editingId) {
+          response = await fetch(`${API_BASE}?id=${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        } else {
+          response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert(result.message || 'Saved successfully!');
+          modal.hide();
+          await loadContexts();
+        } else {
+          alert('Error saving: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error saving: ' + error.message);
+      }
+    }
+
+    // Delete Context
+    window.deleteContext = async function deleteContext() {
+      if (!editingId) return;
+
+      if (!confirm('Are you sure you want to delete this business context? This cannot be undone.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}?id=${editingId}`, {
+          method: 'DELETE',
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          alert(result.message || 'Deleted successfully!');
+          modal.hide();
+          await loadContexts();
+        } else {
+          alert('Error deleting: ' + result.error);
+        }
+      } catch (error) {
+        alert('Error deleting: ' + error.message);
+      }
+    }
+
+    // Export to JSON
+    window.exportToJSON = function exportToJSON() {
+      const data = {
+        clients: contexts.filter(c => c.entityType === 'CLIENT'),
+        vendors: contexts.filter(c => c.entityType === 'VENDOR'),
+        platforms: contexts.filter(c => c.entityType === 'PLATFORM'),
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'business-contexts.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Import from JSON
+    window.importFromJSON = function importFromJSON() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+
+          if (!confirm(`Import ${json.clients?.length || 0} clients, ${json.vendors?.length || 0} vendors, and ${json.platforms?.length || 0} platforms?`)) {
+            return;
+          }
+
+          // Import all entities
+          const allEntities = [
+            ...(json.clients || []),
+            ...(json.vendors || []),
+            ...(json.platforms || []),
+          ];
+
+          let imported = 0;
+          let updated = 0;
+          let failed = 0;
+
+          for (const entity of allEntities) {
+            try {
+              // Try to find existing entity
+              const existing = contexts.find(c => c.entityName === entity.entityName);
+
+              if (existing) {
+                const response = await fetch(`${API_BASE}?id=${existing.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(entity),
+                });
+                const result = await response.json();
+                if (result.success) updated++;
+                else failed++;
+              } else {
+                const response = await fetch(API_BASE, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(entity),
+                });
+                const result = await response.json();
+                if (result.success) imported++;
+                else failed++;
+              }
+            } catch (error) {
+              console.error('Error importing entity:', entity.entityName, error);
+              failed++;
+            }
+          }
+
+          alert(`Import complete!\nImported: ${imported}\nUpdated: ${updated}\nFailed: ${failed}`);
+          await loadContexts();
+        } catch (error) {
+          alert('Error importing JSON: ' + error.message);
+        }
+      };
+      input.click();
+    }
+  </script>
+</body>
+</html>
