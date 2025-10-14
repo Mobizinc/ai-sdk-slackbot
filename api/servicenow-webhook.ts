@@ -85,6 +85,20 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
+ * Sanitize payload by removing problematic control characters
+ * Keeps properly escaped newlines, tabs, and carriage returns
+ * Removes other ASCII control characters that can break JSON.parse()
+ */
+function sanitizePayload(payload: string): string {
+  // Remove ASCII control characters (0x00-0x1F) except:
+  // - \t (tab, 0x09)
+  // - \n (newline, 0x0A)
+  // - \r (carriage return, 0x0D)
+  // Also remove DEL character (0x7F)
+  return payload.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+/**
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
@@ -115,7 +129,21 @@ export async function POST(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      const parsedPayload = JSON.parse(payload);
+      // Try parsing raw payload first
+      let parsedPayload;
+      try {
+        parsedPayload = JSON.parse(payload);
+      } catch (parseError) {
+        // If parse fails due to control characters, sanitize and retry
+        console.warn(
+          '[Webhook] Initial JSON parse failed (likely control characters), ' +
+          'attempting with sanitized payload'
+        );
+        const sanitizedPayload = sanitizePayload(payload);
+        parsedPayload = JSON.parse(sanitizedPayload);
+        console.info('[Webhook] Successfully parsed sanitized payload');
+      }
+
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
       if (!validationResult.success) {
