@@ -68,6 +68,9 @@ export interface RecordTypeSuggestion {
 export interface CaseClassification {
   category: string;
   subcategory?: string;
+  // DUAL CATEGORIZATION: When creating Incident from Case, use separate categories
+  incident_category?: string; // Only populated when record_type_suggestion.type is "Incident" or "Problem"
+  incident_subcategory?: string; // Only populated when record_type_suggestion.type is "Incident" or "Problem"
   confidence_score: number;
   reasoning: string;
   keywords: string[];
@@ -101,18 +104,32 @@ export class CaseClassifier {
   private entityStoreService = getEntityStoreService();
   private repository = getCaseClassificationRepository();
   private mismatchRepository = getCategoryMismatchRepository();
-  private availableCategories: string[] = []; // Will be set by setCategories()
-  private availableSubcategories: string[] = []; // Will be set by setCategories()
+  // DUAL CATEGORIZATION: Store categories separately by table
+  private availableCaseCategories: string[] = [];
+  private availableCaseSubcategories: string[] = [];
+  private availableIncidentCategories: string[] = [];
+  private availableIncidentSubcategories: string[] = [];
   private currentCaseData: CaseData | null = null; // For mismatch logging
 
   /**
-   * Set available categories from ServiceNow cache
+   * Set available categories from ServiceNow cache (TABLE-SPECIFIC)
    * Should be called before classification to use real ServiceNow categories
    */
-  setCategories(categories: string[], subcategories: string[] = []): void {
-    this.availableCategories = categories;
-    this.availableSubcategories = subcategories;
-    console.log(`[CaseClassifier] Loaded ${categories.length} categories, ${subcategories.length} subcategories from ServiceNow`);
+  setCategories(
+    caseCategories: string[],
+    incidentCategories: string[],
+    caseSubcategories: string[] = [],
+    incidentSubcategories: string[] = []
+  ): void {
+    this.availableCaseCategories = caseCategories;
+    this.availableCaseSubcategories = caseSubcategories;
+    this.availableIncidentCategories = incidentCategories;
+    this.availableIncidentSubcategories = incidentSubcategories;
+    console.log(
+      `[CaseClassifier] Loaded categories: ` +
+      `Cases (${caseCategories.length} categories, ${caseSubcategories.length} subcategories), ` +
+      `Incidents (${incidentCategories.length} categories, ${incidentSubcategories.length} subcategories)`
+    );
   }
 
   /**
@@ -625,8 +642,8 @@ Case Information:
     }
 
     // Use real ServiceNow categories if available, otherwise use default list
-    const categoryList = this.availableCategories.length > 0
-      ? this.availableCategories.map(c => `- ${c}`).join('\n')
+    const caseCategoryList = this.availableCaseCategories.length > 0
+      ? this.availableCaseCategories.map(c => `- ${c}`).join('\n')
       : `- User Access Management
 - Networking
 - Application Support
@@ -639,17 +656,27 @@ Case Information:
 - Cloud Services
 - Unclassified`;
 
+    const incidentCategoryList = this.availableIncidentCategories.length > 0
+      ? this.availableIncidentCategories.map(c => `- ${c}`).join('\n')
+      : caseCategoryList; // Fallback to case categories if incident categories not loaded
+
     prompt += `
 
-Available Categories:
-${categoryList}
+Available Categories for CASE record (sn_customerservice_case table):
+${caseCategoryList}
+
+Available Categories for INCIDENT record (incident table):
+${incidentCategoryList}
 
 Analyze the case and provide:
-1. The most appropriate category from the list above
-2. An optional subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
-3. A confidence score between 0.0 and 1.0
-4. A brief reasoning (1-2 sentences) explaining why this category was chosen
-5. Key keywords that influenced your decision (list 3-5 relevant terms)
+1. The most appropriate CASE category from the CASE categories list above
+2. An optional CASE subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
+3. **IF AND ONLY IF** record_type_suggestion.type is "Incident" or "Problem":
+   - Select the most appropriate INCIDENT category from the INCIDENT categories list
+   - An optional INCIDENT subcategory
+4. A confidence score between 0.0 and 1.0
+5. A brief reasoning (1-2 sentences) explaining why this category was chosen
+6. Key keywords that influenced your decision (list 3-5 relevant terms)
 
 Additionally, provide quick triage guidance for the support agent:
 6. SUMMARY: Write a brief technical diagnostic as a senior engineer would explain it to a junior (2-3 sentences):
@@ -751,8 +778,10 @@ Key Difference: Systemic = infrastructure-only steps. Individual = infrastructur
 
 Respond with a JSON object in this exact format:
 {
-  "category": "exact category name from list",
-  "subcategory": "specific subcategory or null",
+  "category": "exact CASE category name from CASE categories list",
+  "subcategory": "specific CASE subcategory or null",
+  "incident_category": "exact INCIDENT category name from INCIDENT categories list (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
+  "incident_subcategory": "specific INCIDENT subcategory (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
   "confidence_score": 0.95,
   "reasoning": "explanation here",
   "keywords": ["keyword1", "keyword2", "keyword3"],
@@ -796,12 +825,12 @@ Important: Return ONLY the JSON object, no additional text.`;
   }
 
   /**
-   * Validate and normalize classification result
+   * Validate and normalize classification result (DUAL CATEGORIZATION)
    */
   private async validateClassification(classification: any): Promise<CaseClassification> {
-    // Use available categories from ServiceNow (merged from all ITSM tables)
-    const validCategories = this.availableCategories.length > 0
-      ? this.availableCategories
+    // Use available categories from ServiceNow (table-specific)
+    const validCaseCategories = this.availableCaseCategories.length > 0
+      ? this.availableCaseCategories
       : [
           'User Access Management',
           'Networking',
@@ -815,18 +844,23 @@ Important: Return ONLY the JSON object, no additional text.`;
           'Monitoring & Alerts'
         ];
 
-    // Check if AI suggested category exists in ServiceNow
-    const originalCategory = classification.category;
-    const originalSubcategory = classification.subcategory;
+    const validIncidentCategories = this.availableIncidentCategories.length > 0
+      ? this.availableIncidentCategories
+      : validCaseCategories; // Fallback to case categories
 
-    if (!validCategories.includes(classification.category)) {
-      // Log mismatch for ServiceNow team review
+    // Validate CASE category
+    const originalCaseCategory = classification.category;
+    const originalCaseSubcategory = classification.subcategory;
+
+    if (!validCaseCategories.includes(classification.category)) {
+      // Log mismatch for ServiceNow team review (CASE table)
       if (this.currentCaseData) {
         await this.mismatchRepository.logMismatch({
           caseNumber: this.currentCaseData.case_number,
           caseSysId: this.currentCaseData.sys_id,
-          aiSuggestedCategory: originalCategory,
-          aiSuggestedSubcategory: originalSubcategory,
+          targetTable: 'sn_customerservice_case', // DUAL CATEGORIZATION: specify table
+          aiSuggestedCategory: originalCaseCategory,
+          aiSuggestedSubcategory: originalCaseSubcategory,
           correctedCategory: 'Application Support',
           confidenceScore: classification.confidence_score || 0.5,
           caseDescription: this.currentCaseData.short_description,
@@ -834,12 +868,42 @@ Important: Return ONLY the JSON object, no additional text.`;
       }
 
       console.warn(
-        `[CaseClassifier] AI suggested invalid category: "${originalCategory}" ` +
+        `[CaseClassifier] AI suggested invalid CASE category: "${originalCaseCategory}" ` +
         `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
         `defaulting to "Application Support" | ` +
-        `This mismatch has been logged for ServiceNow team review`
+        `This mismatch has been logged for ServiceNow team review (table: sn_customerservice_case)`
       );
       classification.category = 'Application Support'; // Safe default
+    }
+
+    // Validate INCIDENT category (only if provided)
+    if (classification.incident_category) {
+      const originalIncidentCategory = classification.incident_category;
+      const originalIncidentSubcategory = classification.incident_subcategory;
+
+      if (!validIncidentCategories.includes(classification.incident_category)) {
+        // Log mismatch for ServiceNow team review (INCIDENT table)
+        if (this.currentCaseData) {
+          await this.mismatchRepository.logMismatch({
+            caseNumber: this.currentCaseData.case_number,
+            caseSysId: this.currentCaseData.sys_id,
+            targetTable: 'incident', // DUAL CATEGORIZATION: specify table
+            aiSuggestedCategory: originalIncidentCategory,
+            aiSuggestedSubcategory: originalIncidentSubcategory,
+            correctedCategory: 'Application Support',
+            confidenceScore: classification.confidence_score || 0.5,
+            caseDescription: this.currentCaseData.short_description,
+          });
+        }
+
+        console.warn(
+          `[CaseClassifier] AI suggested invalid INCIDENT category: "${originalIncidentCategory}" ` +
+          `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
+          `defaulting to "Application Support" | ` +
+          `This mismatch has been logged for ServiceNow team review (table: incident)`
+        );
+        classification.incident_category = 'Application Support'; // Safe default
+      }
     }
 
     // Ensure confidence score is valid
