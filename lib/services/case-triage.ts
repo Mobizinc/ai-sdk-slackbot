@@ -140,6 +140,31 @@ export class CaseTriageService {
     console.log(`[Case Triage] Starting triage for case ${webhook.case_number}`);
 
     try {
+      // Step 0: Idempotency check - return existing result if processed recently
+      // This prevents duplicate work if QStash retries after partial success
+      if (enableCaching) {
+        const recentResult = await this.checkRecentClassification(
+          webhook.case_number,
+          5 // minutes
+        );
+
+        if (recentResult) {
+          const processingTime = Date.now() - startTime;
+          console.log(
+            `[Case Triage] Idempotency check: ${webhook.case_number} was processed ` +
+            `${Math.round((Date.now() - recentResult.classifiedAt.getTime()) / 1000)}s ago - ` +
+            `returning cached result (${processingTime}ms)`
+          );
+
+          return {
+            ...recentResult,
+            cached: true,
+            cacheReason: "Recently processed - idempotency guard (prevents duplicate work from retries)",
+            processingTimeMs: processingTime,
+          };
+        }
+      }
+
       // Step 1: Record inbound payload
       const inboundId = await this.recordInboundPayload(webhook);
 
@@ -466,6 +491,61 @@ export class CaseTriageService {
       return unprocessed?.id || null;
     } catch (error) {
       console.error("[Case Triage] Failed to record inbound payload:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if case was classified very recently (idempotency guard)
+   *
+   * This is separate from the workflow/assignment-based cache check.
+   * It prevents duplicate work when QStash retries after a partial success.
+   *
+   * Returns classification if created within the specified time window.
+   */
+  private async checkRecentClassification(
+    caseNumber: string,
+    withinMinutes: number
+  ): Promise<(CaseTriageResult & { classifiedAt: Date }) | null> {
+    try {
+      const latestResult = await this.repository.getLatestClassificationResult(caseNumber);
+
+      if (!latestResult) {
+        return null;
+      }
+
+      // Check if classification is recent
+      const ageMs = Date.now() - latestResult.createdAt.getTime();
+      const ageMinutes = ageMs / 60000;
+
+      if (ageMinutes > withinMinutes) {
+        return null; // Too old for idempotency guard
+      }
+
+      console.log(
+        `[Case Triage] Recent classification found for ${caseNumber} ` +
+        `(${Math.round(ageMinutes * 60)}s ago)`
+      );
+
+      const cachedClassification = latestResult.classificationJson as any;
+
+      return {
+        caseNumber,
+        caseSysId: (cachedClassification as any).sys_id || "",
+        workflowId: latestResult.workflowId,
+        classification: cachedClassification,
+        similarCases: ((cachedClassification as any).similar_cases || []) as SimilarCaseResult[],
+        kbArticles: ((cachedClassification as any).kb_articles || []) as KBArticleResult[],
+        servicenowUpdated: latestResult.servicenowUpdated,
+        processingTimeMs: latestResult.processingTimeMs,
+        entitiesDiscovered: latestResult.entitiesCount,
+        cached: true,
+        incidentCreated: false,
+        recordTypeSuggestion: (cachedClassification as any).record_type_suggestion,
+        classifiedAt: latestResult.createdAt,
+      };
+    } catch (error) {
+      console.error("[Case Triage] Error checking recent classification:", error);
       return null;
     }
   }
