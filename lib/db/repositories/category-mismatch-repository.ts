@@ -9,11 +9,12 @@ import { categoryMismatchLog, type NewCategoryMismatchLog } from "../schema";
 
 export class CategoryMismatchRepository {
   /**
-   * Log a category mismatch
+   * Log a category mismatch (DUAL CATEGORIZATION: tracks which table)
    */
   async logMismatch(data: {
     caseNumber: string;
     caseSysId?: string;
+    targetTable?: string; // "sn_customerservice_case" or "incident"
     aiSuggestedCategory: string;
     aiSuggestedSubcategory?: string;
     correctedCategory: string;
@@ -30,6 +31,7 @@ export class CategoryMismatchRepository {
       await db.insert(categoryMismatchLog).values({
         caseNumber: data.caseNumber,
         caseSysId: data.caseSysId,
+        targetTable: data.targetTable || 'sn_customerservice_case',
         aiSuggestedCategory: data.aiSuggestedCategory,
         aiSuggestedSubcategory: data.aiSuggestedSubcategory,
         correctedCategory: data.correctedCategory,
@@ -39,7 +41,7 @@ export class CategoryMismatchRepository {
       });
 
       console.log(
-        `[Category Mismatch] Logged mismatch for ${data.caseNumber}: ` +
+        `[Category Mismatch] Logged mismatch for ${data.caseNumber} (table: ${data.targetTable || 'sn_customerservice_case'}): ` +
         `AI suggested "${data.aiSuggestedCategory}" (${Math.round(data.confidenceScore * 100)}% confidence)`
       );
     } catch (error) {

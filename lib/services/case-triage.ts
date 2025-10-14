@@ -219,7 +219,7 @@ export class CaseTriageService {
         }
       }
 
-      // Step 4: Fetch ServiceNow categories from database cache (merged from all ITSM tables)
+      // Step 4: Fetch ServiceNow categories from database cache (TABLE-SPECIFIC for dual categorization)
       const categoriesStart = Date.now();
       const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
         13 // maxAgeHours
@@ -231,8 +231,9 @@ export class CaseTriageService {
       }
 
       console.log(
-        `[Case Triage] Using ${categoriesData.categories.length} categories from ` +
-        `${categoriesData.tablesCovered.length}/4 ITSM tables (${categoriesTime}ms)`
+        `[Case Triage] Using categories from ${categoriesData.tablesCovered.length}/2 ITSM tables: ` +
+        `Cases (${categoriesData.caseCategories.length} categories), ` +
+        `Incidents (${categoriesData.incidentCategories.length} categories) (${categoriesTime}ms)`
       );
 
       // Step 5: Convert webhook to classification request
@@ -241,8 +242,13 @@ export class CaseTriageService {
       // Note: Similar cases and KB articles are fetched by the classifier internally
       // The classifier uses the new Azure Search client with vector search and MSP attribution
 
-      // Step 6: Set real ServiceNow categories in classifier
-      this.classifier.setCategories(categoriesData.categories, categoriesData.subcategories);
+      // Step 6: Set real ServiceNow categories in classifier (TABLE-SPECIFIC)
+      this.classifier.setCategories(
+        categoriesData.caseCategories,
+        categoriesData.incidentCategories,
+        categoriesData.caseSubcategories,
+        categoriesData.incidentSubcategories
+      );
 
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
       const classificationStart = Date.now();
@@ -359,12 +365,22 @@ export class CaseTriageService {
           try {
             const { serviceNowClient } = await import('../tools/servicenow');
 
+            // DUAL CATEGORIZATION: Use incident-specific category if provided, otherwise fall back to case category
+            const incidentCategory = classificationResult.incident_category || classificationResult.category;
+            const incidentSubcategory = classificationResult.incident_subcategory || classificationResult.subcategory;
+
+            console.log(
+              `[Case Triage] Creating Incident with category: ${incidentCategory}` +
+              `${incidentSubcategory ? ` > ${incidentSubcategory}` : ''}` +
+              `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
+            );
+
             // Create Incident record
             const incidentResult = await serviceNowClient.createIncidentFromCase({
               caseSysId: webhook.sys_id,
               caseNumber: webhook.case_number,
-              category: classificationResult.category,
-              subcategory: classificationResult.subcategory,
+              category: incidentCategory,
+              subcategory: incidentSubcategory,
               shortDescription: webhook.short_description,
               description: webhook.description,
               urgency: webhook.urgency,
