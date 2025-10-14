@@ -153,6 +153,31 @@ export class CaseTriageService {
     console.log(`[Case Triage] Starting triage for case ${webhook.case_number}`);
 
     try {
+      // Step 0: Idempotency check - return existing result if processed recently
+      // This prevents duplicate work if QStash retries after partial success
+      if (enableCaching) {
+        const recentResult = await this.checkRecentClassification(
+          webhook.case_number,
+          5 // minutes
+        );
+
+        if (recentResult) {
+          const processingTime = Date.now() - startTime;
+          console.log(
+            `[Case Triage] Idempotency check: ${webhook.case_number} was processed ` +
+            `${Math.round((Date.now() - recentResult.classifiedAt.getTime()) / 1000)}s ago - ` +
+            `returning cached result (${processingTime}ms)`
+          );
+
+          return {
+            ...recentResult,
+            cached: true,
+            cacheReason: "Recently processed - idempotency guard (prevents duplicate work from retries)",
+            processingTimeMs: processingTime,
+          };
+        }
+      }
+
       // Step 1: Record inbound payload
       const inboundId = await this.recordInboundPayload(webhook);
 
@@ -208,17 +233,19 @@ export class CaseTriageService {
       }
 
       // Step 4: Fetch ServiceNow categories from database cache
+      const categoriesStart = Date.now();
       const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
         process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case',
         13 // maxAgeHours
       );
+      const categoriesTime = Date.now() - categoriesStart;
 
       if (categoriesData.isStale) {
         console.warn('[Case Triage] Categories are stale - consider running sync');
       }
 
       console.log(
-        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache`
+        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache (${categoriesTime}ms)`
       );
 
       // Step 5: Convert webhook to classification request
@@ -231,6 +258,7 @@ export class CaseTriageService {
       this.classifier.setCategories(categoriesData.categories, categoriesData.subcategories);
 
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
+      const classificationStart = Date.now();
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 
@@ -285,6 +313,8 @@ export class CaseTriageService {
           `Classification failed after ${maxRetries} attempts: ${lastError?.message}`
         );
       }
+
+      const classificationTime = Date.now() - classificationStart;
 
       // Step 9: Format work note
       const workNoteContent = formatWorkNote(classificationResult);
@@ -444,6 +474,14 @@ export class CaseTriageService {
         );
       }
 
+      // Log timing breakdown for performance analysis
+      const storageTime = Date.now() - startTime - classificationTime - categoriesTime;
+      console.log(
+        `[Case Triage] Timing breakdown: ` +
+        `categories=${categoriesTime}ms, classification=${classificationTime}ms, ` +
+        `storage/updates=${storageTime}ms, total=${processingTime}ms`
+      );
+
       console.log(
         `[Case Triage] Completed triage for ${webhook.case_number}: ` +
           `${classificationResult.category || "Unknown"}` +
@@ -509,6 +547,62 @@ export class CaseTriageService {
       return unprocessed?.id || null;
     } catch (error) {
       console.error("[Case Triage] Failed to record inbound payload:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if case was classified very recently (idempotency guard)
+   *
+   * This is separate from the workflow/assignment-based cache check.
+   * It prevents duplicate work when QStash retries after a partial success.
+   *
+   * Returns classification if created within the specified time window.
+   */
+  private async checkRecentClassification(
+    caseNumber: string,
+    withinMinutes: number
+  ): Promise<(CaseTriageResult & { classifiedAt: Date }) | null> {
+    try {
+      const latestResult = await this.repository.getLatestClassificationResult(caseNumber);
+
+      if (!latestResult) {
+        return null;
+      }
+
+      // Check if classification is recent
+      const ageMs = Date.now() - latestResult.createdAt.getTime();
+      const ageMinutes = ageMs / 60000;
+
+      if (ageMinutes > withinMinutes) {
+        return null; // Too old for idempotency guard
+      }
+
+      console.log(
+        `[Case Triage] Recent classification found for ${caseNumber} ` +
+        `(${Math.round(ageMinutes * 60)}s ago)`
+      );
+
+      const cachedClassification = latestResult.classificationJson as any;
+
+      return {
+        caseNumber,
+        caseSysId: (cachedClassification as any).sys_id || "",
+        workflowId: latestResult.workflowId,
+        classification: cachedClassification,
+        similarCases: ((cachedClassification as any).similar_cases || []) as SimilarCaseResult[],
+        kbArticles: ((cachedClassification as any).kb_articles || []) as KBArticleResult[],
+        servicenowUpdated: latestResult.servicenowUpdated,
+        processingTimeMs: latestResult.processingTimeMs,
+        entitiesDiscovered: latestResult.entitiesCount,
+        cached: true,
+        incidentCreated: false,
+        catalogRedirected: false,
+        recordTypeSuggestion: (cachedClassification as any).record_type_suggestion,
+        classifiedAt: latestResult.createdAt,
+      };
+    } catch (error) {
+      console.error("[Case Triage] Error checking recent classification:", error);
       return null;
     }
   }

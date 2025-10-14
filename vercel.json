@@ -11,7 +11,7 @@
       "maxDuration": 60
     },
     "api/servicenow-webhook.ts": {
-      "maxDuration": 60
+      "maxDuration": 180
     },
     "api/cron/case-queue-snapshot.ts": {
       "maxDuration": 60

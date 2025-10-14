@@ -4,7 +4,7 @@
  */
 
 import { generateText } from 'ai';
-import { modelProvider } from '../model-provider';
+import { modelProvider, getActiveModelId } from '../model-provider';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
 import { searchKBArticles, type KBArticle } from './kb-article-search';
 import { getWorkflowRouter, type RoutingResult } from './workflow-router';
@@ -156,11 +156,19 @@ export class CaseClassifier {
       );
 
       // Get existing business context for compatibility
-      console.log(`[DEBUG] Looking up business context for company: ${caseData.company_name || caseData.company || 'unknown'}`);
-      const businessContext = await this.businessContextService.getContextForCompany(
-        caseData.company_name || caseData.company || 'unknown'
-      );
-      console.log(`[DEBUG] Fetched business context:`, JSON.stringify(businessContext, null, 2));
+      const companyIdentifier = caseData.company_name || caseData.company || 'unknown';
+      console.log(`[CaseClassifier] Looking up business context for company: ${companyIdentifier}`);
+
+      const businessContext = await this.businessContextService.getContextForCompany(companyIdentifier);
+
+      if (businessContext) {
+        console.log(
+          `[CaseClassifier] Business context found: ${businessContext.entityName || 'Unknown'} ` +
+          `(${businessContext.relatedEntities?.length || 0} related entities)`
+        );
+      } else {
+        console.log(`[CaseClassifier] No business context available for ${companyIdentifier}`);
+      }
 
       // Use existing classification method with enhanced context
       const classification = await this.classifyCase(caseData, businessContext, {
@@ -346,14 +354,46 @@ export class CaseClassifier {
     // Use AI Gateway via model provider
     const model = modelProvider.languageModel("chat-model");
 
+    // Log prompt size for performance analysis
+    const promptSize = prompt.length;
+    const promptLines = prompt.split('\n').length;
+    console.log(
+      `[CaseClassifier] Prompt prepared for case ${caseData.case_number}: ` +
+      `${promptSize.toLocaleString()} chars, ${promptLines} lines`
+    );
+
+    // Create AbortController with 120s timeout to prevent hanging
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn(`[CaseClassifier] AI call timeout (120s) for case ${caseData.case_number}`);
+      abortController.abort();
+    }, 120000); // 120 seconds
+
     try {
+      const aiCallStart = Date.now();
+      const activeModel = getActiveModelId();
+      console.log(
+        `[CaseClassifier] Starting AI classification for case ${caseData.case_number} | ` +
+        `Model: ${activeModel} | Provider: AI Gateway (ai-gateway.vercel.sh)`
+      );
+
       const result = await generateText({
         model,
         prompt,
         temperature: 0.1, // Low temperature for consistent classification
+        abortSignal: abortController.signal, // Add timeout signal
         // Note: Sonnet 4.5 has 200K context window, no maxTokens needed
         // Output will be complete based on prompt complexity
       });
+
+      const aiCallDuration = Date.now() - aiCallStart;
+      const usage = result.usage as any;
+      console.log(
+        `[CaseClassifier] AI call completed in ${aiCallDuration}ms for case ${caseData.case_number} | ` +
+        `Tokens: ${usage?.promptTokens || 0} in / ${usage?.completionTokens || 0} out | ` +
+        `Finish: ${result.finishReason || 'unknown'}`
+      );
+      clearTimeout(timeoutId);
 
       // Parse the JSON response
       const classificationText = result.text.trim();
@@ -373,7 +413,6 @@ export class CaseClassifier {
       const processingTime = Date.now() - startTime;
 
       // Extract token usage (using type assertion due to SDK type definitions)
-      const usage = result.usage as any;
       const promptTokens = usage?.promptTokens || 0;
       const completionTokens = usage?.completionTokens || 0;
 
@@ -394,7 +433,14 @@ export class CaseClassifier {
       };
 
     } catch (error) {
-      console.error('[CaseClassifier] Classification failed:', error);
+      clearTimeout(timeoutId); // Clean up timeout on error
+
+      // Check if error is due to timeout/abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[CaseClassifier] AI call aborted (timeout) for case ${caseData.case_number}`);
+      } else {
+        console.error('[CaseClassifier] Classification failed:', error);
+      }
 
       // Fallback classification
       return this.getFallbackClassification(caseData);
