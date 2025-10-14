@@ -27,13 +27,23 @@ const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
 
 /**
  * Verify QStash signature
+ * @param signature - The upstash-signature header value
+ * @param body - The raw request body string
  */
-async function verifyQStashRequest(request: Request): Promise<boolean> {
+async function verifyQStashRequest(
+  signature: string | null,
+  body: string
+): Promise<boolean> {
   const { current, next } = getSigningKeys();
 
   if (!current || !next) {
     console.warn('[Worker] QStash signing keys not configured - skipping signature verification');
     return true; // Allow in development
+  }
+
+  if (!signature) {
+    console.error('[Worker] Missing upstash-signature header');
+    return false;
   }
 
   try {
@@ -42,13 +52,6 @@ async function verifyQStashRequest(request: Request): Promise<boolean> {
       nextSigningKey: next,
     });
 
-    const signature = request.headers.get('upstash-signature');
-    if (!signature) {
-      console.error('[Worker] Missing upstash-signature header');
-      return false;
-    }
-
-    const body = await request.text();
     const isValid = await receiver.verify({
       signature,
       body,
@@ -68,8 +71,14 @@ export async function POST(request: Request) {
   const startTime = Date.now();
 
   try {
-    // Verify QStash signature
-    const isValidSignature = await verifyQStashRequest(request);
+    // Read body once at the start (can only be read once)
+    const body = await request.text();
+
+    // Get signature from headers
+    const signature = request.headers.get('upstash-signature');
+
+    // Verify QStash signature (pass body and signature)
+    const isValidSignature = await verifyQStashRequest(signature, body);
     if (!isValidSignature) {
       console.warn('[Worker] Invalid QStash signature - rejecting request');
       return Response.json(
@@ -79,7 +88,6 @@ export async function POST(request: Request) {
     }
 
     // Parse webhook data from QStash message
-    const body = await request.text();
     const messageData = JSON.parse(body);
 
     // Extract the actual webhook payload
