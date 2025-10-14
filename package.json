@@ -12,7 +12,12 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:import-contexts": "tsx scripts/import-business-contexts.ts"
+    "db:import-contexts": "tsx scripts/import-business-contexts.ts",
+    "queue:snapshot": "tsx scripts/pull-case-queue-snapshot.ts",
+    "queue:snapshot:dry": "tsx scripts/pull-case-queue-snapshot.ts --dry-run",
+    "queue:post": "tsx scripts/post-case-queue-report.ts",
+    "queue:leaderboard": "tsx scripts/post-case-leaderboard.ts",
+    "set:app-setting": "tsx scripts/set-app-setting.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +34,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "@slack/web-api": "^7.9.3",
     "@upstash/qstash": "^2.8.4",
+    "mssql": "^11.0.0",
     "@vercel/functions": "^2.0.0",
     "ai": "^5.0.26",
     "dotenv": "^17.2.3",
