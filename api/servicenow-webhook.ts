@@ -22,6 +22,7 @@ import {
   validateServiceNowWebhook,
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
+import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -29,6 +30,7 @@ const caseTriageService = getCaseTriageService();
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
+const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
 
 /**
  * Validate webhook request
@@ -146,7 +148,45 @@ export async function POST(request: Request) {
       (clientInfo ? ` | ${clientInfo}` : '')
     );
 
-    // Execute centralized triage workflow
+    // Check if async triage is enabled
+    if (ENABLE_ASYNC_TRIAGE && isQStashEnabled()) {
+      // Async mode: Enqueue to QStash and return immediately
+      try {
+        const qstashClient = getQStashClient();
+        if (!qstashClient) {
+          throw new Error('QStash client not initialized');
+        }
+
+        const workerUrl = getWorkerUrl('/api/workers/process-case');
+        console.info(`[Webhook] Enqueueing case ${webhookData.case_number} to ${workerUrl}`);
+
+        await qstashClient.publishJSON({
+          url: workerUrl,
+          body: webhookData,
+          retries: 3,
+          delay: 0,
+        });
+
+        console.info(
+          `[Webhook] Case ${webhookData.case_number} queued successfully (async mode)`
+        );
+
+        // Return 202 Accepted - processing will happen asynchronously
+        return Response.json({
+          success: true,
+          queued: true,
+          case_number: webhookData.case_number,
+          message: 'Case queued for async processing',
+        }, { status: 202 });
+
+      } catch (error) {
+        console.error('[Webhook] Failed to enqueue to QStash:', error);
+        // Fall through to sync processing as fallback
+        console.warn('[Webhook] Falling back to synchronous processing');
+      }
+    }
+
+    // Sync mode: Execute centralized triage workflow immediately
     const triageResult = await caseTriageService.triageCase(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
