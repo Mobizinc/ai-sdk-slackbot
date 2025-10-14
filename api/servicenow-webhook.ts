@@ -136,8 +136,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log webhook with company/account info for debugging
+    const companyInfo = webhookData.company ? `Company: ${webhookData.company}` : '';
+    const accountInfo = webhookData.account_id ? `Account: ${webhookData.account_id}` : '';
+    const clientInfo = [companyInfo, accountInfo].filter(Boolean).join(' | ');
+
     console.info(
-      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})`
+      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})` +
+      (clientInfo ? ` | ${clientInfo}` : '')
     );
 
     // Execute centralized triage workflow
