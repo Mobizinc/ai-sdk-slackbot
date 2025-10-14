@@ -388,7 +388,7 @@ export class CaseTriageService {
               `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
             );
 
-            // Create Incident record
+            // Create Incident record with full company/context information
             const incidentResult = await serviceNowClient.createIncidentFromCase({
               caseSysId: webhook.sys_id,
               caseNumber: webhook.case_number,
@@ -400,7 +400,21 @@ export class CaseTriageService {
               priority: webhook.priority,
               callerId: webhook.caller_id,
               assignmentGroup: webhook.assignment_group,
-              isMajorIncident: suggestion.is_major_incident
+              isMajorIncident: suggestion.is_major_incident,
+              // Company/Account context (prevents orphaned incidents)
+              company: webhook.company,
+              account: webhook.account || webhook.account_id,
+              businessService: webhook.business_service,
+              location: webhook.location,
+              // Contact information
+              contact: webhook.contact,
+              contactType: webhook.contact_type,
+              openedBy: webhook.opened_by,
+              // Technical context
+              cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
+              // Multi-tenancy / Domain separation
+              sysDomain: webhook.sys_domain,
+              sysDomainPath: webhook.sys_domain_path,
             });
 
             incidentCreated = true;

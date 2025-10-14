@@ -513,6 +513,20 @@ export class ServiceNowClient {
     callerId?: string;
     assignmentGroup?: string;
     isMajorIncident?: boolean;
+    // Company/Account context (prevents orphaned incidents)
+    company?: string;
+    account?: string;
+    businessService?: string;
+    location?: string;
+    // Contact information
+    contact?: string;
+    contactType?: string;
+    openedBy?: string;
+    // Technical context
+    cmdbCi?: string;
+    // Multi-tenancy / Domain separation
+    sysDomain?: string;
+    sysDomainPath?: string;
   }): Promise<{
     incident_number: string;
     incident_sys_id: string;
@@ -535,6 +549,44 @@ export class ServiceNowClient {
       // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
     };
+
+    // Add company/account context (prevents orphaned incidents)
+    if (input.company) {
+      payload.company = input.company;
+    }
+    if (input.account) {
+      payload.account = input.account;
+    }
+    if (input.businessService) {
+      payload.business_service = input.businessService;
+    }
+    if (input.location) {
+      payload.location = input.location;
+    }
+
+    // Add contact information
+    if (input.contact) {
+      payload.contact = input.contact;
+    }
+    if (input.contactType) {
+      payload.contact_type = input.contactType;
+    }
+    if (input.openedBy) {
+      payload.opened_by = input.openedBy;
+    }
+
+    // Add technical context
+    if (input.cmdbCi) {
+      payload.cmdb_ci = input.cmdbCi;
+    }
+
+    // Add multi-tenancy / domain separation
+    if (input.sysDomain) {
+      payload.sys_domain = input.sysDomain;
+    }
+    if (input.sysDomainPath) {
+      payload.sys_domain_path = input.sysDomainPath;
+    }
 
     // Set severity for major incidents
     if (input.isMajorIncident) {
