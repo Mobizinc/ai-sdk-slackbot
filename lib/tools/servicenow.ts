@@ -168,6 +168,16 @@ export interface ServiceNowCaseJournalEntry {
   value?: string;
 }
 
+export interface ServiceNowCatalogItem {
+  sys_id: string;
+  name: string;
+  short_description?: string;
+  description?: string;
+  category?: string;
+  active: boolean;
+  url: string;
+}
+
 export interface ServiceNowConfigurationItem {
   sys_id: string;
   name: string;
@@ -639,6 +649,97 @@ export class ServiceNowClient {
     uniqueChoices.sort((a, b) => a.sequence - b.sequence);
 
     return uniqueChoices;
+  }
+
+  /**
+   * Get catalog items from Service Catalog
+   */
+  public async getCatalogItems(input: {
+    category?: string;
+    keywords?: string[];
+    active?: boolean;
+    limit?: number;
+  }): Promise<ServiceNowCatalogItem[]> {
+    const limit = input.limit ?? 10;
+    const queryParts: string[] = [];
+
+    // Filter by active status (default to active only)
+    if (input.active !== false) {
+      queryParts.push('active=true');
+    }
+
+    // Filter by category
+    if (input.category) {
+      queryParts.push(`category.nameLIKE${input.category}`);
+    }
+
+    // Keyword search in name and short description
+    if (input.keywords && input.keywords.length > 0) {
+      const keywordQuery = input.keywords
+        .map(keyword => `nameLIKE${keyword}^ORshort_descriptionLIKE${keyword}`)
+        .join('^OR');
+      queryParts.push(`(${keywordQuery})`);
+    }
+
+    const query = queryParts.length > 0 ? queryParts.join('^') : 'active=true';
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
+        query
+      )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=sys_id,name,short_description,description,category,active,order`
+    );
+
+    return data.result.map((item) => {
+      const sysId = extractDisplayValue(item.sys_id);
+      return {
+        sys_id: sysId,
+        name: extractDisplayValue(item.name) || 'Untitled',
+        short_description: extractDisplayValue(item.short_description) || undefined,
+        description: extractDisplayValue(item.description) || undefined,
+        category: extractDisplayValue(item.category) || undefined,
+        active: extractDisplayValue(item.active) === 'true',
+        url: this.getCatalogItemUrl(sysId),
+      } satisfies ServiceNowCatalogItem;
+    });
+  }
+
+  /**
+   * Get a specific catalog item by name
+   */
+  public async getCatalogItemByName(name: string): Promise<ServiceNowCatalogItem | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1&sysparm_fields=sys_id,name,short_description,description,category,active,order`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const item = data.result[0];
+    const sysId = extractDisplayValue(item.sys_id);
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(item.name) || 'Untitled',
+      short_description: extractDisplayValue(item.short_description) || undefined,
+      description: extractDisplayValue(item.description) || undefined,
+      category: extractDisplayValue(item.category) || undefined,
+      active: extractDisplayValue(item.active) === 'true',
+      url: this.getCatalogItemUrl(sysId),
+    };
+  }
+
+  /**
+   * Get URL for catalog item
+   */
+  private getCatalogItemUrl(sysId: string): string {
+    return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
   }
 
   /**
