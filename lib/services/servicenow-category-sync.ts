@@ -224,38 +224,107 @@ export class ServiceNowCategorySyncService {
   }
 
   /**
-   * Get categories for classifier use
+   * Sync all ITSM record types (Cases, Incidents, Changes, Problems)
+   * Ensures consistent categories across all ServiceNow ITSM tables
+   */
+  async syncAllITSMTables(): Promise<{
+    cases: { categories: CategorySyncResult; subcategories: CategorySyncResult };
+    incidents: { categories: CategorySyncResult; subcategories: CategorySyncResult };
+    changes: { categories: CategorySyncResult; subcategories: CategorySyncResult };
+    problems: { categories: CategorySyncResult; subcategories: CategorySyncResult };
+  }> {
+    console.log('[Category Sync] Starting full ITSM category sync (Cases, Incidents, Changes, Problems)...');
+
+    const results = {
+      cases: await this.syncAllCaseChoices('sn_customerservice_case'),
+      incidents: await this.syncAllCaseChoices('incident'),
+      changes: await this.syncAllCaseChoices('change_request'),
+      problems: await this.syncAllCaseChoices('problem'),
+    };
+
+    const totalAdded =
+      results.cases.categories.choicesAdded +
+      results.cases.subcategories.choicesAdded +
+      results.incidents.categories.choicesAdded +
+      results.incidents.subcategories.choicesAdded +
+      results.changes.categories.choicesAdded +
+      results.changes.subcategories.choicesAdded +
+      results.problems.categories.choicesAdded +
+      results.problems.subcategories.choicesAdded;
+
+    const totalUpdated =
+      results.cases.categories.choicesUpdated +
+      results.cases.subcategories.choicesUpdated +
+      results.incidents.categories.choicesUpdated +
+      results.incidents.subcategories.choicesUpdated +
+      results.changes.categories.choicesUpdated +
+      results.changes.subcategories.choicesUpdated +
+      results.problems.categories.choicesUpdated +
+      results.problems.subcategories.choicesUpdated;
+
+    console.log(
+      `[Category Sync] Full ITSM sync completed: ${totalAdded} added, ${totalUpdated} updated`
+    );
+
+    return results;
+  }
+
+  /**
+   * Get categories for classifier use (MERGED from all ITSM tables)
    *
-   * Returns category labels suitable for LLM prompt
+   * Returns category labels from Cases, Incidents, Changes, and Problems
+   * This ensures the AI has access to ALL valid categories across ITSM
    */
   async getCategoriesForClassifier(
-    tableName: string = "sn_customerservice_case",
     maxAgeHours: number = 13
   ): Promise<{
     categories: string[];
     subcategories: string[];
     isStale: boolean;
+    tablesCovered: string[];
   }> {
     try {
-      const categoryChoices = await this.repository.getCachedCategories(
-        tableName,
-        "category",
-        maxAgeHours
-      );
+      const tables = ['sn_customerservice_case', 'incident', 'change_request', 'problem'];
+      const allCategories = new Set<string>();
+      const allSubcategories = new Set<string>();
+      let isStale = false;
+      const tablesCovered: string[] = [];
 
-      const subcategoryChoices = await this.repository.getCachedCategories(
-        tableName,
-        "subcategory",
-        maxAgeHours
-      );
+      // Merge categories from all 4 ITSM tables
+      for (const table of tables) {
+        const categoryChoices = await this.repository.getCachedCategories(
+          table,
+          'category',
+          maxAgeHours
+        );
 
-      const categories = categoryChoices.map((c) => c.label);
-      const subcategories = subcategoryChoices.map((c) => c.label);
+        const subcategoryChoices = await this.repository.getCachedCategories(
+          table,
+          'subcategory',
+          maxAgeHours
+        );
 
-      const isStale =
-        categoryChoices.length === 0 ||
-        categoryChoices.some((c) => c.isStale) ||
-        subcategoryChoices.some((c) => c.isStale);
+        // Add to merged set
+        categoryChoices.forEach((c) => allCategories.add(c.label));
+        subcategoryChoices.forEach((c) => allSubcategories.add(c.label));
+
+        // Track which tables contributed
+        if (categoryChoices.length > 0) {
+          tablesCovered.push(table);
+        }
+
+        // Check staleness
+        if (
+          categoryChoices.length === 0 ||
+          categoryChoices.some((c) => c.isStale) ||
+          subcategoryChoices.some((c) => c.isStale)
+        ) {
+          isStale = true;
+        }
+      }
+
+      const categories = Array.from(allCategories).sort();
+      const subcategories = Array.from(allSubcategories).sort();
 
       if (isStale) {
         console.warn(
@@ -263,10 +332,16 @@ export class ServiceNowCategorySyncService {
         );
       }
 
+      console.log(
+        `[Category Sync] Loaded ${categories.length} unique categories, ` +
+        `${subcategories.length} unique subcategories from ${tablesCovered.length}/4 ITSM tables`
+      );
+
       return {
         categories,
         subcategories,
         isStale,
+        tablesCovered,
       };
     } catch (error) {
       console.error(`[Category Sync] Error getting categories for classifier:`, error);
@@ -274,6 +349,7 @@ export class ServiceNowCategorySyncService {
         categories: [],
         subcategories: [],
         isStale: true,
+        tablesCovered: [],
       };
     }
   }

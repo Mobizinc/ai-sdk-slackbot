@@ -12,6 +12,7 @@ import { getBusinessContextService as getNewBusinessContextService } from './bus
 import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
+import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
@@ -99,8 +100,10 @@ export class CaseClassifier {
   private caseIntelligenceService = getCaseIntelligenceService();
   private entityStoreService = getEntityStoreService();
   private repository = getCaseClassificationRepository();
+  private mismatchRepository = getCategoryMismatchRepository();
   private availableCategories: string[] = []; // Will be set by setCategories()
   private availableSubcategories: string[] = []; // Will be set by setCategories()
+  private currentCaseData: CaseData | null = null; // For mismatch logging
 
   /**
    * Set available categories from ServiceNow cache
@@ -315,6 +318,9 @@ export class CaseClassifier {
 
     const startTime = Date.now();
 
+    // Store case data for mismatch logging
+    this.currentCaseData = caseData;
+
     // Fetch similar cases if enabled (using NEW vector search with MSP attribution)
     let similarCases: SimilarCaseResult[] = [];
     if (includeSimilarCases && this.searchClient) {
@@ -428,7 +434,7 @@ export class CaseClassifier {
       );
 
       // Validate and normalize the classification
-      const validatedClassification = this.validateClassification(classification);
+      const validatedClassification = await this.validateClassification(classification);
 
       // Add metadata from AI SDK response
       const processingTime = Date.now() - startTime;
@@ -792,23 +798,47 @@ Important: Return ONLY the JSON object, no additional text.`;
   /**
    * Validate and normalize classification result
    */
-  private validateClassification(classification: any): CaseClassification {
-    const validCategories = [
-      'User Access Management',
-      'Networking',
-      'Application Support',
-      'Infrastructure',
-      'Security',
-      'Hardware',
-      'Email & Collaboration',
-      'Database',
-      'Backup & Recovery',
-      'Monitoring & Alerts'
-    ];
+  private async validateClassification(classification: any): Promise<CaseClassification> {
+    // Use available categories from ServiceNow (merged from all ITSM tables)
+    const validCategories = this.availableCategories.length > 0
+      ? this.availableCategories
+      : [
+          'User Access Management',
+          'Networking',
+          'Application Support',
+          'Infrastructure',
+          'Security',
+          'Hardware',
+          'Email & Collaboration',
+          'Database',
+          'Backup & Recovery',
+          'Monitoring & Alerts'
+        ];
 
-    // Ensure category is valid
+    // Check if AI suggested category exists in ServiceNow
+    const originalCategory = classification.category;
+    const originalSubcategory = classification.subcategory;
+
     if (!validCategories.includes(classification.category)) {
-      console.warn(`[CaseClassifier] Invalid category: ${classification.category}, using fallback`);
+      // Log mismatch for ServiceNow team review
+      if (this.currentCaseData) {
+        await this.mismatchRepository.logMismatch({
+          caseNumber: this.currentCaseData.case_number,
+          caseSysId: this.currentCaseData.sys_id,
+          aiSuggestedCategory: originalCategory,
+          aiSuggestedSubcategory: originalSubcategory,
+          correctedCategory: 'Application Support',
+          confidenceScore: classification.confidence_score || 0.5,
+          caseDescription: this.currentCaseData.short_description,
+        });
+      }
+
+      console.warn(
+        `[CaseClassifier] AI suggested invalid category: "${originalCategory}" ` +
+        `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
+        `defaulting to "Application Support" | ` +
+        `This mismatch has been logged for ServiceNow team review`
+      );
       classification.category = 'Application Support'; // Safe default
     }
 
