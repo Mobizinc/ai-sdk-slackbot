@@ -195,17 +195,19 @@ export class CaseTriageService {
       }
 
       // Step 4: Fetch ServiceNow categories from database cache
+      const categoriesStart = Date.now();
       const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
         process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case',
         13 // maxAgeHours
       );
+      const categoriesTime = Date.now() - categoriesStart;
 
       if (categoriesData.isStale) {
         console.warn('[Case Triage] Categories are stale - consider running sync');
       }
 
       console.log(
-        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache`
+        `[Case Triage] Using ${categoriesData.categories.length} categories from ServiceNow cache (${categoriesTime}ms)`
       );
 
       // Step 5: Convert webhook to classification request
@@ -218,6 +220,7 @@ export class CaseTriageService {
       this.classifier.setCategories(categoriesData.categories, categoriesData.subcategories);
 
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
+      const classificationStart = Date.now();
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 
@@ -272,6 +275,8 @@ export class CaseTriageService {
           `Classification failed after ${maxRetries} attempts: ${lastError?.message}`
         );
       }
+
+      const classificationTime = Date.now() - classificationStart;
 
       // Step 9: Format work note
       const workNoteContent = formatWorkNote(classificationResult);
@@ -391,6 +396,14 @@ export class CaseTriageService {
           workflowDecision.workflowId
         );
       }
+
+      // Log timing breakdown for performance analysis
+      const storageTime = Date.now() - startTime - classificationTime - categoriesTime;
+      console.log(
+        `[Case Triage] Timing breakdown: ` +
+        `categories=${categoriesTime}ms, classification=${classificationTime}ms, ` +
+        `storage/updates=${storageTime}ms, total=${processingTime}ms`
+      );
 
       console.log(
         `[Case Triage] Completed triage for ${webhook.case_number}: ` +
