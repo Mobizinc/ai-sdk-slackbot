@@ -14,10 +14,12 @@ export function getAllowedMobizDomains(): string[] {
     return [DEFAULT_DOMAIN];
   }
 
-  return raw
+  const domains = raw
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean);
+
+  return domains.length > 0 ? domains : [DEFAULT_DOMAIN];
 }
 
 /**
@@ -28,7 +30,26 @@ export function isMobizEmail(email: string | null | undefined): boolean {
     return false;
   }
 
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  const parts = normalized.split("@");
+  if (parts.length !== 2) {
+    return false;
+  }
+
+  const [userPart, domainPart] = parts;
+  if (!userPart || !domainPart) {
+    return false;
+  }
+
   const allowed = getAllowedMobizDomains();
-  const lower = email.toLowerCase();
-  return allowed.some((domain) => lower.endsWith(`@${domain}`));
+  return allowed.some((domain) => {
+    if (domainPart === domain) {
+      return true;
+    }
+    return domainPart.endsWith(`.${domain}`);
+  });
 }

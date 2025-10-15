@@ -109,7 +109,8 @@ describe("ServiceNow Webhook Schema Validation", () => {
       const result = validateServiceNowWebhook(payloadWithDateTime);
 
       expect(result.success).toBe(true);
-      expect(result.data?.opened_at).toBe("2025-10-13T12:34:56.789Z");
+      expect(result.data?.opened_at).toBeInstanceOf(Date);
+      expect(result.data?.opened_at.toISOString()).toBe("2025-10-13T12:34:56.789Z");
     });
 
     it("should reject invalid datetime format", () => {

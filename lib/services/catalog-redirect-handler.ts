@@ -373,7 +373,7 @@ export class CatalogRedirectHandler {
         console.log(`[CatalogRedirect] Added work note to ${input.caseNumber}`);
       } catch (error) {
         console.error(`[CatalogRedirect] Failed to add work note:`, error);
-        result.error = error instanceof Error ? error.message : 'Failed to add work note';
+        result.error = 'Failed to add work note';
         return result;
       }
 
@@ -551,8 +551,10 @@ Thank you for your cooperation!
       this.config.confidenceThreshold
     );
 
+    const shouldRedirect = !!wouldRedirect;
+
     let message: string | undefined;
-    if (wouldRedirect && detection.requestType) {
+    if (shouldRedirect && detection.requestType) {
       const mockCatalogItems: ServiceNowCatalogItem[] = detection.suggestedCatalogItems.map(
         (name, idx) => ({
           sys_id: `test-${idx}`,
@@ -573,7 +575,7 @@ Thank you for your cooperation!
     }
 
     return {
-      wouldRedirect,
+      wouldRedirect: shouldRedirect,
       detection,
       message,
     };

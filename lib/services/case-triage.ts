@@ -38,7 +38,9 @@ import { getCaseClassifier } from "./case-classifier";
 import { createAzureSearchClient } from "./azure-search-client";
 import { formatWorkNote } from "./work-note-formatter";
 import { getCategorySyncService } from "./servicenow-category-sync";
+import { getCmdbReconciliationService } from "./cmdb-reconciliation";
 import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
+import { config } from "../config";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -101,6 +103,7 @@ export interface CaseTriageResult {
   updateError?: string;
   processingTimeMs: number;
   entitiesDiscovered: number;
+  cmdbReconciliation?: any; // TODO: Import proper type from cmdb-reconciliation
   cached: boolean;
   cacheReason?: string;
   // ITSM record type fields
@@ -363,6 +366,34 @@ export class CaseTriageService {
         classificationResult
       );
 
+      // Step 12.5: CMDB Reconciliation (if enabled)
+      let cmdbReconciliationResults = null;
+      if (config.cmdbReconciliationEnabled) {
+        try {
+          const cmdbService = getCmdbReconciliationService();
+          cmdbReconciliationResults = await cmdbService.reconcileEntities({
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            entities: classificationResult.technical_entities || {
+              ip_addresses: [],
+              systems: [],
+              users: [],
+              software: [],
+              error_codes: [],
+            },
+          });
+          console.log(`[Case Triage] CMDB reconciliation completed for ${webhook.case_number}:`, {
+            total: cmdbReconciliationResults.totalEntities,
+            matched: cmdbReconciliationResults.matched,
+            unmatched: cmdbReconciliationResults.unmatched,
+            skipped: cmdbReconciliationResults.skipped,
+          });
+        } catch (error) {
+          console.error(`[Case Triage] CMDB reconciliation failed for ${webhook.case_number}:`, error);
+          // Don't fail the entire triage process, just log the error
+        }
+      }
+
       // Step 13: Check record type suggestion and auto-create Incident/Problem if needed
       let incidentCreated = false;
       let incidentNumber: string | undefined;
@@ -378,22 +409,24 @@ export class CaseTriageService {
 
         console.log(
           `[Case Triage] Record type suggested: ${suggestion.type}` +
-          `${suggestion.type === 'Incident' ? ` (Major: ${suggestion.is_major_incident})` : ''}`
+            `${suggestion.type === "Incident" ? ` (Major: ${suggestion.is_major_incident})` : ""}`
         );
 
         // Create Incident for service disruptions
         if (suggestion.type === 'Incident') {
           try {
-            const { serviceNowClient } = await import('../tools/servicenow');
+            const { serviceNowClient } = await import("../tools/servicenow");
 
             // DUAL CATEGORIZATION: Use incident-specific category if provided, otherwise fall back to case category
-            const incidentCategory = classificationResult.incident_category || classificationResult.category;
-            const incidentSubcategory = classificationResult.incident_subcategory || classificationResult.subcategory;
+            const incidentCategory =
+              classificationResult.incident_category || classificationResult.category;
+            const incidentSubcategory =
+              classificationResult.incident_subcategory || classificationResult.subcategory;
 
             console.log(
               `[Case Triage] Creating Incident with category: ${incidentCategory}` +
-              `${incidentSubcategory ? ` > ${incidentSubcategory}` : ''}` +
-              `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
+                `${incidentSubcategory ? ` > ${incidentSubcategory}` : ""}` +
+                `${classificationResult.incident_category ? " (incident-specific)" : " (fallback to case category)"}`
             );
 
             // Create Incident record with full company/context information
@@ -434,7 +467,7 @@ export class CaseTriageService {
             // Update case with incident reference (bidirectional link)
             // This makes the incident appear in "Related Records > Incident" tab
             await serviceNowClient.updateCase(webhook.sys_id, {
-              incident: incidentSysId
+              incident: incidentSysId,
             });
 
             // Add work note to parent Case
@@ -443,8 +476,8 @@ export class CaseTriageService {
               `Incident: ${incidentNumber}\n` +
               `Reason: ${suggestion.reasoning}\n\n` +
               `Category: ${classificationResult.category}` +
-              `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}\n\n` +
-              `${suggestion.is_major_incident ? '⚠️ MAJOR INCIDENT - Immediate escalation required\n\n' : ''}` +
+              `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ""}\n\n` +
+              `${suggestion.is_major_incident ? "⚠️ MAJOR INCIDENT - Immediate escalation required\n\n" : ""}` +
               `Link: ${incidentUrl}`;
 
             await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
@@ -454,7 +487,7 @@ export class CaseTriageService {
               `Incident ${incidentNumber} from Case ${webhook.case_number}`
             );
           } catch (error) {
-            console.error('[Case Triage] Failed to create Incident:', error);
+            console.error("[Case Triage] Failed to create Incident:", error);
             // Don't fail the entire triage - log error but continue
           }
         } else if (suggestion.type === 'Problem') {
@@ -535,7 +568,7 @@ export class CaseTriageService {
           // Log but don't auto-create (Changes require CAB approval)
           console.log(
             `[Case Triage] Change suggested for ${webhook.case_number} - ` +
-            `manual Change Management process required`
+              `manual Change Management process required`
           );
         }
       }
@@ -564,13 +597,14 @@ export class CaseTriageService {
           if (redirectResult.redirected) {
             catalogRedirected = true;
             catalogItemsProvided = redirectResult.catalogItems.length;
-            catalogRedirectReason = `HR request detected and redirected to catalog. ` +
-              `${redirectResult.caseClosed ? 'Case automatically closed.' : 'Work note added.'}`;
+            catalogRedirectReason =
+              `HR request detected and redirected to catalog. ` +
+              `${redirectResult.caseClosed ? "Case automatically closed." : "Work note added."}`;
 
             console.log(
               `[Case Triage] Catalog redirect successful for ${webhook.case_number}: ` +
-              `${catalogItemsProvided} catalog items provided, ` +
-              `case closed: ${redirectResult.caseClosed}`
+                `${catalogItemsProvided} catalog items provided, ` +
+                `case closed: ${redirectResult.caseClosed}`
             );
           }
         } catch (error) {
@@ -617,6 +651,7 @@ export class CaseTriageService {
         updateError,
         processingTimeMs: processingTime,
         entitiesDiscovered: entitiesStored,
+        cmdbReconciliation: cmdbReconciliationResults,
         cached: false,
         incidentCreated,
         incidentNumber,

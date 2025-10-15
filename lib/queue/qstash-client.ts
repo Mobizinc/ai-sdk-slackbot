@@ -5,26 +5,31 @@
 
 import { Client } from '@upstash/qstash';
 
-// Environment configuration
-const QSTASH_TOKEN = process.env.QSTASH_TOKEN;
-const QSTASH_CURRENT_SIGNING_KEY = process.env.QSTASH_CURRENT_SIGNING_KEY;
-const QSTASH_NEXT_SIGNING_KEY = process.env.QSTASH_NEXT_SIGNING_KEY;
+function normalizeEnv(value: string | undefined | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
-// Validate required environment variables
-if (!QSTASH_TOKEN) {
-  console.warn('[QStash] QSTASH_TOKEN not configured - queue functionality disabled');
+function getQStashToken(): string | undefined {
+  const token = normalizeEnv(process.env.QSTASH_TOKEN);
+  if (!token) {
+    console.warn('[QStash] QSTASH_TOKEN not configured - queue functionality disabled');
+  }
+  return token;
 }
 
 /**
  * Create QStash client instance
  */
 export function createQStashClient(): Client | null {
-  if (!QSTASH_TOKEN) {
+  const token = getQStashToken();
+  if (!token) {
     return null;
   }
 
   return new Client({
-    token: QSTASH_TOKEN,
+    token,
   });
 }
 
@@ -62,9 +67,12 @@ export function verifyQStashSignature(
  * Get signing keys
  */
 export function getSigningKeys(): { current: string | undefined; next: string | undefined } {
+  const current = normalizeEnv(process.env.QSTASH_CURRENT_SIGNING_KEY);
+  const next = normalizeEnv(process.env.QSTASH_NEXT_SIGNING_KEY);
+
   return {
-    current: QSTASH_CURRENT_SIGNING_KEY,
-    next: QSTASH_NEXT_SIGNING_KEY,
+    current,
+    next,
   };
 }
 
@@ -73,15 +81,25 @@ export function getSigningKeys(): { current: string | undefined; next: string | 
  * Only requires QSTASH_TOKEN - worker URL is auto-detected from VERCEL_URL
  */
 export function isQStashEnabled(): boolean {
-  return !!QSTASH_TOKEN;
+  return !!getQStashToken();
 }
 
 // Singleton instance
 let qstashClient: Client | null = null;
+let cachedToken: string | undefined;
 
 export function getQStashClient(): Client | null {
-  if (!qstashClient) {
-    qstashClient = createQStashClient();
+  const token = getQStashToken();
+  if (!token) {
+    qstashClient = null;
+    cachedToken = undefined;
+    return null;
   }
+
+  if (!qstashClient) {
+    qstashClient = new Client({ token });
+    cachedToken = token;
+  }
+
   return qstashClient;
 }

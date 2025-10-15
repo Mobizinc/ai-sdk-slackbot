@@ -110,14 +110,129 @@ function sanitizePayload(payload: string): string {
   // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
   let sanitized = fixInvalidEscapeSequences(payload);
 
-  // Step 2: Remove ASCII control characters (0x00-0x1F) except:
-  // - \t (tab, 0x09)
-  // - \n (newline, 0x0A)
-  // - \r (carriage return, 0x0D)
-  // Also remove DEL character (0x7F)
-  sanitized = sanitized.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+  // Also remove DEL character (0x7F) and unicode line/paragraph separators
+  return sanitized
+    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u2028\u2029]/g, '');
+}
 
-  return sanitized;
+function removeBom(payload: string): string {
+  return payload.replace(/^\uFEFF/, '');
+}
+
+function looksLikeJson(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  );
+}
+
+function isProbablyBase64(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length % 4 !== 0) return false;
+  if (/[^A-Za-z0-9+/=\r\n]/.test(trimmed)) return false;
+  // Do not treat actual JSON as base64
+  if (trimmed.includes('{') || trimmed.includes('"')) return false;
+  return true;
+}
+
+function decodeFormEncodedPayload(payload: string): string | null {
+  const trimmed = payload.trim();
+  if (!trimmed) return null;
+
+  try {
+    if (trimmed.includes('=')) {
+      const params = new URLSearchParams(trimmed);
+      const possibleKeys = ['payload', 'body', 'data', 'json'];
+      for (const key of possibleKeys) {
+        const value = params.get(key);
+        if (value) {
+          return value;
+        }
+      }
+    }
+
+    if (/^%7B/i.test(trimmed) || trimmed.includes('%7B')) {
+      return decodeURIComponent(trimmed);
+    }
+  } catch (error) {
+    console.warn('[Webhook] Failed to decode form-encoded payload:', error);
+  }
+
+  return null;
+}
+
+function decodeBase64Payload(payload: string): string | null {
+  if (!isProbablyBase64(payload)) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(payload.trim(), 'base64').toString('utf8');
+    return decoded;
+  } catch (error) {
+    console.warn('[Webhook] Failed to decode base64 payload:', error);
+    return null;
+  }
+}
+
+function parseWebhookPayload(rawPayload: string): unknown {
+  const attempts: Array<{ description: string; value: () => string | null }> = [
+    {
+      description: 'trimmed payload',
+      value: () => removeBom(rawPayload).trim(),
+    },
+    {
+      description: 'sanitized payload',
+      value: () => sanitizePayload(removeBom(rawPayload)),
+    },
+    {
+      description: 'form-encoded payload',
+      value: () => decodeFormEncodedPayload(rawPayload),
+    },
+    {
+      description: 'base64-decoded payload',
+      value: () => decodeBase64Payload(rawPayload),
+    },
+    {
+      description: 'sanitized base64 payload',
+      value: () => {
+        const decoded = decodeBase64Payload(rawPayload);
+        return decoded ? sanitizePayload(decoded) : null;
+      },
+    },
+  ];
+
+  const errors: Error[] = [];
+
+  for (const attempt of attempts) {
+    const candidate = attempt.value();
+    if (!candidate) continue;
+
+    if (!looksLikeJson(candidate)) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(candidate);
+      if (Object.keys(parsed as Record<string, unknown>).length === 0) {
+        continue;
+      }
+      if (attempt.description !== 'trimmed payload') {
+        console.info(`[Webhook] Parsed payload using ${attempt.description}`);
+      }
+      return parsed;
+    } catch (error) {
+      errors.push(error as Error);
+    }
+  }
+
+  const finalError = errors[errors.length - 1];
+  if (finalError) {
+    throw finalError;
+  }
+  throw new Error('Unable to parse webhook payload');
 }
 
 /**
@@ -151,39 +266,7 @@ export async function POST(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      // Try parsing raw payload first
-      let parsedPayload;
-      let wasSanitized = false;
-      try {
-        parsedPayload = JSON.parse(payload);
-      } catch (parseError) {
-        // If parse fails due to control characters or invalid escape sequences, sanitize and retry
-        wasSanitized = true;
-        const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
-        console.warn(
-          '[Webhook] Initial JSON parse failed (likely control characters or invalid escape sequences), ' +
-          'attempting with sanitized payload'
-        );
-        console.warn(`[Webhook] Parse error details: ${errorMsg}`);
-
-        const sanitizedPayload = sanitizePayload(payload);
-
-        try {
-          parsedPayload = JSON.parse(sanitizedPayload);
-          console.info('[Webhook] Successfully parsed sanitized payload');
-        } catch (sanitizeError) {
-          // If sanitization also fails, log more details
-          const sanitizeErrorMsg = sanitizeError instanceof Error ? sanitizeError.message : 'Unknown error';
-          console.error('[Webhook] Sanitization failed:', sanitizeErrorMsg);
-
-          // Try to extract case number from raw payload for debugging
-          const caseNumberMatch = payload.match(/"case_number"\s*:\s*"([^"]+)"/);
-          const caseNumber = caseNumberMatch ? caseNumberMatch[1] : 'unknown';
-          console.error(`[Webhook] Failed to parse case ${caseNumber} even after sanitization`);
-
-          throw sanitizeError;
-        }
-      }
+      const parsedPayload = parseWebhookPayload(payload);
 
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
@@ -199,11 +282,6 @@ export async function POST(request: Request) {
       }
 
       webhookData = validationResult.data!;
-
-      // Log if sanitization was required (helps identify problematic cases)
-      if (wasSanitized) {
-        console.info(`[Webhook] Case ${webhookData.case_number} required payload sanitization (control chars or invalid escapes)`);
-      }
     } catch (error) {
       console.error('[Webhook] Failed to parse webhook payload:', error);
       return Response.json(
