@@ -29,15 +29,24 @@ export const ServiceNowCaseWebhookSchema = z.object({
   assignment_group_sys_id: z.string().optional().describe("Assigned group sys_id"),
   assigned_to: z.string().optional().describe("Assigned user"),
   caller_id: z.string().optional().describe("Case caller/requester"),
+  contact: z.string().optional().describe("Customer contact sys_id"),
   contact_type: z.string().optional().describe("How case was created"),
   company: z.string().optional().describe("Customer company sys_id"),
   account_id: z.string().optional().describe("Customer account sys_id"),
-  opened_at: z.string().datetime().optional().describe("Case creation timestamp"),
+  account: z.string().optional().describe("Customer account sys_id (alternative field)"),
+  location: z.string().optional().describe("Physical location sys_id"),
+  opened_at: z.coerce.date().optional().describe("Case creation timestamp"),
+  opened_by: z.string().optional().describe("User who opened the case"),
 
   // Additional metadata
   configuration_item: z.string().optional().describe("Related CI from CMDB"),
+  cmdb_ci: z.string().optional().describe("Related CI from CMDB (actual ServiceNow field name)"),
   business_service: z.string().optional().describe("Related business service"),
   additional_comments: z.string().optional().describe("Additional notes"),
+
+  // Multi-tenancy / Domain separation
+  sys_domain: z.string().optional().describe("ServiceNow domain sys_id (for MSP multi-tenancy)"),
+  sys_domain_path: z.string().optional().describe("ServiceNow domain path (for MSP multi-tenancy)"),
 
   // Routing context for workflow determination
   routing_context: z
@@ -101,6 +110,18 @@ export const BusinessIntelligenceSchema = z.object({
 });
 
 export type BusinessIntelligence = z.infer<typeof BusinessIntelligenceSchema>;
+
+/**
+ * Record Type Suggestion Schema
+ * AI's determination of correct ITSM record type based on business intelligence synthesis
+ */
+export const RecordTypeSuggestionSchema = z.object({
+  type: z.enum(["Problem", "Incident", "Change", "Case"]).describe("ITSM record type determined via synthesis rules"),
+  is_major_incident: z.boolean().default(false).describe("True if Incident meets Major Incident criteria (executive impact, widespread outage)"),
+  reasoning: z.string().describe("Explanation of record type decision based on business intelligence flags")
+});
+
+export type RecordTypeSuggestion = z.infer<typeof RecordTypeSuggestionSchema>;
 
 /**
  * Technical Entities Schema
@@ -197,6 +218,9 @@ export const CaseClassificationResultSchema = z.object({
 
   // Exception-based business intelligence
   business_intelligence: BusinessIntelligenceSchema.optional().describe("Exception-based business intelligence (only populated when exceptions detected)"),
+
+  // ITSM record type suggestion
+  record_type_suggestion: RecordTypeSuggestionSchema.optional().describe("AI's suggested ITSM record type based on business intelligence synthesis"),
 });
 
 export type CaseClassificationResult = z.infer<typeof CaseClassificationResultSchema>;

@@ -22,6 +22,7 @@ import {
   validateServiceNowWebhook,
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
+import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -29,22 +30,73 @@ const caseTriageService = getCaseTriageService();
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
+// Async triage is ON by default - explicitly set to 'false' to disable
+const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
 
 /**
- * Validate webhook signature
- * Original: api/app/services/batch_processing/auth.py
+ * Validate webhook request
+ * Supports multiple authentication methods (all using same SERVICENOW_WEBHOOK_SECRET):
+ * 1. Simple API key in header (x-api-key) - Azure Functions style
+ * 2. Simple API key in query param (?code=xxx) - Azure Functions style
+ * 3. HMAC-SHA256 signature (hex or base64) - Advanced security
  */
-function validateSignature(payload: string, signature: string): boolean {
+function validateRequest(request: Request, payload: string): boolean {
   if (!WEBHOOK_SECRET) {
-    console.warn('[Webhook] No webhook secret configured, skipping signature validation');
+    console.warn('[Webhook] No SERVICENOW_WEBHOOK_SECRET configured, allowing request');
     return true;
   }
 
-  const expectedSignature = createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
+  // Method 1: Simple API key in header (x-api-key)
+  const apiKeyHeader = request.headers.get('x-api-key') || request.headers.get('x-functions-key');
+  if (apiKeyHeader === WEBHOOK_SECRET) {
+    console.info('[Webhook] Authenticated via API key (header)');
+    return true;
+  }
 
-  return signature === expectedSignature;
+  // Method 2: Simple API key in query param (?code=xxx) - Azure Functions style
+  const url = new URL(request.url);
+  const apiKeyQuery = url.searchParams.get('code');
+  if (apiKeyQuery === WEBHOOK_SECRET) {
+    console.info('[Webhook] Authenticated via API key (query param)');
+    return true;
+  }
+
+  // Method 3: HMAC signature (backward compatibility)
+  const signature = request.headers.get('x-servicenow-signature') ||
+                   request.headers.get('signature') || '';
+
+  if (signature) {
+    // ServiceNow may send signatures in either hex or base64 format
+    const hexSignature = createHmac('sha256', WEBHOOK_SECRET)
+      .update(payload)
+      .digest('hex');
+
+    const base64Signature = createHmac('sha256', WEBHOOK_SECRET)
+      .update(payload)
+      .digest('base64');
+
+    if (signature === hexSignature || signature === base64Signature) {
+      console.info('[Webhook] Authenticated via HMAC signature');
+      return true;
+    }
+  }
+
+  // All authentication methods failed
+  return false;
+}
+
+/**
+ * Sanitize payload by removing problematic control characters
+ * Keeps properly escaped newlines, tabs, and carriage returns
+ * Removes other ASCII control characters that can break JSON.parse()
+ */
+function sanitizePayload(payload: string): string {
+  // Remove ASCII control characters (0x00-0x1F) except:
+  // - \t (tab, 0x09)
+  // - \n (newline, 0x0A)
+  // - \r (carriage return, 0x0D)
+  // Also remove DEL character (0x7F)
+  return payload.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
 }
 
 /**
@@ -63,16 +115,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get request body and signature
+    // Get request body
     const payload = await request.text();
-    const signature = request.headers.get('x-servicenow-signature') ||
-                     request.headers.get('signature') || '';
 
-    // Validate signature
-    if (!validateSignature(payload, signature)) {
-      console.warn('[Webhook] Invalid webhook signature received');
+    // Validate authentication (API key or HMAC signature)
+    if (!validateRequest(request, payload)) {
+      console.warn('[Webhook] Authentication failed');
       return Response.json(
-        { error: 'Invalid signature' },
+        { error: 'Authentication failed' },
         { status: 401 }
       );
     }
@@ -80,7 +130,21 @@ export async function POST(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      const parsedPayload = JSON.parse(payload);
+      // Try parsing raw payload first
+      let parsedPayload;
+      try {
+        parsedPayload = JSON.parse(payload);
+      } catch (parseError) {
+        // If parse fails due to control characters, sanitize and retry
+        console.warn(
+          '[Webhook] Initial JSON parse failed (likely control characters), ' +
+          'attempting with sanitized payload'
+        );
+        const sanitizedPayload = sanitizePayload(payload);
+        parsedPayload = JSON.parse(sanitizedPayload);
+        console.info('[Webhook] Successfully parsed sanitized payload');
+      }
+
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
       if (!validationResult.success) {
@@ -103,11 +167,55 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log webhook with company/account info for debugging
+    const companyInfo = webhookData.company ? `Company: ${webhookData.company}` : '';
+    const accountInfo = webhookData.account_id ? `Account: ${webhookData.account_id}` : '';
+    const clientInfo = [companyInfo, accountInfo].filter(Boolean).join(' | ');
+
     console.info(
-      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})`
+      `[Webhook] Received webhook for case ${webhookData.case_number} (${webhookData.sys_id})` +
+      (clientInfo ? ` | ${clientInfo}` : '')
     );
 
-    // Execute centralized triage workflow
+    // Check if async triage is enabled
+    if (ENABLE_ASYNC_TRIAGE && isQStashEnabled()) {
+      // Async mode: Enqueue to QStash and return immediately
+      try {
+        const qstashClient = getQStashClient();
+        if (!qstashClient) {
+          throw new Error('QStash client not initialized');
+        }
+
+        const workerUrl = getWorkerUrl('/api/workers/process-case');
+        console.info(`[Webhook] Enqueueing case ${webhookData.case_number} to ${workerUrl}`);
+
+        await qstashClient.publishJSON({
+          url: workerUrl,
+          body: webhookData,
+          retries: 3,
+          delay: 0,
+        });
+
+        console.info(
+          `[Webhook] Case ${webhookData.case_number} queued successfully (async mode)`
+        );
+
+        // Return 202 Accepted - processing will happen asynchronously
+        return Response.json({
+          success: true,
+          queued: true,
+          case_number: webhookData.case_number,
+          message: 'Case queued for async processing',
+        }, { status: 202 });
+
+      } catch (error) {
+        console.error('[Webhook] Failed to enqueue to QStash:', error);
+        // Fall through to sync processing as fallback
+        console.warn('[Webhook] Falling back to synchronous processing');
+      }
+    }
+
+    // Sync mode: Execute centralized triage workflow immediately
     const triageResult = await caseTriageService.triageCase(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
@@ -115,6 +223,7 @@ export async function POST(request: Request) {
       enableBusinessContext: true,
       enableWorkflowRouting: true,
       writeToServiceNow: true,
+      enableCatalogRedirect: true,
     });
 
     const processingTime = Date.now() - startTime;
@@ -124,7 +233,9 @@ export async function POST(request: Request) {
       `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
       ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
       ` in ${processingTime}ms` +
-      `${triageResult.cached ? ' [CACHED]' : ''}`
+      `${triageResult.cached ? ' [CACHED]' : ''}` +
+      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}` +
+      `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
     );
 
     // Return comprehensive response matching original format
@@ -143,6 +254,7 @@ export async function POST(request: Request) {
         immediate_next_steps: triageResult.classification.immediate_next_steps,
         technical_entities: triageResult.classification.technical_entities,
         business_intelligence: triageResult.classification.business_intelligence,
+        record_type_suggestion: triageResult.classification.record_type_suggestion,
       },
       similar_cases: triageResult.similarCases,
       kb_articles: triageResult.kbArticles,
@@ -153,6 +265,16 @@ export async function POST(request: Request) {
       workflow_id: triageResult.workflowId,
       cached: triageResult.cached,
       cache_reason: triageResult.cacheReason,
+      // ITSM record type fields
+      incident_created: triageResult.incidentCreated,
+      incident_number: triageResult.incidentNumber,
+      incident_sys_id: triageResult.incidentSysId,
+      incident_url: triageResult.incidentUrl,
+      record_type_suggestion: triageResult.recordTypeSuggestion,
+      // Catalog redirect fields
+      catalog_redirected: triageResult.catalogRedirected,
+      catalog_redirect_reason: triageResult.catalogRedirectReason,
+      catalog_items_provided: triageResult.catalogItemsProvided,
     });
 
   } catch (error) {

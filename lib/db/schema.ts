@@ -12,6 +12,7 @@ import {
   serial,
   jsonb,
   index,
+  uniqueIndex,
   primaryKey,
   real,
 } from "drizzle-orm/pg-core";
@@ -90,6 +91,61 @@ export const kbGenerationStates = pgTable(
   })
 );
 
+/**
+ * Case Queue Snapshots Table
+ * Stores periodic snapshots of Service Desk queue metrics by assignee
+ */
+export const caseQueueSnapshots = pgTable(
+  "case_queue_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    snapshotAt: timestamp("snapshot_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    assignedTo: text("assigned_to").notNull(),
+    assignedToEmail: text("assigned_to_email"),
+    assignmentGroup: text("assignment_group"),
+    openCases: integer("open_cases").notNull(),
+    highPriorityCases: integer("high_priority_cases").notNull().default(0),
+    escalatedCases: integer("escalated_cases").notNull().default(0),
+    lastSeenUtc: timestamp("last_seen_utc", { withTimezone: true }),
+    source: text("source").notNull().default("azure_sql"),
+    rawPayload: jsonb("raw_payload"),
+  },
+  (table) => ({
+    snapshotIdx: index("idx_case_queue_snapshot_timestamp").on(table.snapshotAt),
+    assigneeIdx: index("idx_case_queue_snapshot_assignee").on(table.assignedTo),
+    uniqueSnapshotAssignee: uniqueIndex("uq_case_queue_snapshot").on(
+      table.snapshotAt,
+      table.assignedTo
+    ),
+  })
+);
+
+export type CaseQueueSnapshot = typeof caseQueueSnapshots.$inferSelect;
+export type NewCaseQueueSnapshot = typeof caseQueueSnapshots.$inferInsert;
+
+/**
+ * Application Settings Table
+ * Stores global key/value configuration (e.g., Slack channel IDs)
+ */
+export const appSettings = pgTable(
+  "app_settings",
+  {
+    key: text("key").primaryKey(),
+    value: text("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    updatedIdx: index("idx_app_settings_updated").on(table.updatedAt),
+  })
+);
+
+export type AppSetting = typeof appSettings.$inferSelect;
+export type NewAppSetting = typeof appSettings.$inferInsert;
+
 // Type exports for TypeScript
 export type CaseContext = typeof caseContexts.$inferSelect;
 export type NewCaseContext = typeof caseContexts.$inferInsert;
@@ -114,6 +170,11 @@ export const businessContexts = pgTable(
     description: text("description"),
     aliases: jsonb("aliases").$type<string[]>().default([]).notNull(),
     relatedEntities: jsonb("related_entities").$type<string[]>().default([]).notNull(),
+    relatedCompanies: jsonb("related_companies").$type<Array<{
+      companyName: string;
+      relationship: string;
+      notes?: string;
+    }>>().default([]).notNull(),
     technologyPortfolio: text("technology_portfolio"),
     serviceDetails: text("service_details"),
     keyContacts: jsonb("key_contacts").$type<Array<{name: string; role: string; email?: string}>>().default([]).notNull(),
@@ -385,6 +446,121 @@ export type NewServiceNowChoiceCache = typeof servicenowChoiceCache.$inferInsert
 
 export type ServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferSelect;
 export type NewServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferInsert;
+
+/**
+ * Client Settings Table
+ * Stores per-client configuration for catalog redirect and other features
+ */
+export const clientSettings = pgTable(
+  "client_settings",
+  {
+    id: serial("id").primaryKey(),
+    clientId: text("client_id").notNull().unique(), // ServiceNow company sys_id
+    clientName: text("client_name").notNull(),
+    // Catalog redirect settings
+    catalogRedirectEnabled: boolean("catalog_redirect_enabled").default(true).notNull(),
+    catalogRedirectConfidenceThreshold: real("catalog_redirect_confidence_threshold").default(0.5).notNull(),
+    catalogRedirectAutoClose: boolean("catalog_redirect_auto_close").default(false).notNull(),
+    supportContactInfo: text("support_contact_info"),
+    // Custom catalog mappings (optional overrides)
+    customCatalogMappings: jsonb("custom_catalog_mappings").$type<Array<{
+      requestType: string;
+      keywords: string[];
+      catalogItemNames: string[];
+      priority: number;
+    }>>().default([]).notNull(),
+    // Feature flags
+    features: jsonb("features").$type<Record<string, boolean>>().default({}).notNull(),
+    // Metadata
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (table) => ({
+    clientIdIdx: index("idx_client_id").on(table.clientId),
+    clientNameIdx: index("idx_client_name").on(table.clientName),
+    catalogRedirectEnabledIdx: index("idx_catalog_redirect_enabled").on(table.catalogRedirectEnabled),
+  })
+);
+
+/**
+ * Catalog Redirect Log Table
+ * Tracks all catalog redirects for metrics and reporting
+ */
+export const catalogRedirectLog = pgTable(
+  "catalog_redirect_log",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    clientId: text("client_id"),
+    clientName: text("client_name"),
+    requestType: text("request_type").notNull(), // onboarding, termination, etc.
+    confidence: real("confidence").notNull(),
+    confidenceThreshold: real("confidence_threshold").notNull(),
+    catalogItemsProvided: integer("catalog_items_provided").notNull(),
+    catalogItemNames: jsonb("catalog_item_names").$type<string[]>().default([]).notNull(),
+    caseClosed: boolean("case_closed").notNull(),
+    closeState: text("close_state"),
+    matchedKeywords: jsonb("matched_keywords").$type<string[]>().default([]).notNull(),
+    submittedBy: text("submitted_by"), // user who submitted the case
+    shortDescription: text("short_description"),
+    category: text("category"),
+    subcategory: text("subcategory"),
+    redirectedAt: timestamp("redirected_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_redirect_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_redirect_case_sys_id").on(table.caseSysId),
+    clientIdIdx: index("idx_redirect_client_id").on(table.clientId),
+    requestTypeIdx: index("idx_redirect_request_type").on(table.requestType),
+    redirectedAtIdx: index("idx_redirect_redirected_at").on(table.redirectedAt),
+    caseClosedIdx: index("idx_redirect_case_closed").on(table.caseClosed),
+  })
+);
+
+export type ClientSettings = typeof clientSettings.$inferSelect;
+export type NewClientSettings = typeof clientSettings.$inferInsert;
+
+export type CatalogRedirectLog = typeof catalogRedirectLog.$inferSelect;
+export type NewCatalogRedirectLog = typeof catalogRedirectLog.$inferInsert;
+
+/**
+ * Category Mismatch Log Table
+ * Tracks when AI suggests categories that don't exist in ServiceNow
+ * Used to identify categories that should be added to ServiceNow
+ *
+ * DUAL CATEGORIZATION: Tracks which table (Cases vs Incidents) the mismatch is for
+ */
+export const categoryMismatchLog = pgTable(
+  "category_mismatch_log",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id"),
+    targetTable: text("target_table").notNull().default("sn_customerservice_case"), // "sn_customerservice_case" or "incident"
+    aiSuggestedCategory: text("ai_suggested_category").notNull(),
+    aiSuggestedSubcategory: text("ai_suggested_subcategory"),
+    correctedCategory: text("corrected_category").notNull(), // What we used instead
+    confidenceScore: real("confidence_score").notNull(),
+    caseDescription: text("case_description").notNull(),
+    reviewed: boolean("reviewed").default(false).notNull(), // Has ServiceNow team reviewed this?
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_mismatch_case_number").on(table.caseNumber),
+    suggestedCategoryIdx: index("idx_mismatch_suggested_category").on(table.aiSuggestedCategory),
+    targetTableIdx: index("idx_mismatch_target_table").on(table.targetTable),
+    reviewedIdx: index("idx_mismatch_reviewed").on(table.reviewed),
+    createdAtIdx: index("idx_mismatch_created_at").on(table.createdAt),
+    confidenceIdx: index("idx_mismatch_confidence").on(table.confidenceScore),
+  })
+);
+
+export type CategoryMismatchLog = typeof categoryMismatchLog.$inferSelect;
+export type NewCategoryMismatchLog = typeof categoryMismatchLog.$inferInsert;
 
 /**
  * CMDB Reconciliation Results Table

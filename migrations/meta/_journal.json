@@ -40,8 +40,43 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1760392149830,
-      "tag": "0005_new_colleen_wing",
+      "when": 1760408891520,
+      "tag": "0005_material_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760472819850,
+      "tag": "0006_eminent_lady_ursula",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760408891521,
+      "tag": "0007_add_business_context_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1760408891522,
+      "tag": "0008_add_context_stewards",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1760414433400,
+      "tag": "0009_catalog_redirect_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1760414433401,
+      "tag": "0010_new_colleen_wing",
       "breakpoints": true
     }
   ]

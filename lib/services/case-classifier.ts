@@ -4,7 +4,7 @@
  */
 
 import { generateText } from 'ai';
-import { modelProvider } from '../model-provider';
+import { modelProvider, getActiveModelId } from '../model-provider';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
 import { searchKBArticles, type KBArticle } from './kb-article-search';
 import { getWorkflowRouter, type RoutingResult } from './workflow-router';
@@ -12,6 +12,7 @@ import { getBusinessContextService as getNewBusinessContextService } from './bus
 import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
+import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
@@ -58,9 +59,18 @@ export interface BusinessIntelligence {
   affected_cases_same_client?: number;
 }
 
+export interface RecordTypeSuggestion {
+  type: "Problem" | "Incident" | "Change" | "Case";
+  is_major_incident: boolean;
+  reasoning: string;
+}
+
 export interface CaseClassification {
   category: string;
   subcategory?: string;
+  // DUAL CATEGORIZATION: When creating Incident from Case, use separate categories
+  incident_category?: string; // Only populated when record_type_suggestion.type is "Incident" or "Problem"
+  incident_subcategory?: string; // Only populated when record_type_suggestion.type is "Incident" or "Problem"
   confidence_score: number;
   reasoning: string;
   keywords: string[];
@@ -69,6 +79,8 @@ export interface CaseClassification {
   technical_entities?: TechnicalEntities;
   urgency_level?: string;
   business_intelligence?: BusinessIntelligence;
+  // ITSM record type suggestion
+  record_type_suggestion?: RecordTypeSuggestion;
   // Token usage and cost tracking
   token_usage_input?: number;
   token_usage_output?: number;
@@ -91,17 +103,33 @@ export class CaseClassifier {
   private caseIntelligenceService = getCaseIntelligenceService();
   private entityStoreService = getEntityStoreService();
   private repository = getCaseClassificationRepository();
-  private availableCategories: string[] = []; // Will be set by setCategories()
-  private availableSubcategories: string[] = []; // Will be set by setCategories()
+  private mismatchRepository = getCategoryMismatchRepository();
+  // DUAL CATEGORIZATION: Store categories separately by table
+  private availableCaseCategories: string[] = [];
+  private availableCaseSubcategories: string[] = [];
+  private availableIncidentCategories: string[] = [];
+  private availableIncidentSubcategories: string[] = [];
+  private currentCaseData: CaseData | null = null; // For mismatch logging
 
   /**
-   * Set available categories from ServiceNow cache
+   * Set available categories from ServiceNow cache (TABLE-SPECIFIC)
    * Should be called before classification to use real ServiceNow categories
    */
-  setCategories(categories: string[], subcategories: string[] = []): void {
-    this.availableCategories = categories;
-    this.availableSubcategories = subcategories;
-    console.log(`[CaseClassifier] Loaded ${categories.length} categories, ${subcategories.length} subcategories from ServiceNow`);
+  setCategories(
+    caseCategories: string[],
+    incidentCategories: string[],
+    caseSubcategories: string[] = [],
+    incidentSubcategories: string[] = []
+  ): void {
+    this.availableCaseCategories = caseCategories;
+    this.availableCaseSubcategories = caseSubcategories;
+    this.availableIncidentCategories = incidentCategories;
+    this.availableIncidentSubcategories = incidentSubcategories;
+    console.log(
+      `[CaseClassifier] Loaded categories: ` +
+      `Cases (${caseCategories.length} categories, ${caseSubcategories.length} subcategories), ` +
+      `Incidents (${incidentCategories.length} categories, ${incidentSubcategories.length} subcategories)`
+    );
   }
 
   /**
@@ -148,9 +176,19 @@ export class CaseClassifier {
       );
 
       // Get existing business context for compatibility
-      const businessContext = await this.businessContextService.getContextForCompany(
-        caseData.company_name || caseData.company || 'unknown'
-      );
+      const companyIdentifier = caseData.company_name || caseData.company || 'unknown';
+      console.log(`[CaseClassifier] Looking up business context for company: ${companyIdentifier}`);
+
+      const businessContext = await this.businessContextService.getContextForCompany(companyIdentifier);
+
+      if (businessContext) {
+        console.log(
+          `[CaseClassifier] Business context found: ${businessContext.entityName || 'Unknown'} ` +
+          `(${businessContext.relatedEntities?.length || 0} related entities)`
+        );
+      } else {
+        console.log(`[CaseClassifier] No business context available for ${companyIdentifier}`);
+      }
 
       // Use existing classification method with enhanced context
       const classification = await this.classifyCase(caseData, businessContext, {
@@ -297,6 +335,9 @@ export class CaseClassifier {
 
     const startTime = Date.now();
 
+    // Store case data for mismatch logging
+    this.currentCaseData = caseData;
+
     // Fetch similar cases if enabled (using NEW vector search with MSP attribution)
     let similarCases: SimilarCaseResult[] = [];
     if (includeSimilarCases && this.searchClient) {
@@ -336,17 +377,62 @@ export class CaseClassifier {
     // Use AI Gateway via model provider
     const model = modelProvider.languageModel("chat-model");
 
+    // Log prompt size for performance analysis
+    const promptSize = prompt.length;
+    const promptLines = prompt.split('\n').length;
+    console.log(
+      `[CaseClassifier] Prompt prepared for case ${caseData.case_number}: ` +
+      `${promptSize.toLocaleString()} chars, ${promptLines} lines`
+    );
+
+    // Create AbortController with 120s timeout to prevent hanging
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn(`[CaseClassifier] AI call timeout (120s) for case ${caseData.case_number}`);
+      abortController.abort();
+    }, 120000); // 120 seconds
+
     try {
+      const aiCallStart = Date.now();
+      const activeModel = getActiveModelId();
+      console.log(
+        `[CaseClassifier] Starting AI classification for case ${caseData.case_number} | ` +
+        `Model: ${activeModel} | Provider: AI Gateway (ai-gateway.vercel.sh)`
+      );
+
       const result = await generateText({
         model,
         prompt,
         temperature: 0.1, // Low temperature for consistent classification
+        abortSignal: abortController.signal, // Add timeout signal
         // Note: Sonnet 4.5 has 200K context window, no maxTokens needed
         // Output will be complete based on prompt complexity
       });
 
+      const aiCallDuration = Date.now() - aiCallStart;
+      const usage = result.usage as any;
+      console.log(
+        `[CaseClassifier] AI call completed in ${aiCallDuration}ms for case ${caseData.case_number} | ` +
+        `Tokens: ${usage?.promptTokens || 0} in / ${usage?.completionTokens || 0} out | ` +
+        `Finish: ${result.finishReason || 'unknown'}`
+      );
+      clearTimeout(timeoutId);
+
       // Parse the JSON response
       const classificationText = result.text.trim();
+
+      // Log AI response for debugging (truncate if too long)
+      if (classificationText.length > 2000) {
+        console.log(
+          `[CaseClassifier] AI response for ${caseData.case_number} (truncated): ` +
+          classificationText.substring(0, 2000) + '... [+' +
+          (classificationText.length - 2000) + ' more chars]'
+        );
+      } else {
+        console.log(
+          `[CaseClassifier] AI response for ${caseData.case_number}:\n${classificationText}`
+        );
+      }
 
       // Try to extract JSON from the response
       const jsonMatch = classificationText.match(/\{[\s\S]*\}/);
@@ -356,14 +442,21 @@ export class CaseClassifier {
 
       const classification = JSON.parse(jsonMatch[0]);
 
+      // Log parsed classification for visibility
+      console.log(
+        `[CaseClassifier] Parsed classification for ${caseData.case_number}: ` +
+        `${classification.category}` +
+        `${classification.subcategory ? ` > ${classification.subcategory}` : ''}` +
+        ` (${Math.round((classification.confidence_score || 0) * 100)}% confidence)`
+      );
+
       // Validate and normalize the classification
-      const validatedClassification = this.validateClassification(classification);
+      const validatedClassification = await this.validateClassification(classification);
 
       // Add metadata from AI SDK response
       const processingTime = Date.now() - startTime;
 
       // Extract token usage (using type assertion due to SDK type definitions)
-      const usage = result.usage as any;
       const promptTokens = usage?.promptTokens || 0;
       const completionTokens = usage?.completionTokens || 0;
 
@@ -384,7 +477,14 @@ export class CaseClassifier {
       };
 
     } catch (error) {
-      console.error('[CaseClassifier] Classification failed:', error);
+      clearTimeout(timeoutId); // Clean up timeout on error
+
+      // Check if error is due to timeout/abort
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[CaseClassifier] AI call aborted (timeout) for case ${caseData.case_number}`);
+      } else {
+        console.error('[CaseClassifier] Classification failed:', error);
+      }
 
       // Fallback classification
       return this.getFallbackClassification(caseData);
@@ -403,6 +503,8 @@ export class CaseClassifier {
     const businessContextText = businessContext
       ? this.businessContextService.toPromptText(businessContext)
       : 'No specific business context available.';
+
+    console.log(`[DEBUG] Business context text for prompt:\n---\n${businessContextText}\n---`);
 
     // CRITICAL: Use the EXACT system prompt from Python for quality
     let prompt = `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.
@@ -540,8 +642,8 @@ Case Information:
     }
 
     // Use real ServiceNow categories if available, otherwise use default list
-    const categoryList = this.availableCategories.length > 0
-      ? this.availableCategories.map(c => `- ${c}`).join('\n')
+    const caseCategoryList = this.availableCaseCategories.length > 0
+      ? this.availableCaseCategories.map(c => `- ${c}`).join('\n')
       : `- User Access Management
 - Networking
 - Application Support
@@ -554,17 +656,27 @@ Case Information:
 - Cloud Services
 - Unclassified`;
 
+    const incidentCategoryList = this.availableIncidentCategories.length > 0
+      ? this.availableIncidentCategories.map(c => `- ${c}`).join('\n')
+      : caseCategoryList; // Fallback to case categories if incident categories not loaded
+
     prompt += `
 
-Available Categories:
-${categoryList}
+Available Categories for CASE record (sn_customerservice_case table):
+${caseCategoryList}
+
+Available Categories for INCIDENT record (incident table):
+${incidentCategoryList}
 
 Analyze the case and provide:
-1. The most appropriate category from the list above
-2. An optional subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
-3. A confidence score between 0.0 and 1.0
-4. A brief reasoning (1-2 sentences) explaining why this category was chosen
-5. Key keywords that influenced your decision (list 3-5 relevant terms)
+1. The most appropriate CASE category from the CASE categories list above
+2. An optional CASE subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
+3. **IF AND ONLY IF** record_type_suggestion.type is "Incident" or "Problem":
+   - Select the most appropriate INCIDENT category from the INCIDENT categories list
+   - An optional INCIDENT subcategory
+4. A confidence score between 0.0 and 1.0
+5. A brief reasoning (1-2 sentences) explaining why this category was chosen
+6. Key keywords that influenced your decision (list 3-5 relevant terms)
 
 Additionally, provide quick triage guidance for the support agent:
 6. SUMMARY: Write a brief technical diagnostic as a senior engineer would explain it to a junior (2-3 sentences):
@@ -591,6 +703,51 @@ If you detect any of the following exceptions based on the client's business con
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - If you found 2+ similar cases from SAME CLIENT (check both same_client flag AND client_name text) in the similar cases list above, you MUST set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem affecting multiple users, not isolated issue. DO NOT miss this - patterns are the most valuable intelligence we can provide.
 
+--- ITSM RECORD TYPE SYNTHESIS ---
+
+Based on the business intelligence you just analyzed, determine the correct ITSM record type using these synthesis rules:
+
+**Rule 1: PROBLEM** (Highest Priority)
+IF business_intelligence.systemic_issue_detected === true
+→ type: "Problem"
+→ reasoning: "Recurring pattern from [X] similar cases indicates root cause investigation needed"
+→ Example: 3+ file server access failures from same client = underlying problem requiring RCA
+
+**Rule 2: MAJOR INCIDENT**
+IF business_intelligence.executive_visibility === true
+OR keywords present: "production down", "entire team", "all users", "system unavailable", "outage affecting"
+→ type: "Incident"
+→ is_major_incident: true
+→ reasoning: "High-impact service disruption requiring coordinated response"
+→ Escalation: Immediate on-call notification
+
+**Rule 3: STANDARD INCIDENT**
+IF unplanned service disruption (doesn't meet above criteria)
+→ type: "Incident"
+→ is_major_incident: false
+→ Indicators: Something that should be working is broken/unavailable/degraded/erroring
+→ Examples: "cannot connect to VPN", "email not working", "error when logging in"
+
+**Rule 4: CHANGE**
+IF requesting new service, modification, access, or planned work
+→ type: "Change"
+→ Keywords: "install", "add user", "new server", "upgrade", "configure", "provision", "setup new"
+→ Examples: "install Photoshop", "add me to Marketing group", "configure new printer"
+→ Note: Changes require Change Management approval process
+
+**Rule 5: CASE (Default)**
+IF question, how-to, inquiry, or doesn't match above
+→ type: "Case"
+→ Examples: "How do I reset password?", "What are service desk hours?", "Request laptop for new hire"
+→ Indicators: "how do I", "what is", "can you explain", general inquiry
+
+SYNTHESIS DECISION TREE:
+1. First check: systemic_issue_detected=true? → Problem
+2. Then check: executive_visibility OR widespread outage keywords? → Major Incident
+3. Then check: Service disruption (broken/down/error)? → Standard Incident
+4. Then check: Requesting something new/different? → Change
+5. Default: → Case
+
 FEW-SHOT EXAMPLES (follow these patterns):
 
 EXAMPLE 1 - SYSTEMIC ISSUE (2+ cases from same client):
@@ -603,6 +760,7 @@ Next Steps (INFRASTRUCTURE-FOCUSED):
 3. "Check domain controller health: Verify AD replication status (repadmin /showrepl) - AD auth failures affect all file share access"
 4. "Review file server event logs: Check for SMB errors (EventID 1020) or disk failures affecting all connections"
 Business Intelligence: systemic_issue_detected=true, affected_cases_same_client=3
+Record Type: Problem (systemic pattern detected requiring RCA)
 
 EXAMPLE 2 - INDIVIDUAL ISSUE (no pattern, appears isolated):
 Input: "User kdevries can't access L drive" + Similar cases: None from same client
@@ -614,13 +772,16 @@ Next Steps (INFRASTRUCTURE VALIDATION FIRST, THEN INDIVIDUAL):
 3. "Check kdevries AD account status: ADUC → Find user → Account tab - look for locked/disabled/expired"
 4. "Verify kdevries group memberships: Get-ADUser kdevries -Properties MemberOf - confirm has security group for L drive access"
 Business Intelligence: systemic_issue_detected=false
+Record Type: Incident (service disruption, but individual user - not systemic)
 
 Key Difference: Systemic = infrastructure-only steps. Individual = infrastructure validation FIRST, then user troubleshooting.
 
 Respond with a JSON object in this exact format:
 {
-  "category": "exact category name from list",
-  "subcategory": "specific subcategory or null",
+  "category": "exact CASE category name from CASE categories list",
+  "subcategory": "specific CASE subcategory or null",
+  "incident_category": "exact INCIDENT category name from INCIDENT categories list (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
+  "incident_subcategory": "specific INCIDENT subcategory (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
   "confidence_score": 0.95,
   "reasoning": "explanation here",
   "keywords": ["keyword1", "keyword2", "keyword3"],
@@ -650,6 +811,11 @@ Respond with a JSON object in this exact format:
     "systemic_issue_detected": false,
     "systemic_issue_reason": null,
     "affected_cases_same_client": 0
+  },
+  "record_type_suggestion": {
+    "type": "Incident",
+    "is_major_incident": false,
+    "reasoning": "VPN connectivity failure is an unplanned service disruption. Not major incident as it affects single user and no executive visibility flags."
   }
 }
 
@@ -659,26 +825,85 @@ Important: Return ONLY the JSON object, no additional text.`;
   }
 
   /**
-   * Validate and normalize classification result
+   * Validate and normalize classification result (DUAL CATEGORIZATION)
    */
-  private validateClassification(classification: any): CaseClassification {
-    const validCategories = [
-      'User Access Management',
-      'Networking',
-      'Application Support',
-      'Infrastructure',
-      'Security',
-      'Hardware',
-      'Email & Collaboration',
-      'Database',
-      'Backup & Recovery',
-      'Monitoring & Alerts'
-    ];
+  private async validateClassification(classification: any): Promise<CaseClassification> {
+    // Use available categories from ServiceNow (table-specific)
+    const validCaseCategories = this.availableCaseCategories.length > 0
+      ? this.availableCaseCategories
+      : [
+          'User Access Management',
+          'Networking',
+          'Application Support',
+          'Infrastructure',
+          'Security',
+          'Hardware',
+          'Email & Collaboration',
+          'Database',
+          'Backup & Recovery',
+          'Monitoring & Alerts'
+        ];
 
-    // Ensure category is valid
-    if (!validCategories.includes(classification.category)) {
-      console.warn(`[CaseClassifier] Invalid category: ${classification.category}, using fallback`);
+    const validIncidentCategories = this.availableIncidentCategories.length > 0
+      ? this.availableIncidentCategories
+      : validCaseCategories; // Fallback to case categories
+
+    // Validate CASE category
+    const originalCaseCategory = classification.category;
+    const originalCaseSubcategory = classification.subcategory;
+
+    if (!validCaseCategories.includes(classification.category)) {
+      // Log mismatch for ServiceNow team review (CASE table)
+      if (this.currentCaseData) {
+        await this.mismatchRepository.logMismatch({
+          caseNumber: this.currentCaseData.case_number,
+          caseSysId: this.currentCaseData.sys_id,
+          targetTable: 'sn_customerservice_case', // DUAL CATEGORIZATION: specify table
+          aiSuggestedCategory: originalCaseCategory,
+          aiSuggestedSubcategory: originalCaseSubcategory,
+          correctedCategory: 'Application Support',
+          confidenceScore: classification.confidence_score || 0.5,
+          caseDescription: this.currentCaseData.short_description,
+        });
+      }
+
+      console.warn(
+        `[CaseClassifier] AI suggested invalid CASE category: "${originalCaseCategory}" ` +
+        `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
+        `defaulting to "Application Support" | ` +
+        `This mismatch has been logged for ServiceNow team review (table: sn_customerservice_case)`
+      );
       classification.category = 'Application Support'; // Safe default
+    }
+
+    // Validate INCIDENT category (only if provided)
+    if (classification.incident_category) {
+      const originalIncidentCategory = classification.incident_category;
+      const originalIncidentSubcategory = classification.incident_subcategory;
+
+      if (!validIncidentCategories.includes(classification.incident_category)) {
+        // Log mismatch for ServiceNow team review (INCIDENT table)
+        if (this.currentCaseData) {
+          await this.mismatchRepository.logMismatch({
+            caseNumber: this.currentCaseData.case_number,
+            caseSysId: this.currentCaseData.sys_id,
+            targetTable: 'incident', // DUAL CATEGORIZATION: specify table
+            aiSuggestedCategory: originalIncidentCategory,
+            aiSuggestedSubcategory: originalIncidentSubcategory,
+            correctedCategory: 'Application Support',
+            confidenceScore: classification.confidence_score || 0.5,
+            caseDescription: this.currentCaseData.short_description,
+          });
+        }
+
+        console.warn(
+          `[CaseClassifier] AI suggested invalid INCIDENT category: "${originalIncidentCategory}" ` +
+          `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
+          `defaulting to "Application Support" | ` +
+          `This mismatch has been logged for ServiceNow team review (table: incident)`
+        );
+        classification.incident_category = 'Application Support'; // Safe default
+      }
     }
 
     // Ensure confidence score is valid

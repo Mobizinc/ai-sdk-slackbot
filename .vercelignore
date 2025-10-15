@@ -1,0 +1,3 @@
+# Exclude admin HTML from production deployment
+# The API route at /api/admin will block access in production
+admin-interface.html

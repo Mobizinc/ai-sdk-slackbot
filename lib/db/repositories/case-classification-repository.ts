@@ -152,6 +152,27 @@ export class CaseClassificationRepository {
   }
 
   /**
+   * Get recent classification results (for monitoring/observability)
+   */
+  async getRecentClassifications(limit: number = 20): Promise<CaseClassificationResults[]> {
+    const db = getDb();
+    if (!db) return [];
+
+    try {
+      const results = await db
+        .select()
+        .from(caseClassificationResults)
+        .orderBy(desc(caseClassificationResults.createdAt))
+        .limit(limit);
+
+      return results;
+    } catch (error) {
+      console.error(`[DB] Error getting recent classifications:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Save discovered entities
    */
   async saveDiscoveredEntities(entities: NewCaseDiscoveredEntities[]): Promise<void> {
