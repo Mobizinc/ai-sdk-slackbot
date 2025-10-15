@@ -40,7 +40,8 @@ export async function POST(request: Request) {
     const qstashEnabled = isQStashEnabled();
 
     if (qstashEnabled) {
-      const isValidSignature = verifyQStashSignature(signature, body);
+      const signingKeys = getSigningKeys();
+      const isValidSignature = verifyQStashSignature(signature, signingKeys.current || '', body);
       if (!isValidSignature) {
         console.warn('[Worker] Invalid QStash signature - rejecting request');
         return Response.json(
