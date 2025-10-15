@@ -1,12 +1,12 @@
 /**
  * Altus Health Application Services Test Script
- * Tests that all 11 Application Services were created correctly in DEV environment
+ * Tests that all 24 Application Services were created correctly in DEV environment
  *
  * Validates:
- * - All 11 Application Services exist
+ * - All 24 Application Services exist
  * - Each has the correct parent Service Offering
  * - Parent relationships are properly established
- * - Services are distributed correctly (7+3+1)
+ * - Services are distributed correctly (18+5+1)
  *
  * Target: DEV environment (mobizdev.service-now.com)
  */
@@ -37,7 +37,7 @@ interface ExpectedService {
 }
 
 const expectedServices: ExpectedService[] = [
-  // Application Administration (7)
+  // Application Administration (18)
   { name: 'Altus Health - NextGen Production', parentOffering: 'Application Administration' },
   { name: 'Altus Health - Novarad Production', parentOffering: 'Application Administration' },
   { name: 'Altus Health - Epowerdocs (EPD) Production', parentOffering: 'Application Administration' },
@@ -45,11 +45,24 @@ const expectedServices: ExpectedService[] = [
   { name: 'Altus Health - Qgenda Account', parentOffering: 'Application Administration' },
   { name: 'Altus Health - Paylocity Account', parentOffering: 'Application Administration' },
   { name: 'Altus Health - Availity Account', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - GlobalPay Account', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - Gorev Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - Imagine Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - Medicus Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - One Source Account', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - OnePACS Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - TruBridge Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - ViaTrack Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - VizTech Production', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - WayStar Account', parentOffering: 'Application Administration' },
+  { name: 'Altus Health - Magdou Health (PACS) Production', parentOffering: 'Application Administration' },
 
-  // Infrastructure and Cloud Management (3)
+  // Infrastructure and Cloud Management (5)
   { name: 'Altus Health - O365 Production', parentOffering: 'Infrastructure and Cloud Management' },
   { name: 'Altus Health - Azure Environment', parentOffering: 'Infrastructure and Cloud Management' },
   { name: 'Altus Health - Corporate Fileshares', parentOffering: 'Infrastructure and Cloud Management' },
+  { name: 'Altus Health - Endpoint Management Platform', parentOffering: 'Infrastructure and Cloud Management' },
+  { name: 'Altus Health - Active Directory', parentOffering: 'Infrastructure and Cloud Management' },
 
   // Network Management (1)
   { name: 'Altus Health - Vonage UCaaS', parentOffering: 'Network Management' },
@@ -216,9 +229,12 @@ async function testAltusApplicationServices() {
     console.log('✅ All tests passed! 🎉');
     console.log('');
     console.log('Summary:');
-    console.log('  ✅ All 11 Application Services exist');
+    console.log('  ✅ All 24 Application Services exist');
     console.log('  ✅ All parent relationships are correct');
     console.log('  ✅ Services are properly distributed across offerings');
+    console.log('     - Application Administration: 18 services');
+    console.log('     - Infrastructure and Cloud Management: 5 services');
+    console.log('     - Network Management: 1 service');
     console.log('');
 
   } catch (error) {

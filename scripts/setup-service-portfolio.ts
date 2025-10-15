@@ -1,20 +1,26 @@
 /**
- * ServiceNow Service Portfolio Setup Script (ADMIN-ONLY)
- * Creates MSP service portfolio in ServiceNow DEV environment
+ * STEP 1: ServiceNow Service Portfolio Setup Script (ADMIN-ONLY)
+ * Creates MSP service portfolio (Business Service + Service Offerings)
  *
  * This script is idempotent - safe to run multiple times.
  * It creates records only if they don't already exist.
  *
+ * ENVIRONMENT VARIABLES:
+ * - SERVICENOW_URL or DEV_SERVICENOW_URL: Instance URL
+ * - SERVICENOW_USERNAME or DEV_SERVICENOW_USERNAME: API username
+ * - SERVICENOW_PASSWORD or DEV_SERVICENOW_PASSWORD: API password
+ *
  * Portfolio Structure:
  * - Business Service: "Managed Support Services"
- * - Service Offerings (5):
+ * - Service Offerings (6):
  *   1. Infrastructure and Cloud Management
  *   2. Network Management
  *   3. Cybersecurity Management
- *   4. Helpdesk and Endpoint Support
- *   5. Application Administration
+ *   4. Helpdesk and Endpoint Support - 24/7
+ *   5. Helpdesk and Endpoint - Standard
+ *   6. Application Administration
  *
- * Target: DEV environment (mobizdev.service-now.com)
+ * Target: Any environment (DEV or PROD)
  */
 
 import * as dotenv from 'dotenv';
@@ -25,31 +31,34 @@ dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 async function setupServicePortfolio() {
-  console.log('🏗️  ServiceNow Service Portfolio Setup - DEV');
+  console.log('🏗️  STEP 1: ServiceNow Service Portfolio Setup');
   console.log('='.repeat(70));
   console.log('');
 
-  // Get DEV credentials
-  const devUrl = process.env.DEV_SERVICENOW_URL;
-  const devUsername = process.env.DEV_SERVICENOW_USERNAME;
-  const devPassword = process.env.DEV_SERVICENOW_PASSWORD;
+  // Get credentials (support both PROD and DEV env vars)
+  const instanceUrl = process.env.SERVICENOW_URL || process.env.DEV_SERVICENOW_URL;
+  const username = process.env.SERVICENOW_USERNAME || process.env.DEV_SERVICENOW_USERNAME;
+  const password = process.env.SERVICENOW_PASSWORD || process.env.DEV_SERVICENOW_PASSWORD;
 
-  if (!devUrl || !devUsername || !devPassword) {
-    console.error('❌ DEV ServiceNow credentials not configured in .env.local');
-    console.log('\nRequired variables:');
-    console.log('  - DEV_SERVICENOW_URL');
-    console.log('  - DEV_SERVICENOW_USERNAME');
-    console.log('  - DEV_SERVICENOW_PASSWORD');
+  if (!instanceUrl || !username || !password) {
+    console.error('❌ ServiceNow credentials not configured in .env.local');
+    console.log('\nRequired variables (use either PROD or DEV prefix):');
+    console.log('  - SERVICENOW_URL or DEV_SERVICENOW_URL');
+    console.log('  - SERVICENOW_USERNAME or DEV_SERVICENOW_USERNAME');
+    console.log('  - SERVICENOW_PASSWORD or DEV_SERVICENOW_PASSWORD');
     process.exit(1);
   }
 
+  const environment = process.env.SERVICENOW_URL ? 'PRODUCTION' : 'DEV';
+
   console.log('Configuration:');
-  console.log(`  URL: ${devUrl}`);
-  console.log(`  Username: ${devUsername}`);
+  console.log(`  Environment: ${environment}`);
+  console.log(`  URL: ${instanceUrl}`);
+  console.log(`  Username: ${username}`);
   console.log('');
 
   // Create auth header
-  const authHeader = `Basic ${Buffer.from(`${devUsername}:${devPassword}`).toString('base64')}`;
+  const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 
   try {
     // ========================================
@@ -61,7 +70,7 @@ async function setupServicePortfolio() {
     const businessServiceName = 'Managed Support Services';
 
     // Check if Business Service exists
-    const bsQueryUrl = `${devUrl}/api/now/table/cmdb_ci_service_business?sysparm_query=${encodeURIComponent(`name=${businessServiceName}`)}&sysparm_limit=1`;
+    const bsQueryUrl = `${instanceUrl}/api/now/table/cmdb_ci_service_business?sysparm_query=${encodeURIComponent(`name=${businessServiceName}`)}&sysparm_limit=1`;
 
     const bsQueryResponse = await fetch(bsQueryUrl, {
       headers: {
@@ -84,10 +93,11 @@ async function setupServicePortfolio() {
       console.log(`   sys_id: ${businessServiceSysId}`);
     } else {
       // Create new Business Service
-      const bsCreateUrl = `${devUrl}/api/now/table/cmdb_ci_service_business`;
+      const bsCreateUrl = `${instanceUrl}/api/now/table/cmdb_ci_service_business`;
       const bsPayload = {
         name: businessServiceName,
         short_description: 'Global MSP service portfolio for managed support services',
+        vendor: '2d6a47c7870011100fadcbb6dabb35fb', // Mobiz IT
       };
 
       const bsCreateResponse = await fetch(bsCreateUrl, {
@@ -121,7 +131,8 @@ async function setupServicePortfolio() {
       'Infrastructure and Cloud Management',
       'Network Management',
       'Cybersecurity Management',
-      'Helpdesk and Endpoint Support',
+      'Helpdesk and Endpoint Support - 24/7',
+      'Helpdesk and Endpoint - Standard',
       'Application Administration',
     ];
 
@@ -135,7 +146,7 @@ async function setupServicePortfolio() {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
       // Check if Service Offering exists
-      const soQueryUrl = `${devUrl}/api/now/table/service_offering?sysparm_query=${encodeURIComponent(`name=${offeringName}`)}&sysparm_limit=1`;
+      const soQueryUrl = `${instanceUrl}/api/now/table/service_offering?sysparm_query=${encodeURIComponent(`name=${offeringName}`)}&sysparm_limit=1`;
 
       const soQueryResponse = await fetch(soQueryUrl, {
         headers: {
@@ -158,10 +169,11 @@ async function setupServicePortfolio() {
         console.log(`   sys_id: ${sysId}`);
       } else {
         // Create new Service Offering
-        const soCreateUrl = `${devUrl}/api/now/table/service_offering`;
+        const soCreateUrl = `${instanceUrl}/api/now/table/service_offering`;
         const soPayload = {
           name: offeringName,
           parent: businessServiceSysId, // Link to Business Service
+          vendor: '2d6a47c7870011100fadcbb6dabb35fb', // Mobiz IT
         };
 
         const soCreateResponse = await fetch(soCreateUrl, {
@@ -196,7 +208,7 @@ async function setupServicePortfolio() {
     console.log('✅ Portfolio setup complete!');
     console.log('');
     console.log('View in ServiceNow:');
-    console.log(`${devUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${businessServiceSysId}`);
+    console.log(`${instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${businessServiceSysId}`);
     console.log('');
 
   } catch (error) {

@@ -1,12 +1,22 @@
 /**
- * ServiceNow Application Services Setup Script (ADMIN-ONLY)
- * Creates 11 Application Services for Altus Health in ServiceNow DEV environment
+ * STEP 2: ServiceNow Application Services Setup Script (ADMIN-ONLY)
+ * Creates 24 Application Services for Altus Health
  *
  * This script is idempotent - safe to run multiple times.
  * It creates records only if they don't already exist.
  *
+ * PREREQUISITES:
+ * - Run Step 1: setup-service-portfolio.ts first
+ * - Customer account must exist in ServiceNow
+ *
+ * ENVIRONMENT VARIABLES:
+ * - CUSTOMER_ACCOUNT_NUMBER: Account number (default: ACCT0010145 for Altus)
+ * - SERVICENOW_URL or DEV_SERVICENOW_URL: Instance URL
+ * - SERVICENOW_USERNAME or DEV_SERVICENOW_USERNAME: API username
+ * - SERVICENOW_PASSWORD or DEV_SERVICENOW_PASSWORD: API password
+ *
  * Application Services Structure:
- * - Parent: Service Offering "Application Administration" (7 services)
+ * - Parent: Service Offering "Application Administration" (18 services)
  *   1. Altus Health - NextGen Production
  *   2. Altus Health - Novarad Production
  *   3. Altus Health - Epowerdocs (EPD) Production
@@ -14,16 +24,29 @@
  *   5. Altus Health - Qgenda Account
  *   6. Altus Health - Paylocity Account
  *   7. Altus Health - Availity Account
+ *   8. Altus Health - GlobalPay Account
+ *   9. Altus Health - Gorev Production
+ *   10. Altus Health - Imagine Production
+ *   11. Altus Health - Medicus Production
+ *   12. Altus Health - One Source Account
+ *   13. Altus Health - OnePACS Production
+ *   14. Altus Health - TruBridge Production
+ *   15. Altus Health - ViaTrack Production
+ *   16. Altus Health - VizTech Production
+ *   17. Altus Health - WayStar Account
+ *   18. Altus Health - Magdou Health (PACS) Production
  *
- * - Parent: Service Offering "Infrastructure and Cloud Management" (3 services)
- *   8. Altus Health - O365 Production
- *   9. Altus Health - Azure Environment
- *   10. Altus Health - Corporate Fileshares
+ * - Parent: Service Offering "Infrastructure and Cloud Management" (5 services)
+ *   19. Altus Health - O365 Production
+ *   20. Altus Health - Azure Environment
+ *   21. Altus Health - Corporate Fileshares
+ *   22. Altus Health - Endpoint Management Platform
+ *   23. Altus Health - Active Directory
  *
  * - Parent: Service Offering "Network Management" (1 service)
- *   11. Altus Health - Vonage UCaaS
+ *   24. Altus Health - Vonage UCaaS
  *
- * Target: DEV environment (mobizdev.service-now.com)
+ * Target: Any environment (DEV or PROD)
  */
 
 import * as dotenv from 'dotenv';
@@ -84,8 +107,74 @@ const applicationServices: ApplicationServiceDefinition[] = [
     description: 'Managed SaaS - Availity clearinghouse account',
     serviceType: 'Managed SaaS',
   },
+  {
+    name: 'Altus Health - GlobalPay Account',
+    parentOffering: 'Application Administration',
+    description: 'Managed SaaS - GlobalPay payment processing account',
+    serviceType: 'Managed SaaS',
+  },
+  {
+    name: 'Altus Health - Gorev Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - Gorev application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - Imagine Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - Imagine application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - Medicus Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - Medicus application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - One Source Account',
+    parentOffering: 'Application Administration',
+    description: 'Managed SaaS - One Source account',
+    serviceType: 'Managed SaaS',
+  },
+  {
+    name: 'Altus Health - OnePACS Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - OnePACS medical imaging system for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - TruBridge Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - TruBridge application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - ViaTrack Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - ViaTrack application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - VizTech Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - VizTech application stack for Altus Health',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - WayStar Account',
+    parentOffering: 'Application Administration',
+    description: 'Managed SaaS - WayStar revenue cycle management account',
+    serviceType: 'Managed SaaS',
+  },
+  {
+    name: 'Altus Health - Magdou Health (PACS) Production',
+    parentOffering: 'Application Administration',
+    description: 'Dedicated Instance - Magdou Health PACS medical imaging system',
+    serviceType: 'Dedicated Instance',
+  },
 
-  // Infrastructure and Cloud Management (3 services)
+  // Infrastructure and Cloud Management (5 services)
   {
     name: 'Altus Health - O365 Production',
     parentOffering: 'Infrastructure and Cloud Management',
@@ -104,6 +193,18 @@ const applicationServices: ApplicationServiceDefinition[] = [
     description: 'Dedicated Instance - File server infrastructure for corporate data',
     serviceType: 'Dedicated Instance',
   },
+  {
+    name: 'Altus Health - Endpoint Management Platform',
+    parentOffering: 'Infrastructure and Cloud Management',
+    description: 'Dedicated Instance - Endpoint management platform (Intune)',
+    serviceType: 'Dedicated Instance',
+  },
+  {
+    name: 'Altus Health - Active Directory',
+    parentOffering: 'Infrastructure and Cloud Management',
+    description: 'Dedicated Instance - Active Directory and Azure AD infrastructure',
+    serviceType: 'Dedicated Instance',
+  },
 
   // Network Management (1 service)
   {
@@ -115,33 +216,74 @@ const applicationServices: ApplicationServiceDefinition[] = [
 ];
 
 async function setupAltusApplicationServices() {
-  console.log('🏗️  Altus Health Application Services Setup - DEV');
+  console.log('🏗️  STEP 2: Altus Health Application Services Setup');
   console.log('='.repeat(70));
   console.log('');
 
-  // Get DEV credentials
-  const devUrl = process.env.DEV_SERVICENOW_URL;
-  const devUsername = process.env.DEV_SERVICENOW_USERNAME;
-  const devPassword = process.env.DEV_SERVICENOW_PASSWORD;
+  // Get credentials (support both PROD and DEV env vars)
+  const instanceUrl = process.env.SERVICENOW_URL || process.env.DEV_SERVICENOW_URL;
+  const username = process.env.SERVICENOW_USERNAME || process.env.DEV_SERVICENOW_USERNAME;
+  const password = process.env.SERVICENOW_PASSWORD || process.env.DEV_SERVICENOW_PASSWORD;
+  const customerAccountNumber = process.env.CUSTOMER_ACCOUNT_NUMBER || 'ACCT0010145';
 
-  if (!devUrl || !devUsername || !devPassword) {
-    console.error('❌ DEV ServiceNow credentials not configured in .env.local');
-    console.log('\nRequired variables:');
-    console.log('  - DEV_SERVICENOW_URL');
-    console.log('  - DEV_SERVICENOW_USERNAME');
-    console.log('  - DEV_SERVICENOW_PASSWORD');
+  if (!instanceUrl || !username || !password) {
+    console.error('❌ ServiceNow credentials not configured in .env.local');
+    console.log('\nRequired variables (use either PROD or DEV prefix):');
+    console.log('  - SERVICENOW_URL or DEV_SERVICENOW_URL');
+    console.log('  - SERVICENOW_USERNAME or DEV_SERVICENOW_USERNAME');
+    console.log('  - SERVICENOW_PASSWORD or DEV_SERVICENOW_PASSWORD');
+    console.log('\nOptional:');
+    console.log('  - CUSTOMER_ACCOUNT_NUMBER (default: ACCT0010145)');
     process.exit(1);
   }
 
+  const environment = process.env.SERVICENOW_URL ? 'PRODUCTION' : 'DEV';
+
   console.log('Configuration:');
-  console.log(`  URL: ${devUrl}`);
-  console.log(`  Username: ${devUsername}`);
+  console.log(`  Environment: ${environment}`);
+  console.log(`  URL: ${instanceUrl}`);
+  console.log(`  Username: ${username}`);
+  console.log(`  Customer Account: ${customerAccountNumber}`);
   console.log('');
 
   // Create auth header
-  const authHeader = `Basic ${Buffer.from(`${devUsername}:${devPassword}`).toString('base64')}`;
+  const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 
   try {
+    // ========================================
+    // Phase 0: Query Customer Account
+    // ========================================
+    console.log('Phase 0: Lookup Customer Account');
+    console.log('─'.repeat(70));
+
+    const customerQueryUrl = `${instanceUrl}/api/now/table/customer_account?sysparm_query=${encodeURIComponent(`number=${customerAccountNumber}`)}&sysparm_limit=1`;
+
+    const customerResponse = await fetch(customerQueryUrl, {
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!customerResponse.ok) {
+      throw new Error(`Failed to query customer account: ${customerResponse.status}`);
+    }
+
+    const customerData = await customerResponse.json();
+
+    if (!customerData.result || customerData.result.length === 0) {
+      console.error(`❌ Customer Account "${customerAccountNumber}" not found`);
+      console.error('   Please ensure the customer account exists in ServiceNow');
+      process.exit(1);
+    }
+
+    const customerSysId = customerData.result[0].sys_id;
+    const customerName = customerData.result[0].name;
+    console.log(`✅ Found: "${customerName}"`);
+    console.log(`   Number: ${customerAccountNumber}`);
+    console.log(`   sys_id: ${customerSysId}`);
+    console.log('');
+
     // ========================================
     // Phase 1: Query Service Offerings to get sys_ids
     // ========================================
@@ -157,7 +299,7 @@ async function setupAltusApplicationServices() {
     const offeringSysIds: Map<string, string> = new Map();
 
     for (const offeringName of offeringNames) {
-      const queryUrl = `${devUrl}/api/now/table/service_offering?sysparm_query=${encodeURIComponent(`name=${offeringName}`)}&sysparm_limit=1`;
+      const queryUrl = `${instanceUrl}/api/now/table/service_offering?sysparm_query=${encodeURIComponent(`name=${offeringName}`)}&sysparm_limit=1`;
 
       const response = await fetch(queryUrl, {
         headers: {
@@ -203,7 +345,7 @@ async function setupAltusApplicationServices() {
       }
 
       // Check if Application Service exists
-      const queryUrl = `${devUrl}/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(`name=${appService.name}`)}&sysparm_limit=1`;
+      const queryUrl = `${instanceUrl}/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(`name=${appService.name}`)}&sysparm_limit=1`;
 
       const queryResponse = await fetch(queryUrl, {
         headers: {
@@ -232,12 +374,14 @@ async function setupAltusApplicationServices() {
           throw new Error(`Parent offering sys_id not found for: ${appService.parentOffering}`);
         }
 
-        const createUrl = `${devUrl}/api/now/table/cmdb_ci_service_discovered`;
+        const createUrl = `${instanceUrl}/api/now/table/cmdb_ci_service_discovered`;
         const payload = {
           name: appService.name,
           short_description: appService.description,
           parent: parentSysId, // Link to Service Offering
           operational_status: '1', // Set to Operational
+          company: customerSysId, // Link to Customer Account (Altus - who owns/uses the service)
+          vendor: '2d6a47c7870011100fadcbb6dabb35fb', // Mobiz IT (who provides/manages the service)
         };
 
         const createResponse = await fetch(createUrl, {
@@ -271,8 +415,8 @@ async function setupAltusApplicationServices() {
     console.log(`     - Created new: ${createdCount}`);
     console.log('');
     console.log('   By Service Offering:');
-    console.log('     - Application Administration: 7 services');
-    console.log('     - Infrastructure and Cloud Management: 3 services');
+    console.log('     - Application Administration: 18 services');
+    console.log('     - Infrastructure and Cloud Management: 5 services');
     console.log('     - Network Management: 1 service');
     console.log('');
     console.log('✅ Altus Health Application Services setup complete!');
