@@ -86,17 +86,38 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
+ * Fix invalid escape sequences in JSON strings
+ *
+ * ServiceNow may send paths like "L:\" which contain backslashes that aren't
+ * properly escaped for JSON. This function escapes backslashes that aren't
+ * part of valid JSON escape sequences.
+ *
+ * Valid JSON escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+ */
+function fixInvalidEscapeSequences(payload: string): string {
+  // Replace backslashes that are NOT followed by valid escape characters
+  // Valid: ", \, /, b, f, n, r, t, u (for unicode)
+  // This regex finds backslashes NOT followed by these valid characters
+  return payload.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+}
+
+/**
  * Sanitize payload by removing problematic control characters
  * Keeps properly escaped newlines, tabs, and carriage returns
  * Removes other ASCII control characters that can break JSON.parse()
  */
 function sanitizePayload(payload: string): string {
-  // Remove ASCII control characters (0x00-0x1F) except:
+  // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
+  let sanitized = fixInvalidEscapeSequences(payload);
+
+  // Step 2: Remove ASCII control characters (0x00-0x1F) except:
   // - \t (tab, 0x09)
   // - \n (newline, 0x0A)
   // - \r (carriage return, 0x0D)
   // Also remove DEL character (0x7F)
-  return payload.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+  sanitized = sanitized.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+
+  return sanitized;
 }
 
 /**
@@ -132,17 +153,36 @@ export async function POST(request: Request) {
     try {
       // Try parsing raw payload first
       let parsedPayload;
+      let wasSanitized = false;
       try {
         parsedPayload = JSON.parse(payload);
       } catch (parseError) {
-        // If parse fails due to control characters, sanitize and retry
+        // If parse fails due to control characters or invalid escape sequences, sanitize and retry
+        wasSanitized = true;
+        const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
         console.warn(
-          '[Webhook] Initial JSON parse failed (likely control characters), ' +
+          '[Webhook] Initial JSON parse failed (likely control characters or invalid escape sequences), ' +
           'attempting with sanitized payload'
         );
+        console.warn(`[Webhook] Parse error details: ${errorMsg}`);
+
         const sanitizedPayload = sanitizePayload(payload);
-        parsedPayload = JSON.parse(sanitizedPayload);
-        console.info('[Webhook] Successfully parsed sanitized payload');
+
+        try {
+          parsedPayload = JSON.parse(sanitizedPayload);
+          console.info('[Webhook] Successfully parsed sanitized payload');
+        } catch (sanitizeError) {
+          // If sanitization also fails, log more details
+          const sanitizeErrorMsg = sanitizeError instanceof Error ? sanitizeError.message : 'Unknown error';
+          console.error('[Webhook] Sanitization failed:', sanitizeErrorMsg);
+
+          // Try to extract case number from raw payload for debugging
+          const caseNumberMatch = payload.match(/"case_number"\s*:\s*"([^"]+)"/);
+          const caseNumber = caseNumberMatch ? caseNumberMatch[1] : 'unknown';
+          console.error(`[Webhook] Failed to parse case ${caseNumber} even after sanitization`);
+
+          throw sanitizeError;
+        }
       }
 
       const validationResult = validateServiceNowWebhook(parsedPayload);
@@ -159,6 +199,11 @@ export async function POST(request: Request) {
       }
 
       webhookData = validationResult.data!;
+
+      // Log if sanitization was required (helps identify problematic cases)
+      if (wasSanitized) {
+        console.info(`[Webhook] Case ${webhookData.case_number} required payload sanitization (control chars or invalid escapes)`);
+      }
     } catch (error) {
       console.error('[Webhook] Failed to parse webhook payload:', error);
       return Response.json(

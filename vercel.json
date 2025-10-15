@@ -21,6 +21,9 @@
     },
     "api/cron/case-leaderboard.ts": {
       "maxDuration": 60
+    },
+    "api/cron/sync-categories.ts": {
+      "maxDuration": 180
     }
   },
   "crons": [
@@ -39,6 +42,10 @@
     {
       "path": "/api/cron/case-leaderboard",
       "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-categories",
+      "schedule": "0 0,12 * * *"
     }
   ]
 }

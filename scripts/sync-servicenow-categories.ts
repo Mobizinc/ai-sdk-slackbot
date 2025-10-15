@@ -24,53 +24,87 @@ import { getCategorySyncService } from '../lib/services/servicenow-category-sync
 async function syncCategories() {
   const startTime = Date.now();
 
-  console.log('🔄 ServiceNow Category Sync');
-  console.log('============================\n');
+  console.log('🔄 ServiceNow Category Sync - ALL ITSM Tables');
+  console.log('===============================================\n');
+  console.log('Syncing categories for: Cases, Incidents, Problems, Changes');
+  console.log('This ensures dual categorization support and prevents stale warnings\n');
 
   const syncService = getCategorySyncService();
-  const tableName = process.env.SERVICENOW_CASE_TABLE || 'sn_customerservice_case';
-
-  console.log(`Table: ${tableName}`);
-  console.log(`Elements: category, subcategory\n`);
 
   try {
-    // Sync both categories and subcategories
-    const result = await syncService.syncAllCaseChoices(tableName);
+    // Sync ALL ITSM tables (Cases, Incidents, Problems, Changes)
+    // This is required for dual categorization support
+    const result = await syncService.syncAllITSMTables();
 
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('📊 SYNC RESULTS');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-    // Categories
-    console.log('CATEGORIES:');
-    console.log(`  Status: ${result.categories.status}`);
-    console.log(`  Fetched: ${result.categories.choicesFetched}`);
-    console.log(`  Added: ${result.categories.choicesAdded}`);
-    console.log(`  Updated: ${result.categories.choicesUpdated}`);
-    console.log(`  Removed: ${result.categories.choicesRemoved}`);
-    if (result.categories.errorMessage) {
-      console.log(`  Error: ${result.categories.errorMessage}`);
-    }
-    console.log('');
+    // Helper function to print table results
+    const printTableResults = (tableName: string, tableResult: typeof result.cases) => {
+      console.log(`${tableName.toUpperCase()}:`);
+      console.log(`  Categories:`);
+      console.log(`    Status: ${tableResult.categories.status}`);
+      console.log(`    Fetched: ${tableResult.categories.choicesFetched}, Added: ${tableResult.categories.choicesAdded}, Updated: ${tableResult.categories.choicesUpdated}`);
+      if (tableResult.categories.errorMessage) {
+        console.log(`    Error: ${tableResult.categories.errorMessage}`);
+      }
+      console.log(`  Subcategories:`);
+      console.log(`    Status: ${tableResult.subcategories.status}`);
+      console.log(`    Fetched: ${tableResult.subcategories.choicesFetched}, Added: ${tableResult.subcategories.choicesAdded}, Updated: ${tableResult.subcategories.choicesUpdated}`);
+      if (tableResult.subcategories.errorMessage) {
+        console.log(`    Error: ${tableResult.subcategories.errorMessage}`);
+      }
+      console.log('');
+    };
 
-    // Subcategories
-    console.log('SUBCATEGORIES:');
-    console.log(`  Status: ${result.subcategories.status}`);
-    console.log(`  Fetched: ${result.subcategories.choicesFetched}`);
-    console.log(`  Added: ${result.subcategories.choicesAdded}`);
-    console.log(`  Updated: ${result.subcategories.choicesUpdated}`);
-    console.log(`  Removed: ${result.subcategories.choicesRemoved}`);
-    if (result.subcategories.errorMessage) {
-      console.log(`  Error: ${result.subcategories.errorMessage}`);
-    }
-    console.log('');
+    // Print results for each table
+    printTableResults('Cases', result.cases);
+    printTableResults('Incidents', result.incidents);
+    printTableResults('Problems', result.problems);
+    printTableResults('Changes', result.changes);
 
-    if (result.categories.status === 'success' && result.subcategories.status === 'success') {
-      console.log('✅ Sync completed successfully');
+    // Calculate totals
+    const allSuccessful =
+      result.cases.categories.status === 'success' &&
+      result.cases.subcategories.status === 'success' &&
+      result.incidents.categories.status === 'success' &&
+      result.incidents.subcategories.status === 'success' &&
+      result.problems.categories.status === 'success' &&
+      result.problems.subcategories.status === 'success' &&
+      result.changes.categories.status === 'success' &&
+      result.changes.subcategories.status === 'success';
+
+    const totalAdded =
+      result.cases.categories.choicesAdded +
+      result.cases.subcategories.choicesAdded +
+      result.incidents.categories.choicesAdded +
+      result.incidents.subcategories.choicesAdded +
+      result.problems.categories.choicesAdded +
+      result.problems.subcategories.choicesAdded +
+      result.changes.categories.choicesAdded +
+      result.changes.subcategories.choicesAdded;
+
+    const totalUpdated =
+      result.cases.categories.choicesUpdated +
+      result.cases.subcategories.choicesUpdated +
+      result.incidents.categories.choicesUpdated +
+      result.incidents.subcategories.choicesUpdated +
+      result.problems.categories.choicesUpdated +
+      result.problems.subcategories.choicesUpdated +
+      result.changes.categories.choicesUpdated +
+      result.changes.subcategories.choicesUpdated;
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    if (allSuccessful) {
+      console.log('✅ Sync completed successfully for all ITSM tables');
+      console.log(`   Total added: ${totalAdded}, Total updated: ${totalUpdated}`);
       console.log(`   Total duration: ${Date.now() - startTime}ms`);
       process.exit(0);
     } else {
-      console.log('❌ Sync completed with errors');
+      console.log('⚠️  Sync completed with some errors');
+      console.log(`   Total added: ${totalAdded}, Total updated: ${totalUpdated}`);
+      console.log(`   Check errors above for details`);
       process.exit(1);
     }
   } catch (error) {
