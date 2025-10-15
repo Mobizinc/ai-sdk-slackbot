@@ -161,6 +161,56 @@ describe("ServiceNow Webhook", () => {
     expect(response.status).toBe(400);
   });
 
+  it("parses payload containing control characters", async () => {
+    const rawPayload = '{"case_number":"CASE0010001","sys_id":"sys123","short_description":"Hello\u0002World"}';
+
+    const response = await POST(
+      buildRequest(rawPayload, { headers: { "Content-Type": "application/json" } })
+    );
+
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses base64 encoded payloads", async () => {
+    const jsonPayload = JSON.stringify({
+      case_number: "CASE0010001",
+      sys_id: "sys123",
+      short_description: "Base64 payload",
+    });
+    const base64Payload = Buffer.from(jsonPayload, "utf8").toString("base64");
+
+    const response = await POST(
+      buildRequest(base64Payload, { headers: { "Content-Type": "text/plain" } })
+    );
+
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses x-www-form-urlencoded payloads", async () => {
+    const params = new URLSearchParams();
+    params.set(
+      "payload",
+      JSON.stringify({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "URLEncoded payload",
+      })
+    );
+
+    const request = new Request("http://localhost/api/servicenow-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
+
   it("validates secrets when configured", async () => {
     process.env.SERVICENOW_WEBHOOK_SECRET = "secret";
     await reloadApiModule();

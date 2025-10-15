@@ -38,7 +38,7 @@ async function run(trigger: URL): Promise<Response> {
       ));
 
     if (!channelId) {
-      return json({ status: "error", message: "Missing channel parameter" }, 400);
+      return json({ status: "error", message: "Missing channel parameter" }, 500);
     }
 
     const mentionIds = parseMentions(trigger.searchParams.get("mentions") ?? undefined);
@@ -49,9 +49,11 @@ async function run(trigger: URL): Promise<Response> {
       ? includeUnassignedParam === "1" || includeUnassignedParam === "true"
       : false;
 
+    const mentionUserIds = mentionIds ?? (includeUnassigned ? undefined : []);
+
     const result = await postCaseQueueReport({
       channelId,
-      mentionUserIds: mentionIds,
+      mentionUserIds,
       includeHighPriorityDataset: true,
       maxAgeMinutes: maxAgeMinutes ?? 240,
       minRows: 3,

@@ -26,10 +26,23 @@ describe('Workers API', () => {
   let getCaseTriageService: any;
   let validateServiceNowWebhook: any;
   let mockCaseTriageService: any;
+  const triageResult = {
+    caseNumber: 'CASE001',
+    classification: {
+      category: 'Test',
+      subcategory: null,
+      confidence_score: 0.9,
+    },
+    servicenowUpdated: true,
+    cached: false,
+    incidentCreated: false,
+    incidentNumber: null,
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    vi.resetModules();
 
     // Get mocked functions
     const qstashModule = await import('../lib/queue/qstash-client');
@@ -43,8 +56,9 @@ describe('Workers API', () => {
 
     // Mock case triage service
     mockCaseTriageService = {
-      triageCase: vi.fn().mockResolvedValue(undefined)
+      triageCase: vi.fn(),
     };
+    mockCaseTriageService.triageCase.mockResolvedValue(triageResult);
     getCaseTriageService.mockReturnValue(mockCaseTriageService);
   });
 
@@ -58,9 +72,14 @@ describe('Workers API', () => {
       // Arrange
       isQStashEnabled.mockReturnValue(true);
       verifyQStashSignature.mockReturnValue(true);
+      validateServiceNowWebhook.mockReturnValue({
+        success: true,
+        data: { case_number: 'CASE001' },
+      } as any);
+      mockCaseTriageService.triageCase.mockResolvedValue(triageResult);
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -79,7 +98,14 @@ describe('Workers API', () => {
         'valid-signature',
         requestBody
       );
-      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith({ caseNumber: 'CASE001' });
+      expect(validateServiceNowWebhook).toHaveBeenCalledWith({ case_number: 'CASE001' });
+      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith(
+        { case_number: 'CASE001' },
+        expect.objectContaining({
+          enableCaching: true,
+          writeToServiceNow: true,
+        })
+      );
     });
 
     it('should reject requests with invalid QStash signature', async () => {
@@ -88,7 +114,7 @@ describe('Workers API', () => {
       verifyQStashSignature.mockReturnValue(false);
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -110,9 +136,13 @@ describe('Workers API', () => {
     it('should process case when QStash is disabled', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
+      validateServiceNowWebhook.mockReturnValue({
+        success: true,
+        data: { case_number: 'CASE001' },
+      } as any);
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -126,16 +156,22 @@ describe('Workers API', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith({ caseNumber: 'CASE001' });
+      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith(
+        { case_number: 'CASE001' },
+        expect.any(Object)
+      );
     });
 
     it('should handle ServiceNow webhook validation', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
-      validateServiceNowWebhook.mockReturnValue(true);
+      validateServiceNowWebhook.mockReturnValue({
+        success: true,
+        data: { case_number: 'CASE001' },
+      } as any);
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -150,19 +186,16 @@ describe('Workers API', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(validateServiceNowWebhook).toHaveBeenCalledWith(
-        'valid-servicenow-signature',
-        requestBody
-      );
+      expect(validateServiceNowWebhook).toHaveBeenCalledWith({ case_number: 'CASE001' });
     });
 
     it('should reject invalid ServiceNow webhook signatures', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
-      validateServiceNowWebhook.mockReturnValue(false);
+      validateServiceNowWebhook.mockReturnValue({ success: false, error: 'Invalid webhook schema', errors: [] });
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -177,8 +210,9 @@ describe('Workers API', () => {
       const data = await response.json();
 
       // Assert
-      expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid signature');
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Invalid webhook schema');
     });
 
     it('should handle malformed JSON requests', async () => {
@@ -206,10 +240,14 @@ describe('Workers API', () => {
     it('should handle case triage errors', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
+      validateServiceNowWebhook.mockReturnValue({
+        success: true,
+        data: { case_number: 'CASE001' },
+      } as any);
       mockCaseTriageService.triageCase.mockRejectedValue(new Error('Triage failed'));
 
       const { POST } = await import('../api/workers/process-case');
-      const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
+      const requestBody = JSON.stringify({ case_number: 'CASE001' });
       const request = new Request('http://localhost:3000/api/workers/process-case', {
         method: 'POST',
         headers: {
@@ -251,6 +289,10 @@ describe('Workers API', () => {
     it('should work with different HTTP methods', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
+      validateServiceNowWebhook.mockReturnValue({
+        success: true,
+        data: {},
+      });
 
       const { POST } = await import('../api/workers/process-case');
       const requestBody = JSON.stringify({ caseNumber: 'CASE001' });
@@ -272,6 +314,8 @@ describe('Workers API', () => {
     it('should handle empty case data', async () => {
       // Arrange
       isQStashEnabled.mockReturnValue(false);
+      validateServiceNowWebhook.mockReturnValue({ success: true, data: {} as any });
+      mockCaseTriageService.triageCase.mockResolvedValue(triageResult);
 
       const { POST } = await import('../api/workers/process-case');
       const requestBody = JSON.stringify({});
@@ -288,7 +332,7 @@ describe('Workers API', () => {
 
       // Assert
       expect(response.status).toBe(200);
-      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith({});
+      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith({}, expect.any(Object));
     });
   });
 });
