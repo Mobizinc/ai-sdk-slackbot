@@ -1,0 +1,1451 @@
+[
+  {
+    "firewall_status": {
+      "display_value": "Intranet",
+      "value": "Intranet"
+    },
+    "os_address_width": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "os_service_pack": {
+      "display_value": "14393",
+      "value": "14393"
+    },
+    "cpu_core_thread": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_manufacturer": {
+      "display_value": "Intel",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/5f12913e87206dd050becb3e0ebb35ab",
+      "value": "5f12913e87206dd050becb3e0ebb35ab"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-09-12 02:30:03",
+      "value": "2025-09-12 09:30:03"
+    },
+    "allotted_electric_power_unit": {
+      "display_value": null,
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SMaazAkhtar@mobizinc.com",
+      "value": "SMaazAkhtar@mobizinc.com"
+    },
+    "ram": {
+      "display_value": "8",
+      "value": "8"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_name": {
+      "display_value": "Xeon(R) Platinum 8171M",
+      "value": "Xeon(R) Platinum 8171M"
+    },
+    "cpu_speed": {
+      "display_value": "2,100",
+      "value": "2100"
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "classification": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "disk_space": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "object_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "cd_speed": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "",
+      "value": ""
+    },
+    "floppy": {
+      "display_value": null,
+      "value": ""
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "allotted_electric_power": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Windows Server",
+      "value": "cmdb_ci_win_server"
+    },
+    "cpu_count": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_version": {
+      "display_value": "10.0.14393",
+      "value": "10.0.14393"
+    },
+    "serial_number": {
+      "display_value": "0000-0006-7247-6488-1442-5869-19",
+      "value": "0000-0006-7247-6488-1442-5869-19"
+    },
+    "cd_rom": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/alm_asset/c8c89ebfc3f7ea141302560fb001315d",
+      "value": "c8c89ebfc3f7ea141302560fb001315d"
+    },
+    "cpu_core_count": {
+      "display_value": "2",
+      "value": "2"
+    },
+    "form_factor": {
+      "display_value": null,
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "most_frequent_user": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_updated_by": {
+      "display_value": "admin",
+      "value": "admin"
+    },
+    "sys_created_on": {
+      "display_value": "2025-09-12 02:26:02",
+      "value": "2025-09-12 09:26:02"
+    },
+    "cpu_type": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "dr_backup": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_substatus": {
+      "display_value": null,
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "internet_facing": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_status": {
+      "display_value": "Installed",
+      "value": "installed"
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "name": {
+      "display_value": "dc-altus-azure",
+      "value": "dc-altus-azure"
+    },
+    "subcategory": {
+      "display_value": "Computer",
+      "value": "Computer"
+    },
+    "default_gateway": {
+      "display_value": "",
+      "value": ""
+    },
+    "chassis_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "virtual": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "6dd796b783b32e5068537cdfeeaad3b8",
+      "value": "6dd796b783b32e5068537cdfeeaad3b8"
+    },
+    "cluster_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!2/!(/!!/!#",
+      "value": "/!!/!2/!(/!!/!#"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "cluster_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "os": {
+      "display_value": "Microsoft Windows Server 2016 Datacenter",
+      "value": "Microsoft Windows Server 2016 Datacenter"
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_model/7a0a2329472e6d10ef836665d36d43e1",
+      "value": "7a0a2329472e6d10ef836665d36d43e1"
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "Hardware",
+      "value": "Hardware"
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "host_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    }
+  },
+  {
+    "firewall_status": {
+      "display_value": "Intranet",
+      "value": "Intranet"
+    },
+    "os_address_width": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "os_service_pack": {
+      "display_value": "9600",
+      "value": "9600"
+    },
+    "cpu_core_thread": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_manufacturer": {
+      "display_value": "Intel",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/5f12913e87206dd050becb3e0ebb35ab",
+      "value": "5f12913e87206dd050becb3e0ebb35ab"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-09-12 02:30:04",
+      "value": "2025-09-12 09:30:04"
+    },
+    "allotted_electric_power_unit": {
+      "display_value": null,
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SMaazAkhtar@mobizinc.com",
+      "value": "SMaazAkhtar@mobizinc.com"
+    },
+    "ram": {
+      "display_value": "16",
+      "value": "16"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_name": {
+      "display_value": "Xeon(R) E3-1230 v5",
+      "value": "Xeon(R) E3-1230 v5"
+    },
+    "cpu_speed": {
+      "display_value": "3,410",
+      "value": "3410"
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "classification": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "disk_space": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "object_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "cd_speed": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "",
+      "value": ""
+    },
+    "floppy": {
+      "display_value": null,
+      "value": ""
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "allotted_electric_power": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Windows Server",
+      "value": "cmdb_ci_win_server"
+    },
+    "cpu_count": {
+      "display_value": "4",
+      "value": "4"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_version": {
+      "display_value": "6.3.9600",
+      "value": "6.3.9600"
+    },
+    "serial_number": {
+      "display_value": "4S22DH2",
+      "value": "4S22DH2"
+    },
+    "cd_rom": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/alm_asset/18c89ebfc3f7ea141302560fb00131d0",
+      "value": "18c89ebfc3f7ea141302560fb00131d0"
+    },
+    "cpu_core_count": {
+      "display_value": "8",
+      "value": "8"
+    },
+    "form_factor": {
+      "display_value": null,
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "most_frequent_user": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_updated_by": {
+      "display_value": "admin",
+      "value": "admin"
+    },
+    "sys_created_on": {
+      "display_value": "2025-09-12 02:26:02",
+      "value": "2025-09-12 09:26:02"
+    },
+    "cpu_type": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "dr_backup": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_substatus": {
+      "display_value": null,
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "internet_facing": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_status": {
+      "display_value": "Installed",
+      "value": "installed"
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "name": {
+      "display_value": "ALTUSERWAX",
+      "value": "ALTUSERWAX"
+    },
+    "subcategory": {
+      "display_value": "Computer",
+      "value": "Computer"
+    },
+    "default_gateway": {
+      "display_value": "",
+      "value": ""
+    },
+    "chassis_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "virtual": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "a1d796b783b32e5068537cdfeeaad3b8",
+      "value": "a1d796b783b32e5068537cdfeeaad3b8"
+    },
+    "cluster_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!2/!(/!!/!#",
+      "value": "/!!/!2/!(/!!/!#"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "cluster_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "os": {
+      "display_value": "Microsoft Windows Server 2012 R2 Standard",
+      "value": "Microsoft Windows Server 2012 R2 Standard"
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_model/7a0a2329472e6d10ef836665d36d43e1",
+      "value": "7a0a2329472e6d10ef836665d36d43e1"
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "Hardware",
+      "value": "Hardware"
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "host_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    }
+  },
+  {
+    "firewall_status": {
+      "display_value": "Intranet",
+      "value": "Intranet"
+    },
+    "os_address_width": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "os_service_pack": {
+      "display_value": "17763",
+      "value": "17763"
+    },
+    "cpu_core_thread": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_manufacturer": {
+      "display_value": "Intel",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/5f12913e87206dd050becb3e0ebb35ab",
+      "value": "5f12913e87206dd050becb3e0ebb35ab"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-09-12 02:30:04",
+      "value": "2025-09-12 09:30:04"
+    },
+    "allotted_electric_power_unit": {
+      "display_value": null,
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SMaazAkhtar@mobizinc.com",
+      "value": "SMaazAkhtar@mobizinc.com"
+    },
+    "ram": {
+      "display_value": "32",
+      "value": "32"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "cpu_name": {
+      "display_value": "Xeon(R) E-2356G",
+      "value": "Xeon(R) E-2356G"
+    },
+    "cpu_speed": {
+      "display_value": "3,190",
+      "value": "3190"
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "classification": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "disk_space": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "object_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "cd_speed": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "",
+      "value": ""
+    },
+    "floppy": {
+      "display_value": null,
+      "value": ""
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "allotted_electric_power": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Windows Server",
+      "value": "cmdb_ci_win_server"
+    },
+    "cpu_count": {
+      "display_value": "6",
+      "value": "6"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "os_version": {
+      "display_value": "10.0.17763",
+      "value": "10.0.17763"
+    },
+    "serial_number": {
+      "display_value": "BSNZWM3",
+      "value": "BSNZWM3"
+    },
+    "cd_rom": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/alm_asset/60c8debfc3f7ea141302560fb001311a",
+      "value": "60c8debfc3f7ea141302560fb001311a"
+    },
+    "cpu_core_count": {
+      "display_value": "12",
+      "value": "12"
+    },
+    "form_factor": {
+      "display_value": null,
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "most_frequent_user": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_updated_by": {
+      "display_value": "admin",
+      "value": "admin"
+    },
+    "sys_created_on": {
+      "display_value": "2025-09-12 02:26:02",
+      "value": "2025-09-12 09:26:02"
+    },
+    "cpu_type": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "dr_backup": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_substatus": {
+      "display_value": null,
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "internet_facing": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "hardware_status": {
+      "display_value": "Installed",
+      "value": "installed"
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "name": {
+      "display_value": "ALTUSCORPGCS",
+      "value": "ALTUSCORPGCS"
+    },
+    "subcategory": {
+      "display_value": "Computer",
+      "value": "Computer"
+    },
+    "default_gateway": {
+      "display_value": "",
+      "value": ""
+    },
+    "chassis_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "virtual": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "e5d796b783b32e5068537cdfeeaad3b7",
+      "value": "e5d796b783b32e5068537cdfeeaad3b7"
+    },
+    "cluster_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!2/!(/!!/!#",
+      "value": "/!!/!2/!(/!!/!#"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "cluster_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "os": {
+      "display_value": "Microsoft Windows Server 2019 Standard",
+      "value": "Microsoft Windows Server 2019 Standard"
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "Unknown",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_model/7a0a2329472e6d10ef836665d36d43e1",
+      "value": "7a0a2329472e6d10ef836665d36d43e1"
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "Hardware",
+      "value": "Hardware"
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "host_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    }
+  }
+]
