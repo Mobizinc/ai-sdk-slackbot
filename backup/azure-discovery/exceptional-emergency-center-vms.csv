@@ -1,0 +1,14 @@
+VM Name,Resource Group,Location,VM Size,OS Type,Power State,Private IPs,Public IPs,Provisioning State
+vm-eer-paloalto-firewall-001,RG-EER-SCUS-PALOALTO-001,southcentralus,Standard_F8s_v2,Linux,VM running,,,Succeeded
+EERADSYNC,RG-EER-SCUS-SHAREDSERVICES-001,southcentralus,Standard_D4s_v5,Windows,VM running,,,Succeeded
+EERSNOWMID,RG-EER-SCUS-SHAREDSERVICES-001,southcentralus,Standard_D4s_v5,Windows,VM running,,,Succeeded
+EERDC01,RG-EER-SCUS-SHAREDSERVICES-002,southcentralus,Standard_D2s_v5,Windows,VM running,,,Succeeded
+EERDC02,RG-EER-SCUS-SHAREDSERVICES-002,southcentralus,Standard_D2s_v5,Windows,VM running,,,Succeeded
+AZMIGAPPv2,RG-EER24-SCUS-WORKLOADS-01,southcentralus,Standard_D2s_v5,Windows,VM running,,,Succeeded
+Domain,AVDI,eastus,Standard_D2s_v3,Windows,VM running,,,Succeeded
+EER-OnePACS-GW,AVDI,eastus,Standard_D4as_v5,Windows,VM running,,,Succeeded
+Fileserver-EER,AVDI,eastus,Standard_D2s_v3,Windows,VM running,,,Succeeded
+jumpserver-0,AVDI,eastus,Standard_D8s_v3,Windows,VM running,,,Succeeded
+AZMIGAPP01,RG-EER24-SCUS-AZMIG-01,eastus,Standard_D2as_v5,Windows,VM running,,,Succeeded
+JMPBX-EER01,RG-EER24-SCUS-JMPBX-01,eastus,Standard_D2as_v5,Windows,VM running,,,Succeeded
+test-vapt,TEST,eastus,Standard_D2s_v3,Linux,VM deallocated,,,Succeeded
