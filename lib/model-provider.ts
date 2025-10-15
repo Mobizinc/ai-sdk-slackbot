@@ -40,3 +40,18 @@ export const modelProvider = customProvider({
 export function getActiveModelId(): string {
   return gatewayProvider ? gatewayDefaultModel : openAiFallbackModel;
 }
+
+/**
+ * Backwards-compatible helper used in legacy tests and scripts.
+ * Returns the effective model identifier that will be used for language tasks.
+ */
+export function selectLanguageModel(options: { openAiModel?: string } = {}) {
+  const modelId = gatewayProvider
+    ? gatewayDefaultModel
+    : options.openAiModel?.trim() || openAiFallbackModel;
+
+  return {
+    modelId,
+    provider: gatewayProvider ? "ai-gateway" : "openai",
+  } as const;
+}
