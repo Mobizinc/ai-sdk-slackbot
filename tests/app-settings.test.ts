@@ -199,8 +199,12 @@ describe("App Settings Service", () => {
       const expectedValue = "actual_value";
       const fallback = "fallback_value";
 
-      vi.spyOn(require("../lib/services/app-settings"), 'getAppSetting')
-        .mockResolvedValue(expectedValue);
+      const mockSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ value: expectedValue }]),
+      };
+      mockDb.select.mockReturnValue(mockSelect);
 
       // Act
       const result = await getAppSettingWithFallback(key, fallback);
@@ -214,8 +218,12 @@ describe("App Settings Service", () => {
       const key = "missing_setting";
       const fallback = "fallback_value";
 
-      vi.spyOn(require("../lib/services/app-settings"), 'getAppSetting')
-        .mockResolvedValue(null);
+      const mockSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDb.select.mockReturnValue(mockSelect);
 
       // Act
       const result = await getAppSettingWithFallback(key, fallback);
@@ -228,8 +236,12 @@ describe("App Settings Service", () => {
       // Arrange
       const key = "missing_setting";
 
-      vi.spyOn(require("../lib/services/app-settings"), 'getAppSetting')
-        .mockResolvedValue(null);
+      const mockSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      };
+      mockDb.select.mockReturnValue(mockSelect);
 
       // Act
       const result = await getAppSettingWithFallback(key);
@@ -242,8 +254,12 @@ describe("App Settings Service", () => {
       // Arrange
       const key = "undefined_setting";
 
-      vi.spyOn(require("../lib/services/app-settings"), 'getAppSetting')
-        .mockResolvedValue(undefined);
+      const mockSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ value: undefined }]),
+      };
+      mockDb.select.mockReturnValue(mockSelect);
 
       // Act
       const result = await getAppSettingWithFallback(key);
@@ -257,8 +273,12 @@ describe("App Settings Service", () => {
       const key = "empty_setting";
       const fallback = "fallback_value";
 
-      vi.spyOn(require("../lib/services/app-settings"), 'getAppSetting')
-        .mockResolvedValue("");
+      const mockSelect = {
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ value: "" }]),
+      };
+      mockDb.select.mockReturnValue(mockSelect);
 
       // Act
       const result = await getAppSettingWithFallback(key, fallback);

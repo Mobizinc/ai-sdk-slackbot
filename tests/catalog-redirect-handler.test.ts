@@ -9,13 +9,26 @@ import type { ClientSettings } from "../lib/db/schema";
 // Mock dependencies
 vi.mock("../lib/services/hr-request-detector");
 vi.mock("../lib/db/repositories/client-settings-repository");
-vi.mock("../lib/tools/servicenow");
+
+vi.mock("../lib/tools/servicenow", () => ({
+  serviceNowClient: {
+    getCatalogItemByName: vi.fn(),
+    getCatalogItems: vi.fn(),
+    addCaseWorkNote: vi.fn(),
+    updateCase: vi.fn(),
+  },
+}));
 
 describe("CatalogRedirectHandler", () => {
   let handler: CatalogRedirectHandler;
   let mockDetector: any;
   let mockSettingsRepository: any;
-  let mockServiceNowClient: any;
+  const mockServiceNowClient = serviceNowClient as unknown as {
+    getCatalogItemByName: ReturnType<typeof vi.fn>;
+    getCatalogItems: ReturnType<typeof vi.fn>;
+    addCaseWorkNote: ReturnType<typeof vi.fn>;
+    updateCase: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,16 +47,11 @@ describe("CatalogRedirectHandler", () => {
     };
     vi.mocked(getClientSettingsRepository).mockReturnValue(mockSettingsRepository);
 
-    // Mock ServiceNow Client
-    mockServiceNowClient = {
-      getCatalogItemByName: vi.fn(),
-      getCatalogItems: vi.fn(),
-      addCaseWorkNote: vi.fn(),
-      updateCase: vi.fn(),
-    };
-    vi.mock("../lib/tools/servicenow", () => ({
-  serviceNowClient: mockServiceNowClient,
-}));
+    // Reset ServiceNow client mocks
+    mockServiceNowClient.getCatalogItemByName.mockReset();
+    mockServiceNowClient.getCatalogItems.mockReset();
+    mockServiceNowClient.addCaseWorkNote.mockReset();
+    mockServiceNowClient.updateCase.mockReset();
 
     handler = new CatalogRedirectHandler({
       enabled: true,

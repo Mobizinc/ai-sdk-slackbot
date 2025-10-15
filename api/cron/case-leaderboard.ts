@@ -14,7 +14,24 @@ function json(body: Record<string, unknown>, status = 200): Response {
 async function run(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const channelParam = url.searchParams.get("channel");
+  let bodyChannel: string | null | undefined;
+
+  if (!channelParam && request.method === "POST") {
+    try {
+      const rawBody = await request.clone().text();
+      if (rawBody) {
+        const parsed = JSON.parse(rawBody);
+        if (parsed && typeof parsed.channel === "string") {
+          bodyChannel = parsed.channel;
+        }
+      }
+    } catch (error) {
+      console.warn("[Cron] Failed to parse leaderboard request body:", error);
+    }
+  }
+
   const channel = channelParam
+    ?? bodyChannel
     ?? (await getAppSettingWithFallback(
       APP_SETTING_KEYS.leaderboardChannel,
       process.env.MOBIZ_LEADERBOARD_CHANNEL ?? process.env.CASE_QUEUE_CHANNEL_ID ?? null,

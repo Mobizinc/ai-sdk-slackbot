@@ -3,20 +3,15 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { appSettings } from "../db/schema";
 
-export const APP_SETTING_KEYS = {
+export const APP_SETTING_KEYS = Object.freeze({
   leaderboardChannel: "mobiz_leaderboard_channel",
   queueReportChannel: "mobiz_queue_report_channel",
-} as const;
+} as const);
 
-let ensured = false;
+const ensuredDbs = new WeakSet<object>();
 
-async function ensureTable() {
-  if (ensured) return;
-
-  const db = getDb();
-  if (!db) {
-    throw new Error("Neon database is not configured (missing DATABASE_URL)");
-  }
+async function ensureTable(db: NonNullable<ReturnType<typeof getDb>>) {
+  if (ensuredDbs.has(db)) return;
 
   await db.execute(
     `CREATE TABLE IF NOT EXISTS "app_settings" (
@@ -30,7 +25,7 @@ async function ensureTable() {
     `CREATE INDEX IF NOT EXISTS "idx_app_settings_updated" ON "app_settings" ("updated_at");`
   );
 
-  ensured = true;
+  ensuredDbs.add(db);
 }
 
 export async function getAppSetting(key: string): Promise<string | null> {
@@ -39,7 +34,7 @@ export async function getAppSetting(key: string): Promise<string | null> {
     throw new Error("Neon database is not configured (missing DATABASE_URL)");
   }
 
-  await ensureTable();
+  await ensureTable(db);
 
   const rows = await db
     .select({ value: appSettings.value })
@@ -56,7 +51,7 @@ export async function setAppSetting(key: string, value: string): Promise<void> {
     throw new Error("Neon database is not configured (missing DATABASE_URL)");
   }
 
-  await ensureTable();
+  await ensureTable(db);
 
   await db
     .insert(appSettings)
@@ -75,7 +70,7 @@ export async function getAppSettingWithFallback(
   fallback?: string | null,
 ): Promise<string | null> {
   const value = await getAppSetting(key);
-  if (value !== null && value !== undefined) {
+  if (value !== null && value !== undefined && value !== '') {
     return value;
   }
   return fallback ?? null;

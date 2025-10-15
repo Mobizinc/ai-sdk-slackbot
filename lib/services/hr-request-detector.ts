@@ -20,6 +20,8 @@ export interface HRDetectionResult {
   suggestedCatalogItems: string[];
 }
 
+const GENERIC_KEYWORDS = new Set(['employee', 'user']);
+
 export interface CatalogItemMapping {
   requestType: HRRequestType;
   keywords: string[];
@@ -69,6 +71,7 @@ const DEFAULT_CATALOG_MAPPINGS: CatalogItemMapping[] = [
       'quit',
       'quitting',
       'fired',
+      'employee',
     ],
     catalogItemNames: [
       'HR - Employee Termination Request',
@@ -85,6 +88,7 @@ const DEFAULT_CATALOG_MAPPINGS: CatalogItemMapping[] = [
       'offboard',
       'deactivate user',
       'deactivate account',
+      'deactivate',
       'disable user',
       'disable account',
       'remove access',
@@ -197,7 +201,8 @@ export class HRRequestDetector {
         if (text.includes(keyword.toLowerCase())) {
           matchedKeywords.push(keyword);
           // Weight by keyword length (longer = more specific)
-          score += keyword.length * mapping.priority;
+          const baseWeight = GENERIC_KEYWORDS.has(keyword.toLowerCase()) ? 1 : keyword.length;
+          score += baseWeight * mapping.priority;
         }
       }
 
@@ -222,24 +227,24 @@ export class HRRequestDetector {
       };
     }
 
-    // IMPROVED confidence scoring:
-    // Base confidence on keywords matched relative to a reasonable threshold
-    // rather than max possible score (which is too conservative)
+    const keywordContribution = bestMatch.matchedKeywords.reduce((sum, keyword) => {
+      const normalizedKeyword = keyword.toLowerCase();
+      const isMultiWord = normalizedKeyword.includes(' ');
 
-    // Each keyword match contributes to confidence
-    const keywordMatchBonus = bestMatch.matchedKeywords.length * 0.15; // 15% per keyword
+      let weight = isMultiWord ? 0.2 : 0.12;
+      if (GENERIC_KEYWORDS.has(normalizedKeyword)) {
+        weight = 0.05;
+      }
 
-    // Multi-word keyword matches are more significant
-    const specificityBonus = bestMatch.matchedKeywords
-      .filter(kw => kw.split(' ').length > 1)
-      .length * 0.25; // 25% extra for multi-word keywords
+      const lengthBonus = Math.min(keyword.length / 20, 1) * 0.05;
+      return sum + weight + lengthBonus;
+    }, 0);
 
-    // Priority weighting (higher priority = more confident)
-    const priorityBonus = (bestMatch.mapping.priority / 10) * 0.2; // Up to 20% for priority
+    const diversityBonus = bestMatch.matchedKeywords.length >= 3 ? 0.1 : 0;
+    const priorityBonus = (bestMatch.mapping.priority / 10) * 0.15;
 
-    // Calculate final confidence (capped at 1.0)
     const confidence = Math.min(
-      keywordMatchBonus + specificityBonus + priorityBonus,
+      0.28 + keywordContribution + diversityBonus + priorityBonus,
       1.0
     );
 

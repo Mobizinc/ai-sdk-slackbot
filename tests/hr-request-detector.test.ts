@@ -352,7 +352,7 @@ describe("getHRRequestDetector", () => {
     expect(detector1).toBe(detector2);
   });
 
-  it("should use environment config when available", () => {
+  it("should use environment config when available", async () => {
     const originalEnv = process.env.HR_REQUEST_DETECTOR_CONFIG;
     process.env.HR_REQUEST_DETECTOR_CONFIG = JSON.stringify({
       mappings: [
@@ -368,7 +368,8 @@ describe("getHRRequestDetector", () => {
     // Clear the singleton to force re-creation
     vi.resetModules();
     
-    const { getHRRequestDetector: getFreshDetector } = require("../lib/services/hr-request-detector");
+    const module = await import("../lib/services/hr-request-detector");
+    const getFreshDetector = module.getHRRequestDetector;
     const detector = getFreshDetector();
     
     const result = detector.detectHRRequest({

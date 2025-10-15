@@ -156,9 +156,7 @@ describe('Cron API', () => {
   describe('Case Queue Report API', () => {
     it('should post queue report successfully', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: 'test-channel'
-      });
+      getAppSettingWithFallback.mockResolvedValue('test-channel');
       postCaseQueueReport.mockResolvedValue(undefined);
 
       const { POST } = await import('../api/cron/case-queue-report');
@@ -184,9 +182,7 @@ describe('Cron API', () => {
 
     it('should parse mentions parameter correctly', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: 'test-channel'
-      });
+      getAppSettingWithFallback.mockResolvedValue('test-channel');
       postCaseQueueReport.mockResolvedValue(undefined);
 
       const { POST } = await import('../api/cron/case-queue-report');
@@ -212,9 +208,7 @@ describe('Cron API', () => {
 
     it('should parse includeUnassigned parameter', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: 'test-channel'
-      });
+      getAppSettingWithFallback.mockResolvedValue('test-channel');
       postCaseQueueReport.mockResolvedValue(undefined);
 
       const { POST } = await import('../api/cron/case-queue-report');
@@ -240,9 +234,7 @@ describe('Cron API', () => {
 
     it('should return error when channel is missing', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: null
-      });
+      getAppSettingWithFallback.mockResolvedValue(null);
 
       const { POST } = await import('../api/cron/case-queue-report');
       const request = new Request('http://localhost:3000/api/cron/case-queue-report', {
@@ -260,9 +252,7 @@ describe('Cron API', () => {
 
     it('should handle null result from service', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: 'test-channel'
-      });
+      getAppSettingWithFallback.mockResolvedValue('test-channel');
       postCaseQueueReport.mockResolvedValue(null);
 
       const { POST } = await import('../api/cron/case-queue-report');
@@ -279,9 +269,7 @@ describe('Cron API', () => {
 
     it('should work with POST requests', async () => {
       // Arrange
-      getAppSetting.mockResolvedValue({
-        queue_report_channel: 'test-channel'
-      });
+      getAppSettingWithFallback.mockResolvedValue('test-channel');
       postCaseQueueReport.mockResolvedValue(undefined);
 
       const { POST } = await import('../api/cron/case-queue-report');

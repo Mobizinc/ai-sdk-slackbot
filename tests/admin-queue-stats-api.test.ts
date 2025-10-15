@@ -33,6 +33,13 @@ describe('Admin Queue Stats API', () => {
     getCaseClassificationRepository = vi.mocked(repoModule.getCaseClassificationRepository);
     isQStashEnabled = vi.mocked(qstashModule.isQStashEnabled);
     getSigningKeys = vi.mocked(qstashModule.getSigningKeys);
+
+    // Fresh repository mock per test run
+    mockRepository = {
+      getRecentClassifications: vi.fn(),
+      getClassificationStats: vi.fn(),
+    };
+    getCaseClassificationRepository.mockReturnValue(mockRepository);
     
     // Reset mock implementations to defaults
     mockRepository.getRecentClassifications.mockResolvedValue([]);
