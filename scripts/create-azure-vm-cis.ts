@@ -49,64 +49,122 @@ async function createVMCIs(discoveryFilePath: string) {
   console.log(`URL: ${instanceUrl}`);
   console.log('');
 
-  let created = 0, existing = 0, errors = 0;
+  let created = 0, existing = 0, errors = 0, linked = 0;
 
   for (const vm of vms) {
     console.log(`${vm.name}`);
 
+    // Find parent resource group CI
+    const resourceGroupUrl = `${instanceUrl}/api/now/table/cmdb_ci_resource_group?sysparm_query=name=${encodeURIComponent(vm.resourceGroup)}&sysparm_limit=1&sysparm_fields=sys_id,name`;
+    const resourceGroupResp = await fetch(resourceGroupUrl, { headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' } });
+
+    let parentResourceGroupSysId: string | null = null;
+    if (resourceGroupResp.ok) {
+      const resourceGroupData = await resourceGroupResp.json();
+      if (resourceGroupData.result?.length > 0) {
+        parentResourceGroupSysId = resourceGroupData.result[0].sys_id;
+        console.log(`  📎 Parent resource group: ${resourceGroupData.result[0].name}`);
+      }
+    }
+
+    if (!parentResourceGroupSysId) {
+      console.log(`  ⚠️  Parent resource group not found: ${vm.resourceGroup}`);
+      errors++;
+      continue;
+    }
+
     // Check existing
-    const checkUrl = `${instanceUrl}/api/now/table/cmdb_ci_cloud_host?sysparm_query=name=${encodeURIComponent(vm.name)}&sysparm_limit=1`;
+    const checkUrl = `${instanceUrl}/api/now/table/cmdb_ci_cloud_host?sysparm_query=name=${encodeURIComponent(vm.name)}&sysparm_limit=1&sysparm_fields=sys_id`;
     const checkResp = await fetch(checkUrl, { headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' } });
+
+    let vmSysId: string | null = null;
 
     if (checkResp.ok) {
       const checkData = await checkResp.json();
       if (checkData.result?.length > 0) {
         console.log(`  ⏭️  Exists`);
+        vmSysId = checkData.result[0].sys_id;
         existing++;
+      }
+    }
+
+    // Create CI if doesn't exist
+    if (!vmSysId) {
+      // Build description with IPs
+      const ipInfo = [];
+      if (vm.privateIpAddresses?.length > 0) {
+        ipInfo.push(`Private IPs: ${vm.privateIpAddresses.join(', ')}`);
+      }
+      if (vm.publicIpAddresses?.length > 0) {
+        ipInfo.push(`Public IPs: ${vm.publicIpAddresses.join(', ')}`);
+      }
+
+      const description = `Azure VM: ${vm.name}. Resource Group: ${vm.resourceGroup}. ${ipInfo.join('. ')}. Size: ${vm.vmSize}. OS: ${vm.osType}`;
+
+      const payload = {
+        name: vm.name,
+        ip_address: vm.privateIpAddresses?.[0] || '',
+        location: vm.location,
+        os: vm.osType,
+        short_description: description,
+        operational_status: vm.powerState?.includes('running') ? '1' : '2',
+        install_status: '1'
+      };
+
+      const createUrl = `${instanceUrl}/api/now/table/cmdb_ci_cloud_host`;
+      const createResp = await fetch(createUrl, {
+        method: 'POST',
+        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (createResp.ok) {
+        const createData = await createResp.json();
+        vmSysId = createData.result.sys_id;
+        console.log(`  ✅ Created (IP: ${vm.privateIpAddresses?.[0] || 'none'})`);
+        created++;
+      } else {
+        console.log(`  ❌ Failed to create`);
+        errors++;
         continue;
       }
     }
 
-    // Build description with IPs
-    const ipInfo = [];
-    if (vm.privateIpAddresses?.length > 0) {
-      ipInfo.push(`Private IPs: ${vm.privateIpAddresses.join(', ')}`);
-    }
-    if (vm.publicIpAddresses?.length > 0) {
-      ipInfo.push(`Public IPs: ${vm.publicIpAddresses.join(', ')}`);
-    }
+    // Create CI relationship: Resource Group Contains VM
+    const relCheckUrl = `${instanceUrl}/api/now/table/cmdb_rel_ci?sysparm_query=parent=${parentResourceGroupSysId}^child=${vmSysId}&sysparm_limit=1`;
+    const relCheckResp = await fetch(relCheckUrl, { headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' } });
 
-    const description = `Azure VM: ${vm.name}. Resource Group: ${vm.resourceGroup}. ${ipInfo.join('. ')}. Size: ${vm.vmSize}. OS: ${vm.osType}`;
+    if (relCheckResp.ok) {
+      const relCheckData = await relCheckResp.json();
+      if (relCheckData.result?.length > 0) {
+        console.log(`  🔗 Already linked to resource group`);
+      } else {
+        // Create relationship
+        const relPayload = {
+          parent: parentResourceGroupSysId,
+          child: vmSysId,
+          type: 'Contains::Contained by'
+        };
 
-    // Create CI
-    const payload = {
-      name: vm.name,
-      ip_address: vm.privateIpAddresses?.[0] || '',
-      location: vm.location,
-      os: vm.osType,
-      short_description: description,
-      operational_status: vm.powerState?.includes('running') ? '1' : '2',
-      install_status: '1'
-    };
+        const relUrl = `${instanceUrl}/api/now/table/cmdb_rel_ci`;
+        const relResp = await fetch(relUrl, {
+          method: 'POST',
+          headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify(relPayload)
+        });
 
-    const createUrl = `${instanceUrl}/api/now/table/cmdb_ci_cloud_host`;
-    const createResp = await fetch(createUrl, {
-      method: 'POST',
-      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (createResp.ok) {
-      console.log(`  ✅ Created (IP: ${vm.privateIpAddresses?.[0] || 'none'})`);
-      created++;
-    } else {
-      console.log(`  ❌ Failed`);
-      errors++;
+        if (relResp.ok) {
+          console.log(`  🔗 Linked to resource group`);
+          linked++;
+        } else {
+          console.log(`  ❌ Failed to link`);
+        }
+      }
     }
   }
 
   console.log('');
-  console.log(`✅ Created: ${created}, ⏭️  Existing: ${existing}, ❌ Errors: ${errors}`);
+  console.log(`✅ Created: ${created}, ⏭️  Existing: ${existing}, 🔗 Linked: ${linked}, ❌ Errors: ${errors}`);
 }
 
 const filePath = process.argv[2];

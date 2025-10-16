@@ -4,7 +4,7 @@
     "name": "Exceptional Emergency Center",
     "domain": "altuscommunityhealthcare.onmicrosoft.com"
   },
-  "discovered_at": "2025-10-15T22:45:03.320Z",
+  "discovered_at": "2025-10-15T22:51:00.326Z",
   "vm_count": 13,
   "resource_group_count": 20,
   "vms": [
@@ -17,8 +17,15 @@
       "osType": "Linux",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
-      "publicIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.0.4",
+        "10.53.0.36",
+        "10.53.0.20",
+        "10.53.0.52"
+      ],
+      "publicIpAddresses": [
+        "4.151.90.158"
+      ],
       "tags": {
         "Client": "eer Corp",
         "CostCenter": "IT-Security",
@@ -37,7 +44,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.1.5"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -50,7 +59,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.1.4"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -63,7 +74,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.1.20"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -76,7 +89,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.1.21"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -89,7 +104,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.53.2.4"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -102,7 +119,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.6"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -115,7 +134,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.25"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -126,9 +147,11 @@
       "location": "eastus",
       "vmSize": "Standard_D2s_v3",
       "osType": "Windows",
-      "provisioningState": "Succeeded",
+      "provisioningState": "Updating",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.5"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -141,7 +164,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.4"
+      ],
       "publicIpAddresses": [],
       "tags": {
         "cm-resource-parent": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/Avdi/providers/Microsoft.DesktopVirtualization/Azurevdi"
@@ -156,7 +181,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.8"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -169,7 +196,9 @@
       "osType": "Windows",
       "provisioningState": "Succeeded",
       "powerState": "VM running",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.0.0.7"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     },
@@ -182,7 +211,9 @@
       "osType": "Linux",
       "provisioningState": "Succeeded",
       "powerState": "VM deallocated",
-      "privateIpAddresses": [],
+      "privateIpAddresses": [
+        "10.1.0.6"
+      ],
       "publicIpAddresses": [],
       "tags": {}
     }

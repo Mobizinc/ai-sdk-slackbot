@@ -153,28 +153,38 @@ async function discoverAzureVMs(tenantKey: string) {
         const { stdout: ipStdout } = await execAsync(vmIpCommand);
         const vmIpData = JSON.parse(ipStdout);
 
-        // Create IP lookup map
+        // Create IP lookup map (aggregate IPs per VM)
         const ipMap = new Map<string, { private: string[]; public: string[] }>();
 
         for (const vmIp of vmIpData) {
           const vmName = vmIp.virtualMachine?.name;
           if (!vmName) continue;
 
-          const privateIps: string[] = [];
-          const publicIps: string[] = [];
+          // Get or create entry for this VM
+          if (!ipMap.has(vmName)) {
+            ipMap.set(vmName, { private: [], public: [] });
+          }
+          const vmIps = ipMap.get(vmName)!;
 
-          for (const nic of vmIp.virtualMachine?.network?.networkInterfaces || []) {
-            for (const ipConfig of nic.ipConfigurations || []) {
-              if (ipConfig.privateIpAddress) {
-                privateIps.push(ipConfig.privateIpAddress);
-              }
-              if (ipConfig.publicIpAddress?.ipAddress) {
-                publicIps.push(ipConfig.publicIpAddress.ipAddress);
+          // Azure CLI new format: network.privateIpAddresses and network.publicIpAddresses
+          const network = vmIp.virtualMachine?.network;
+
+          if (network?.privateIpAddresses) {
+            for (const privateIp of network.privateIpAddresses) {
+              if (privateIp && !vmIps.private.includes(privateIp)) {
+                vmIps.private.push(privateIp);
               }
             }
           }
 
-          ipMap.set(vmName, { private: privateIps, public: publicIps });
+          if (network?.publicIpAddresses) {
+            for (const publicIpObj of network.publicIpAddresses) {
+              const publicIp = publicIpObj.ipAddress || publicIpObj;
+              if (publicIp && typeof publicIp === 'string' && !vmIps.public.includes(publicIp)) {
+                vmIps.public.push(publicIp);
+              }
+            }
+          }
         }
 
         console.log(`    ✅ IP addresses discovered for ${ipMap.size} VM(s)`);
