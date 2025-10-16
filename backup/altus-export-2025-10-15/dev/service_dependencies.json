@@ -1,0 +1,44 @@
+[
+  {
+    "ci_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "ignore_errors": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_id": {
+      "display_value": "3895fed283a83a1068537cdfeeaad3cf",
+      "value": "3895fed283a83a1068537cdfeeaad3cf"
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 19:32:10",
+      "value": "2025-10-15 02:32:10"
+    },
+    "service_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:32:10",
+      "value": "2025-10-15 02:32:10"
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    }
+  }
+]

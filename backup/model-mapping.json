@@ -1,0 +1,47 @@
+{
+  "548D": {
+    "sys_id": "346db186c3c06658a01d5673e4013179",
+    "name": "FortiSwitch-548D",
+    "display_name": "Fortinet FortiSwitch-548D"
+  },
+  "100F": {
+    "sys_id": "386db186c3c06658a01d5673e401317b",
+    "name": "FortiGate-100F",
+    "display_name": "Fortinet FortiGate-100F"
+  },
+  "120G": {
+    "sys_id": "68aa733ac36ee650a01d5673e4013112",
+    "name": "FortiSwitch-120G",
+    "display_name": "Fortinet FortiSwitch-120G"
+  },
+  "100D": {
+    "sys_id": "718a733ac36ee650a01d5673e40131f3",
+    "name": "FortiSwitch-100D",
+    "display_name": "Fortinet FortiSwitch-100D"
+  },
+  "148F": {
+    "sys_id": "7c6db186c3c06658a01d5673e4013179",
+    "name": "FortiSwitch-148F-FPOE",
+    "display_name": "Fortinet FortiSwitch-148F-FPOE"
+  },
+  "60F": {
+    "sys_id": "fc6db186c3c06658a01d5673e401317a",
+    "name": "FortiGate-60F",
+    "display_name": "Fortinet FortiGate-60F"
+  },
+  "100E": {
+    "sys_id": "a89a3f3ac36ee650a01d5673e401311c",
+    "name": "FortiSwitch-100E",
+    "display_name": "Fortinet FortiSwitch-100E"
+  },
+  "VM64": {
+    "sys_id": "b46db186c3c06658a01d5673e401317a",
+    "name": "FortiGate-VM64",
+    "display_name": "Fortinet FortiGate-VM64"
+  },
+  "60D": {
+    "sys_id": "b9b992aec3a2a2105bcb9df01501310b",
+    "name": "FortiSwitch-60D",
+    "display_name": "Fortinet FortiSwitch-60D"
+  }
+}

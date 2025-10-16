@@ -86,17 +86,32 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
+ * Fix invalid escape sequences in JSON strings
+ *
+ * ServiceNow may send paths like "L:\" which contain backslashes that aren't
+ * properly escaped for JSON. This function escapes backslashes that aren't
+ * part of valid JSON escape sequences.
+ *
+ * Valid JSON escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+ */
+function fixInvalidEscapeSequences(payload: string): string {
+  // Replace backslashes that are NOT followed by valid escape characters
+  // Valid: ", \, /, b, f, n, r, t, u (for unicode)
+  // This regex finds backslashes NOT followed by these valid characters
+  return payload.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+}
+
+/**
  * Sanitize payload by removing problematic control characters
  * Keeps properly escaped newlines, tabs, and carriage returns
  * Removes other ASCII control characters that can break JSON.parse()
  */
 function sanitizePayload(payload: string): string {
-  // Remove ASCII control characters (0x00-0x1F) except:
-  // - \t (tab, 0x09)
-  // - \n (newline, 0x0A)
-  // - \r (carriage return, 0x0D)
+  // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
+  let sanitized = fixInvalidEscapeSequences(payload);
+
   // Also remove DEL character (0x7F) and unicode line/paragraph separators
-  return payload
+  return sanitized
     .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/[\u2028\u2029]/g, '');
 }

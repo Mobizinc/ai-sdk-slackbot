@@ -209,6 +209,39 @@ export interface ServiceNowCaseSummary {
   url: string;
 }
 
+export interface ServiceNowBusinessService {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  url: string;
+}
+
+export interface ServiceNowServiceOffering {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  parent_name?: string;
+  url: string;
+}
+
+export interface ServiceNowApplicationService {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  parent_name?: string;
+  url: string;
+}
+
+export interface ServiceNowCustomerAccount {
+  sys_id: string;
+  number: string;
+  name: string;
+  url: string;
+}
+
 export class ServiceNowClient {
   public isConfigured(): boolean {
     return Boolean(config.instanceUrl && detectAuthMode());
@@ -514,6 +547,7 @@ export class ServiceNowClient {
     priority?: string;
     callerId?: string;
     assignmentGroup?: string;
+    assignedTo?: string;
     isMajorIncident?: boolean;
     // Company/Account context (prevents orphaned incidents)
     company?: string;
@@ -551,6 +585,11 @@ export class ServiceNowClient {
       // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
     };
+
+    // Add assigned_to if provided (user explicitly assigned to case)
+    if (input.assignedTo) {
+      payload.assigned_to = input.assignedTo;
+    }
 
     // Add company/account context (prevents orphaned incidents)
     if (input.company) {
@@ -616,6 +655,134 @@ export class ServiceNowClient {
       incident_number: incident.number,
       incident_sys_id: incident.sys_id,
       incident_url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
+    };
+  }
+
+  /**
+   * Create Problem from Case
+   * Implements ITSM best practice: recurring issues requiring root cause analysis become Problem records
+   *
+   * Problems differ from Incidents:
+   * - Incidents: Unplanned service disruptions requiring immediate restoration
+   * - Problems: Root cause investigations for recurring/potential incidents
+   */
+  public async createProblemFromCase(input: {
+    caseSysId: string;
+    caseNumber: string;
+    category?: string;
+    subcategory?: string;
+    shortDescription: string;
+    description?: string;
+    urgency?: string;
+    priority?: string;
+    callerId?: string;
+    assignmentGroup?: string;
+    assignedTo?: string;
+    firstReportedBy?: string;
+    // Company/Account context (prevents orphaned problems)
+    company?: string;
+    account?: string;
+    businessService?: string;
+    location?: string;
+    // Contact information
+    contact?: string;
+    contactType?: string;
+    openedBy?: string;
+    // Technical context
+    cmdbCi?: string;
+    // Multi-tenancy / Domain separation
+    sysDomain?: string;
+    sysDomainPath?: string;
+  }): Promise<{
+    problem_number: string;
+    problem_sys_id: string;
+    problem_url: string;
+  }> {
+    const table = "problem";
+
+    // Build problem payload
+    const payload: Record<string, any> = {
+      short_description: input.shortDescription,
+      description: input.description || input.shortDescription,
+      category: input.category,
+      subcategory: input.subcategory,
+      urgency: input.urgency || "3", // Default to medium urgency
+      priority: input.priority || "3", // Default to medium priority
+      caller_id: input.callerId,
+      assignment_group: input.assignmentGroup,
+      // Link to parent Case
+      parent: input.caseSysId,
+      // Add work notes documenting source
+      work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this requires root cause analysis via problem management.`,
+    };
+
+    // Add assigned_to if provided (user explicitly assigned to case)
+    if (input.assignedTo) {
+      payload.assigned_to = input.assignedTo;
+    }
+
+    // Add first_reported_by_task if provided (task that first reported this problem)
+    if (input.firstReportedBy) {
+      payload.first_reported_by_task = input.firstReportedBy;
+    }
+
+    // Add company/account context (prevents orphaned problems)
+    if (input.company) {
+      payload.company = input.company;
+    }
+    if (input.account) {
+      payload.account = input.account;
+    }
+    if (input.businessService) {
+      payload.business_service = input.businessService;
+    }
+    if (input.location) {
+      payload.location = input.location;
+    }
+
+    // Add contact information
+    if (input.contact) {
+      payload.contact = input.contact;
+    }
+    if (input.contactType) {
+      payload.contact_type = input.contactType;
+    }
+    if (input.openedBy) {
+      payload.opened_by = input.openedBy;
+    }
+
+    // Add technical context
+    if (input.cmdbCi) {
+      payload.cmdb_ci = input.cmdbCi;
+    }
+
+    // Add multi-tenancy / domain separation
+    if (input.sysDomain) {
+      payload.sys_domain = input.sysDomain;
+    }
+    if (input.sysDomainPath) {
+      payload.sys_domain_path = input.sysDomainPath;
+    }
+
+    // Create problem via ServiceNow Table API
+    const response = await request<{ result: any }>(
+      `/api/now/table/${table}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const problem = response.result;
+
+    console.log(
+      `[ServiceNow] Created Problem ${problem.number} from Case ${input.caseNumber}`
+    );
+
+    return {
+      problem_number: problem.number,
+      problem_sys_id: problem.sys_id,
+      problem_url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
     };
   }
 
@@ -794,6 +961,173 @@ export class ServiceNowClient {
    */
   private getCatalogItemUrl(sysId: string): string {
     return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
+  }
+
+  /**
+   * Get Business Service by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getBusinessService(name: string): Promise<ServiceNowBusinessService | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/cmdb_ci_service_business?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const service = data.result[0];
+    const sysId = extractDisplayValue(service.sys_id);
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(service.name),
+      description: extractDisplayValue(service.description) || undefined,
+      parent: extractDisplayValue(service.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Service Offering by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getServiceOffering(name: string): Promise<ServiceNowServiceOffering | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/service_offering?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const offering = data.result[0];
+    const sysId = extractDisplayValue(offering.sys_id);
+
+    // Extract parent sys_id (value) and parent name (display_value)
+    let parentSysId: string | undefined;
+    let parentName: string | undefined;
+    if (offering.parent) {
+      if (typeof offering.parent === 'object') {
+        parentSysId = offering.parent.value || undefined;
+        parentName = offering.parent.display_value || undefined;
+      } else if (typeof offering.parent === 'string') {
+        parentSysId = offering.parent;
+        parentName = offering.parent;
+      }
+    }
+
+    // Extract description, handling object format
+    let description: string | undefined;
+    if (offering.description) {
+      if (typeof offering.description === 'string') {
+        description = offering.description || undefined;
+      } else if (typeof offering.description === 'object' && offering.description.display_value) {
+        description = offering.description.display_value || undefined;
+      } else if (typeof offering.description === 'object' && offering.description.value) {
+        description = offering.description.value || undefined;
+      }
+    }
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(offering.name),
+      description,
+      parent: parentSysId,
+      parent_name: parentName,
+      url: `${config.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Application Service by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getApplicationService(name: string): Promise<ServiceNowApplicationService | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const service = data.result[0];
+    const sysId = extractDisplayValue(service.sys_id);
+
+    // Extract parent sys_id (value) and parent name (display_value)
+    let parentSysId: string | undefined;
+    let parentName: string | undefined;
+    if (service.parent) {
+      if (typeof service.parent === 'object') {
+        parentSysId = service.parent.value || undefined;
+        parentName = service.parent.display_value || undefined;
+      } else if (typeof service.parent === 'string') {
+        parentSysId = service.parent;
+        parentName = service.parent;
+      }
+    }
+
+    // Extract description, handling object format
+    let description: string | undefined;
+    if (service.description) {
+      if (typeof service.description === 'string') {
+        description = service.description || undefined;
+      } else if (typeof service.description === 'object' && service.description.display_value) {
+        description = service.description.display_value || undefined;
+      } else if (typeof service.description === 'object' && service.description.value) {
+        description = service.description.value || undefined;
+      }
+    }
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(service.name),
+      description,
+      parent: parentSysId,
+      parent_name: parentName,
+      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Customer Account by number (READ-ONLY)
+   * Used to query customer account information
+   */
+  public async getCustomerAccount(number: string): Promise<ServiceNowCustomerAccount | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/customer_account?sysparm_query=${encodeURIComponent(
+        `number=${number}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const account = data.result[0];
+    const sysId = extractDisplayValue(account.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(account.number),
+      name: extractDisplayValue(account.name),
+      url: `${config.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
+    };
   }
 
   /**

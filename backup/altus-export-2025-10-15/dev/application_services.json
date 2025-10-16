@@ -1,0 +1,6361 @@
+[
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "",
+      "value": ""
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:32:10",
+      "value": "2025-10-15 02:32:10"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001021",
+      "value": "SNSVC0001021"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - Endpoint management platform (Intune)",
+      "value": "Dedicated Instance - Endpoint management platform (Intune)"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Endpoint Management Platform",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/2895fed283a83a1068537cdfeeaad3ca",
+      "value": "2895fed283a83a1068537cdfeeaad3ca"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 19:32:09",
+      "value": "2025-10-15 02:32:09"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Endpoint Management Platform",
+      "value": "Altus Health - Endpoint Management Platform"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "2095fed283a83a1068537cdfeeaad37c",
+      "value": "2095fed283a83a1068537cdfeeaad37c"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Network Management",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/1b0c465ec3ac7a101302560fb00131c9",
+      "value": "1b0c465ec3ac7a101302560fb00131c9"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:07",
+      "value": "2025-10-15 02:15:07"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001020",
+      "value": "SNSVC0001020"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Managed SaaS - Vonage unified communications account",
+      "value": "Managed SaaS - Vonage unified communications account"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Vonage UCaaS",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/ee8d22d683683a1068537cdfeeaad3d7",
+      "value": "ee8d22d683683a1068537cdfeeaad3d7"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:57:03",
+      "value": "2025-10-15 01:57:03"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Vonage UCaaS",
+      "value": "Altus Health - Vonage UCaaS"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "268d22d683683a1068537cdfeeaad3d4",
+      "value": "268d22d683683a1068537cdfeeaad3d4"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:06",
+      "value": "2025-10-15 02:15:06"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001015",
+      "value": "SNSVC0001015"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Managed SaaS - Paylocity HR/payroll account",
+      "value": "Managed SaaS - Paylocity HR/payroll account"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Paylocity Account",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/f77da6dec3a0ba101302560fb0013156",
+      "value": "f77da6dec3a0ba101302560fb0013156"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:52",
+      "value": "2025-10-15 01:56:52"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Paylocity Account",
+      "value": "Altus Health - Paylocity Account"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "3f7da6dec3a0ba101302560fb0013152",
+      "value": "3f7da6dec3a0ba101302560fb0013152"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:06",
+      "value": "2025-10-15 02:15:06"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001014",
+      "value": "SNSVC0001014"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Managed SaaS - Qgenda scheduling account",
+      "value": "Managed SaaS - Qgenda scheduling account"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Qgenda Account",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/0f7d66dec3a0ba101302560fb0013176",
+      "value": "0f7d66dec3a0ba101302560fb0013176"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:50",
+      "value": "2025-10-15 01:56:50"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Qgenda Account",
+      "value": "Altus Health - Qgenda Account"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "437d66dec3a0ba101302560fb0013173",
+      "value": "437d66dec3a0ba101302560fb0013173"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Infrastructure and Cloud Management",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/780bc2dac3ac7a101302560fb00131c5",
+      "value": "780bc2dac3ac7a101302560fb00131c5"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:07",
+      "value": "2025-10-15 02:15:07"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001018",
+      "value": "SNSVC0001018"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - Azure subscription(s) with IaaS and PaaS components",
+      "value": "Dedicated Instance - Azure subscription(s) with IaaS and PaaS components"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Azure Environment",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/1d8de6dec3a0ba101302560fb0013133",
+      "value": "1d8de6dec3a0ba101302560fb0013133"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:59",
+      "value": "2025-10-15 01:56:59"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Azure Environment",
+      "value": "Altus Health - Azure Environment"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "518de6dec3a0ba101302560fb0013130",
+      "value": "518de6dec3a0ba101302560fb0013130"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Infrastructure and Cloud Management",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/780bc2dac3ac7a101302560fb00131c5",
+      "value": "780bc2dac3ac7a101302560fb00131c5"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:07",
+      "value": "2025-10-15 02:15:07"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001017",
+      "value": "SNSVC0001017"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - Microsoft 365 tenant for Altus Health",
+      "value": "Dedicated Instance - Microsoft 365 tenant for Altus Health"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - O365 Production",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/3c8d229ec3a0ba101302560fb00131aa",
+      "value": "3c8d229ec3a0ba101302560fb00131aa"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:57",
+      "value": "2025-10-15 01:56:57"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - O365 Production",
+      "value": "Altus Health - O365 Production"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "708d229ec3a0ba101302560fb00131a7",
+      "value": "708d229ec3a0ba101302560fb00131a7"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:06",
+      "value": "2025-10-15 02:15:06"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001016",
+      "value": "SNSVC0001016"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Managed SaaS - Availity clearinghouse account",
+      "value": "Managed SaaS - Availity clearinghouse account"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Availity Account",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/588da6dec3a0ba101302560fb001317b",
+      "value": "588da6dec3a0ba101302560fb001317b"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:54",
+      "value": "2025-10-15 01:56:54"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Availity Account",
+      "value": "Altus Health - Availity Account"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "9c8da6dec3a0ba101302560fb0013177",
+      "value": "9c8da6dec3a0ba101302560fb0013177"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:05",
+      "value": "2025-10-15 02:15:05"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001011",
+      "value": "SNSVC0001011"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - Medical imaging stack for Altus Health",
+      "value": "Dedicated Instance - Medical imaging stack for Altus Health"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Novarad Production",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/597d66dec3a0ba101302560fb0013142",
+      "value": "597d66dec3a0ba101302560fb0013142"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:42",
+      "value": "2025-10-15 01:56:42"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Novarad Production",
+      "value": "Altus Health - Novarad Production"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "9d7d66dec3a0ba101302560fb001313e",
+      "value": "9d7d66dec3a0ba101302560fb001313e"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:05",
+      "value": "2025-10-15 02:15:05"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001013",
+      "value": "SNSVC0001013"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Managed SaaS - TSheets time tracking account",
+      "value": "Managed SaaS - TSheets time tracking account"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - TSheet Account",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/667dee9683683a1068537cdfeeaad35a",
+      "value": "667dee9683683a1068537cdfeeaad35a"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:48",
+      "value": "2025-10-15 01:56:48"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - TSheet Account",
+      "value": "Altus Health - TSheet Account"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "aa7dee9683683a1068537cdfeeaad356",
+      "value": "aa7dee9683683a1068537cdfeeaad356"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Infrastructure and Cloud Management",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/780bc2dac3ac7a101302560fb00131c5",
+      "value": "780bc2dac3ac7a101302560fb00131c5"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:07",
+      "value": "2025-10-15 02:15:07"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001019",
+      "value": "SNSVC0001019"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - File server infrastructure for corporate data",
+      "value": "Dedicated Instance - File server infrastructure for corporate data"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Corporate Fileshares",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/bd8d22d683683a1068537cdfeeaad3a1",
+      "value": "bd8d22d683683a1068537cdfeeaad3a1"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:57:01",
+      "value": "2025-10-15 01:57:01"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Corporate Fileshares",
+      "value": "Altus Health - Corporate Fileshares"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "b18dee9683683a1068537cdfeeaad380",
+      "value": "b18dee9683683a1068537cdfeeaad380"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:05",
+      "value": "2025-10-15 02:15:05"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001012",
+      "value": "SNSVC0001012"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - EMR/document system for Altus Health",
+      "value": "Dedicated Instance - EMR/document system for Altus Health"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - Epowerdocs (EPD) Production",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/827dee9683683a1068537cdfeeaad34f",
+      "value": "827dee9683683a1068537cdfeeaad34f"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:45",
+      "value": "2025-10-15 01:56:45"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - Epowerdocs (EPD) Production",
+      "value": "Altus Health - Epowerdocs (EPD) Production"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "b97dee9683683a1068537cdfeeaad344",
+      "value": "b97dee9683683a1068537cdfeeaad344"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  },
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Application Administration",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/7fbcc29283a43a1068537cdfeeaad362",
+      "value": "7fbcc29283a43a1068537cdfeeaad362"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-14 19:15:05",
+      "value": "2025-10-15 02:15:05"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "type": {
+      "display_value": "Empty",
+      "value": "0"
+    },
+    "number": {
+      "display_value": "SNSVC0001010",
+      "value": "SNSVC0001010"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "traffic_discovery": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "bucket": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "process_status": {
+      "display_value": "In Progress",
+      "value": "2"
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Dedicated Instance - EMR stack for Altus Health",
+      "value": "Dedicated Instance - EMR stack for Altus Health"
+    },
+    "busines_criticality": {
+      "display_value": "4 - not critical",
+      "value": "4 - not critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "layer": {
+      "display_value": "Impact Altus Health - NextGen Production",
+      "link": "https://mobizdev.service-now.com/api/now/table/svc_layer/f87d66dec3a0ba101302560fb0013136",
+      "value": "f87d66dec3a0ba101302560fb0013136"
+    },
+    "sys_class_name": {
+      "display_value": "Mapped Application Service",
+      "value": "cmdb_ci_service_discovered"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_service": {
+      "display_value": "61e1cb757f23220002d31ccebefa9120",
+      "value": "61e1cb757f23220002d31ccebefa9120"
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "source": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "view_map": {
+      "display_value": "View map",
+      "value": "5c38c522533321001c1379e5a11c088b"
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "SVC.Mobiz.Integration.TableAPI.PROD",
+      "value": "SVC.Mobiz.Integration.TableAPI.PROD"
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-14 18:56:38",
+      "value": "2025-10-15 01:56:38"
+    },
+    "hide_from_dashboard": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_status": {
+      "display_value": "Done",
+      "value": "0"
+    },
+    "name": {
+      "display_value": "Altus Health - NextGen Production",
+      "value": "Altus Health - NextGen Production"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "d07d26dec3a0ba101302560fb0013199",
+      "value": "d07d26dec3a0ba101302560fb0013199"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!(/!!",
+      "value": "/!!/!7/!(/!!"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/core_company/c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "severity": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "3",
+      "value": "3"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  }
+]
