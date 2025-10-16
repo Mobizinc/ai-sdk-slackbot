@@ -39,6 +39,45 @@ function escapeHtml(text: string | undefined): string {
 }
 
 /**
+ * Format date for display in work notes
+ * Shows relative time (e.g., "3 days ago") for recent dates, or absolute date for older ones
+ */
+function formatCaseDate(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+
+  try {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    // Show relative time for cases within last 30 days
+    if (diffDays === 0) {
+      return 'today';
+    } else if (diffDays === 1) {
+      return 'yesterday';
+    } else if (diffDays < 30) {
+      return `${diffDays} days ago`;
+    } else {
+      // Show absolute date for older cases
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const day = date.getDate();
+      const year = date.getFullYear();
+      const currentYear = now.getFullYear();
+
+      // Omit year if it's current year
+      if (year === currentYear) {
+        return `${month} ${day}`;
+      } else {
+        return `${month} ${day}, ${year}`;
+      }
+    }
+  } catch (error) {
+    return '';
+  }
+}
+
+/**
  * Format classification result as compact work note with HTML formatting
  *
  * Original: api/app/routers_minimal/webhooks.py:378-113
@@ -180,7 +219,12 @@ export function formatWorkNote(classification: CompleteClassification): string {
         clientLabel = '[Different Client]';
       }
 
-      note += `<li><strong>${caseNum}</strong> ${clientLabel} - ${desc} (Score: ${score.toFixed(2)})</li>\n`;
+      // Format date (try opened_at first, fall back to sys_created_on)
+      const dateStr = similarCase.opened_at || similarCase.sys_created_on;
+      const dateDisplay = formatCaseDate(dateStr);
+      const dateLabel = dateDisplay ? ` (${dateDisplay})` : '';
+
+      note += `<li><strong>${caseNum}</strong> ${clientLabel}${dateLabel} - ${desc} (Score: ${score.toFixed(2)})</li>\n`;
     });
     note += `</ul>\n<br>\n\n`;
   }

@@ -30,6 +30,7 @@ export interface SearchSimilarCasesOptions {
   crossClient?: boolean;
   searchFields?: string[];
   selectFields?: string[];
+  withinDays?: number; // Filter to cases opened within last N days (default: 30)
 }
 
 export interface KeywordSearchResponse {
@@ -43,6 +44,8 @@ export interface KeywordSearchResponse {
     subcategory?: string;
     state?: string;
     resolution_notes?: string;
+    opened_at?: string;
+    sys_created_on?: string;
     "@search.score": number;
   }>;
   "@odata.count"?: number;
@@ -129,6 +132,7 @@ export class AzureSearchClient {
       accountSysId,
       topK = 5,
       crossClient = true,
+      withinDays = parseInt(process.env.SIMILAR_CASES_WITHIN_DAYS || "30"),
       selectFields = [
         "case_number",
         "client_id",
@@ -139,6 +143,8 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
+        "opened_at",
+        "sys_created_on",
       ],
     } = options;
 
@@ -163,12 +169,32 @@ export class AzureSearchClient {
         top: topK,
       };
 
+      // Build filters
+      const filters: string[] = [];
+
+      // Add date filter (limit to recent cases)
+      if (withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        // Try both date fields (opened_at and sys_created_on)
+        filters.push(`(opened_at ge ${cutoffIso} or sys_created_on ge ${cutoffIso})`);
+      }
+
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
-        searchBody.filter = `client_id eq '${accountSysId}'`;
-        console.log(`[Azure Search] Vector search for client: ${accountSysId}`);
+        filters.push(`client_id eq '${accountSysId}'`);
+      }
+
+      // Combine filters
+      if (filters.length > 0) {
+        searchBody.filter = filters.join(" and ");
+      }
+
+      if (!crossClient && accountSysId) {
+        console.log(`[Azure Search] Vector search for client: ${accountSysId} (within ${withinDays} days)`);
       } else {
-        console.log("[Azure Search] Vector search across ALL clients (MSP mode)");
+        console.log(`[Azure Search] Vector search across ALL clients (MSP mode, within ${withinDays} days)`);
       }
 
       // Execute vector search via REST API
@@ -208,6 +234,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
+          // Date fields for recency display
+          opened_at: result.opened_at,
+          sys_created_on: result.sys_created_on,
         };
       });
 
@@ -251,6 +280,7 @@ export class AzureSearchClient {
       accountSysId,
       topK = 5,
       crossClient = true,
+      withinDays = parseInt(process.env.SIMILAR_CASES_WITHIN_DAYS || "30"),
       searchFields = ["short_description", "description"],
       selectFields = [
         "case_number",
@@ -262,6 +292,8 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
+        "opened_at",
+        "sys_created_on",
       ],
     } = options;
 
@@ -283,12 +315,32 @@ export class AzureSearchClient {
         top: topK,
       };
 
+      // Build filters
+      const filters: string[] = [];
+
+      // Add date filter (limit to recent cases)
+      if (withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        // Try both date fields (opened_at and sys_created_on)
+        filters.push(`(opened_at ge ${cutoffIso} or sys_created_on ge ${cutoffIso})`);
+      }
+
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
-        searchBody.filter = `client_id eq '${accountSysId}'`;
-        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId}`);
+        filters.push(`client_id eq '${accountSysId}'`);
+      }
+
+      // Combine filters
+      if (filters.length > 0) {
+        searchBody.filter = filters.join(" and ");
+      }
+
+      if (!crossClient && accountSysId) {
+        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId} (within ${withinDays} days)`);
       } else {
-        console.log("[Azure Search] Searching similar cases across ALL clients (MSP mode)");
+        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode, within ${withinDays} days)`);
       }
 
       // Execute keyword search via REST API
@@ -328,6 +380,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
+          // Date fields for recency display
+          opened_at: result.opened_at,
+          sys_created_on: result.sys_created_on,
         };
       });
 

@@ -156,6 +156,9 @@ export const SimilarCaseResultSchema = z.object({
   client_id: z.string().optional(),
   client_name: z.string().optional(),
   same_client: z.boolean().optional(),
+  // Date fields for recency filtering and display
+  opened_at: z.string().optional().describe("Case creation date (ISO 8601)"),
+  sys_created_on: z.string().optional().describe("ServiceNow creation timestamp (fallback field)"),
 });
 
 export type SimilarCaseResult = z.infer<typeof SimilarCaseResultSchema>;
