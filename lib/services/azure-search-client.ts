@@ -44,8 +44,8 @@ export interface KeywordSearchResponse {
     subcategory?: string;
     state?: string;
     resolution_notes?: string;
-    opened_at?: string;
-    sys_created_on?: string;
+    created_at?: string;
+    resolved_at?: string;
     "@search.score": number;
   }>;
   "@odata.count"?: number;
@@ -143,6 +143,8 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
+        "created_at",
+        "resolved_at",
       ],
     } = options;
 
@@ -170,8 +172,13 @@ export class AzureSearchClient {
       // Build filters
       const filters: string[] = [];
 
-      // Date filtering disabled - Azure Search index doesn't have date fields
-      // withinDays parameter is ignored
+      // Add date filter (limit to recent cases using created_at field)
+      if (withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        filters.push(`created_at ge ${cutoffIso}`);
+      }
 
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
@@ -184,9 +191,9 @@ export class AzureSearchClient {
       }
 
       if (!crossClient && accountSysId) {
-        console.log(`[Azure Search] Vector search for client: ${accountSysId}`);
+        console.log(`[Azure Search] Vector search for client: ${accountSysId} (within ${withinDays} days)`);
       } else {
-        console.log(`[Azure Search] Vector search across ALL clients (MSP mode)`);
+        console.log(`[Azure Search] Vector search across ALL clients (MSP mode, within ${withinDays} days)`);
       }
 
       // Execute vector search via REST API
@@ -226,9 +233,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
-          // Date fields for recency display
-          opened_at: result.opened_at,
-          sys_created_on: result.sys_created_on,
+          // Date fields for recency display (map Azure Search fields to ServiceNow field names)
+          opened_at: result.created_at,  // Map created_at to opened_at for compatibility
+          sys_created_on: result.created_at,  // Also map to sys_created_on for compatibility
         };
       });
 
@@ -284,6 +291,8 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
+        "created_at",
+        "resolved_at",
       ],
     } = options;
 
@@ -308,8 +317,13 @@ export class AzureSearchClient {
       // Build filters
       const filters: string[] = [];
 
-      // Date filtering disabled - Azure Search index doesn't have date fields
-      // withinDays parameter is ignored
+      // Add date filter (limit to recent cases using created_at field)
+      if (withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        filters.push(`created_at ge ${cutoffIso}`);
+      }
 
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
@@ -322,9 +336,9 @@ export class AzureSearchClient {
       }
 
       if (!crossClient && accountSysId) {
-        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId}`);
+        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId} (within ${withinDays} days)`);
       } else {
-        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode)`);
+        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode, within ${withinDays} days)`);
       }
 
       // Execute keyword search via REST API
@@ -364,9 +378,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
-          // Date fields for recency display
-          opened_at: result.opened_at,
-          sys_created_on: result.sys_created_on,
+          // Date fields for recency display (map Azure Search fields to ServiceNow field names)
+          opened_at: result.created_at,  // Map created_at to opened_at for compatibility
+          sys_created_on: result.created_at,  // Also map to sys_created_on for compatibility
         };
       });
 
