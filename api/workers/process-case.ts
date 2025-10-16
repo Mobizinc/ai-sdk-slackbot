@@ -17,12 +17,15 @@ import {
   type ServiceNowCaseWebhook,
 } from '../../lib/schemas/servicenow-webhook';
 import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
+import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
+const classificationRepository = getCaseClassificationRepository();
 
 // Configuration
 const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
+const IDEMPOTENCY_WINDOW_MINUTES = parseInt(process.env.IDEMPOTENCY_WINDOW_MINUTES || '10', 10);
 
 /**
  * Process case triage (async worker)
@@ -117,7 +120,45 @@ export async function POST(request: Request) {
       `[Worker] Processing case ${caseNumber} (QStash message: ${messageId})`
     );
 
-    // Execute full triage workflow (no timeout constraints here)
+    // ============================================================================
+    // IDEMPOTENCY CHECK: Skip processing if case was recently classified
+    // ============================================================================
+    // This prevents duplicate work notes when:
+    // 1. Webhook is sent multiple times (testing, network retries, etc.)
+    // 2. QStash retries failed requests
+    // 3. ServiceNow sends duplicate webhooks on case updates
+    //
+    // Default window: 10 minutes (configurable via IDEMPOTENCY_WINDOW_MINUTES)
+    const recentClassification = await classificationRepository.getRecentClassificationForIdempotency(
+      caseNumber,
+      IDEMPOTENCY_WINDOW_MINUTES
+    );
+
+    if (recentClassification) {
+      const ageMinutes = Math.round((Date.now() - recentClassification.createdAt.getTime()) / 60000);
+      console.info(
+        `[Worker] ⏭️  Skipping case ${caseNumber} - already processed ${ageMinutes} minutes ago ` +
+        `(idempotency window: ${IDEMPOTENCY_WINDOW_MINUTES} minutes)`
+      );
+
+      // Return success with idempotency flag - this prevents duplicate processing
+      return Response.json({
+        success: true,
+        case_number: caseNumber,
+        processing_time_ms: Date.now() - startTime,
+        classification: recentClassification.classificationJson,
+        servicenow_updated: recentClassification.servicenowUpdated,
+        cached: true, // Mark as cached since we're reusing recent result
+        idempotent: true, // Flag indicating this was an idempotent response
+        skipped_reason: `Already processed ${ageMinutes} minutes ago`,
+        previous_processing_time_ms: recentClassification.processingTimeMs,
+      });
+    }
+
+    // ============================================================================
+    // EXECUTE FULL TRIAGE WORKFLOW
+    // ============================================================================
+    // No recent classification found - proceed with normal processing
     const triageResult = await caseTriageService.triageCase(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
