@@ -143,8 +143,6 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
-        "opened_at",
-        "sys_created_on",
       ],
     } = options;
 
@@ -172,14 +170,8 @@ export class AzureSearchClient {
       // Build filters
       const filters: string[] = [];
 
-      // Add date filter (limit to recent cases)
-      if (withinDays > 0) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
-        const cutoffIso = cutoffDate.toISOString();
-        // Try both date fields (opened_at and sys_created_on)
-        filters.push(`(opened_at ge ${cutoffIso} or sys_created_on ge ${cutoffIso})`);
-      }
+      // Date filtering disabled - Azure Search index doesn't have date fields
+      // withinDays parameter is ignored
 
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
@@ -192,9 +184,9 @@ export class AzureSearchClient {
       }
 
       if (!crossClient && accountSysId) {
-        console.log(`[Azure Search] Vector search for client: ${accountSysId} (within ${withinDays} days)`);
+        console.log(`[Azure Search] Vector search for client: ${accountSysId}`);
       } else {
-        console.log(`[Azure Search] Vector search across ALL clients (MSP mode, within ${withinDays} days)`);
+        console.log(`[Azure Search] Vector search across ALL clients (MSP mode)`);
       }
 
       // Execute vector search via REST API
@@ -292,8 +284,6 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
-        "opened_at",
-        "sys_created_on",
       ],
     } = options;
 
@@ -318,14 +308,8 @@ export class AzureSearchClient {
       // Build filters
       const filters: string[] = [];
 
-      // Add date filter (limit to recent cases)
-      if (withinDays > 0) {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
-        const cutoffIso = cutoffDate.toISOString();
-        // Try both date fields (opened_at and sys_created_on)
-        filters.push(`(opened_at ge ${cutoffIso} or sys_created_on ge ${cutoffIso})`);
-      }
+      // Date filtering disabled - Azure Search index doesn't have date fields
+      // withinDays parameter is ignored
 
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
@@ -338,9 +322,9 @@ export class AzureSearchClient {
       }
 
       if (!crossClient && accountSysId) {
-        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId} (within ${withinDays} days)`);
+        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId}`);
       } else {
-        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode, within ${withinDays} days)`);
+        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode)`);
       }
 
       // Execute keyword search via REST API
