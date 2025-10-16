@@ -270,6 +270,9 @@ export const caseClassificationResults = pgTable(
     confidenceScore: real("confidence_score").notNull(),
     retryCount: integer("retry_count").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // Service Portfolio Classification (NEW)
+    serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
+    applicationService: text("application_service"), // Specific application if Application Administration
   },
   (table) => ({
     caseNumberIdx: index("idx_results_case_number").on(table.caseNumber),
@@ -371,6 +374,9 @@ export const caseClassifications = pgTable(
     processingTimeMs: real("processing_time_ms"),
     servicenowUpdated: boolean("servicenow_updated").default(false).notNull(),
     workNoteContent: text("work_note_content"),
+    // Service Portfolio Classification (NEW)
+    serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
+    applicationService: text("application_service"), // Specific application if Application Administration
   },
   (table) => ({
     caseNumberIdx: index("idx_case_number_classifications").on(table.caseNumber),

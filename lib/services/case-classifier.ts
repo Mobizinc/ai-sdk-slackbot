@@ -83,6 +83,9 @@ export interface CaseClassification {
   business_intelligence?: BusinessIntelligence;
   // ITSM record type suggestion
   record_type_suggestion?: RecordTypeSuggestion;
+  // Service Portfolio Classification (NEW)
+  service_offering?: string; // Main service offering (e.g., "Helpdesk and Endpoint Support")
+  application_service?: string; // Optional: Specific application if Application Administration
   // Token usage and cost tracking
   token_usage_input?: number;
   token_usage_output?: number;
@@ -116,6 +119,8 @@ export class CaseClassifier {
   private availableIncidentCategories: string[] = [];
   private availableIncidentSubcategories: string[] = [];
   private currentCaseData: CaseData | null = null; // For mismatch logging
+  // SERVICE PORTFOLIO: Store application services dynamically
+  private availableApplicationServices: Array<{ name: string; sys_id: string }> = [];
 
   /**
    * Set available categories from ServiceNow cache (TABLE-SPECIFIC)
@@ -135,6 +140,17 @@ export class CaseClassifier {
       `[CaseClassifier] Loaded categories: ` +
       `Cases (${caseCategories.length} categories, ${caseSubcategories.length} subcategories), ` +
       `Incidents (${incidentCategories.length} categories, ${incidentSubcategories.length} subcategories)`
+    );
+  }
+
+  /**
+   * Set available application services from ServiceNow dynamically
+   * Should be called before classification to inject company-specific applications into prompt
+   */
+  setApplicationServices(applications: Array<{ name: string; sys_id: string }>): void {
+    this.availableApplicationServices = applications;
+    console.log(
+      `[CaseClassifier] Loaded application services: ${applications.length} applications`
     );
   }
 
@@ -288,7 +304,10 @@ export class CaseClassifier {
           classification.business_intelligence?.financial_impact
         ),
         confidenceScore: classification.confidence_score,
-        retryCount: 0
+        retryCount: 0,
+        // Service Portfolio Classification (NEW)
+        serviceOffering: classification.service_offering,
+        applicationService: classification.application_service,
       });
 
       return {
@@ -332,6 +351,31 @@ export class CaseClassifier {
    */
   private buildSystemInstructions(): string {
     return `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.`;
+  }
+
+  /**
+   * Get application list text for prompt (dynamic based on company)
+   */
+  private getApplicationListText(): string {
+    if (this.availableApplicationServices.length === 0) {
+      return " the company's applications (e.g., O365, NextGen, Advantx, etc.)";
+    }
+    const appNames = this.availableApplicationServices.map(app => app.name).join(', ');
+    return ` ${this.availableApplicationServices.length} applications (${appNames})`;
+  }
+
+  /**
+   * Get application list prompt text for instruction 16
+   */
+  private getApplicationListPrompt(): string {
+    if (this.availableApplicationServices.length === 0) {
+      return " from the company's applications (e.g., \"Office 365\", \"NextGen\", \"Advantx\")";
+    }
+    const exampleApps = this.availableApplicationServices
+      .slice(0, 3)
+      .map(app => `"${app.name}"`)
+      .join(', ');
+    return ` from the ${this.availableApplicationServices.length} available (e.g., ${exampleApps})`;
   }
 
   /**
@@ -407,6 +451,18 @@ If you detect any of the following exceptions based on the client's business con
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
+
+SERVICE PORTFOLIO CLASSIFICATION:
+Identify which Service Offering best matches this case. Select ONE of the following:
+
+15. SERVICE OFFERING: Choose the most appropriate Service Offering from Altus Health's portfolio:
+   - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
+   - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
+   - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
+   - **Helpdesk and Endpoint Support**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch
+   - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
+
+16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}
 </instructions>
 
 <itsm_synthesis_rules>
@@ -555,7 +611,9 @@ Respond with a JSON object in this exact format:
     "type": "Incident",
     "is_major_incident": false,
     "reasoning": "Service disruption explanation"
-  }
+  },
+  "service_offering": "Helpdesk and Endpoint Support",
+  "application_service": "Office 365" (optional, only if service_offering is "Application Administration")
 }
 </json_schema>
 
@@ -1441,6 +1499,18 @@ If you detect any of the following exceptions based on the client's business con
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
+
+SERVICE PORTFOLIO CLASSIFICATION:
+Identify which Service Offering best matches this case. Select ONE of the following:
+
+15. SERVICE OFFERING: Choose the most appropriate Service Offering from Altus Health's portfolio:
+   - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
+   - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
+   - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
+   - **Helpdesk and Endpoint Support**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch
+   - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
+
+16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}
 </instructions>
 
 <itsm_synthesis_rules>

@@ -7,7 +7,7 @@ import { getCaseClassificationRepository } from "../db/repositories/case-classif
 import type { NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface DiscoveredEntity {
-  entityType: 'IP_ADDRESS' | 'SYSTEM' | 'USER' | 'SOFTWARE' | 'ERROR_CODE';
+  entityType: 'IP_ADDRESS' | 'SYSTEM' | 'USER' | 'SOFTWARE' | 'ERROR_CODE' | 'NETWORK_DEVICE';
   entityValue: string;
   confidence: number;
   source: 'llm' | 'regex' | 'manual';
@@ -54,6 +54,64 @@ export class EntityStoreService {
             source: 'regex',
             metadata: { pattern: 'ipv4' }
           });
+        }
+      }
+
+      // IP Network / CIDR patterns (e.g., 192.168.1.0/24)
+      const cidrPattern = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/\d{1,2}\b/g;
+      const cidrMatches = text.match(cidrPattern);
+      if (cidrMatches) {
+        for (const cidr of [...new Set(cidrMatches)]) {
+          entities.push({
+            entityType: 'IP_ADDRESS',
+            entityValue: cidr,
+            confidence: 0.95,
+            source: 'regex',
+            metadata: { pattern: 'cidr', type: 'network' }
+          });
+        }
+      }
+
+      // Network Device patterns (Firewalls, Routers, Switches)
+      const networkDevicePatterns = [
+        // Palo Alto firewalls: PA-220, PA-3220, PA-850
+        { pattern: /\bPA-\d+[A-Z]?\b/gi, vendor: 'Palo Alto', type: 'firewall' },
+        // FortiGate firewalls: FortiGate-60F, FortiGate-100E, FortiGate 200F
+        { pattern: /\bFortiGate-?\s*\d+[A-Z]?\b/gi, vendor: 'Fortinet', type: 'firewall' },
+        // Cisco ASA firewalls: ASA-5516, ASA5525
+        { pattern: /\bASA-?\d+[A-Z]?\b/gi, vendor: 'Cisco', type: 'firewall' },
+        // Cisco Firepower: FTD-1120, Firepower-2130
+        { pattern: /\b(?:FTD|Firepower)-?\s*\d+[A-Z]?\b/gi, vendor: 'Cisco', type: 'firewall' },
+        // SonicWall: TZ-600, NSa-2700
+        { pattern: /\b(?:TZ|NSa|NSsp)-?\s*\d+[A-Z]?\b/gi, vendor: 'SonicWall', type: 'firewall' },
+        // Meraki firewalls/security appliances: MX64, MX84, MX100
+        { pattern: /\bMX\d+[A-Z]?\b/g, vendor: 'Meraki', type: 'firewall' },
+        // WatchGuard Firebox: Firebox-M370, Firebox-T80
+        { pattern: /\bFirebox-?[A-Z]\d+[A-Z]?\b/gi, vendor: 'WatchGuard', type: 'firewall' },
+        // Cisco routers: ISR-4331, ISR4451, ASR-1001
+        { pattern: /\b(?:ISR|ASR|CSR)-?\s*\d+[A-Z]?\b/gi, vendor: 'Cisco', type: 'router' },
+        // Cisco switches: C9300-48P, WS-C3850, Catalyst-9200
+        { pattern: /\b(?:C\d{4}|WS-C\d{4}|Catalyst-?\s*\d{4})-?[A-Z0-9]*\b/gi, vendor: 'Cisco', type: 'switch' },
+        // Generic firewall mentions with location/name
+        { pattern: /\b(?:firewall|fw|dmz-?fw|edge-?fw|core-?fw)[-_]?[a-z0-9]+\b/gi, vendor: 'Generic', type: 'firewall' }
+      ];
+
+      for (const { pattern, vendor, type } of networkDevicePatterns) {
+        const matches = text.match(pattern);
+        if (matches) {
+          for (const match of [...new Set(matches)]) {
+            entities.push({
+              entityType: 'NETWORK_DEVICE',
+              entityValue: match.trim(),
+              confidence: 0.85,
+              source: 'regex',
+              metadata: {
+                pattern: pattern.source,
+                vendor,
+                deviceType: type
+              }
+            });
+          }
         }
       }
 
@@ -310,6 +368,16 @@ export class EntityStoreService {
           };
         }
         break;
+
+      case 'NETWORK_DEVICE':
+        if (entity.entityValue.length < 2) {
+          return {
+            valid: false,
+            reason: 'Network device name too short',
+            suggestions: ['Network device names should be at least 2 characters']
+          };
+        }
+        break;
     }
 
     // Confidence threshold check
@@ -365,7 +433,8 @@ export class EntityStoreService {
           SYSTEM: 0,
           USER: 0,
           SOFTWARE: 0,
-          ERROR_CODE: 0
+          ERROR_CODE: 0,
+          NETWORK_DEVICE: 0
         },
         sourceBreakdown: {
           llm: 0,

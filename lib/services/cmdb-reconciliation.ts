@@ -14,6 +14,7 @@ export interface ReconciliationInput {
     users: string[];
     software: string[];
     error_codes: string[];
+    network_devices: string[];
   };
 }
 
@@ -260,6 +261,14 @@ export class CmdbReconciliationService {
           ipAddress: entityValue,
           limit: 5,
         });
+      } else if (entityType === "NETWORK_DEVICE") {
+        // Search for network devices (firewalls, routers, switches)
+        // The searchConfigurationItems method will search across name, fqdn, u_fqdn, host_name
+        // This covers most network device naming patterns
+        return await this.serviceNowClient.searchConfigurationItems({
+          name: entityValue,
+          limit: 5,
+        });
       } else {
         return await this.serviceNowClient.searchConfigurationItems({
           name: entityValue,
@@ -396,7 +405,7 @@ Please review and update the CMDB to maintain data quality.`;
    * Check if entity type is CI-worthy
    */
   private isCiWorthyEntity(entityType: string): boolean {
-    const ciWorthyTypes = ["IP_ADDRESS", "SYSTEM", "SOFTWARE"];
+    const ciWorthyTypes = ["IP_ADDRESS", "SYSTEM", "SOFTWARE", "NETWORK_DEVICE"];
     return ciWorthyTypes.includes(entityType);
   }
 
@@ -409,6 +418,7 @@ Please review and update the CMDB to maintain data quality.`;
     users: string[];
     software: string[];
     error_codes: string[];
+    network_devices: string[];
   }): Array<{ value: string; type: string }> {
     const flattened: Array<{ value: string; type: string }> = [];
 
@@ -430,6 +440,10 @@ Please review and update the CMDB to maintain data quality.`;
 
     for (const errorCode of entities.error_codes) {
       flattened.push({ value: errorCode, type: "ERROR_CODE" });
+    }
+
+    for (const networkDevice of entities.network_devices) {
+      flattened.push({ value: networkDevice, type: "NETWORK_DEVICE" });
     }
 
     return flattened;

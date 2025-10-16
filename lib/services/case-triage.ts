@@ -270,6 +270,43 @@ export class CaseTriageService {
         categoriesData.incidentSubcategories
       );
 
+      // Step 6.5: Fetch company-specific application services (dynamic, scales for all clients)
+      if (webhook.company) {
+        try {
+          const { serviceNowClient } = await import("../tools/servicenow");
+          const applicationsStart = Date.now();
+          const companyApplications = await serviceNowClient.getApplicationServicesForCompany({
+            companySysId: webhook.company,
+            parentServiceOffering: "Application Administration",
+            limit: 100
+          });
+          const applicationsTime = Date.now() - applicationsStart;
+
+          if (companyApplications.length > 0) {
+            this.classifier.setApplicationServices(companyApplications);
+            console.log(
+              `[Case Triage] Loaded ${companyApplications.length} application services ` +
+              `for company ${webhook.account_id || webhook.company} (${applicationsTime}ms)`
+            );
+          } else {
+            console.log(
+              `[Case Triage] No application services found for company ${webhook.account_id || webhook.company} ` +
+              `- using generic application list in prompt`
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `[Case Triage] Failed to fetch application services for company ${webhook.company}:`,
+            error
+          );
+          // Continue with classification - classifier will use generic fallback
+        }
+      } else {
+        console.log(
+          `[Case Triage] No company sys_id available - using generic application list in prompt`
+        );
+      }
+
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
       const classificationStart = Date.now();
       let classificationResult: any | null = null;
@@ -380,6 +417,7 @@ export class CaseTriageService {
               users: [],
               software: [],
               error_codes: [],
+              network_devices: [],
             },
           });
           console.log(`[Case Triage] CMDB reconciliation completed for ${webhook.case_number}:`, {
@@ -429,6 +467,32 @@ export class CaseTriageService {
                 `${classificationResult.incident_category ? " (incident-specific)" : " (fallback to case category)"}`
             );
 
+            // SERVICE OFFERING LINKING: Query ServiceNow for Service Offering sys_id
+            let businessServiceSysId = webhook.business_service; // Default to webhook value
+            if (classificationResult.service_offering) {
+              try {
+                console.log(
+                  `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
+                );
+                const serviceOffering = await serviceNowClient.getServiceOffering(
+                  classificationResult.service_offering
+                );
+                if (serviceOffering) {
+                  businessServiceSysId = serviceOffering.sys_id;
+                  console.log(
+                    `[Case Triage] Linked Service Offering: ${serviceOffering.name} (${serviceOffering.sys_id})`
+                  );
+                } else {
+                  console.warn(
+                    `[Case Triage] Service Offering "${classificationResult.service_offering}" not found in ServiceNow`
+                  );
+                }
+              } catch (error) {
+                console.error(`[Case Triage] Failed to lookup Service Offering:`, error);
+                // Continue with incident creation even if Service Offering lookup fails
+              }
+            }
+
             // Create Incident record with full company/context information
             const incidentResult = await serviceNowClient.createIncidentFromCase({
               caseSysId: webhook.sys_id,
@@ -446,7 +510,7 @@ export class CaseTriageService {
               // Company/Account context (prevents orphaned incidents)
               company: webhook.company,
               account: webhook.account || webhook.account_id,
-              businessService: webhook.business_service,
+              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
               location: webhook.location,
               // Contact information
               contact: webhook.contact,
@@ -505,6 +569,32 @@ export class CaseTriageService {
               `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
             );
 
+            // SERVICE OFFERING LINKING: Query ServiceNow for Service Offering sys_id
+            let businessServiceSysId = webhook.business_service; // Default to webhook value
+            if (classificationResult.service_offering) {
+              try {
+                console.log(
+                  `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
+                );
+                const serviceOffering = await serviceNowClient.getServiceOffering(
+                  classificationResult.service_offering
+                );
+                if (serviceOffering) {
+                  businessServiceSysId = serviceOffering.sys_id;
+                  console.log(
+                    `[Case Triage] Linked Service Offering: ${serviceOffering.name} (${serviceOffering.sys_id})`
+                  );
+                } else {
+                  console.warn(
+                    `[Case Triage] Service Offering "${classificationResult.service_offering}" not found in ServiceNow`
+                  );
+                }
+              } catch (error) {
+                console.error(`[Case Triage] Failed to lookup Service Offering:`, error);
+                // Continue with problem creation even if Service Offering lookup fails
+              }
+            }
+
             // Create Problem record with full company/context information
             const problemResult = await serviceNowClient.createProblemFromCase({
               caseSysId: webhook.sys_id,
@@ -522,7 +612,7 @@ export class CaseTriageService {
               // Company/Account context (prevents orphaned problems)
               company: webhook.company,
               account: webhook.account || webhook.account_id,
-              businessService: webhook.business_service,
+              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
               location: webhook.location,
               // Contact information
               contact: webhook.contact,
@@ -890,6 +980,9 @@ export class CaseTriageService {
         ),
         confidenceScore: data.classification.confidence_score || 0,
         retryCount: 0,
+        // Service Portfolio Classification (NEW)
+        serviceOffering: data.classification.service_offering,
+        applicationService: data.classification.application_service,
       };
 
       await this.repository.saveClassificationResult(resultData);
@@ -925,6 +1018,7 @@ export class CaseTriageService {
         users: "USER",
         software: "SOFTWARE",
         error_codes: "ERROR_CODE",
+        network_devices: "NETWORK_DEVICE",
       };
 
       for (const [entityCategory, entityList] of Object.entries(

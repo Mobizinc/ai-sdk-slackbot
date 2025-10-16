@@ -574,8 +574,6 @@ export class ServiceNowClient {
     const payload: Record<string, any> = {
       short_description: input.shortDescription,
       description: input.description || input.shortDescription,
-      category: input.category,
-      subcategory: input.subcategory,
       urgency: input.urgency || "3", // Default to medium urgency
       priority: input.priority || "3", // Default to medium priority
       caller_id: input.callerId,
@@ -585,6 +583,14 @@ export class ServiceNowClient {
       // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
     };
+
+    // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
+    if (input.category) {
+      payload.category = input.category;
+    }
+    if (input.subcategory) {
+      payload.subcategory = input.subcategory;
+    }
 
     // Add assigned_to if provided (user explicitly assigned to case)
     if (input.assignedTo) {
@@ -704,8 +710,6 @@ export class ServiceNowClient {
     const payload: Record<string, any> = {
       short_description: input.shortDescription,
       description: input.description || input.shortDescription,
-      category: input.category,
-      subcategory: input.subcategory,
       urgency: input.urgency || "3", // Default to medium urgency
       priority: input.priority || "3", // Default to medium priority
       caller_id: input.callerId,
@@ -715,6 +719,14 @@ export class ServiceNowClient {
       // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this requires root cause analysis via problem management.`,
     };
+
+    // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
+    if (input.category) {
+      payload.category = input.category;
+    }
+    if (input.subcategory) {
+      payload.subcategory = input.subcategory;
+    }
 
     // Add assigned_to if provided (user explicitly assigned to case)
     if (input.assignedTo) {
@@ -1100,6 +1112,67 @@ export class ServiceNowClient {
       parent_name: parentName,
       url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
     };
+  }
+
+  /**
+   * Get Application Services for a company (READ-ONLY)
+   * Returns list of application services linked to a company
+   * Optionally filter by parent service offering (e.g., "Application Administration")
+   */
+  public async getApplicationServicesForCompany(input: {
+    companySysId: string;
+    parentServiceOffering?: string;
+    limit?: number;
+  }): Promise<Array<{ name: string; sys_id: string; parent_name?: string }>> {
+    const limit = input.limit ?? 100;
+
+    // Build query to filter by company
+    const queryParts = [`company=${input.companySysId}`];
+
+    // If parent service offering is specified, filter by it
+    if (input.parentServiceOffering) {
+      queryParts.push(`parent.name=${input.parentServiceOffering}`);
+    }
+
+    const query = queryParts.join('^');
+
+    try {
+      const data = await request<{
+        result: Array<Record<string, any>>;
+      }>(
+        `/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(
+          query
+        )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=sys_id,name,parent`
+      );
+
+      if (!data.result || data.result.length === 0) {
+        return [];
+      }
+
+      return data.result.map((service) => {
+        const sysId = extractDisplayValue(service.sys_id);
+        const name = extractDisplayValue(service.name);
+
+        // Extract parent name
+        let parentName: string | undefined;
+        if (service.parent) {
+          if (typeof service.parent === 'object' && service.parent.display_value) {
+            parentName = service.parent.display_value;
+          } else if (typeof service.parent === 'string') {
+            parentName = service.parent;
+          }
+        }
+
+        return {
+          sys_id: sysId,
+          name,
+          parent_name: parentName,
+        };
+      });
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching application services for company:`, error);
+      return [];
+    }
   }
 
   /**
