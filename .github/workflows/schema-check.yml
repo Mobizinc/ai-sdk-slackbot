@@ -1,0 +1,66 @@
+name: Database Schema Check
+
+on:
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - 'lib/db/schema.ts'
+      - 'migrations/**'
+      - 'drizzle.config.ts'
+
+jobs:
+  schema-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for schema changes
+        id: schema_check
+        run: |
+          echo "Schema files were modified. Ensure migrations are generated."
+          if [ ! -d "migrations" ] || [ -z "$(ls -A migrations)" ]; then
+            echo "::error::Schema changed but no migrations found. Run 'pnpm db:generate' to create migrations."
+            exit 1
+          fi
+
+      - name: Validate schema compiles
+        run: pnpm build
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Database Schema Check ${{' '}}\`${{ steps.schema_check.outcome }}\`
+
+            ${{'$'}}{{ steps.schema_check.outcome == 'success' ? '✅' : '❌' }} Schema validation complete
+
+            **Reminder:** Before merging:
+            1. Test migrations on a preview database branch
+            2. Verify rollback procedure is documented
+            3. Ensure production deployment plan is reviewed
+
+            *Action: ${{ github.event_name }} | Branch: ${{ github.head_ref }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })

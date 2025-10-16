@@ -188,6 +188,42 @@ This bypasses migration system issues and creates only the missing `cmdb_reconci
 - ✅ Historical conversation tracking
 - ✅ Graceful degradation (works without database)
 
+## Development Workflow
+
+This project uses a three-tier branch strategy with environment-specific database branches:
+
+```
+main (production) ← staging ← dev ← feature/*
+```
+
+### Branch Strategy
+
+| Branch | Environment | Database Branch | Purpose |
+|--------|------------|-----------------|---------|
+| `main` | Production | `main` | Live production environment |
+| `staging` | Staging | `staging` | Pre-production testing |
+| `dev` | Development | `dev` | Active development |
+| `feature/*` | Preview | Preview branches | Feature development |
+
+### Getting Started
+
+```bash
+# 1. Link to Vercel project
+vercel link
+
+# 2. Pull environment variables
+vercel env pull .env.development.local
+
+# 3. Create a feature branch from dev
+git checkout dev
+git checkout -b feature/your-feature
+
+# 4. Start development server
+vercel dev
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed workflow and best practices.
+
 ## Local Development
 
 Use the [Vercel CLI](https://vercel.com/docs/cli) and [untun](https://github.com/unjs/untun) to test out this project locally:
