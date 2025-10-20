@@ -1,9 +1,57 @@
 {
-  "id": "7256d34b-bf21-4d8d-8588-e6f22d8b2116",
-  "prevId": "7a7dfc08-69e2-409f-8af6-752fbd0184fe",
+  "id": "91983263-aaab-46ba-aa7a-bd9f9f4e580d",
+  "prevId": "7256d34b-bf21-4d8d-8588-e6f22d8b2116",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.app_settings": {
+      "name": "app_settings",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_app_settings_updated": {
+          "name": "idx_app_settings_updated",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.business_contexts": {
       "name": "business_contexts",
       "schema": "",
@@ -434,6 +482,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "service_offering": {
+          "name": "service_offering",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "application_service": {
+          "name": "application_service",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -648,6 +708,18 @@
         },
         "work_note_content": {
           "name": "work_note_content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "service_offering": {
+          "name": "service_offering",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "application_service": {
+          "name": "application_service",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1154,6 +1226,356 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.case_queue_snapshots": {
+      "name": "case_queue_snapshots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "snapshot_at": {
+          "name": "snapshot_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "assigned_to": {
+          "name": "assigned_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_to_email": {
+          "name": "assigned_to_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assignment_group": {
+          "name": "assignment_group",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "open_cases": {
+          "name": "open_cases",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "high_priority_cases": {
+          "name": "high_priority_cases",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "escalated_cases": {
+          "name": "escalated_cases",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_seen_utc": {
+          "name": "last_seen_utc",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'azure_sql'"
+        },
+        "raw_payload": {
+          "name": "raw_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_case_queue_snapshot_timestamp": {
+          "name": "idx_case_queue_snapshot_timestamp",
+          "columns": [
+            {
+              "expression": "snapshot_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_case_queue_snapshot_assignee": {
+          "name": "idx_case_queue_snapshot_assignee",
+          "columns": [
+            {
+              "expression": "assigned_to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "uq_case_queue_snapshot": {
+          "name": "uq_case_queue_snapshot",
+          "columns": [
+            {
+              "expression": "snapshot_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "assigned_to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.catalog_redirect_log": {
+      "name": "catalog_redirect_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "case_number": {
+          "name": "case_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_sys_id": {
+          "name": "case_sys_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_name": {
+          "name": "client_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_type": {
+          "name": "request_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence_threshold": {
+          "name": "confidence_threshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_items_provided": {
+          "name": "catalog_items_provided",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_item_names": {
+          "name": "catalog_item_names",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "case_closed": {
+          "name": "case_closed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "close_state": {
+          "name": "close_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "matched_keywords": {
+          "name": "matched_keywords",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "submitted_by": {
+          "name": "submitted_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "short_description": {
+          "name": "short_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subcategory": {
+          "name": "subcategory",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redirected_at": {
+          "name": "redirected_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_redirect_case_number": {
+          "name": "idx_redirect_case_number",
+          "columns": [
+            {
+              "expression": "case_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_redirect_case_sys_id": {
+          "name": "idx_redirect_case_sys_id",
+          "columns": [
+            {
+              "expression": "case_sys_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_redirect_client_id": {
+          "name": "idx_redirect_client_id",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_redirect_request_type": {
+          "name": "idx_redirect_request_type",
+          "columns": [
+            {
+              "expression": "request_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_redirect_redirected_at": {
+          "name": "idx_redirect_redirected_at",
+          "columns": [
+            {
+              "expression": "redirected_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_redirect_case_closed": {
+          "name": "idx_redirect_case_closed",
+          "columns": [
+            {
+              "expression": "case_closed",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.category_mismatch_log": {
       "name": "category_mismatch_log",
       "schema": "",
@@ -1309,6 +1731,406 @@
           "columns": [
             {
               "expression": "confidence_score",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.client_settings": {
+      "name": "client_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_name": {
+          "name": "client_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_redirect_enabled": {
+          "name": "catalog_redirect_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "catalog_redirect_confidence_threshold": {
+          "name": "catalog_redirect_confidence_threshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0.5
+        },
+        "catalog_redirect_auto_close": {
+          "name": "catalog_redirect_auto_close",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "support_contact_info": {
+          "name": "support_contact_info",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custom_catalog_mappings": {
+          "name": "custom_catalog_mappings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "features": {
+          "name": "features",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_client_id": {
+          "name": "idx_client_id",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_client_name": {
+          "name": "idx_client_name",
+          "columns": [
+            {
+              "expression": "client_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_catalog_redirect_enabled": {
+          "name": "idx_catalog_redirect_enabled",
+          "columns": [
+            {
+              "expression": "catalog_redirect_enabled",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "client_settings_client_id_unique": {
+          "name": "client_settings_client_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "client_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cmdb_reconciliation_results": {
+      "name": "cmdb_reconciliation_results",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "case_number": {
+          "name": "case_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_sys_id": {
+          "name": "case_sys_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_value": {
+          "name": "entity_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_entity_value": {
+          "name": "original_entity_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_entity_value": {
+          "name": "resolved_entity_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reconciliation_status": {
+          "name": "reconciliation_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cmdb_sys_id": {
+          "name": "cmdb_sys_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cmdb_name": {
+          "name": "cmdb_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cmdb_class": {
+          "name": "cmdb_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cmdb_url": {
+          "name": "cmdb_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_context_match": {
+          "name": "business_context_match",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "child_task_number": {
+          "name": "child_task_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "child_task_sys_id": {
+          "name": "child_task_sys_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_cmdb_reconcile_case_number": {
+          "name": "idx_cmdb_reconcile_case_number",
+          "columns": [
+            {
+              "expression": "case_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_case_sys_id": {
+          "name": "idx_cmdb_reconcile_case_sys_id",
+          "columns": [
+            {
+              "expression": "case_sys_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_entity_value": {
+          "name": "idx_cmdb_reconcile_entity_value",
+          "columns": [
+            {
+              "expression": "entity_value",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_entity_type": {
+          "name": "idx_cmdb_reconcile_entity_type",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_status": {
+          "name": "idx_cmdb_reconcile_status",
+          "columns": [
+            {
+              "expression": "reconciliation_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_confidence": {
+          "name": "idx_cmdb_reconcile_confidence",
+          "columns": [
+            {
+              "expression": "confidence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_cmdb_reconcile_created_at": {
+          "name": "idx_cmdb_reconcile_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1698,248 +2520,6 @@
           "columns": [
             {
               "expression": "last_synced_utc",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.cmdb_reconciliation_results": {
-      "name": "cmdb_reconciliation_results",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "case_number": {
-          "name": "case_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "case_sys_id": {
-          "name": "case_sys_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entity_value": {
-          "name": "entity_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "entity_type": {
-          "name": "entity_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "original_entity_value": {
-          "name": "original_entity_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "resolved_entity_value": {
-          "name": "resolved_entity_value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reconciliation_status": {
-          "name": "reconciliation_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cmdb_sys_id": {
-          "name": "cmdb_sys_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cmdb_name": {
-          "name": "cmdb_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cmdb_class": {
-          "name": "cmdb_class",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cmdb_url": {
-          "name": "cmdb_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "confidence": {
-          "name": "confidence",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "business_context_match": {
-          "name": "business_context_match",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "child_task_number": {
-          "name": "child_task_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "child_task_sys_id": {
-          "name": "child_task_sys_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error_message": {
-          "name": "error_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idx_cmdb_reconcile_case_number": {
-          "name": "idx_cmdb_reconcile_case_number",
-          "columns": [
-            {
-              "expression": "case_number",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_case_sys_id": {
-          "name": "idx_cmdb_reconcile_case_sys_id",
-          "columns": [
-            {
-              "expression": "case_sys_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_entity_value": {
-          "name": "idx_cmdb_reconcile_entity_value",
-          "columns": [
-            {
-              "expression": "entity_value",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_entity_type": {
-          "name": "idx_cmdb_reconcile_entity_type",
-          "columns": [
-            {
-              "expression": "entity_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_status": {
-          "name": "idx_cmdb_reconcile_status",
-          "columns": [
-            {
-              "expression": "reconciliation_status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_confidence": {
-          "name": "idx_cmdb_reconcile_confidence",
-          "columns": [
-            {
-              "expression": "confidence",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_cmdb_reconcile_created_at": {
-          "name": "idx_cmdb_reconcile_created_at",
-          "columns": [
-            {
-              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
