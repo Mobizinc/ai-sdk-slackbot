@@ -1,6 +1,8 @@
-# CMDB Pilot Scripts
+# CMDB Scripts
 
-This directory contains scripts to support the Altus CMDB Population pilot project.
+This directory contains scripts for:
+1. **Azure Tenant Onboarding** - Automated discovery and CI creation for Azure infrastructure
+2. **CMDB Pilot** - Manual discovery and documentation for Altus infrastructure
 
 ## Quick Start
 
@@ -15,6 +17,182 @@ This interactive script will guide you through:
 2. Creating CI records manually
 3. Validating CI records
 4. Next steps for ServiceNow upload and testing
+
+---
+
+## Azure Tenant Onboarding
+
+Complete guide: `docs/AZURE_TENANT_ONBOARDING.md`
+
+### Quick Start: Onboard a New Tenant
+
+```bash
+# 1. Ensure you're logged into Azure CLI
+az login
+
+# 2. Discover subscriptions
+npx tsx scripts/discover-azure-subscriptions-cli.ts --tenant exceptional
+
+# 3. Discover VMs and resource groups
+npx tsx scripts/discover-azure-vms-cli.ts --tenant exceptional
+
+# 4. Review discovery
+open backup/azure-discovery/exceptional-emergency-center-vms.csv
+
+# 5. Create ServiceNow CIs
+npx tsx scripts/create-azure-subscription-cis.ts config/azure/altus-azure-structure.json
+npx tsx scripts/create-azure-resource-group-cis.ts backup/azure-discovery/exceptional-emergency-center-resource-groups.json
+npx tsx scripts/create-azure-vm-cis.ts backup/azure-discovery/exceptional-emergency-center-vms.json
+
+# 6. Link to services
+npx tsx scripts/link-azure-subscriptions-to-services.ts
+
+# 7. Verify complete structure
+npx tsx scripts/verify-azure-ci-structure.ts config/azure/altus-azure-structure.json
+```
+
+### Azure Scripts
+
+**`discover-azure-subscriptions-cli.ts`** - Discover Azure subscriptions via Azure CLI
+
+```bash
+# Discover for Exceptional tenant
+npx tsx scripts/discover-azure-subscriptions-cli.ts --tenant exceptional
+
+# Other tenants: altus, neighbors, austin
+npx tsx scripts/discover-azure-subscriptions-cli.ts --tenant altus
+```
+
+**What it does:**
+- Queries Azure CLI for all subscriptions (`az account list --all`)
+- Filters by tenant ID from config file
+- Auto-updates `config/azure/altus-azure-structure.json`
+- Saves backup to `backup/azure-discovery/<tenant>-subscriptions.json`
+
+---
+
+**`discover-azure-vms-cli.ts`** - Discover VMs, resource groups, and IP addresses
+
+```bash
+# Discover for Exceptional tenant
+npx tsx scripts/discover-azure-vms-cli.ts --tenant exceptional
+```
+
+**What it does:**
+- Queries all subscriptions found in Step 1
+- Discovers resource groups (`az group list`)
+- Discovers VMs (`az vm list`)
+- Gets IP addresses (`az vm list-ip-addresses`)
+- Gets power state for each VM
+- Exports JSON and CSV reports
+
+**Output:**
+- `backup/azure-discovery/<tenant>-vms.json` - Complete VM data
+- `backup/azure-discovery/<tenant>-vms.csv` - Human-readable report
+- `backup/azure-discovery/<tenant>-resource-groups.json` - Resource group data
+
+---
+
+**`create-azure-subscription-cis.ts`** - Create subscription CIs in ServiceNow
+
+```bash
+npx tsx scripts/create-azure-subscription-cis.ts config/azure/altus-azure-structure.json
+```
+
+**What it does:**
+- Creates Azure subscription CIs in ServiceNow PROD
+- Stores tenant ID in `object_id` field
+- Stores subscription ID in `correlation_id` field
+- Skips subscriptions that already exist
+
+---
+
+**`create-azure-resource-group-cis.ts`** - Create resource group CIs with relationships
+
+```bash
+npx tsx scripts/create-azure-resource-group-cis.ts backup/azure-discovery/exceptional-emergency-center-resource-groups.json
+```
+
+**What it does:**
+- Creates resource group CIs
+- Finds parent subscription by `correlation_id`
+- Creates "Contains" relationship: Subscription → Resource Group
+- Skips existing resource groups
+
+---
+
+**`create-azure-vm-cis.ts`** - Create VM CIs with IP addresses and relationships
+
+```bash
+npx tsx scripts/create-azure-vm-cis.ts backup/azure-discovery/exceptional-emergency-center-vms.json
+```
+
+**What it does:**
+- Creates VM CIs with IP addresses
+- Populates `ip_address` field with primary private IP
+- Includes all IPs (private and public) in `short_description`
+- Finds parent resource group by name
+- Creates "Contains" relationship: Resource Group → VM
+- Skips existing VMs
+
+---
+
+**`link-azure-subscriptions-to-services.ts`** - Link subscriptions to Altus services
+
+```bash
+npx tsx scripts/link-azure-subscriptions-to-services.ts
+```
+
+**What it does:**
+- Finds all Azure subscription CIs
+- Links to Service Offering: "Infrastructure and Cloud Management"
+- Links to Application Service: "Altus Health - Azure Environment"
+- Skips existing relationships
+
+---
+
+**`verify-azure-ci-structure.ts`** - Verify complete CI structure
+
+```bash
+npx tsx scripts/verify-azure-ci-structure.ts config/azure/altus-azure-structure.json
+```
+
+**What it validates:**
+- ✅ All subscriptions exist in ServiceNow
+- ✅ Tenant IDs stored correctly in `object_id`
+- ✅ Subscription IDs stored correctly in `correlation_id`
+- ✅ Service Offering relationships exist
+- ✅ Application Service relationships exist
+
+---
+
+**`fix-azure-ci-relationships.ts`** - Fix existing CIs without relationships
+
+```bash
+npx tsx scripts/fix-azure-ci-relationships.ts \
+  backup/azure-discovery/exceptional-emergency-center-resource-groups.json \
+  backup/azure-discovery/exceptional-emergency-center-vms.json
+```
+
+**What it does:**
+- Links existing resource groups to parent subscriptions
+- Links existing VMs to parent resource groups
+- Skips relationships that already exist
+- Use this after updating CI creation scripts
+
+---
+
+**`update-azure-vm-ips.ts`** - Update IP addresses for existing VM CIs
+
+```bash
+npx tsx scripts/update-azure-vm-ips.ts backup/azure-discovery/exceptional-emergency-center-vms.json
+```
+
+**What it does:**
+- Finds existing VM CIs by name
+- Updates `ip_address` field with primary private IP
+- Updates `short_description` with all IPs
+- Skips VMs that already have correct IPs
 
 ---
 
