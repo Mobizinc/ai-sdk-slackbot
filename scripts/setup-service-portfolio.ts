@@ -1,6 +1,6 @@
 /**
  * STEP 1: ServiceNow Service Portfolio Setup Script (ADMIN-ONLY)
- * Creates MSP service portfolio (Business Service + Service Offerings)
+ * Creates MSP service portfolio (Business Service + Service Offerings + CI Relationships)
  *
  * This script is idempotent - safe to run multiple times.
  * It creates records only if they don't already exist.
@@ -19,6 +19,7 @@
  *   4. Helpdesk and Endpoint Support - 24/7
  *   5. Helpdesk and Endpoint - Standard
  *   6. Application Administration
+ * - CI Relationships: Business Service → Service Offerings (6 relationships)
  *
  * Target: Any environment (DEV or PROD)
  */
@@ -198,12 +199,87 @@ async function setupServicePortfolio() {
     }
 
     console.log('');
+
+    // ========================================
+    // Phase 3: Create CI Relationships
+    // ========================================
+    console.log('Phase 3: CI Relationships (Business Service → Service Offerings)');
+    console.log('─'.repeat(70));
+
+    // Query all Service Offerings that are children of Business Service
+    const allSoQueryUrl = `${instanceUrl}/api/now/table/service_offering?sysparm_query=${encodeURIComponent(`parent=${businessServiceSysId}`)}&sysparm_fields=sys_id,name`;
+    const allSoResponse = await fetch(allSoQueryUrl, {
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!allSoResponse.ok) {
+      throw new Error(`Failed to query Service Offerings: ${allSoResponse.status}`);
+    }
+
+    const allSoData = await allSoResponse.json();
+    let ciRelCreatedCount = 0;
+    let ciRelFoundCount = 0;
+
+    for (const so of allSoData.result) {
+      // Check if CI relationship already exists
+      const ciRelCheckUrl = `${instanceUrl}/api/now/table/cmdb_rel_ci?sysparm_query=${encodeURIComponent(`parent=${businessServiceSysId}^child=${so.sys_id}`)}&sysparm_limit=1`;
+      const ciRelCheckResponse = await fetch(ciRelCheckUrl, {
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!ciRelCheckResponse.ok) {
+        console.log(`⚠️  Failed to check CI relationship for "${so.name}"`);
+        continue;
+      }
+
+      const ciRelCheckData = await ciRelCheckResponse.json();
+
+      if (ciRelCheckData.result && ciRelCheckData.result.length > 0) {
+        // CI relationship already exists
+        ciRelFoundCount++;
+        console.log(`✅ CI Relationship exists: "${so.name}"`);
+      } else {
+        // Create CI relationship
+        const ciRelPayload = {
+          parent: businessServiceSysId,
+          child: so.sys_id,
+          type: 'Contains::Contained by',
+        };
+
+        const ciRelCreateResponse = await fetch(`${instanceUrl}/api/now/table/cmdb_rel_ci`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(ciRelPayload),
+        });
+
+        if (ciRelCreateResponse.ok) {
+          ciRelCreatedCount++;
+          console.log(`✨ Created CI Relationship: "${so.name}"`);
+        } else {
+          console.log(`❌ Failed to create CI relationship for "${so.name}"`);
+        }
+      }
+    }
+
+    console.log('');
     console.log('─'.repeat(70));
     console.log('📊 Summary:');
     console.log(`   Business Services: 1 (${businessServiceSysId})`);
     console.log(`   Service Offerings: ${offeringNames.length} total`);
     console.log(`     - Found existing: ${foundCount}`);
     console.log(`     - Created new: ${createdCount}`);
+    console.log(`   CI Relationships: ${allSoData.result.length} total`);
+    console.log(`     - Found existing: ${ciRelFoundCount}`);
+    console.log(`     - Created new: ${ciRelCreatedCount}`);
     console.log('');
     console.log('✅ Portfolio setup complete!');
     console.log('');

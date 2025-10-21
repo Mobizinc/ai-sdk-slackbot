@@ -1,0 +1,39 @@
+{
+  "tenant": {
+    "id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a",
+    "name": "Exceptional Emergency Center",
+    "domain": "altuscommunityhealthcare.onmicrosoft.com"
+  },
+  "discovered_at": "2025-10-15T22:43:47.198Z",
+  "subscription_count": 4,
+  "subscriptions": [
+    {
+      "subscription_id": "25b1ca49-56f4-47ca-91d8-8502721988e2",
+      "subscription_name": "EER AVD Subscription",
+      "state": "Enabled",
+      "is_default": true,
+      "tenant_id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a"
+    },
+    {
+      "subscription_id": "4bc35b20-9e96-4c19-a480-d47ec54d186d",
+      "subscription_name": "EER Hub Subscription",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a"
+    },
+    {
+      "subscription_id": "901696f3-6cf0-4415-9c4e-d482ac8795cb",
+      "subscription_name": "EER Workloads Subscription",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a"
+    },
+    {
+      "subscription_id": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356",
+      "subscription_name": "Azure subscription 1",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a"
+    }
+  ]
+}

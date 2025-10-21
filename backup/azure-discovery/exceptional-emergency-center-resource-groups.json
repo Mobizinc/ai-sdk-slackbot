@@ -1,0 +1,165 @@
+{
+  "tenant": {
+    "id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a",
+    "name": "Exceptional Emergency Center",
+    "domain": "altuscommunityhealthcare.onmicrosoft.com"
+  },
+  "discovered_at": "2025-10-15T22:51:00.327Z",
+  "resource_group_count": 20,
+  "resource_groups": [
+    {
+      "id": "/subscriptions/25b1ca49-56f4-47ca-91d8-8502721988e2/resourceGroups/rg-eer-scus-sharedservices-001",
+      "name": "rg-eer-scus-sharedservices-001",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "25b1ca49-56f4-47ca-91d8-8502721988e2"
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/rg-eer-scus-paloalto-001",
+      "name": "rg-eer-scus-paloalto-001",
+      "location": "southcentralus",
+      "tags": {
+        "Client": "eer Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "eer",
+        "Purpose": "Palo Alto Network Security Infrastructure"
+      },
+      "subscriptionId": "4bc35b20-9e96-4c19-a480-d47ec54d186d"
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/rg-eer-scus-sharedservices-001",
+      "name": "rg-eer-scus-sharedservices-001",
+      "location": "southcentralus",
+      "tags": {
+        "Client": "eer Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "eer",
+        "Purpose": "Shared Services Infrastructure"
+      },
+      "subscriptionId": "4bc35b20-9e96-4c19-a480-d47ec54d186d"
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "4bc35b20-9e96-4c19-a480-d47ec54d186d"
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/rg-eer-scus-sharedservices-002",
+      "name": "rg-eer-scus-sharedservices-002",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "4bc35b20-9e96-4c19-a480-d47ec54d186d"
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/AzureBackupRG_southcentralus_1",
+      "name": "AzureBackupRG_southcentralus_1",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "4bc35b20-9e96-4c19-a480-d47ec54d186d"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/rg-eer24-asr-scus",
+      "name": "rg-eer24-asr-scus",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/rg-eer24-scus-networks-01",
+      "name": "rg-eer24-scus-networks-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/rg-eer24-scus-backups-01",
+      "name": "rg-eer24-scus-backups-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/rg-eer24-scus-workloads-01",
+      "name": "rg-eer24-scus-workloads-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/rg-eer24-scus-azmig-01",
+      "name": "rg-eer24-scus-azmig-01",
+      "location": "westus2",
+      "tags": {},
+      "subscriptionId": "901696f3-6cf0-4415-9c4e-d482ac8795cb"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/Backup",
+      "name": "Backup",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/Avdi",
+      "name": "Avdi",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/AzureBackupRG_eastus_1",
+      "name": "AzureBackupRG_eastus_1",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/test",
+      "name": "test",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/rg-eer24-scus-jmpbx-01",
+      "name": "rg-eer24-scus-jmpbx-01",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/rg-eer24-scus-temp-dc",
+      "name": "rg-eer24-scus-temp-dc",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/rg-eer24-scus-azmig-01",
+      "name": "rg-eer24-scus-azmig-01",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356"
+    }
+  ]
+}
