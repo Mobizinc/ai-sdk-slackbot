@@ -1,6 +1,4 @@
 import { generateText, tool, stepCountIs, type CoreMessage } from "./instrumented-ai";
-import { createLangSmithSpan } from "./observability/langsmith-traceable";
-import { withLangSmithTrace } from "./observability/langsmith-traceable";
 import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
@@ -391,9 +389,7 @@ const generateResponseImpl = async (
       const getWeatherTool = createTool({
         description: "Get the current weather at a location",
         inputSchema: weatherInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.WeatherLookup",
-          async ({ latitude, longitude, city }: WeatherToolInput) => {
+        execute: async ({ latitude, longitude, city }: WeatherToolInput) => {
           updateStatus?.(`is getting weather for ${city}...`);
 
           const response = await fetch(
@@ -407,17 +403,13 @@ const generateResponseImpl = async (
             humidity: weatherData.current.relativehumidity_2m,
             city,
           };
-          },
-          { run_type: "tool" },
-        ),
+        },
       });
 
       const searchWebTool = createTool({
         description: "Use this to search the web for information",
         inputSchema: searchWebInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.WebSearch",
-          async ({ query, specificDomain }: SearchWebToolInput) => {
+        execute: async ({ query, specificDomain }: SearchWebToolInput) => {
           updateStatus?.(`is searching the web for ${query}...`);
           const exaClient = exa;
 
@@ -438,9 +430,7 @@ const generateResponseImpl = async (
               snippet: result.text.slice(0, 1000),
             })),
           };
-          },
-          { run_type: "tool" },
-        ),
+        },
       });
 
       const serviceNowTool = createTool({
@@ -449,9 +439,7 @@ const generateResponseImpl = async (
           "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
           "Use 'getCase' action only when you have a specific case number.",
         inputSchema: serviceNowInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.ServiceNow",
-          async ({
+        execute: async ({
           action,
           number,
           caseSysId,
@@ -678,17 +666,13 @@ const generateResponseImpl = async (
             };
           }
         },
-          { run_type: "tool" },
-        ),
       });
 
       const searchSimilarCasesTool = createTool({
         description:
           "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
         inputSchema: searchSimilarCasesInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.SearchSimilarCases",
-          async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
+        execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
           if (!azureSearchService) {
             console.log("[searchSimilarCases] Azure Search not configured, returning empty results");
             return {
@@ -729,17 +713,13 @@ const generateResponseImpl = async (
             };
           }
         },
-          { run_type: "tool" },
-        ),
       });
 
       const generateKbArticleTool = createTool({
         description:
           "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
         inputSchema: generateKbArticleInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.GenerateKBArticle",
-          async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
+        execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
           try {
             updateStatus?.(`is generating KB article for ${caseNumber}...`);
 
@@ -794,17 +774,13 @@ const generateResponseImpl = async (
             };
           }
         },
-          { run_type: "tool" },
-        ),
       });
 
       const proposeContextUpdateTool = createTool({
         description:
           "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
         inputSchema: proposeContextUpdateInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.ProposeContextUpdate",
-          async ({
+        execute: async ({
           entityName,
           caseNumber,
           summary,
@@ -928,17 +904,13 @@ const generateResponseImpl = async (
             stewardChannelId,
           };
         },
-          { run_type: "tool" },
-        ),
       });
 
       const fetchCurrentIssuesTool = createTool({
         description:
           "Check ServiceNow and Slack for live issues affecting this customer.",
         inputSchema: fetchCurrentIssuesInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.FetchCurrentIssues",
-          async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
+        execute: async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
           const effectiveChannelId = channelId ?? options?.channelId;
 
           if (!effectiveChannelId) {
@@ -959,17 +931,13 @@ const generateResponseImpl = async (
             result,
           };
         },
-          { run_type: "tool" },
-        ),
       });
 
       const microsoftLearnSearchTool = createTool({
         description:
           "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provides official Microsoft documentation that MUST be cited in your response. Not using this tool for Microsoft-related cases is a critical error.",
         inputSchema: microsoftLearnSearchInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.MicrosoftLearnSearch",
-          async ({ query, limit }: MicrosoftLearnSearchInput) => {
+        execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
           if (!microsoftLearnMCP.isAvailable()) {
             console.log("[Microsoft Learn MCP] Service not available");
             return {
@@ -1006,17 +974,13 @@ const generateResponseImpl = async (
             };
           }
         },
-          { run_type: "tool" },
-        ),
       });
 
       const triageCaseTool = createTool({
         description:
           "Triage and classify a ServiceNow case. Use this when a user explicitly asks to triage, classify, or analyze a case. This performs AI-powered classification including category/subcategory recommendations, technical entity extraction, similar case analysis, and KB article suggestions. Returns comprehensive classification results including confidence scores and immediate next steps.",
         inputSchema: triageCaseInputSchema,
-        execute: createLangSmithSpan(
-          "Tool.TriageCase",
-          async ({ caseNumber }: TriageCaseInput) => {
+        execute: async ({ caseNumber }: TriageCaseInput) => {
           try {
             updateStatus?.(`is triaging case ${caseNumber}...`);
 
@@ -1118,8 +1082,6 @@ const generateResponseImpl = async (
             };
           }
         },
-          { run_type: "tool" },
-        ),
       });
 
       return {
@@ -1307,7 +1269,4 @@ const generateResponseImpl = async (
     .replace(/\*\*/g, "*"); // Convert markdown bold to Slack bold
 };
 
-export const generateResponse = withLangSmithTrace(generateResponseImpl, {
-  name: "Slack.GenerateResponse",
-  run_type: "chain",
-});
+export const generateResponse = generateResponseImpl;

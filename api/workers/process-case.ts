@@ -18,7 +18,6 @@ import {
 } from '../../lib/schemas/servicenow-webhook';
 import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
-import { withLangSmithTrace } from '../../lib/observability/langsmith-traceable';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -214,10 +213,7 @@ async function postWorkerImpl(request: Request) {
   }
 }
 
-export const POST = withLangSmithTrace(postWorkerImpl, {
-  name: "ServiceNow.QStashWorker",
-  run_type: "chain",
-});
+export const POST = postWorkerImpl;
 
 /**
  * Health check for worker

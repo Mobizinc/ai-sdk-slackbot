@@ -23,7 +23,6 @@ import {
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
-import { withLangSmithTrace } from '../lib/observability/langsmith-traceable';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -414,10 +413,7 @@ async function postImpl(request: Request) {
   }
 }
 
-export const POST = withLangSmithTrace(postImpl, {
-  name: "ServiceNow.Webhook.Sync",
-  run_type: "chain",
-});
+export const POST = postImpl;
 
 /**
  * Health check endpoint
