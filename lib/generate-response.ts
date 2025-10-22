@@ -1,4 +1,6 @@
-import { CoreMessage, generateText, tool, stepCountIs } from "ai";
+import { generateText, tool, stepCountIs, type CoreMessage } from "./instrumented-ai";
+import { createLangSmithSpan } from "./observability/langsmith-traceable";
+import { withLangSmithTrace } from "./observability/langsmith-traceable";
 import { z } from "zod";
 import { exa } from "./utils";
 import { serviceNowClient } from "./tools/servicenow";
@@ -311,7 +313,7 @@ export const __resetGenerateTextImpl = () => {
 // Initialize Azure Search service (singleton)
 const azureSearchService = createAzureSearchService();
 
-export const generateResponse = async (
+const generateResponseImpl = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
   options?: {
@@ -389,7 +391,9 @@ export const generateResponse = async (
       const getWeatherTool = createTool({
         description: "Get the current weather at a location",
         inputSchema: weatherInputSchema,
-        execute: async ({ latitude, longitude, city }: WeatherToolInput) => {
+        execute: createLangSmithSpan(
+          "Tool.WeatherLookup",
+          async ({ latitude, longitude, city }: WeatherToolInput) => {
           updateStatus?.(`is getting weather for ${city}...`);
 
           const response = await fetch(
@@ -403,13 +407,17 @@ export const generateResponse = async (
             humidity: weatherData.current.relativehumidity_2m,
             city,
           };
-        },
+          },
+          { run_type: "tool" },
+        ),
       });
 
       const searchWebTool = createTool({
         description: "Use this to search the web for information",
         inputSchema: searchWebInputSchema,
-        execute: async ({ query, specificDomain }: SearchWebToolInput) => {
+        execute: createLangSmithSpan(
+          "Tool.WebSearch",
+          async ({ query, specificDomain }: SearchWebToolInput) => {
           updateStatus?.(`is searching the web for ${query}...`);
           const exaClient = exa;
 
@@ -430,7 +438,9 @@ export const generateResponse = async (
               snippet: result.text.slice(0, 1000),
             })),
           };
-        },
+          },
+          { run_type: "tool" },
+        ),
       });
 
       const serviceNowTool = createTool({
@@ -439,7 +449,9 @@ export const generateResponse = async (
           "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
           "Use 'getCase' action only when you have a specific case number.",
         inputSchema: serviceNowInputSchema,
-        execute: async ({
+        execute: createLangSmithSpan(
+          "Tool.ServiceNow",
+          async ({
           action,
           number,
           caseSysId,
@@ -666,13 +678,17 @@ export const generateResponse = async (
             };
           }
         },
+          { run_type: "tool" },
+        ),
       });
 
       const searchSimilarCasesTool = createTool({
         description:
           "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
         inputSchema: searchSimilarCasesInputSchema,
-        execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
+        execute: createLangSmithSpan(
+          "Tool.SearchSimilarCases",
+          async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
           if (!azureSearchService) {
             console.log("[searchSimilarCases] Azure Search not configured, returning empty results");
             return {
@@ -713,13 +729,17 @@ export const generateResponse = async (
             };
           }
         },
+          { run_type: "tool" },
+        ),
       });
 
       const generateKbArticleTool = createTool({
         description:
           "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
         inputSchema: generateKbArticleInputSchema,
-        execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
+        execute: createLangSmithSpan(
+          "Tool.GenerateKBArticle",
+          async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
           try {
             updateStatus?.(`is generating KB article for ${caseNumber}...`);
 
@@ -774,13 +794,17 @@ export const generateResponse = async (
             };
           }
         },
+          { run_type: "tool" },
+        ),
       });
 
       const proposeContextUpdateTool = createTool({
         description:
           "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
         inputSchema: proposeContextUpdateInputSchema,
-        execute: async ({
+        execute: createLangSmithSpan(
+          "Tool.ProposeContextUpdate",
+          async ({
           entityName,
           caseNumber,
           summary,
@@ -904,13 +928,17 @@ export const generateResponse = async (
             stewardChannelId,
           };
         },
+          { run_type: "tool" },
+        ),
       });
 
       const fetchCurrentIssuesTool = createTool({
         description:
           "Check ServiceNow and Slack for live issues affecting this customer.",
         inputSchema: fetchCurrentIssuesInputSchema,
-        execute: async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
+        execute: createLangSmithSpan(
+          "Tool.FetchCurrentIssues",
+          async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
           const effectiveChannelId = channelId ?? options?.channelId;
 
           if (!effectiveChannelId) {
@@ -931,13 +959,17 @@ export const generateResponse = async (
             result,
           };
         },
+          { run_type: "tool" },
+        ),
       });
 
       const microsoftLearnSearchTool = createTool({
         description:
           "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provides official Microsoft documentation that MUST be cited in your response. Not using this tool for Microsoft-related cases is a critical error.",
         inputSchema: microsoftLearnSearchInputSchema,
-        execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
+        execute: createLangSmithSpan(
+          "Tool.MicrosoftLearnSearch",
+          async ({ query, limit }: MicrosoftLearnSearchInput) => {
           if (!microsoftLearnMCP.isAvailable()) {
             console.log("[Microsoft Learn MCP] Service not available");
             return {
@@ -974,13 +1006,17 @@ export const generateResponse = async (
             };
           }
         },
+          { run_type: "tool" },
+        ),
       });
 
       const triageCaseTool = createTool({
         description:
           "Triage and classify a ServiceNow case. Use this when a user explicitly asks to triage, classify, or analyze a case. This performs AI-powered classification including category/subcategory recommendations, technical entity extraction, similar case analysis, and KB article suggestions. Returns comprehensive classification results including confidence scores and immediate next steps.",
         inputSchema: triageCaseInputSchema,
-        execute: async ({ caseNumber }: TriageCaseInput) => {
+        execute: createLangSmithSpan(
+          "Tool.TriageCase",
+          async ({ caseNumber }: TriageCaseInput) => {
           try {
             updateStatus?.(`is triaging case ${caseNumber}...`);
 
@@ -1082,6 +1118,8 @@ export const generateResponse = async (
             };
           }
         },
+          { run_type: "tool" },
+        ),
       });
 
       return {
@@ -1268,3 +1306,8 @@ export const generateResponse = async (
     .replace(/\[(.*?)\]\((.*?)\)/g, "<$2|$1>") // Convert markdown links to Slack links
     .replace(/\*\*/g, "*"); // Convert markdown bold to Slack bold
 };
+
+export const generateResponse = withLangSmithTrace(generateResponseImpl, {
+  name: "Slack.GenerateResponse",
+  run_type: "chain",
+});

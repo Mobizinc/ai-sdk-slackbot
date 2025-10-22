@@ -148,6 +148,33 @@ CMDB_RECONCILIATION_CONFIDENCE_THRESHOLD=0.7
 CMDB_RECONCILIATION_CACHE_RESULTS=true
 CMDB_RECONCILIATION_ASSIGNMENT_GROUP="CMDB Administrators"
 CMDB_RECONCILIATION_SLACK_CHANNEL="cmdb-alerts"
+
+# Observability (optional - LangSmith tracing)
+LANGSMITH_TRACING=false
+LANGSMITH_API_KEY=your-langsmith-api-key
+# Optional customization:
+# LANGSMITH_PROJECT=ai-sdk-slackbot
+# LANGSMITH_TAGS=production,slackbot
+# LANGSMITH_SAMPLE_RATE=1
+# LANGSMITH_API_URL=https://api.smith.langchain.com
+# LANGSMITH_WORKSPACE_ID=your-workspace-id
+
+# Webex Contact Center (optional - voice interaction sync)
+# Supply either an access token or the refresh flow credentials.
+# If using direct access tokens:
+# WEBEX_CC_ACCESS_TOKEN=your-access-token
+# Otherwise configure refresh token exchange:
+WEBEX_CC_CLIENT_ID=your-webex-client-id
+WEBEX_CC_CLIENT_SECRET=your-webex-client-secret
+WEBEX_CC_REFRESH_TOKEN=your-webex-refresh-token
+# Optional overrides:
+# WEBEX_CC_BASE_URL=https://webexapis.com/v1
+# WEBEX_CC_ORG_ID=your-org-id
+# WEBEX_CC_INTERACTION_PATH=contactCenter/interactionHistory
+# CALL_SYNC_LOOKBACK_MINUTES=15
+# INCIDENT_AUTO_CLOSE_MINUTES=60
+# INCIDENT_AUTO_CLOSE_LIMIT=50
+# INCIDENT_AUTO_CLOSE_CODE="Resolved - Awaiting Confirmation"
 ```
 
 Replace the placeholder values with your actual tokens.
@@ -252,6 +279,7 @@ Make sure to modify the [subscription URL](./README.md/#enable-slack-events) to 
 - The assistant manager logs context fallbacks (`missing_scope`) so you can verify Slack permissions during development.
 - ServiceNow tool calls emit structured errors in the function logs; verify credentials before enabling in production.
 - Add integration tests (or manual scripts) that replay `assistant_thread_started`, `assistant_thread_context_changed`, and `message.im` payloads to validate the new event flow before deployment.
+- Enable `LANGSMITH_TRACING=true` with `LANGSMITH_API_KEY` to capture LLM calls (AI SDK + direct Anthropic) in LangSmith for deep debugging; optional `LANGSMITH_SAMPLE_RATE` and `LANGSMITH_TAGS` control sampling and labeling.
 
 ## Production Deployment
 
@@ -370,6 +398,12 @@ The bot maintains context within both threads and direct messages, so it can fol
 - Configure a Vercel Cron Job to call `GET /api/cron/cleanup-workflows` (or `POST`) on your preferred cadence.
 - The endpoint runs the same `cleanupTimedOutGathering` logic that previously lived in an in-process timer, ensuring stale gathering sessions are closed even on serverless platforms.
 - Environment variable `KB_GATHERING_TIMEOUT_HOURS` controls when conversations are considered abandoned.
+- Optional: schedule `GET /api/cron/close-resolved-incidents` to automatically close incidents that remain in the Resolved state beyond your threshold. Tune the cadence and thresholds with:
+  - `INCIDENT_AUTO_CLOSE_MINUTES` (default: 60)
+  - `INCIDENT_AUTO_CLOSE_LIMIT` (default: 50 incidents per run)
+  - `INCIDENT_AUTO_CLOSE_CODE` (default: `Resolved - Awaiting Confirmation`)
+- Optional: schedule `GET /api/cron/sync-webex-voice` to ingest Webex Contact Center voice interactions into Postgres for downstream reporting and transcripts.
+- Optional: schedule `GET /api/cron/sync-voice-worknotes` to backfill voice call metadata by parsing legacy ServiceNow work notes (pre-Webex integration).
 
 ### Extending with New Tools
 

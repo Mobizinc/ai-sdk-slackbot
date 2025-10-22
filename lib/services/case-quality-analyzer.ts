@@ -3,10 +3,11 @@
  * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
-import { generateText, tool } from "ai";
+import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { modelProvider } from "../model-provider";
+import { withLangSmithTrace } from "../observability/langsmith-traceable";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
 
@@ -140,7 +141,10 @@ let analyzer: typeof assessCaseQuality | null = null;
 
 export function getCaseQualityAnalyzer() {
   if (!analyzer) {
-    analyzer = assessCaseQuality;
+    analyzer = withLangSmithTrace(assessCaseQuality, {
+      name: "KB.CaseQualityAssessment",
+      run_type: "chain",
+    });
   }
   return analyzer;
 }

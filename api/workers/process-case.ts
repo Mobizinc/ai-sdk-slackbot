@@ -18,6 +18,7 @@ import {
 } from '../../lib/schemas/servicenow-webhook';
 import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
+import { withLangSmithTrace } from '../../lib/observability/langsmith-traceable';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -30,7 +31,7 @@ const IDEMPOTENCY_WINDOW_MINUTES = parseInt(process.env.IDEMPOTENCY_WINDOW_MINUT
 /**
  * Process case triage (async worker)
  */
-export async function POST(request: Request) {
+async function postWorkerImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -212,6 +213,11 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = withLangSmithTrace(postWorkerImpl, {
+  name: "ServiceNow.QStashWorker",
+  run_type: "chain",
+});
 
 /**
  * Health check for worker

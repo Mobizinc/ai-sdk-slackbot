@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText } from "../instrumented-ai";
 import type { CaseContext } from "../context-manager";
 import type {
   ServiceNowCaseJournalEntry,

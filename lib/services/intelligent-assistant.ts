@@ -3,7 +3,7 @@
  * Inspired by mobiz-intelligence-analytics case intelligence system.
  */
 
-import { generateText, tool } from "ai";
+import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";

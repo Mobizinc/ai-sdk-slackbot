@@ -96,6 +96,7 @@ describe('Workers API', () => {
       expect(response.status).toBe(200);
       expect(verifyQStashSignature).toHaveBeenCalledWith(
         'valid-signature',
+        'test-key',
         requestBody
       );
       expect(validateServiceNowWebhook).toHaveBeenCalledWith({ case_number: 'CASE001' });

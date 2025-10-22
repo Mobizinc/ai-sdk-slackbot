@@ -4,9 +4,11 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { wrapSDK } from 'langsmith/wrappers';
 
 // Singleton client instance
 let anthropicClient: Anthropic | null = null;
+let anthropicClientWrapped = false;
 
 /**
  * Get or create Anthropic client instance
@@ -22,16 +24,41 @@ export function getAnthropicClient(): Anthropic {
       );
     }
 
-    anthropicClient = new Anthropic({
+    const baseClient = new Anthropic({
       apiKey,
       maxRetries: 2,
       timeout: 120000, // 120 seconds
     });
 
+    anthropicClient = shouldWrapWithLangSmith()
+      ? wrapAnthropicWithLangSmith(baseClient)
+      : baseClient;
+
     console.log('[Anthropic] Initialized client');
+  } else if (!anthropicClientWrapped && shouldWrapWithLangSmith()) {
+    anthropicClient = wrapAnthropicWithLangSmith(anthropicClient);
   }
 
   return anthropicClient;
+}
+
+function shouldWrapWithLangSmith(): boolean {
+  const tracingEnabled =
+    (process.env.LANGSMITH_TRACING ?? '').toLowerCase() === 'true';
+  const hasApiKey = !!process.env.LANGSMITH_API_KEY?.trim();
+  return tracingEnabled && hasApiKey;
+}
+
+function wrapAnthropicWithLangSmith(client: Anthropic): Anthropic {
+  try {
+    const wrapped = wrapSDK(client);
+    anthropicClientWrapped = true;
+    console.log('[LangSmith] Enabled tracing for Anthropic client');
+    return wrapped;
+  } catch (error) {
+    console.warn('[LangSmith] Failed to wrap Anthropic client:', error);
+    return client;
+  }
 }
 
 /**

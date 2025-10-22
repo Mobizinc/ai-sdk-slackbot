@@ -7,6 +7,7 @@
 
 import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
+import { traceEmbedding } from '../observability/langsmith-tracer';
 
 export class EmbeddingService {
   private model: string;
@@ -21,17 +22,29 @@ export class EmbeddingService {
    * Returns: 1536-dimensional vector for text-embedding-3-small
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    try {
+    const execute = async () => {
       const { embedding } = await embed({
         model: openai.embedding(this.model),
         value: text,
       });
 
       return embedding;
-    } catch (error) {
-      console.error('[Embedding Service] Failed to generate embedding:', error);
-      throw error;
-    }
+    };
+
+    return traceEmbedding<number[]>(
+      {
+        model: this.model,
+        input: text.length > 500 ? `${text.slice(0, 500)}…` : text,
+        metadata: {
+          textLength: text.length,
+        },
+        summary: (embedding) => ({
+          dimensions: embedding.length,
+          sample: embedding.slice(0, 8),
+        }),
+      },
+      execute,
+    );
   }
 
   /**
