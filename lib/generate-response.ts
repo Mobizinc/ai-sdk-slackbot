@@ -647,7 +647,7 @@ const generateResponseImpl = async (
                 assignedTo,
                 openedAfter,
                 openedBefore,
-                activeOnly: activeOnly !== undefined ? activeOnly : true, // Default to active cases only unless explicitly set
+                activeOnly, // Let servicenow.ts handle defaulting logic
                 sortBy,
                 sortOrder,
                 limit: limit ?? 25,
