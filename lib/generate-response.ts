@@ -33,7 +33,8 @@ type ServiceNowToolInput = {
     | "getCase"
     | "getCaseJournal"
     | "searchKnowledge"
-    | "searchConfigurationItem";
+    | "searchConfigurationItem"
+    | "searchCases";
   number?: string;
   caseSysId?: string;
   query?: string;
@@ -41,6 +42,18 @@ type ServiceNowToolInput = {
   ciName?: string;
   ipAddress?: string;
   ciSysId?: string;
+  // NEW: Search/filter parameters
+  accountName?: string;
+  companyName?: string;
+  priority?: string;
+  state?: string;
+  assignmentGroup?: string;
+  assignedTo?: string;
+  openedAfter?: string;
+  openedBefore?: string;
+  activeOnly?: boolean;
+  sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
+  sortOrder?: 'asc' | 'desc';
 };
 
 type SearchSimilarCasesInput = {
@@ -109,6 +122,7 @@ const serviceNowInputSchema = z
       "getCaseJournal",
       "searchKnowledge",
       "searchConfigurationItem",
+      "searchCases",
     ]),
     number: z
       .string()
@@ -123,13 +137,13 @@ const serviceNowInputSchema = z
     query: z
       .string()
       .optional()
-      .describe("Search phrase for knowledge base lookups."),
+      .describe("Search phrase for knowledge base lookups or keyword search in case descriptions."),
     limit: z
       .number()
       .min(1)
-      .max(20)
+      .max(50)
       .optional()
-      .describe("Maximum number of knowledge articles to return."),
+      .describe("Maximum number of results to return. For searchCases, up to 50 results are allowed (default: 25). For searchKnowledge (knowledge articles), the maximum is 20 (default: 20)."),
     ciName: z
       .string()
       .optional()
@@ -142,6 +156,51 @@ const serviceNowInputSchema = z
       .string()
       .optional()
       .describe("Exact sys_id of the configuration item to retrieve."),
+    // NEW: Search filter fields
+    accountName: z
+      .string()
+      .optional()
+      .describe("Filter cases by customer/account name (partial match)."),
+    companyName: z
+      .string()
+      .optional()
+      .describe("Filter cases by company name (partial match)."),
+    priority: z
+      .string()
+      .optional()
+      .describe("Filter by priority (1=Critical, 2=High, 3=Moderate, 4=Low)."),
+    state: z
+      .string()
+      .optional()
+      .describe("Filter by case state (Open, Work in Progress, Resolved, Closed, etc.)."),
+    assignmentGroup: z
+      .string()
+      .optional()
+      .describe("Filter by assignment group name (partial match)."),
+    assignedTo: z
+      .string()
+      .optional()
+      .describe("Filter by assigned user name (partial match)."),
+    openedAfter: z
+      .string()
+      .optional()
+      .describe("Filter cases opened after this date (ISO format: YYYY-MM-DD)."),
+    openedBefore: z
+      .string()
+      .optional()
+      .describe("Filter cases opened before this date (ISO format: YYYY-MM-DD)."),
+    activeOnly: z
+      .boolean()
+      .optional()
+      .describe("Only return active (open) cases (default: true if no state filter specified)."),
+    sortBy: z
+      .enum(['opened_at', 'priority', 'updated_on', 'state'])
+      .optional()
+      .describe("Sort results by field (default: opened_at)."),
+    sortOrder: z
+      .enum(['asc', 'desc'])
+      .optional()
+      .describe("Sort order: ascending or descending (default: desc)."),
   })
   .describe("ServiceNow action parameters");
 
@@ -386,7 +445,9 @@ const generateResponseImpl = async (
 
       const serviceNowTool = createTool({
         description:
-          "Read data from ServiceNow (incidents, cases, knowledge base, recent journal entries, and configuration items).",
+          "Read data from ServiceNow (incidents, cases, case search with filters, knowledge base, recent journal entries, and configuration items). " +
+          "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
+          "Use 'getCase' action only when you have a specific case number.",
         inputSchema: serviceNowInputSchema,
         execute: createLangSmithSpan(
           "Tool.ServiceNow",
@@ -399,6 +460,17 @@ const generateResponseImpl = async (
           ciName,
           ipAddress,
           ciSysId,
+          accountName,
+          companyName,
+          priority,
+          state,
+          assignmentGroup,
+          assignedTo,
+          openedAfter,
+          openedBefore,
+          activeOnly,
+          sortBy,
+          sortOrder,
         }: ServiceNowToolInput) => {
           if (!serviceNowClient.isConfigured()) {
             return {
@@ -546,6 +618,55 @@ const generateResponseImpl = async (
               }
 
               return { configurationItems };
+            }
+
+            if (action === "searchCases") {
+              // Build filter description for status message
+              const filterParts: string[] = [];
+              if (accountName) filterParts.push(`account: ${accountName}`);
+              if (companyName) filterParts.push(`company: ${companyName}`);
+              if (priority) filterParts.push(`priority: ${priority}`);
+              if (state) filterParts.push(`state: ${state}`);
+              if (assignmentGroup) filterParts.push(`group: ${assignmentGroup}`);
+              if (assignedTo) filterParts.push(`assigned to: ${assignedTo}`);
+              if (query) filterParts.push(`keyword: "${query}"`);
+              
+              const filterDescription = filterParts.length > 0 
+                ? ` with filters (${filterParts.join(', ')})` 
+                : ' (all active cases)';
+              
+              updateStatus?.(`is searching ServiceNow cases${filterDescription}...`);
+
+              const cases = await serviceNowClient.searchCustomerCases({
+                accountName,
+                companyName,
+                query,
+                priority,
+                state,
+                assignmentGroup,
+                assignedTo,
+                openedAfter,
+                openedBefore,
+                activeOnly, // Let servicenow.ts handle defaulting logic
+                sortBy,
+                sortOrder,
+                limit,
+              });
+
+              if (cases.length === 0) {
+                return {
+                  cases: [],
+                  total: 0,
+                  message: `No cases found matching your criteria${filterDescription}.`,
+                };
+              }
+
+              return {
+                cases,
+                total: cases.length,
+                filters_applied: filterParts.length > 0 ? filterParts : ['active=true'],
+                message: `Found ${cases.length} case${cases.length === 1 ? '' : 's'}${filterDescription}.`,
+              };
             }
 
             throw new Error(`Unsupported ServiceNow action: ${action}`);

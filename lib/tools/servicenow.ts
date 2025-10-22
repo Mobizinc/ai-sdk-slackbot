@@ -573,13 +573,27 @@ export class ServiceNowClient {
       query?: string;
       limit?: number;
       activeOnly?: boolean;
+      priority?: string;
+      state?: string;
+      assignmentGroup?: string;
+      assignedTo?: string;
+      openedAfter?: string;
+      openedBefore?: string;
+      sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<ServiceNowCaseSummary[]> {
     const table = config.caseTable ?? "sn_customerservice_case";
-    const limit = input.limit ?? 5;
+    const limit = input.limit ?? 25; // Increased default from 5 to 25
 
-    const queryParts: string[] = ["ORDERBYDESCopened_at"];
+    const queryParts: string[] = [];
 
+    // Sort configuration
+    const sortField = input.sortBy || 'opened_at';
+    const sortDirection = input.sortOrder === 'asc' ? '' : 'DESC';
+    queryParts.push(`ORDERBY${sortDirection}${sortField}`);
+
+    // Filter conditions
     if (input.accountName) {
       queryParts.push(`account.nameLIKE${input.accountName}`);
     }
@@ -589,11 +603,41 @@ export class ServiceNowClient {
     }
 
     if (input.query) {
-      queryParts.push(`short_descriptionLIKE${input.query}`);
+      queryParts.push(`short_descriptionLIKE${input.query}^ORdescriptionLIKE${input.query}`);
     }
 
-    if (input.activeOnly) {
-      queryParts.push("active=true");
+    if (input.priority) {
+      queryParts.push(`priority=${input.priority}`);
+    }
+
+    if (input.state) {
+      queryParts.push(`state=${input.state}`);
+    }
+
+    if (input.assignmentGroup) {
+      queryParts.push(`assignment_group.nameLIKE${input.assignmentGroup}`);
+    }
+
+    if (input.assignedTo) {
+      queryParts.push(`assigned_to.nameLIKE${input.assignedTo}`);
+    }
+
+    if (input.openedAfter) {
+      queryParts.push(`opened_at>${input.openedAfter}`);
+    }
+
+    if (input.openedBefore) {
+      queryParts.push(`opened_at<${input.openedBefore}`);
+    }
+
+    // Active/closed filter
+    if (input.activeOnly !== undefined) {
+      queryParts.push(`active=${input.activeOnly ? 'true' : 'false'}`);
+    }
+
+    // If no filters specified (only sort parameter), default to active cases only
+    if (queryParts.length === 1 && queryParts[0].startsWith('ORDERBY')) { // Only sort parameter
+      queryParts.push('active=true');
     }
 
     const query = queryParts.join("^");
