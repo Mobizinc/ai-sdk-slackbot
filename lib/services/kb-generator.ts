@@ -10,7 +10,6 @@ import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
-import { withLangSmithTrace } from "../observability/langsmith-traceable";
 
 export interface KBArticle {
   title: string;
@@ -67,49 +66,6 @@ const kbArticleTool = createTool({
 
 export class KBGenerator {
   private azureSearch = createAzureSearchService();
-  private readonly tracedGenerateArticle = withLangSmithTrace(
-    async (
-      context: CaseContext,
-      caseDetails?: any
-    ): Promise<KBGenerationResult> => {
-      // Step 1: Search for similar existing KBs
-      const conversationText = context.messages.map((m) => m.text).join("\n");
-      const similarKBs = await this.findSimilarKBs(conversationText);
-
-      // Step 2: Check if this is likely a duplicate
-      const isDuplicate = similarKBs.length > 0 && similarKBs[0].score > 0.85;
-
-      if (isDuplicate) {
-        return {
-          article: null as any, // Won't be used
-          similarExistingKBs: similarKBs,
-          isDuplicate: true,
-          confidence: 0,
-        };
-      }
-
-      // Step 3: Generate KB article using LLM
-      const article = await this.generateWithLLM(
-        context,
-        caseDetails,
-        similarKBs
-      );
-
-      // Step 4: Calculate confidence score
-      const confidence = this.calculateConfidence(context, article);
-
-      return {
-        article,
-        similarExistingKBs: similarKBs,
-        isDuplicate: false,
-        confidence,
-      };
-    },
-    {
-      name: "KBGenerator.generateArticle",
-      run_type: "chain",
-    }
-  );
 
   /**
    * Generate KB article from case context
@@ -118,7 +74,38 @@ export class KBGenerator {
     context: CaseContext,
     caseDetails?: any
   ): Promise<KBGenerationResult> {
-    return this.tracedGenerateArticle(context, caseDetails);
+    // Step 1: Search for similar existing KBs
+    const conversationText = context.messages.map((m) => m.text).join("\n");
+    const similarKBs = await this.findSimilarKBs(conversationText);
+
+    // Step 2: Check if this is likely a duplicate
+    const isDuplicate = similarKBs.length > 0 && similarKBs[0].score > 0.85;
+
+    if (isDuplicate) {
+      return {
+        article: null as any, // Won't be used
+        similarExistingKBs: similarKBs,
+        isDuplicate: true,
+        confidence: 0,
+      };
+    }
+
+    // Step 3: Generate KB article using LLM
+    const article = await this.generateWithLLM(
+      context,
+      caseDetails,
+      similarKBs
+    );
+
+    // Step 4: Calculate confidence score
+    const confidence = this.calculateConfidence(context, article);
+
+    return {
+      article,
+      similarExistingKBs: similarKBs,
+      isDuplicate: false,
+      confidence,
+    };
   }
 
   /**

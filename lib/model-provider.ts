@@ -1,6 +1,7 @@
 import { createGateway } from "@ai-sdk/gateway";
 import { openai } from "@ai-sdk/openai";
 import { customProvider } from "ai";
+import { wrapAISDKModel } from 'langsmith/wrappers/vercel';
 import { getAnthropicClient, getConfiguredModel } from './anthropic-provider';
 
 /**
@@ -65,14 +66,28 @@ const baseModel = gatewayProvider
   ? openai(openAiFallbackModel)
   : openai(openAiFallbackModel); // Final fallback - will use OPENAI_API_KEY env var
 
+// Wrap with LangSmith for automatic tracing
+// Note: Direct Anthropic client calls are traced via wrapSDK() in anthropic-provider.ts
+const shouldWrapWithLangSmith =
+  (process.env.LANGSMITH_TRACING ?? '').toLowerCase() === 'true' &&
+  !!process.env.LANGSMITH_API_KEY?.trim();
+
+const tracedModel = shouldWrapWithLangSmith
+  ? wrapAISDKModel(baseModel)
+  : baseModel;
+
+if (shouldWrapWithLangSmith && !useAnthropic) {
+  console.log('[LangSmith] Wrapped AI SDK models for tracing');
+}
+
 export const modelProvider = customProvider({
   languageModels: {
-    "chat-model": baseModel,
-    "kb-generator": baseModel,
-    "quality-analyzer": baseModel,
-    "resolution-summary": baseModel,
-    "intelligent-assistant": baseModel,
-    "kb-assistant": baseModel,
+    "chat-model": tracedModel,
+    "kb-generator": tracedModel,
+    "quality-analyzer": tracedModel,
+    "resolution-summary": tracedModel,
+    "intelligent-assistant": tracedModel,
+    "kb-assistant": tracedModel,
   },
 });
 

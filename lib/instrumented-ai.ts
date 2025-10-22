@@ -1,18 +1,9 @@
-import {
-  generateText as baseGenerateText,
-} from "ai";
-import { traceGenerateText, isLangSmithEnabled } from "./observability/langsmith-tracer";
+/**
+ * AI SDK exports with LangSmith tracing
+ *
+ * Tracing is handled by:
+ * - wrapSDK() for direct Anthropic client calls (lib/anthropic-provider.ts)
+ * - wrapLanguageModel() for AI SDK models (lib/model-provider.ts)
+ */
 
-type BaseGenerateText = typeof baseGenerateText;
-type GenerateTextArgs = Parameters<BaseGenerateText>[0];
-type GenerateTextReturn = Awaited<ReturnType<BaseGenerateText>>;
-
-export async function generateText(args: GenerateTextArgs): Promise<GenerateTextReturn> {
-  if (!isLangSmithEnabled()) {
-    return baseGenerateText(args);
-  }
-
-  return traceGenerateText(args, () => baseGenerateText(args));
-}
-
-export { tool, stepCountIs, type CoreMessage } from "ai";
+export { generateText, tool, stepCountIs, type CoreMessage } from "ai";
