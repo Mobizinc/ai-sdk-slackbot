@@ -104,6 +104,17 @@ function extractDisplayValue(field: any): string {
   return String(field);
 }
 
+/**
+ * Extract reference sys_id from ServiceNow reference field
+ * Reference fields return as { value: "sys_id", display_value: "name", link: "url" }
+ */
+function extractReferenceSysId(field: any): string | undefined {
+  if (!field) return undefined;
+  if (typeof field === "string") return field; // Already a sys_id
+  if (typeof field === "object" && field.value) return field.value; // Extract sys_id from reference
+  return undefined;
+}
+
 function normalizeIpAddresses(field: any): string[] {
   if (!field) return [];
   if (Array.isArray(field)) {
@@ -182,6 +193,8 @@ export interface ServiceNowCaseResult {
   opened_by?: string;
   caller_id?: string;
   submitted_by?: string;
+  contact?: string; // Reference to customer_contact table (sys_id)
+  account?: string; // Reference to customer_account table (sys_id)
   url?: string;
 }
 
@@ -440,6 +453,8 @@ export class ServiceNowClient {
       opened_by: extractDisplayValue(raw.opened_by),
       caller_id: extractDisplayValue(raw.caller_id),
       submitted_by: extractDisplayValue(raw.submitted_by),
+      contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
+      account: extractReferenceSysId(raw.account), // Extract account sys_id
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
         raw.sys_id,
       )}`,
@@ -1492,6 +1507,101 @@ export class ServiceNowClient {
       sys_id: task.sys_id,
       number: task.number,
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
+    };
+  }
+
+  /**
+   * Create a phone call interaction record in ServiceNow
+   */
+  public async createPhoneInteraction(input: {
+    caseSysId: string;
+    caseNumber: string;
+    channel: string;
+    direction?: string;
+    phoneNumber?: string;
+    sessionId: string;
+    startTime: Date;
+    endTime: Date;
+    durationSeconds?: number;
+    agentName?: string;
+    queueName?: string;
+    summary?: string;
+    notes?: string;
+  }): Promise<{
+    interaction_sys_id: string;
+    interaction_number: string;
+    interaction_url: string;
+  }> {
+    const table = "interaction";
+    const endpoint = `/api/now/table/${table}`;
+
+    // Fetch case to get contact and account references
+    const caseData = await this.getCaseBySysId(input.caseSysId);
+    if (!caseData) {
+      throw new Error(`Case not found: ${input.caseNumber} (${input.caseSysId})`);
+    }
+
+    // Build interaction payload with correct ServiceNow field names
+    const payload: Record<string, any> = {
+      // Required field
+      type: 'phone',
+
+      // Interaction details
+      direction: input.direction || 'inbound', // Default to 'inbound' if not provided
+      caller_phone_number: input.phoneNumber || '', // Can be empty if not provided
+
+      // CRITICAL: Link to parent case using the 'parent' field
+      // This is THE field that makes interactions appear in the case's related list!
+      parent: input.caseSysId, // Direct reference to the case record
+
+      // Context fields for metadata (do NOT create UI relationship)
+      context_table: config.caseTable, // e.g., 'x_mobit_serv_case_service_case'
+      context_document: input.caseSysId, // Case sys_id
+
+      // Channel metadata provides alternative linking method
+      channel_metadata_table: config.caseTable,
+      channel_metadata_document: input.caseSysId,
+
+      // CRITICAL: Customer contact and account from case
+      // These fields link the interaction to the customer contact and account
+      contact: caseData.contact || undefined, // Reference to customer_contact table
+      account: caseData.account || undefined, // Reference to customer_account table
+
+      // Timing - use correct field names
+      opened_at: formatDateForServiceNow(input.startTime), // Not 'start_time'
+      closed_at: formatDateForServiceNow(input.endTime),   // Not 'end_time'
+
+      // Metadata
+      short_description: input.summary || `Phone call - ${input.direction || 'unknown'} - ${input.sessionId}`,
+      work_notes: input.notes || `Call Session ID: ${input.sessionId}\nDuration: ${input.durationSeconds ?? 'N/A'} seconds${input.agentName ? `\nAgent: ${input.agentName}` : ''}${input.queueName ? `\nQueue: ${input.queueName}` : ''}`,
+
+      // Status - Use 'closed_complete' instead of 'closed' (which is invalid)
+      state: 'closed_complete', // Valid closed state for completed interactions
+    };
+
+    // Add duration if provided (in seconds)
+    if (input.durationSeconds !== undefined) {
+      payload.duration = input.durationSeconds;
+    }
+
+    const data = await request<{
+      result: {
+        sys_id: string;
+        number: string;
+      };
+    }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!data.result) {
+      throw new Error('Failed to create phone interaction: No response from ServiceNow');
+    }
+
+    return {
+      interaction_sys_id: data.result.sys_id,
+      interaction_number: data.result.number,
+      interaction_url: `${config.instanceUrl}/nav_to.do?uri=interaction.do?sys_id=${data.result.sys_id}`,
     };
   }
 }

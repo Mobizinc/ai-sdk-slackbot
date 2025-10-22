@@ -178,3 +178,52 @@ export async function getTranscriptsNewerThan(
     .where(gt(callTranscripts.updatedAt, since))
     .orderBy(desc(callTranscripts.updatedAt));
 }
+
+/**
+ * Get call interactions that need to be synced to ServiceNow
+ * Returns interactions where servicenow_interaction_sys_id is NULL
+ */
+export async function getCallInteractionsNeedingServiceNowSync(
+  limit = 100,
+): Promise<CallInteraction[]> {
+  const db = getDb();
+  if (!db) {
+    return [];
+  }
+
+  try {
+    return await db
+      .select()
+      .from(callInteractions)
+      .where(sql`${callInteractions.servicenowInteractionSysId} IS NULL`)
+      .orderBy(desc(callInteractions.startTime))
+      .limit(limit);
+  } catch (error) {
+    console.warn("[DB] Error fetching interactions needing ServiceNow sync:", error);
+    return [];
+  }
+}
+
+/**
+ * Update call interaction with ServiceNow interaction IDs after creation
+ */
+export async function updateCallInteractionServiceNowIds(
+  sessionId: string,
+  servicenowInteractionSysId: string,
+  servicenowInteractionNumber: string,
+): Promise<void> {
+  const db = getDb();
+  if (!db) {
+    return;
+  }
+
+  await db
+    .update(callInteractions)
+    .set({
+      servicenowInteractionSysId,
+      servicenowInteractionNumber,
+      servicenowSyncedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(callInteractions.sessionId, sessionId));
+}

@@ -637,11 +637,16 @@ export const callInteractions = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    // ServiceNow interaction tracking
+    servicenowInteractionSysId: text("servicenow_interaction_sys_id"),
+    servicenowInteractionNumber: text("servicenow_interaction_number"),
+    servicenowSyncedAt: timestamp("servicenow_synced_at", { withTimezone: true }),
   },
   (table) => ({
     caseNumberIdx: index("idx_call_interactions_case").on(table.caseNumber),
     startTimeIdx: index("idx_call_interactions_start").on(table.startTime),
     transcriptStatusIdx: index("idx_call_interactions_transcript_status").on(table.transcriptStatus),
+    servicenowInteractionSysIdIdx: index("idx_call_interactions_sn_interaction").on(table.servicenowInteractionSysId),
   })
 );
 

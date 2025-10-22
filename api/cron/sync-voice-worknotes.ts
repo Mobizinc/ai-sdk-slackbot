@@ -3,6 +3,8 @@ import { parseVoiceWorkNote } from "../../lib/utils/voice-worknote-parser";
 import {
   upsertCallInteractions,
   getMostRecentInteractionSync,
+  updateCallInteractionServiceNowIds,
+  getCallInteractionsNeedingServiceNowSync,
 } from "../../lib/db/repositories/call-interaction-repository";
 import {
   getAppSettingValue,
@@ -20,6 +22,8 @@ type JsonResponse =
       status: "ok";
       processed: number;
       stored: number;
+      interactionsCreated: number;
+      interactionsFailed: number;
       startedAt: string;
       endedAt: string;
       latestWorkNoteAt: string | null;
@@ -90,6 +94,8 @@ async function runSync(): Promise<Response> {
         status: "ok",
         processed: 0,
         stored: 0,
+        interactionsCreated: 0,
+        interactionsFailed: 0,
         startedAt: startTime.toISOString(),
         endedAt: now.toISOString(),
         latestWorkNoteAt: null,
@@ -97,6 +103,15 @@ async function runSync(): Promise<Response> {
     }
 
     const interactions = [];
+    const interactionMetadata: Array<{
+      sessionId: string;
+      caseSysId: string;
+      caseNumber: string;
+      direction?: string;
+      phoneNumber?: string;
+      startTime: Date;
+      endTime: Date;
+    }> = [];
     let maxTimestamp: Date | undefined;
 
     for (const note of notes) {
@@ -115,13 +130,16 @@ async function runSync(): Promise<Response> {
         continue;
       }
 
+      const startTime = parsed.endTime ?? workNoteTime;
+      const endTime = parsed.endTime ?? workNoteTime;
+
       interactions.push({
         sessionId: parsed.sessionId,
         caseNumber: caseRecord.number,
         direction: parsed.direction,
         ani: parsed.phoneNumber,
-        startTime: parsed.endTime ?? workNoteTime,
-        endTime: parsed.endTime ?? workNoteTime,
+        startTime,
+        endTime,
         rawPayload: {
           source: "servicenow_worknote",
           workNoteSysId: note.sys_id,
@@ -132,9 +150,64 @@ async function runSync(): Promise<Response> {
         transcriptStatus: "pending",
         syncedAt: now,
       });
+
+      // Store metadata needed for ServiceNow interaction creation
+      interactionMetadata.push({
+        sessionId: parsed.sessionId,
+        caseSysId: note.element_id,
+        caseNumber: caseRecord.number,
+        direction: parsed.direction,
+        phoneNumber: parsed.phoneNumber,
+        startTime,
+        endTime,
+      });
     }
 
     await upsertCallInteractions(interactions);
+
+    // Create ServiceNow interaction records for newly stored interactions
+    let interactionsCreated = 0;
+    let interactionsFailed = 0;
+
+    // Get all interactions that need ServiceNow sync (don't have interaction_sys_id yet)
+    const needsSync = await getCallInteractionsNeedingServiceNowSync(interactionMetadata.length);
+    const sessionIdsNeedingSync = new Set(needsSync.map(i => i.sessionId));
+
+    for (const metadata of interactionMetadata) {
+      try {
+        // Check if this interaction already has a ServiceNow interaction record
+        if (!sessionIdsNeedingSync.has(metadata.sessionId)) {
+          // Already has ServiceNow interaction ID, skip
+          continue;
+        }
+
+        // Create interaction record in ServiceNow
+        const result = await serviceNowClient.createPhoneInteraction({
+          caseSysId: metadata.caseSysId,
+          caseNumber: metadata.caseNumber,
+          channel: 'phone',
+          direction: metadata.direction,
+          phoneNumber: metadata.phoneNumber,
+          sessionId: metadata.sessionId,
+          startTime: metadata.startTime,
+          endTime: metadata.endTime,
+        });
+
+        // Update local record with ServiceNow IDs
+        await updateCallInteractionServiceNowIds(
+          metadata.sessionId,
+          result.interaction_sys_id,
+          result.interaction_number
+        );
+
+        interactionsCreated++;
+        console.log(`[Sync] Created ServiceNow interaction ${result.interaction_number} for session ${metadata.sessionId}`);
+      } catch (error) {
+        interactionsFailed++;
+        console.error(`[Sync] Failed to create ServiceNow interaction for session ${metadata.sessionId}:`, error);
+        // Continue processing other interactions even if one fails
+      }
+    }
 
     if (maxTimestamp) {
       await setAppSetting(SETTING_KEY, maxTimestamp.toISOString());
@@ -146,6 +219,8 @@ async function runSync(): Promise<Response> {
       status: "ok",
       processed: notes.length,
       stored: interactions.length,
+      interactionsCreated,
+      interactionsFailed,
       startedAt: startTime.toISOString(),
       endedAt: now.toISOString(),
       latestWorkNoteAt: maxTimestamp ? maxTimestamp.toISOString() : null,
