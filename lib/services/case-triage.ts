@@ -41,6 +41,7 @@ import { getCategorySyncService } from "./servicenow-category-sync";
 import { getCmdbReconciliationService } from "./cmdb-reconciliation";
 import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
 import { config } from "../config";
+import { withLangSmithTrace } from "../observability/langsmith-traceable";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
 export interface CaseTriageOptions {
@@ -139,10 +140,11 @@ export class CaseTriageService {
    *
    * Original: api/app/routers/webhooks.py:379-531
    */
-  async triageCase(
-    webhook: ServiceNowCaseWebhook,
-    options: CaseTriageOptions = {}
-  ): Promise<CaseTriageResult> {
+  private readonly tracedTriageCase = withLangSmithTrace(
+    async (
+      webhook: ServiceNowCaseWebhook,
+      options: CaseTriageOptions = {}
+    ): Promise<CaseTriageResult> => {
     const startTime = Date.now();
 
     // Default options (matching original behavior)
@@ -760,6 +762,18 @@ export class CaseTriageService {
       console.error(`[Case Triage] Failed to triage case ${webhook.case_number}:`, error);
       throw error;
     }
+  },
+    {
+      name: "CaseTriageService.triageCase",
+      run_type: "chain",
+    }
+  );
+
+  async triageCase(
+    webhook: ServiceNowCaseWebhook,
+    options: CaseTriageOptions = {}
+  ): Promise<CaseTriageResult> {
+    return this.tracedTriageCase(webhook, options);
   }
 
   /**

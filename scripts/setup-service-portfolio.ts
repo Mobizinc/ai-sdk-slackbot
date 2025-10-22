@@ -175,6 +175,7 @@ async function setupServicePortfolio() {
           name: offeringName,
           parent: businessServiceSysId, // Link to Business Service
           vendor: '2d6a47c7870011100fadcbb6dabb35fb', // Mobiz IT
+          service_status: 'operational', // Set to Operational (active/in-use)
         };
 
         const soCreateResponse = await fetch(soCreateUrl, {

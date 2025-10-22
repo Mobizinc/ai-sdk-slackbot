@@ -122,11 +122,36 @@ function normalizeIpAddresses(field: any): string[] {
     .filter((value) => Boolean(value));
 }
 
+function pad(value: number): string {
+  return value.toString().padStart(2, "0");
+}
+
+function formatDateForServiceNow(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = pad(date.getUTCMonth() + 1);
+  const day = pad(date.getUTCDate());
+  const hours = pad(date.getUTCHours());
+  const minutes = pad(date.getUTCMinutes());
+  const seconds = pad(date.getUTCSeconds());
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export interface ServiceNowIncidentResult {
   number: string;
   sys_id: string;
   short_description: string;
   state?: string;
+  url: string;
+}
+
+export interface ServiceNowIncidentSummary {
+  sys_id: string;
+  number: string;
+  short_description?: string;
+  state?: string;
+  resolved_at?: string;
+  close_code?: string;
+  parent?: string;
   url: string;
 }
 
@@ -226,6 +251,14 @@ export interface ServiceNowServiceOffering {
   url: string;
 }
 
+export interface ServiceNowWorkNote {
+  sys_id: string;
+  element_id: string;
+  value: string;
+  sys_created_on: string;
+  sys_created_by?: string;
+}
+
 export interface ServiceNowApplicationService {
   sys_id: string;
   name: string;
@@ -259,6 +292,63 @@ export class ServiceNowClient {
       ...incident,
       url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
     };
+  }
+
+  public async getResolvedIncidents(options: {
+    limit?: number;
+    olderThanMinutes?: number;
+    requireParentCase?: boolean;
+    requireEmptyCloseCode?: boolean;
+  } = {}): Promise<ServiceNowIncidentSummary[]> {
+    const limit = options.limit ?? 50;
+    const queryParts: string[] = ["state=6", "active=true"];
+
+    if (options.requireParentCase !== false) {
+      queryParts.push("parentISNOTEMPTY");
+    }
+
+    if (options.requireEmptyCloseCode !== false) {
+      queryParts.push("close_codeISEMPTY");
+    }
+
+    if (options.olderThanMinutes && options.olderThanMinutes > 0) {
+      queryParts.push(`resolved_atRELATIVELE@minute@ago@${Math.floor(options.olderThanMinutes)}`);
+    }
+
+    const query = queryParts.join("^");
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}&sysparm_fields=${fields.join(
+        ",",
+      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+    );
+
+    const incidents = data.result ?? [];
+
+    return incidents.map((record) => {
+      const sysId = extractDisplayValue(record.sys_id);
+      return {
+        sys_id: sysId,
+        number: extractDisplayValue(record.number),
+        short_description: extractDisplayValue(record.short_description) || undefined,
+        state: extractDisplayValue(record.state) || undefined,
+        resolved_at: extractDisplayValue(record.resolved_at) || undefined,
+        close_code: extractDisplayValue(record.close_code) || undefined,
+        parent: extractDisplayValue(record.parent) || undefined,
+        url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+      } satisfies ServiceNowIncidentSummary;
+    });
   }
 
   public async searchKnowledge(
@@ -318,6 +408,41 @@ export class ServiceNowClient {
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+    };
+  }
+
+  public async getCaseBySysId(sysId: string): Promise<ServiceNowCaseResult | null> {
+    const table = config.caseTable ?? "sn_customerservice_case";
+    const data = await request<{
+      result: Array<any>;
+    }>(
+      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
+        `sys_id=${sysId}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) return null;
+
+    const raw = data.result[0];
+
+    return {
+      sys_id: extractDisplayValue(raw.sys_id),
+      number: extractDisplayValue(raw.number),
+      short_description: extractDisplayValue(raw.short_description),
+      description: extractDisplayValue(raw.description),
+      priority: extractDisplayValue(raw.priority),
+      state: extractDisplayValue(raw.state),
+      category: extractDisplayValue(raw.category),
+      subcategory: extractDisplayValue(raw.subcategory),
+      opened_at: extractDisplayValue(raw.opened_at),
+      assignment_group: extractDisplayValue(raw.assignment_group),
+      assigned_to: extractDisplayValue(raw.assigned_to),
+      opened_by: extractDisplayValue(raw.opened_by),
+      caller_id: extractDisplayValue(raw.caller_id),
+      submitted_by: extractDisplayValue(raw.submitted_by),
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
+        raw.sys_id,
+      )}`,
     };
   }
 
@@ -528,6 +653,77 @@ export class ServiceNowClient {
     comment: string
   ): Promise<void> {
     await this.addCaseWorkNote(sysId, comment, false);
+  }
+
+  public async addIncidentWorkNote(
+    incidentSysId: string,
+    workNote: string,
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({ work_notes: workNote }),
+    });
+  }
+
+  public async getVoiceWorkNotesSince(options: {
+    since: Date;
+    limit?: number;
+  }): Promise<ServiceNowWorkNote[]> {
+    const sinceString = formatDateForServiceNow(options.since);
+    const limit = options.limit ?? 200;
+
+    const queryParts = [
+      "element=work_notes",
+      `sys_created_on>=${sinceString}`,
+      "valueLIKECall",
+      "valueLIKESession ID",
+    ];
+
+    const query = queryParts.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sys_journal_field?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_limit=${limit}&sysparm_display_value=all&sysparm_fields=sys_id,element_id,value,sys_created_on,sys_created_by`,
+    );
+
+    return (data.result ?? []).map((row) => ({
+      sys_id: extractDisplayValue(row.sys_id),
+      element_id: extractDisplayValue(row.element_id),
+      value: extractDisplayValue(row.value) || "",
+      sys_created_on: extractDisplayValue(row.sys_created_on) || "",
+      sys_created_by: extractDisplayValue(row.sys_created_by) || undefined,
+    }));
+  }
+
+  public async closeIncident(
+    incidentSysId: string,
+    options: {
+      closeCode?: string;
+      closeNotes?: string;
+      additionalUpdates?: Record<string, unknown>;
+    } = {},
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    const payload: Record<string, unknown> = {
+      state: "7", // Closed
+      active: false,
+      close_code: options.closeCode ?? "Solved Remotely (Permanently)",
+      close_notes:
+        options.closeNotes ??
+        "Automatically closed after remaining in Resolved state during scheduled incident audit.",
+      ...options.additionalUpdates,
+    };
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   }
 
   /**

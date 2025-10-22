@@ -15,6 +15,7 @@ import {
   uniqueIndex,
   primaryKey,
   real,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -609,3 +610,69 @@ export const cmdbReconciliationResults = pgTable(
 
 export type CmdbReconciliationResult = typeof cmdbReconciliationResults.$inferSelect;
 export type NewCmdbReconciliationResult = typeof cmdbReconciliationResults.$inferInsert;
+
+/**
+ * Call Interactions Table
+ * Stores metadata about voice interactions retrieved from Webex Contact Center
+ */
+export const callInteractions = pgTable(
+  "call_interactions",
+  {
+    sessionId: text("session_id").primaryKey(),
+    contactId: text("contact_id"),
+    caseNumber: text("case_number"),
+    direction: text("direction"),
+    ani: text("ani"),
+    dnis: text("dnis"),
+    agentId: text("agent_id"),
+    agentName: text("agent_name"),
+    queueName: text("queue_name"),
+    startTime: timestamp("start_time", { withTimezone: true }),
+    endTime: timestamp("end_time", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    wrapUpCode: text("wrap_up_code"),
+    recordingId: text("recording_id"),
+    transcriptStatus: text("transcript_status").notNull().default("pending"),
+    rawPayload: jsonb("raw_payload"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_call_interactions_case").on(table.caseNumber),
+    startTimeIdx: index("idx_call_interactions_start").on(table.startTime),
+    transcriptStatusIdx: index("idx_call_interactions_transcript_status").on(table.transcriptStatus),
+  })
+);
+
+/**
+ * Call Transcripts Table
+ * Tracks transcription lifecycle for recorded calls
+ */
+export const callTranscripts = pgTable(
+  "call_transcripts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: text("session_id")
+      .references(() => callInteractions.sessionId, { onDelete: "cascade" })
+      .notNull(),
+    provider: text("provider"),
+    status: text("status").notNull().default("pending"),
+    language: text("language"),
+    transcriptText: text("transcript_text"),
+    transcriptJson: jsonb("transcript_json"),
+    audioUrl: text("audio_url"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("idx_call_transcripts_status").on(table.status),
+    sessionUnique: uniqueIndex("uq_call_transcripts_session").on(table.sessionId),
+  })
+);
+
+export type CallInteraction = typeof callInteractions.$inferSelect;
+export type NewCallInteraction = typeof callInteractions.$inferInsert;
+export type CallTranscript = typeof callTranscripts.$inferSelect;
+export type NewCallTranscript = typeof callTranscripts.$inferInsert;
