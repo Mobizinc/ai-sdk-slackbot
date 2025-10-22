@@ -442,7 +442,7 @@ describe("ServiceNow Case Search", () => {
             const query = url.searchParams.get("sysparm_query") ?? "";
             
             expect(query).toContain("ORDERBYupdated_on");
-            expect(query).not.toContain("ORDERBYDES");
+            expect(query).not.toContain("ORDERBYDESC");
             
             return HttpResponse.json({ result: mockCaseResults });
           },
