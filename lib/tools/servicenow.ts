@@ -636,7 +636,7 @@ export class ServiceNowClient {
     }
 
     // If no filters specified (only sort parameter), default to active cases only
-    if (queryParts.length === 1) { // Only sort parameter
+    if (queryParts.length === 1 && queryParts[0].startsWith('ORDERBY')) { // Only sort parameter
       queryParts.push('active=true');
     }
 
