@@ -141,7 +141,7 @@ const serviceNowInputSchema = z
       .min(1)
       .max(50)
       .optional()
-      .describe("Maximum number of results to return (default: 25 for searchCases, 20 for knowledge)."),
+      .describe("Maximum number of results to return. For searchCases, up to 50 results are allowed (default: 25). For searchKnowledge (knowledge articles), the maximum is 20 (default: 20)."),
     ciName: z
       .string()
       .optional()
