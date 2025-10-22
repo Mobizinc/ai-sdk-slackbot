@@ -650,7 +650,7 @@ const generateResponseImpl = async (
                 activeOnly, // Let servicenow.ts handle defaulting logic
                 sortBy,
                 sortOrder,
-                limit: limit ?? 25,
+                limit,
               });
 
               if (cases.length === 0) {
