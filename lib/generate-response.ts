@@ -647,7 +647,7 @@ const generateResponseImpl = async (
                 assignedTo,
                 openedAfter,
                 openedBefore,
-                activeOnly: activeOnly !== undefined ? activeOnly : !state, // Default to active if no state specified
+                activeOnly: activeOnly !== undefined ? activeOnly : true, // Default to active cases only unless explicitly set
                 sortBy,
                 sortOrder,
                 limit: limit ?? 25,
