@@ -1,0 +1,999 @@
+/**
+ * Legacy Agent Tool Factory
+ *
+ * Provides the same tool definitions currently used by generate-response.ts.
+ * Phase 3B will reuse these helpers while the refactor migrates toward a
+ * modular registry. Once the orchestrator is fully refactored, we can split
+ * these tools into smaller files.
+ */
+
+import { tool } from "../../instrumented-ai";
+import type { CoreMessage } from "../../instrumented-ai";
+import { z } from "zod";
+import { exa } from "../../utils";
+import { serviceNowClient } from "../../tools/servicenow";
+import { microsoftLearnMCP } from "../../tools/microsoft-learn-mcp";
+import { createAzureSearchService } from "../../services/azure-search";
+import { getContextManager } from "../../context-manager";
+import { getKBGenerator } from "../../services/kb-generator";
+import { getBusinessContextService } from "../../services/business-context-service";
+import { getContextUpdateManager, type ContextUpdateAction } from "../../context-update-manager";
+import { getCurrentIssuesService } from "../../services/current-issues-service";
+import { getCaseTriageService } from "../../services/case-triage";
+import type { UpdateStatusFn, GenerateResponseOptions } from "../types";
+
+export type WeatherToolInput = {
+  latitude: number;
+  longitude: number;
+  city: string;
+};
+
+export type SearchWebToolInput = {
+  query: string;
+  specificDomain: string | null;
+};
+
+export type ServiceNowToolInput = {
+  action:
+    | "getIncident"
+    | "getCase"
+    | "getCaseJournal"
+    | "searchKnowledge"
+    | "searchConfigurationItem"
+    | "searchCases";
+  number?: string;
+  caseSysId?: string;
+  query?: string;
+  limit?: number;
+  ciName?: string;
+  ipAddress?: string;
+  ciSysId?: string;
+  accountName?: string;
+  companyName?: string;
+  priority?: string;
+  state?: string;
+  assignmentGroup?: string;
+  assignedTo?: string;
+  openedAfter?: string;
+  openedBefore?: string;
+  activeOnly?: boolean;
+  sortBy?: "opened_at" | "priority" | "updated_on" | "state";
+  sortOrder?: "asc" | "desc";
+};
+
+export type SearchSimilarCasesInput = {
+  query: string;
+  clientId?: string;
+  topK?: number;
+};
+
+export type GenerateKBArticleInput = {
+  caseNumber: string;
+  threadTs?: string;
+};
+
+export type ProposeContextUpdateInput = {
+  entityName: string;
+  caseNumber?: string;
+  summary: string;
+  details?: string;
+  cmdbIdentifier: {
+    ciName?: string;
+    sysId?: string;
+    ipAddresses?: string[];
+    description?: string;
+    ownerGroup?: string;
+    documentation?: string[];
+  };
+  confidence?: "LOW" | "MEDIUM" | "HIGH";
+  entityTypeIfCreate?: "CLIENT" | "VENDOR" | "PLATFORM";
+};
+
+export type FetchCurrentIssuesInput = {
+  channelId?: string;
+  channelNameHint?: string;
+};
+
+export type MicrosoftLearnSearchInput = {
+  query: string;
+  limit?: number;
+};
+
+export type TriageCaseInput = {
+  caseNumber: string;
+};
+
+const weatherInputSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+  city: z.string(),
+});
+
+const searchWebInputSchema = z.object({
+  query: z.string(),
+  specificDomain: z
+    .string()
+    .nullable()
+    .describe(
+      "a domain to search if the user specifies e.g. bbc.com. Should be only the domain name without the protocol",
+    ),
+});
+
+const serviceNowInputSchema = z
+  .object({
+    action: z.enum([
+      "getIncident",
+      "getCase",
+      "getCaseJournal",
+      "searchKnowledge",
+      "searchConfigurationItem",
+      "searchCases",
+    ]),
+    number: z
+      .string()
+      .optional()
+      .describe("Incident or case number to look up."),
+    caseSysId: z
+      .string()
+      .optional()
+      .describe(
+        "ServiceNow case sys_id for fetching journal entries (comments, work notes).",
+      ),
+    query: z
+      .string()
+      .optional()
+      .describe("Search phrase for knowledge base lookups or keyword search in case descriptions."),
+    limit: z
+      .number()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("Maximum number of results to return. For searchCases, up to 50 results are allowed (default: 25). For searchKnowledge (knowledge articles), the maximum is 20 (default: 20)."),
+    ciName: z
+      .string()
+      .optional()
+      .describe("Configuration item name, hostname, or partial match to search for."),
+    ipAddress: z
+      .string()
+      .optional()
+      .describe("IP address associated with a configuration item."),
+    ciSysId: z
+      .string()
+      .optional()
+      .describe("Exact sys_id of the configuration item to retrieve."),
+    accountName: z
+      .string()
+      .optional()
+      .describe("Filter cases by customer/account name (partial match)."),
+    companyName: z
+      .string()
+      .optional()
+      .describe("Filter cases by company name (partial match)."),
+    priority: z
+      .string()
+      .optional()
+      .describe("Filter by priority (1=Critical, 2=High, 3=Moderate, 4=Low)."),
+    state: z
+      .string()
+      .optional()
+      .describe("Filter by case state (Open, Work in Progress, Resolved, Closed, etc.)."),
+    assignmentGroup: z
+      .string()
+      .optional()
+      .describe("Filter by assignment group name (partial match)."),
+    assignedTo: z
+      .string()
+      .optional()
+      .describe("Filter by assigned user name (partial match)."),
+    openedAfter: z
+      .string()
+      .optional()
+      .describe("Filter cases opened after this date (ISO format: YYYY-MM-DD)."),
+    openedBefore: z
+      .string()
+      .optional()
+      .describe("Filter cases opened before this date (ISO format: YYYY-MM-DD)."),
+    activeOnly: z
+      .boolean()
+      .optional()
+      .describe("Only return active (open) cases (default: true if no state filter specified)."),
+    sortBy: z
+      .enum(["opened_at", "priority", "updated_on", "state"])
+      .optional()
+      .describe("Sort results by field (default: opened_at)."),
+    sortOrder: z
+      .enum(["asc", "desc"])
+      .optional()
+      .describe("Sort order: ascending or descending (default: desc)."),
+  })
+  .describe("ServiceNow action parameters");
+
+const searchSimilarCasesInputSchema = z.object({
+  query: z
+    .string()
+    .describe("The case description or issue text to find similar cases for"),
+  clientId: z
+    .string()
+    .optional()
+    .describe("Optional client/company identifier to filter results to a specific customer"),
+  topK: z
+    .number()
+    .min(1)
+    .max(10)
+    .optional()
+    .describe("Number of similar cases to return (default: 5)"),
+});
+
+const generateKbArticleInputSchema = z.object({
+  caseNumber: z
+    .string()
+    .describe("The case number to generate KB article for"),
+  threadTs: z
+    .string()
+    .optional()
+    .describe("Optional thread timestamp to get conversation context from"),
+});
+
+const proposeContextUpdateInputSchema = z.object({
+  entityName: z
+    .string()
+    .min(2)
+    .describe("Business entity/client name that should be updated."),
+  caseNumber: z
+    .string()
+    .optional()
+    .describe("Case number associated with the discovered context gap."),
+  summary: z
+    .string()
+    .min(10)
+    .describe("Short summary describing what needs to change."),
+  details: z
+    .string()
+    .optional()
+    .describe("Optional additional detail or justification."),
+  cmdbIdentifier: z
+    .object({
+      ciName: z.string().optional(),
+      sysId: z.string().optional(),
+      ipAddresses: z.array(z.string()).optional(),
+      description: z.string().optional(),
+      ownerGroup: z.string().optional(),
+      documentation: z.array(z.string()).optional(),
+    })
+    .describe("CMDB identifier payload to append if approved."),
+  confidence: z
+    .enum(["LOW", "MEDIUM", "HIGH"])
+    .optional()
+    .describe("Assistant confidence in this proposed update."),
+  entityTypeIfCreate: z
+    .enum(["CLIENT", "VENDOR", "PLATFORM"])
+    .optional()
+    .describe("If the entity does not exist, what type should be created."),
+});
+
+const fetchCurrentIssuesInputSchema = z.object({
+  channelId: z
+    .string()
+    .optional()
+    .describe("Slack channel ID where the question originated."),
+  channelNameHint: z
+    .string()
+    .optional()
+    .describe("Optional channel name hint if the ID is not available."),
+});
+
+const microsoftLearnSearchInputSchema = z.object({
+  query: z
+    .string()
+    .min(3)
+    .describe("Microsoft Learn documentation search query"),
+  limit: z
+    .number()
+    .min(1)
+    .max(5)
+    .optional()
+    .describe("Maximum number of results to return (default: 3)"),
+});
+
+const triageCaseInputSchema = z.object({
+  caseNumber: z
+    .string()
+    .describe("The ServiceNow case number to triage and classify (e.g., 'SCS0001234', 'CS0048851')"),
+});
+
+const createTool = tool as unknown as (options: any) => any;
+
+const azureSearchService = createAzureSearchService();
+
+export interface AgentToolFactoryParams {
+  messages: CoreMessage[];
+  caseNumbers: string[];
+  updateStatus?: UpdateStatusFn;
+  options?: GenerateResponseOptions;
+}
+
+export function createLegacyAgentTools(params: AgentToolFactoryParams) {
+  const { caseNumbers, updateStatus, options } = params;
+
+  const createTools = () => {
+    const getWeatherTool = createTool({
+      description: "Get the current weather at a location",
+      inputSchema: weatherInputSchema,
+      execute: async ({ latitude, longitude, city }: WeatherToolInput) => {
+        updateStatus?.(`is getting weather for ${city}...`);
+
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode,relativehumidity_2m&timezone=auto`,
+        );
+
+        const weatherData = await response.json() as any;
+        return {
+          temperature: weatherData.current.temperature_2m,
+          weatherCode: weatherData.current.weathercode,
+          humidity: weatherData.current.relativehumidity_2m,
+          city,
+        };
+      },
+    });
+
+    const searchWebTool = createTool({
+      description: "Use this to search the web for information",
+      inputSchema: searchWebInputSchema,
+      execute: async ({ query, specificDomain }: SearchWebToolInput) => {
+        updateStatus?.(`is searching the web for ${query}...`);
+        const exaClient = exa;
+
+        if (!exaClient) {
+          return { results: [] };
+        }
+
+        const { results } = await exaClient.searchAndContents(query, {
+          livecrawl: "always",
+          numResults: 3,
+          includeDomains: specificDomain ? [specificDomain] : undefined,
+        });
+
+        return {
+          results: results.map((result) => ({
+            title: result.title,
+            url: result.url,
+            snippet: result.text.slice(0, 1000),
+          })),
+        };
+      },
+    });
+
+    const serviceNowTool = createTool({
+      description:
+        "Read data from ServiceNow (incidents, cases, case search with filters, knowledge base, recent journal entries, and configuration items). " +
+        "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
+        "Use 'getCase' action only when you have a specific case number.",
+      inputSchema: serviceNowInputSchema,
+      execute: async ({
+        action,
+        number,
+        caseSysId,
+        query,
+        limit,
+        ciName,
+        ipAddress,
+        ciSysId,
+        accountName,
+        companyName,
+        priority,
+        state,
+        assignmentGroup,
+        assignedTo,
+        openedAfter,
+        openedBefore,
+        activeOnly,
+        sortBy,
+        sortOrder,
+      }: ServiceNowToolInput) => {
+        if (!serviceNowClient.isConfigured()) {
+          return {
+            error:
+              "ServiceNow integration is not configured. Set SERVICENOW_INSTANCE_URL and credentials to enable this tool.",
+          };
+        }
+
+        try {
+          if (action === "getIncident") {
+            if (!number) {
+              throw new Error(
+                "number is required to retrieve a ServiceNow incident.",
+              );
+            }
+
+            updateStatus?.(`is looking up incident ${number} in ServiceNow...`);
+
+            const incident = await serviceNowClient.getIncident(number);
+            if (!incident) {
+              console.log(`[ServiceNow] Incident ${number} not found, trying case table...`);
+              updateStatus?.(`is looking up ${number} in case table...`);
+
+              const caseRecord = await serviceNowClient.getCase(number);
+              if (caseRecord) {
+                console.log(`[ServiceNow] Found ${number} in case table (fallback from incident)`);
+                return { case: caseRecord };
+              }
+
+              return {
+                incident: null,
+                message: `Incident ${number} was not found in ServiceNow. This case number may be incorrect or the incident may not exist in the system.`,
+              };
+            }
+
+            return { incident };
+          }
+
+          if (action === "getCase") {
+            if (!number) {
+              throw new Error(
+                "number is required to retrieve a ServiceNow case.",
+              );
+            }
+
+            updateStatus?.(`is looking up case ${number} in ServiceNow...`);
+
+            const caseRecord = await serviceNowClient.getCase(number);
+
+            if (!caseRecord) {
+              console.log(`[ServiceNow] Case ${number} not found, trying incident table...`);
+              updateStatus?.(`is looking up ${number} in incident table...`);
+
+              const incident = await serviceNowClient.getIncident(number);
+              if (incident) {
+                console.log(`[ServiceNow] Found ${number} in incident table (fallback from case)`);
+                return { incident };
+              }
+
+              return {
+                case: null,
+                message: `Case ${number} was not found in ServiceNow. This case number may be incorrect or the case may not exist in the system.`,
+              };
+            }
+
+            return { case: caseRecord };
+          }
+
+          if (action === "getCaseJournal") {
+            if (!caseSysId && !number) {
+              throw new Error(
+                "Provide either caseSysId or number to retrieve journal entries.",
+              );
+            }
+
+            let sysId = caseSysId ?? null;
+
+            if (!sysId && number) {
+              const caseRecord = await serviceNowClient.getCase(number);
+              sysId = caseRecord?.sys_id ?? null;
+
+              if (!sysId) {
+                return {
+                  entries: [],
+                  message: `Case ${number} was not found in ServiceNow or does not have a sys_id accessible to the assistant.`,
+                };
+              }
+            }
+
+            updateStatus?.(`is fetching journal entries for ${number ?? caseSysId}...`);
+
+            const journal = await serviceNowClient.getCaseJournal(sysId!, {
+              limit: limit ?? 20,
+            });
+
+            return {
+              entries: journal,
+              total: journal.length,
+            };
+          }
+
+          if (action === "searchKnowledge") {
+            if (!query) {
+              throw new Error(
+                "query is required to search knowledge base articles.",
+              );
+            }
+
+            updateStatus?.(`is searching knowledge base for ${query}...`);
+
+            const articles = await serviceNowClient.searchKnowledge(query, {
+              limit: limit ?? 10,
+            });
+
+            return {
+              articles,
+              total_found: articles.length,
+            };
+          }
+
+          if (action === "searchConfigurationItem") {
+            if (!ciName && !ipAddress && !ciSysId) {
+              throw new Error(
+                "Provide ciName, ipAddress, or ciSysId to search for a configuration item.",
+              );
+            }
+
+            updateStatus?.(`is searching configuration items...`);
+
+            const results = await serviceNowClient.searchConfigurationItems({
+              ciName,
+              ipAddress,
+              ciSysId,
+              limit: limit ?? 10,
+            });
+
+            return {
+              configuration_items: results,
+              total_found: results.length,
+            };
+          }
+
+          if (action === "searchCases") {
+            updateStatus?.(`is searching ServiceNow cases${companyName ? ` for ${companyName}` : ""}...`);
+
+            const filters = {
+              query,
+              limit,
+              ciName,
+              ipAddress,
+              accountName,
+              companyName,
+              priority,
+              state,
+              assignmentGroup,
+              assignedTo,
+              openedAfter,
+              openedBefore,
+              activeOnly,
+              sortBy,
+              sortOrder,
+            };
+
+            const results = await serviceNowClient.searchCases(filters);
+
+            return {
+              cases: results,
+              total_found: results.length,
+              applied_filters: filters,
+            };
+          }
+
+          return {
+            error: `Unsupported action: ${action}`,
+          };
+        } catch (error) {
+          console.error("[ServiceNow Tool] Error:", error);
+          return {
+            error:
+              error instanceof Error ? error.message : "ServiceNow operation failed",
+          };
+        }
+      },
+    });
+
+    const searchSimilarCasesTool = createTool({
+      description:
+        "Search Azure AI Search for similar cases. Use when the user is investigating a case or wants historical incidents.",
+      inputSchema: searchSimilarCasesInputSchema,
+      execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
+        const service = azureSearchService;
+
+        if (!service) {
+          return {
+            similar_cases: [],
+            message: "Azure Search is not configured.",
+          };
+        }
+
+        updateStatus?.(`is searching for similar cases to "${query}"...`);
+
+        try {
+          const results = await service.searchSimilarCases(query, {
+            topK: topK ?? 5,
+            clientId,
+          });
+
+          if (results.length === 0) {
+            return {
+              similar_cases: [],
+              message: "No similar cases found.",
+            };
+          }
+
+          return {
+            similar_cases: results.map((r) => ({
+              case_number: r.case_number,
+              similarity_score: r.score,
+              content_preview: r.content.substring(0, 300) + (r.content.length > 300 ? "..." : ""),
+              created_at: r.created_at,
+            })),
+            total_found: results.length,
+          };
+        } catch (error) {
+          console.error("[searchSimilarCases] Error:", error);
+          return {
+            similar_cases: [],
+            message: "No similar cases found.",
+          };
+        }
+      },
+    });
+
+    const generateKbArticleTool = createTool({
+      description:
+        "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
+      inputSchema: generateKbArticleInputSchema,
+      execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
+        try {
+          updateStatus?.(`is generating KB article for ${caseNumber}...`);
+
+          const contextManager = getContextManager();
+          const contexts = contextManager.getContextsForCase(caseNumber);
+
+          if (contexts.length === 0) {
+            return {
+              error: `No conversation context found for case ${caseNumber}. The case must have been discussed in a tracked thread first.`,
+            };
+          }
+
+          const context = threadTs
+            ? contexts.find((c) => c.threadTs === threadTs)
+            : contexts[contexts.length - 1];
+
+          if (!context) {
+            return {
+              error: `Context not found for the specified thread.`,
+            };
+          }
+
+          const caseDetails = serviceNowClient.isConfigured()
+            ? await serviceNowClient.getCase(caseNumber).catch(() => null)
+            : null;
+
+          const kbGenerator = getKBGenerator();
+          const result = await kbGenerator.generateArticle(context, caseDetails);
+
+          if (result.isDuplicate) {
+            return {
+              duplicate: true,
+              similar_kbs: result.similarExistingKBs,
+              message: `Similar KB articles already exist. Consider updating an existing article instead.`,
+            };
+          }
+
+          return {
+            success: true,
+            article: result.article,
+            confidence: result.confidence,
+            similar_kbs: result.similarExistingKBs,
+            message: `KB article generated with ${result.confidence}% confidence.`,
+          };
+        } catch (error) {
+          console.error("KB generation error", error);
+          return {
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to generate KB article",
+          };
+        }
+      },
+    });
+
+    const proposeContextUpdateTool = createTool({
+      description:
+        "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
+      inputSchema: proposeContextUpdateInputSchema,
+      execute: async ({
+        entityName,
+        caseNumber,
+        summary,
+        details,
+        cmdbIdentifier,
+        confidence,
+        entityTypeIfCreate,
+      }: ProposeContextUpdateInput) => {
+        const chosenCaseNumber = caseNumber ?? caseNumbers[0];
+        if (!chosenCaseNumber) {
+          return {
+            error:
+              "No case number available for the context update. Provide caseNumber in the tool invocation so the stewards can trace the source conversation.",
+          };
+        }
+
+        const contextManager = getContextManager();
+        const contexts = contextManager.getContextsForCase(chosenCaseNumber);
+
+        if (!contexts.length) {
+          return {
+            error: `Unable to locate conversation history for ${chosenCaseNumber}. Wait until the case is tracked before proposing updates.`,
+          };
+        }
+
+        const conversationContext = contexts[contexts.length - 1];
+        const sourceChannelId = conversationContext.channelId;
+        const sourceThreadTs = conversationContext.threadTs;
+
+        const businessService = getBusinessContextService();
+        const businessContext = await businessService.getContextForCompany(entityName);
+
+        if (!businessContext && !entityTypeIfCreate) {
+          return {
+            error:
+              `No business context exists for ${entityName}. Provide entityTypeIfCreate (CLIENT | VENDOR | PLATFORM) so a record can be bootstrapped when approved.`,
+          };
+        }
+
+        const identifierHasSignal =
+          Boolean(cmdbIdentifier.ciName) ||
+          Boolean(cmdbIdentifier.sysId) ||
+          Boolean(cmdbIdentifier.description) ||
+          (cmdbIdentifier.ipAddresses?.length ?? 0) > 0;
+
+        if (!identifierHasSignal) {
+          return {
+            error:
+              "Provide at least one of ciName, sysId, description, or ipAddresses for the CMDB identifier so stewards have something actionable.",
+          };
+        }
+
+        const normalizeIp = (value: string) => value.trim();
+        const dedupeIps = (ips: string[] | undefined) =>
+          Array.from(new Set((ips ?? []).map(normalizeIp))).filter(Boolean);
+
+        const stewardChannel = businessContext?.contextStewards?.find(
+          (steward) => steward.type === "channel" && steward.id
+        );
+
+        const stewardChannelId = stewardChannel?.id || sourceChannelId;
+
+        const formatStewardMention = (steward: {
+          type: "channel" | "user" | "usergroup";
+          id?: string;
+          name?: string;
+          notes?: string;
+        }): string => {
+          const label = steward.name || steward.id || steward.type;
+          let mention: string;
+          if (steward.type === "channel") {
+            mention = steward.id ? `<#${steward.id}${steward.name ? `|${steward.name}` : ""}>` : `#${label}`;
+          } else if (steward.type === "usergroup") {
+            mention = steward.id ? `<!subteam^${steward.id}${steward.name ? `|@${steward.name}` : ""}>` : `@${label}`;
+          } else {
+            mention = steward.id ? `<@${steward.id}>` : `@${label}`;
+          }
+          return steward.notes ? `${mention} (${steward.notes})` : mention;
+        };
+
+        const stewardMentions = (businessContext?.contextStewards ?? []).map(formatStewardMention);
+
+        if (!stewardMentions.length) {
+          stewardMentions.push("Context stewards not configured – please triage manually.");
+        }
+
+        const contextUpdateManager = getContextUpdateManager();
+        const actions: ContextUpdateAction[] = [
+          {
+            type: "append_cmdb_identifier",
+            identifier: {
+              ciName: cmdbIdentifier.ciName,
+              sysId: cmdbIdentifier.sysId,
+              ipAddresses: dedupeIps(cmdbIdentifier.ipAddresses),
+              description: cmdbIdentifier.description,
+              ownerGroup: cmdbIdentifier.ownerGroup,
+              documentation: cmdbIdentifier.documentation ?? [],
+            },
+            createEntityIfMissing: !businessContext,
+            entityTypeIfCreate,
+          },
+        ];
+
+        const proposal = await contextUpdateManager.postProposal({
+          entityName,
+          summary,
+          details,
+          actions,
+          stewardMentions,
+          stewardChannelId,
+          sourceChannelId,
+          sourceThreadTs,
+          initiatedBy: "PeterPool",
+          caseNumber: chosenCaseNumber,
+          confidence,
+        });
+
+        return {
+          status: "pending_approval",
+          messageTs: proposal.messageTs,
+          stewardChannelId,
+        };
+      },
+    });
+
+    const fetchCurrentIssuesTool = createTool({
+      description:
+        "Check ServiceNow and Slack for live issues affecting this customer.",
+      inputSchema: fetchCurrentIssuesInputSchema,
+      execute: async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
+        const effectiveChannelId = channelId ?? options?.channelId;
+
+        if (!effectiveChannelId) {
+          return {
+            error:
+              "channelId is required to fetch current issues. Provide it in the tool call or ensure the assistant has channel metadata.",
+          };
+        }
+
+        const currentIssuesService = getCurrentIssuesService();
+        const result = await currentIssuesService.getCurrentIssues(effectiveChannelId);
+
+        if (channelNameHint && !result.channelName) {
+          result.channelName = channelNameHint;
+        }
+
+        return {
+          result,
+        };
+      },
+    });
+
+    const microsoftLearnSearchTool = createTool({
+      description:
+        "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provide the query terms (including error codes/messages) and the tool will return curated Microsoft Learn articles with summaries and links.",
+      inputSchema: microsoftLearnSearchInputSchema,
+      execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
+        try {
+          updateStatus?.("is searching Microsoft Learn...");
+
+          const results = await microsoftLearnMCP.search({
+            query,
+            limit: limit ?? 3,
+          });
+
+          if (results.length === 0) {
+            return {
+              results: [],
+              message: `No Microsoft Learn documentation found for "${query}".`,
+            };
+          }
+
+          return {
+            results: results.map((r) => ({
+              title: r.title,
+              url: r.url,
+              content: r.content,
+            })),
+            total_found: results.length,
+          };
+        } catch (error) {
+          console.error("[Microsoft Learn MCP] Search error:", error);
+          return {
+            results: [],
+            message: "Error searching Microsoft Learn documentation.",
+          };
+        }
+      },
+    });
+
+    const triageCaseTool = createTool({
+      description:
+        "Triage and classify a ServiceNow case. Use this when a user explicitly asks to triage, classify, or analyze a case. This performs AI-powered classification including category/subcategory recommendations, technical entity extraction, similar case analysis, and KB article suggestions. Returns comprehensive classification results including confidence scores and immediate next steps.",
+      inputSchema: triageCaseInputSchema,
+      execute: async ({ caseNumber }: TriageCaseInput) => {
+        try {
+          updateStatus?.(`is triaging case ${caseNumber}...`);
+
+          if (!caseNumber || caseNumber.trim().length === 0) {
+            return {
+              error: "Case number is required for triage.",
+            };
+          }
+
+          if (!serviceNowClient.isConfigured()) {
+            return {
+              error: "ServiceNow integration is not configured. Cannot fetch case details for triage.",
+            };
+          }
+
+          const caseDetails = await serviceNowClient.getCase(caseNumber);
+
+          if (!caseDetails) {
+            return {
+              error: `Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`,
+            };
+          }
+
+          const caseTriageService = getCaseTriageService();
+
+          const triageResult = await caseTriageService.triageCase(
+            {
+              case_number: caseDetails.number,
+              sys_id: caseDetails.sys_id,
+              short_description: caseDetails.short_description || "",
+              description: caseDetails.description,
+              priority: caseDetails.priority,
+              urgency: caseDetails.priority,
+              state: caseDetails.state,
+              category: caseDetails.category,
+              subcategory: caseDetails.subcategory,
+              assignment_group: caseDetails.assignment_group,
+              assignment_group_sys_id: caseDetails.assignment_group,
+              assigned_to: caseDetails.assigned_to,
+              caller_id: caseDetails.caller_id,
+              company: caseDetails.caller_id,
+              account_id: undefined,
+            },
+            {
+              enableCaching: true,
+              enableSimilarCases: true,
+              enableKBArticles: true,
+              enableBusinessContext: true,
+              enableWorkflowRouting: true,
+              writeToServiceNow: false,
+            }
+          );
+
+          const classification = triageResult.classification;
+          const confidencePercent = Math.round((classification.confidence_score || 0) * 100);
+
+          return {
+            success: true,
+            case_number: triageResult.caseNumber,
+            classification: {
+              category: classification.category,
+              subcategory: classification.subcategory,
+              confidence: `${confidencePercent}%`,
+              urgency_level: classification.urgency_level,
+              quick_summary: classification.quick_summary,
+              reasoning: classification.reasoning,
+              immediate_next_steps: classification.immediate_next_steps,
+              technical_entities: classification.technical_entities,
+              keywords: (classification as any).keywords || [],
+            },
+            similar_cases_found: triageResult.similarCases?.length || 0,
+            similar_cases: triageResult.similarCases?.slice(0, 3).map(sc => ({
+              case_number: sc.case_number,
+              similarity: `${Math.round(sc.similarity_score * 100)}%`,
+              summary: sc.short_description?.substring(0, 100),
+            })),
+            kb_articles_found: triageResult.kbArticles?.length || 0,
+            kb_articles: triageResult.kbArticles?.slice(0, 3).map(kb => ({
+              number: kb.kb_number,
+              title: kb.title?.substring(0, 100),
+              relevance: `${Math.round(kb.similarity_score * 10)}%`,
+            })),
+            processing_time_ms: triageResult.processingTimeMs,
+            cached: triageResult.cached,
+            record_type_suggestion: triageResult.recordTypeSuggestion,
+            message: `Case ${triageResult.caseNumber} triaged successfully. Suggested category: ${classification.category}${classification.subcategory ? ` > ${classification.subcategory}` : ''} (${confidencePercent}% confidence).`,
+          };
+        } catch (error) {
+          console.error("[Triage Case Tool] Error:", error);
+          return {
+            error: error instanceof Error
+              ? error.message
+              : "Failed to triage case. Please try again or contact support.",
+          };
+        }
+      },
+    });
+
+    return {
+      getWeather: getWeatherTool,
+      searchWeb: searchWebTool,
+      serviceNow: serviceNowTool,
+      searchSimilarCases: searchSimilarCasesTool,
+      generateKBArticle: generateKbArticleTool,
+      proposeContextUpdate: proposeContextUpdateTool,
+      fetchCurrentIssues: fetchCurrentIssuesTool,
+      microsoftLearnSearch: microsoftLearnSearchTool,
+      triageCase: triageCaseTool,
+    };
+  };
+
+  // createTools keeps previous semantics by instantiating on demand
+  return createTools();
+}

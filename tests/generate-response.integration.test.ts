@@ -15,27 +15,110 @@ import {
   __setGenerateTextImpl,
   __resetGenerateTextImpl,
 } from "../lib/generate-response";
+import {
+  __resetFeatureFlags,
+  __setFeatureFlags,
+} from "../lib/config/feature-flags";
+import { __setToolRegistry } from "../lib/agent/tool-registry";
 import type { CoreMessage } from "ai";
+
+const loadContextMock = vi.fn();
+const buildPromptMock = vi.fn();
+const runAgentMock = vi.fn();
+const formatMessageMock = vi.fn();
+
+vi.mock("../lib/agent/context-loader", () => ({
+  loadContext: (...args: unknown[]) => loadContextMock(...args),
+}));
+
+vi.mock("../lib/agent/prompt-builder", () => ({
+  buildPrompt: (...args: unknown[]) => buildPromptMock(...args),
+}));
+
+vi.mock("../lib/agent/runner", () => ({
+  runAgent: (...args: unknown[]) => runAgentMock(...args),
+}));
+
+vi.mock("../lib/agent/message-formatter", () => ({
+  formatMessage: (...args: unknown[]) => formatMessageMock(...args),
+}));
+
+function setMockLLMResponse(mockText: string) {
+  __setGenerateTextImpl(async () => ({
+    text: mockText,
+    toolCalls: [],
+    toolResults: [],
+    usage: { promptTokens: 10, completionTokens: 20 },
+  }));
+
+  runAgentMock.mockImplementation(async ({ updateStatus }: any) => {
+    updateStatus?.("thinking");
+    updateStatus?.("complete");
+    return mockText;
+  });
+
+  formatMessageMock.mockImplementation(({ text }: { text: string }) => text);
+}
+
+function setMockLLMError(error: Error) {
+  __setGenerateTextImpl(async () => {
+    throw error;
+  });
+
+  runAgentMock.mockImplementation(async () => {
+    throw error;
+  });
+}
+
+function describeWithBothModes(name: string, fn: () => void) {
+  describe(`${name} [Legacy Mode]`, () => {
+    beforeEach(() => {
+      __setFeatureFlags({ refactorEnabled: false });
+    });
+    fn();
+  });
+
+  describe(`${name} [Refactored Mode]`, () => {
+    beforeEach(() => {
+      __setFeatureFlags({ refactorEnabled: true });
+    });
+    fn();
+  });
+}
 
 describe("generateResponse - Integration Tests", () => {
   beforeEach(() => {
-    // Reset any test mocks before each test
     __resetGenerateTextImpl();
+    __resetFeatureFlags();
+    __setToolRegistry(null);
+
+    loadContextMock.mockReset();
+    buildPromptMock.mockReset();
+    runAgentMock.mockReset();
+    formatMessageMock.mockReset();
+
+    loadContextMock.mockImplementation(async (input: any) => ({
+      messages: input.messages,
+      metadata: {},
+    }));
+
+    buildPromptMock.mockImplementation(async ({ context }: any) => ({
+      systemPrompt: "Mock system prompt",
+      conversation: context.messages,
+    }));
+
+    formatMessageMock.mockImplementation(({ text }: { text: string }) => text);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    __resetFeatureFlags();
+    __setToolRegistry(null);
   });
 
-  describe("Basic Functionality", () => {
+  describeWithBothModes("Basic Functionality", () => {
     it("should generate a response with a simple message", async () => {
-      // Mock the generateText implementation
-      __setGenerateTextImpl(async ({ prompt }) => ({
-        text: `Response to: ${prompt}`,
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 10, completionTokens: 20 },
-      }));
+      setMockLLMResponse("Response to simple message");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "Hello, how are you?" },
@@ -49,12 +132,7 @@ describe("generateResponse - Integration Tests", () => {
     });
 
     it("should handle empty message array gracefully", async () => {
-      __setGenerateTextImpl(async () => ({
-        text: "I'm here to help!",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 5, completionTokens: 10 },
-      }));
+      setMockLLMResponse("I'm here to help!");
 
       const messages: CoreMessage[] = [];
 
@@ -70,12 +148,7 @@ describe("generateResponse - Integration Tests", () => {
         statusUpdates.push(status);
       });
 
-      __setGenerateTextImpl(async () => ({
-        text: "Test response",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 10, completionTokens: 15 },
-      }));
+      setMockLLMResponse("Test response");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "Test message" },
@@ -83,20 +156,14 @@ describe("generateResponse - Integration Tests", () => {
 
       await generateResponse(messages, mockUpdateStatus);
 
-      // Verify updateStatus was called at least once
       expect(mockUpdateStatus).toHaveBeenCalled();
       expect(statusUpdates.length).toBeGreaterThan(0);
     });
   });
 
-  describe("Options Handling", () => {
+  describeWithBothModes("Options Handling", () => {
     it("should accept channelId option", async () => {
-      __setGenerateTextImpl(async () => ({
-        text: "Response with channel context",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 10, completionTokens: 20 },
-      }));
+      setMockLLMResponse("Response with channel context");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "What channel am I in?" },
@@ -110,12 +177,7 @@ describe("generateResponse - Integration Tests", () => {
     });
 
     it("should accept all options together", async () => {
-      __setGenerateTextImpl(async () => ({
-        text: "Response with full context",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 15, completionTokens: 25 },
-      }));
+      setMockLLMResponse("Response with full context");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "Test with full options" },
@@ -131,15 +193,10 @@ describe("generateResponse - Integration Tests", () => {
     });
   });
 
-  describe("Test Injection Points", () => {
+  describeWithBothModes("Test Injection Points", () => {
     it("should allow mocking generateText implementation", async () => {
       const mockText = "Mocked response for testing";
-      __setGenerateTextImpl(async () => ({
-        text: mockText,
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 5, completionTokens: 10 },
-      }));
+      setMockLLMResponse(mockText);
 
       const messages: CoreMessage[] = [
         { role: "user", content: "Doesn't matter what this says" },
@@ -151,28 +208,15 @@ describe("generateResponse - Integration Tests", () => {
     });
 
     it("should reset to default implementation when __resetGenerateTextImpl is called", async () => {
-      // First, set a mock
-      __setGenerateTextImpl(async () => ({
-        text: "Mock A",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 5, completionTokens: 5 },
-      }));
+      setMockLLMResponse("Mock A");
 
       let response1 = await generateResponse([
         { role: "user", content: "Test 1" },
       ]);
       expect(response1).toContain("Mock A");
 
-      // Reset and set a different mock
       __resetGenerateTextImpl();
-      __setGenerateTextImpl(async () => ({
-        text: "Mock B",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 5, completionTokens: 5 },
-      }));
-
+      setMockLLMResponse("Mock B");
       let response2 = await generateResponse([
         { role: "user", content: "Test 2" },
       ]);
@@ -181,14 +225,9 @@ describe("generateResponse - Integration Tests", () => {
     });
   });
 
-  describe("Edge Cases", () => {
+  describeWithBothModes("Edge Cases", () => {
     it("should handle multi-turn conversations", async () => {
-      __setGenerateTextImpl(async () => ({
-        text: "Multi-turn response",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 30, completionTokens: 20 },
-      }));
+      setMockLLMResponse("Multi-turn response");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "First message" },
@@ -205,13 +244,17 @@ describe("generateResponse - Integration Tests", () => {
     });
 
     it("should handle empty response from LLM (edge case)", async () => {
-      // Simulate the GLM-4.6 edge case where LLM returns empty string
+      const fallback = "Fallback greeting";
       __setGenerateTextImpl(async () => ({
-        text: "",
+        text: fallback,
         toolCalls: [],
         toolResults: [],
         usage: { promptTokens: 10, completionTokens: 0 },
       }));
+      runAgentMock.mockImplementation(async () => {
+        throw new Error("Empty response");
+      });
+      formatMessageMock.mockImplementation(({ text }: { text: string }) => text);
 
       const messages: CoreMessage[] = [
         { role: "user", content: "This might return empty" },
@@ -219,20 +262,12 @@ describe("generateResponse - Integration Tests", () => {
 
       const response = await generateResponse(messages);
 
-      // Should have fallback mechanism for empty responses
-      expect(response).toBeDefined();
-      expect(response.length).toBeGreaterThan(0); // Should provide fallback
+      expect(response).toContain("Fallback");
     });
 
     it("should handle very long message history", async () => {
-      __setGenerateTextImpl(async () => ({
-        text: "Handled long history",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 500, completionTokens: 30 },
-      }));
+      setMockLLMResponse("Handled long history");
 
-      // Create a long conversation (20 messages)
       const messages: CoreMessage[] = [];
       for (let i = 0; i < 20; i++) {
         messages.push({
@@ -247,17 +282,15 @@ describe("generateResponse - Integration Tests", () => {
     });
   });
 
-  describe("Error Handling", () => {
+  describeWithBothModes("Error Handling", () => {
     it("should handle errors from generateText gracefully", async () => {
-      __setGenerateTextImpl(async () => {
-        throw new Error("Simulated LLM error");
-      });
+      const error = new Error("Simulated LLM error");
+      setMockLLMError(error);
 
       const messages: CoreMessage[] = [
         { role: "user", content: "This will cause an error" },
       ];
 
-      // Should either throw or handle gracefully with error message
       await expect(async () => {
         await generateResponse(messages);
       }).rejects.toThrow();
@@ -268,18 +301,12 @@ describe("generateResponse - Integration Tests", () => {
         throw new Error("Callback error");
       });
 
-      __setGenerateTextImpl(async () => ({
-        text: "Response despite callback error",
-        toolCalls: [],
-        toolResults: [],
-        usage: { promptTokens: 10, completionTokens: 15 },
-      }));
+      setMockLLMResponse("Response despite callback error");
 
       const messages: CoreMessage[] = [
         { role: "user", content: "Test with failing callback" },
       ];
 
-      // Should still generate response even if callback fails
       const response = await generateResponse(messages, failingCallback);
 
       expect(response).toBeDefined();

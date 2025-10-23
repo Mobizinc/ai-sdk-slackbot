@@ -1,5 +1,5 @@
 import { WebClient } from '@slack/web-api';
-import { CoreMessage } from 'ai'
+import type { CoreMessage } from './instrumented-ai'
 import crypto from 'crypto'
 
 const signingSecret = process.env.SLACK_SIGNING_SECRET!

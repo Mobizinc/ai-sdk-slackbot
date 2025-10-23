@@ -3,13 +3,13 @@
  * Generates structured KB articles from case conversations with AI assistance
  */
 
-import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
-import { modelProvider } from "../model-provider";
 import { config } from "../config";
+import { getFeatureFlags } from "../config/feature-flags";
+import { AnthropicChatService } from "./anthropic-chat";
 
 export interface KBArticle {
   title: string;
@@ -55,14 +55,29 @@ const KBArticleSchema = z.object({
   conversationSummary: z.string().optional(),
 }) as z.ZodTypeAny;
 
-const createTool = tool as unknown as (options: any) => any;
-
-const kbArticleTool = createTool({
-  description:
-    "Return the fully structured knowledge base article as your final output. Call this exactly once.",
-  inputSchema: KBArticleSchema as z.ZodTypeAny,
-  execute: async (article: KBArticlePayload) => article,
-});
+const KB_ARTICLE_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", minLength: 10, maxLength: 120 },
+    problem: { type: "string", minLength: 10 },
+    environment: { type: "string", minLength: 5 },
+    solution: { type: "string", minLength: 10 },
+    rootCause: { type: "string", minLength: 5 },
+    relatedCases: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 10,
+    },
+    tags: {
+      type: "array",
+      items: { type: "string", minLength: 2 },
+      maxItems: 10,
+    },
+    conversationSummary: { type: "string" },
+  },
+  required: ["title", "problem", "environment", "solution", "relatedCases", "tags"],
+  additionalProperties: false,
+};
 
 export class KBGenerator {
   private azureSearch = createAzureSearchService();
@@ -143,6 +158,7 @@ export class KBGenerator {
     caseDetails: any,
     similarKBs: any[]
   ): Promise<KBArticle> {
+    const flags = getFeatureFlags();
     const conversationSummary = context.messages
       .map((m) => `${m.user}: ${m.text}`)
       .join("\n");
@@ -175,46 +191,75 @@ When you have finished analysing the conversation, call the \`draft_kb_article\`
 
 Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
 
-    try {
-      // Enhance prompt with business context
-      const businessContextService = getBusinessContextService();
-      const enhancedPrompt = await businessContextService.enhancePromptWithContext(
-        basePrompt,
-        context.channelName,
-        (context as any).channelTopic,
-        (context as any).channelPurpose
-      );
+    const businessContextService = getBusinessContextService();
+    const enhancedPrompt = await businessContextService.enhancePromptWithContext(
+      basePrompt,
+      context.channelName,
+      (context as any).channelTopic,
+      (context as any).channelPurpose
+    );
 
-      const result = await generateText({
-        model: modelProvider.languageModel("kb-generator"),
-        system:
-          "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
-        prompt: enhancedPrompt,
-        tools: {
-          draft_kb_article: kbArticleTool,
+    if (flags.refactorEnabled) {
+      return await this.generateWithAnthropic(enhancedPrompt, conversationSummary);
+    }
+
+    // Refactor not enabled - throw error (fallback to createFallbackArticle in catch)
+    throw new Error("AnthropicChatService not available - refactor flag disabled");
+  }
+
+  private async generateWithAnthropic(
+    enhancedPrompt: string,
+    conversationSummary: string,
+  ): Promise<KBArticle> {
+    const chatService = AnthropicChatService.getInstance();
+
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
         },
-        toolChoice: { type: "tool", toolName: "draft_kb_article" },
-      });
+        {
+          role: "user",
+          content: enhancedPrompt,
+        },
+      ],
+      tools: [
+        {
+          name: "draft_kb_article",
+          description:
+            "Return the fully structured knowledge base article as your final output. Call this exactly once.",
+          inputSchema: KB_ARTICLE_JSON_SCHEMA,
+        },
+      ],
+      maxSteps: 3,
+    });
 
-      const toolResult = result.toolResults[0];
-
-      if (!toolResult || toolResult.type !== "tool-result") {
-        throw new Error("Model did not return structured KB article data");
-      }
-
-      const parsed = KBArticleSchema.parse(toolResult.output) as KBArticlePayload;
-
+    if (response.toolCalls.length > 0) {
+      const firstCall = response.toolCalls[0];
+      const parsed = KBArticleSchema.parse(firstCall.input) as KBArticlePayload;
       return {
         ...parsed,
         conversationSummary: parsed.conversationSummary ?? conversationSummary,
       };
-    } catch (error) {
-      console.error("Error generating KB with LLM:", error);
-
-      // Fallback: Create basic article from conversation
-      return this.createFallbackArticle(context, caseDetails);
     }
+
+    if (response.outputText) {
+      try {
+        const parsed = KBArticleSchema.parse(JSON.parse(response.outputText)) as KBArticlePayload;
+        return {
+          ...parsed,
+          conversationSummary: parsed.conversationSummary ?? conversationSummary,
+        };
+      } catch (error) {
+        console.warn("Failed to parse Anthropic text output as KB article:", error);
+      }
+    }
+
+    throw new Error("Anthropic response did not include KB article tool call or parsable output.");
   }
+
 
   /**
    * Fallback KB article if LLM fails

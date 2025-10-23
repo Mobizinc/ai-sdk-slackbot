@@ -12,7 +12,7 @@
  */
 
 import { WebClient } from '@slack/web-api';
-import type { CoreMessage } from 'ai';
+import type { CoreMessage } from '../instrumented-ai';
 
 export interface PostMessageOptions {
   channel: string;

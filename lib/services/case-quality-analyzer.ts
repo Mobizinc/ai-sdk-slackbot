@@ -3,10 +3,10 @@
  * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
-import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
-import { modelProvider } from "../model-provider";
+import { getFeatureFlags } from "../config/feature-flags";
+import { AnthropicChatService } from "./anthropic-chat";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
 
@@ -41,14 +41,32 @@ const QualityAssessmentSchema = z.object({
   reasoning: z.string().max(120),
 }) as z.ZodTypeAny;
 
-const createTool = tool as unknown as (options: any) => any;
-
-const qualityAssessmentTool = createTool({
-  description:
-    "Return your quality assessment for the case as structured data. You must call this exactly once.",
-  inputSchema: QualityAssessmentSchema as z.ZodTypeAny,
-  execute: async (payload: QualityAssessmentPayload) => payload,
-});
+const QUALITY_ASSESSMENT_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    score: { type: "integer", minimum: 0, maximum: 100 },
+    problemClarity: { type: "string", enum: ["clear", "vague", "missing"] },
+    solutionClarity: { type: "string", enum: ["clear", "vague", "missing"] },
+    stepsDocumented: { type: "boolean" },
+    rootCauseIdentified: { type: "boolean" },
+    missingInfo: {
+      type: "array",
+      items: { type: "string", maxLength: 50 },
+      maxItems: 4,
+    },
+    reasoning: { type: "string", maxLength: 120 },
+  },
+  required: [
+    "score",
+    "problemClarity",
+    "solutionClarity",
+    "stepsDocumented",
+    "rootCauseIdentified",
+    "missingInfo",
+    "reasoning",
+  ],
+  additionalProperties: false,
+};
 
 /**
  * Assess the quality of case information for KB generation
@@ -57,6 +75,7 @@ export async function assessCaseQuality(
   context: CaseContext,
   caseDetails: any | null
 ): Promise<QualityAssessment> {
+  const flags = getFeatureFlags();
   // Build comprehensive context for analysis
   const conversationSummary = context.messages
     .map((msg) => `${msg.user}: ${msg.text}`)
@@ -74,50 +93,43 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    const result = await generateText({
-      model: modelProvider.languageModel("quality-analyzer"),
-      system:
-        "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
-      prompt: `**Case Information:**\n${caseInfoText}\n\n**Conversation History:**\n${conversationSummary}\n\nAnalyze this case using the criteria provided and call the tool with your findings.`,
-      tools: {
-        report_quality: qualityAssessmentTool,
-      },
-      toolChoice: { type: "tool", toolName: "report_quality" },
-    });
+    if (flags.refactorEnabled) {
+      const chatService = AnthropicChatService.getInstance();
+      const response = await chatService.send({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
+          },
+          {
+            role: "user",
+            content: `**Case Information:**\n${caseInfoText}\n\n**Conversation History:**\n${conversationSummary}\n\nAnalyze this case using the criteria provided and call the tool with your findings.`,
+          },
+        ],
+        tools: [
+          {
+            name: "report_quality",
+            description:
+              "Return your quality assessment for the case as structured data. You must call this exactly once.",
+            inputSchema: QUALITY_ASSESSMENT_JSON_SCHEMA,
+          },
+        ],
+        maxSteps: 3,
+      });
 
-    const toolResult = result.toolResults[0];
+      if (response.toolCalls.length === 0) {
+        throw new Error("Anthropic did not return a tool call for quality assessment");
+      }
 
-    if (!toolResult || toolResult.type !== "tool-result") {
-      throw new Error("Model did not return a structured quality assessment");
+      const firstCall = response.toolCalls[0];
+      const parsed = QualityAssessmentSchema.parse(firstCall.input) as QualityAssessmentPayload;
+
+      return buildAssessment(parsed);
     }
 
-    const parsed = QualityAssessmentSchema.parse(toolResult.output) as QualityAssessmentPayload;
-
-    // Determine decision based on score
-    let decision: QualityDecision;
-    if (parsed.score >= 80) {
-      decision = "high_quality";
-    } else if (parsed.score >= 50) {
-      decision = "needs_input";
-    } else {
-      decision = "insufficient";
-    }
-
-    const assessment: QualityAssessment = {
-      decision,
-      score: parsed.score,
-      problemClarity: parsed.problemClarity,
-      solutionClarity: parsed.solutionClarity,
-      stepsDocumented: parsed.stepsDocumented,
-      rootCauseIdentified: parsed.rootCauseIdentified,
-      missingInfo: parsed.missingInfo ?? [],
-      reasoning: parsed.reasoning,
-    };
-
-    console.log(`[Quality Analyzer] Assessment: ${decision} (score: ${assessment.score})`);
-    console.log(`[Quality Analyzer] Missing: ${assessment.missingInfo.join(", ")}`);
-
-    return assessment;
+    // Refactor not enabled - throw error
+    throw new Error("AnthropicChatService not available - refactor flag disabled");
   } catch (error) {
     console.error("[Quality Analyzer] Error assessing quality:", error);
 
@@ -133,6 +145,28 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
       reasoning: "Error during quality assessment, defaulting to needs_input",
     };
   }
+}
+
+function buildAssessment(parsed: QualityAssessmentPayload): QualityAssessment {
+  let decision: QualityDecision;
+  if (parsed.score >= 80) {
+    decision = "high_quality";
+  } else if (parsed.score >= 50) {
+    decision = "needs_input";
+  } else {
+    decision = "insufficient";
+  }
+
+  return {
+    decision,
+    score: parsed.score,
+    problemClarity: parsed.problemClarity,
+    solutionClarity: parsed.solutionClarity,
+    stepsDocumented: parsed.stepsDocumented,
+    rootCauseIdentified: parsed.rootCauseIdentified,
+    missingInfo: parsed.missingInfo ?? [],
+    reasoning: parsed.reasoning,
+  };
 }
 
 // Singleton

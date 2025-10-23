@@ -1,9 +1,18 @@
 /**
  * Passive message handler for detecting case numbers in Slack channels.
  * Monitors all messages (without @mentions) and tracks case-related conversations.
+ *
+ * This file now supports feature flag control for gradual rollout of the refactored implementation.
+ * Set REFACTOR_PASSIVE_ENABLED=true to use the new modular architecture.
  */
 
 import type { GenericMessageEvent } from "./slack-event-types";
+import { getFeatureFlags } from "./config/feature-flags";
+
+// Lazy imports for refactored modules (only loaded when feature flag is enabled)
+let refactoredModule: typeof import("./passive") | null = null;
+
+// Original implementation imports
 import { client } from "./slack-utils";
 import { getContextManager, type CaseContext } from "./context-manager";
 import { serviceNowClient } from "./tools/servicenow";
@@ -29,7 +38,31 @@ import type {
   ServiceNowCaseResult,
 } from "./tools/servicenow";
 
+/**
+ * Main entry point - uses feature flag to determine implementation
+ */
 export async function handlePassiveMessage(
+  event: GenericMessageEvent,
+  botUserId: string
+): Promise<void> {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
+    }
+    return refactoredModule.handlePassiveMessage(event, botUserId);
+  }
+
+  // Use original implementation
+  return handlePassiveMessageOriginal(event, botUserId);
+}
+
+/**
+ * Original implementation (preserved for backward compatibility)
+ */
+async function handlePassiveMessageOriginal(
   event: GenericMessageEvent,
   botUserId: string
 ): Promise<void> {
@@ -334,6 +367,28 @@ export async function notifyResolution(
   channelId: string,
   threadTs: string
 ): Promise<void> {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
+    }
+    return refactoredModule.notifyResolution(caseNumber, channelId, threadTs);
+  }
+
+  // Use original implementation
+  return notifyResolutionOriginal(caseNumber, channelId, threadTs);
+}
+
+/**
+ * Original notifyResolution implementation
+ */
+async function notifyResolutionOriginal(
+  caseNumber: string,
+  channelId: string,
+  threadTs: string
+): Promise<void> {
   console.log(`[KB Generation] Starting multi-stage process for ${caseNumber}`);
 
   const contextManager = getContextManager();
@@ -564,6 +619,24 @@ async function buildKBApprovalMessage(
  * Check for and handle timed-out KB gathering sessions
  */
 export async function cleanupTimedOutGathering(): Promise<void> {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
+    }
+    return refactoredModule.cleanupTimedOutGathering();
+  }
+
+  // Use original implementation
+  return cleanupTimedOutGatheringOriginal();
+}
+
+/**
+ * Original cleanupTimedOutGathering implementation
+ */
+async function cleanupTimedOutGatheringOriginal(): Promise<void> {
   const stateMachine = getKBStateMachine();
 
   // Get all contexts in GATHERING state
@@ -603,6 +676,19 @@ export async function cleanupTimedOutGathering(): Promise<void> {
  * Extract case numbers from text (exported for testing)
  */
 export function extractCaseNumbers(text: string): string[] {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      // For synchronous function, we need to use the detector directly
+      const { extractCaseNumbers: extract } = require("./passive/detectors/case-number-extractor");
+      return extract(text);
+    }
+    return refactoredModule.extractCaseNumbers(text);
+  }
+
+  // Use original implementation
   const contextManager = getContextManager();
   return contextManager.extractCaseNumbers(text);
 }

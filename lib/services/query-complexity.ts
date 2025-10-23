@@ -3,7 +3,7 @@
  * Routes simple queries to cheaper models, complex queries to premium models.
  */
 
-import type { CoreMessage } from "ai";
+import type { CoreMessage } from "../instrumented-ai";
 
 export type ComplexityLevel = "simple" | "complex";
 
