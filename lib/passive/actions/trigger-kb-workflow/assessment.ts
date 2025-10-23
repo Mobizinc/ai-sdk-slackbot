@@ -1,7 +1,7 @@
 
-import type { CaseContext } from "../../../../context-manager";
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
-import { getCaseQualityAnalyzer } from "../../../../services/case-quality-analyzer";
+import type { CaseContext } from "../../../context-manager";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
+import { getCaseQualityAnalyzer } from "../../../services/case-quality-analyzer";
 import type { TriggerKBWorkflowDeps } from "./deps";
 import { generateAndPostKB } from "./generation";
 import { startInteractiveGathering, requestCaseNotes } from "./gathering";

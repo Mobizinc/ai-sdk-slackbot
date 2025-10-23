@@ -12,6 +12,9 @@ import { extractCaseNumbers } from './detectors/case-number-extractor';
 import { getTriggerKBWorkflowAction } from './actions/trigger-kb-workflow';
 import { shouldSkipMessage, processCaseDetection, processExistingThread } from './handler-utils';
 
+// Re-export for index.ts
+export { extractCaseNumbers };
+
 /**
  * Main entry point for passive message handling
  * Matches original handlePassiveMessage signature

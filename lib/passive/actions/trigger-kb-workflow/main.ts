@@ -1,4 +1,4 @@
-import type { CaseContext } from "../../context-manager";
+import type { CaseContext } from "../../../context-manager";
 import type { TriggerKBWorkflowDeps } from "./deps";
 import { triggerWorkflow as triggerWorkflowStage } from "./start";
 import { handleUserResponse as handleUserResponseStage } from "./gathering-response";

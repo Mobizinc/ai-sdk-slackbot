@@ -63,7 +63,7 @@ export class AnthropicChatService {
   async send(request: ChatRequest): Promise<ChatResponse> {
     const params = this.toMessageParams(request);
 
-    const result = await this.client.messages.create(params);
+    const result = await this.client.messages.create(params) as Message;
 
     const toolCalls = (
       result.content.filter(
@@ -133,14 +133,14 @@ export class AnthropicChatService {
     const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => ({
       type: "tool_result",
       tool_use_id: result.toolUseId,
-      content: result.output,
+      content: String(result.output),
     }));
 
     const params: MessageCreateParams = {
       model,
       messages: conversation,
       temperature: request.temperature ?? 0.0,
-      max_output_tokens: 4096,
+      max_tokens: 4096,
       system: systemSegments.length > 0 ? systemSegments.join("\n\n") : undefined,
     };
 

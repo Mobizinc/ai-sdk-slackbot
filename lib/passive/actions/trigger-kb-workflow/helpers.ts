@@ -1,7 +1,7 @@
-import type { CaseContext } from "../../../../context-manager";
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
-import { generateResolutionSummary } from "../../../../services/case-resolution-summary";
-import { config } from "../../../../config";
+import type { CaseContext } from "../../../context-manager";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
+import { generateResolutionSummary } from "../../../services/case-resolution-summary";
+import { config } from "../../../config";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function fetchCaseData(

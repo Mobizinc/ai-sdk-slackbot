@@ -8,7 +8,7 @@
  */
 
 import type { GenericMessageEvent } from '../../slack-event-types';
-import type { ContextManager } from '../../context-manager';
+import type { ContextManager, CaseContext } from '../../context-manager';
 
 export interface AddToContextDeps {
   contextManager: ContextManager;
@@ -168,11 +168,11 @@ export class AddToContextAction {
    * Find all contexts for a thread
    * Used when processing messages in existing threads
    */
-  findContextsForThread(channelId: string, threadTs: string) {
+  findContextsForThread(channelId: string, threadTs: string): CaseContext[] {
     // Access private field (preserving original pattern)
     const allContexts = Array.from(
       (this.deps.contextManager as any).contexts.values()
-    );
+    ) as CaseContext[];
 
     return allContexts.filter(
       (ctx) => ctx.threadTs === threadTs && ctx.channelId === channelId

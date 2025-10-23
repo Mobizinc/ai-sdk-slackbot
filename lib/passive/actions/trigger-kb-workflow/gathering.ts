@@ -1,12 +1,12 @@
 
-import type { CaseContext } from "../../../../context-manager";
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
+import type { CaseContext } from "../../../context-manager";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
 import {
   generateGatheringQuestions,
   formatGatheringMessage,
   formatFollowUpMessage,
   formatNoteRequestMessage,
-} from "../../../../services/interactive-kb-assistant";
+} from "../../../services/interactive-kb-assistant";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function startInteractiveGathering(

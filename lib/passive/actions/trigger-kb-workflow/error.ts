@@ -1,5 +1,5 @@
 
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function handleWorkflowError(

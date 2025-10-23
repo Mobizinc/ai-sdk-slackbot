@@ -1,10 +1,11 @@
-import type { GenericMessageEvent } from "./slack-event-types";
+import type { GenericMessageEvent } from "../slack-event-types";
+import type { CaseContext } from "../context-manager";
 import { getAddToContextAction } from "./actions/add-to-context";
 import { getPostAssistanceAction } from "./actions/post-assistance";
 import { getTriggerKBWorkflowAction } from "./actions/trigger-kb-workflow";
 import { getResolutionDetector } from "./detectors/resolution-detector";
-import { getKBStateMachine } from "./services/kb-state-machine";
-import { getChannelInfo } from "./services/channel-info";
+import { getKBStateMachine } from "../services/kb-state-machine";
+import { getChannelInfo } from "../services/channel-info";
 
 export function shouldSkipMessage(event: GenericMessageEvent, botUserId: string): boolean {
   return !!(

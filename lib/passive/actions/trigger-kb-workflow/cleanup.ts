@@ -1,7 +1,7 @@
 
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
-import { formatTimeoutMessage } from "../../../../services/interactive-kb-assistant";
-import { config } from "../../../../config";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
+import { formatTimeoutMessage } from "../../../services/interactive-kb-assistant";
+import { config } from "../../../config";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function cleanupTimedOut(deps: TriggerKBWorkflowDeps): Promise<void> {

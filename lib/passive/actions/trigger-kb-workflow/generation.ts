@@ -1,8 +1,8 @@
-import type { CaseContext } from "../../../../context-manager";
-import { getKBGenerator } from "../../../../services/kb-generator";
-import { getKBApprovalManager } from "../../../../handle-kb-approval";
-import { getKBStateMachine, KBState } from "../../../../services/kb-state-machine";
-import { formatAbandonmentMessage } from "../../../../services/interactive-kb-assistant";
+import type { CaseContext } from "../../../context-manager";
+import { getKBGenerator } from "../../../services/kb-generator";
+import { getKBApprovalManager } from "../../../handle-kb-approval";
+import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
+import { formatAbandonmentMessage } from "../../../services/interactive-kb-assistant";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function generateAndPostKB(
