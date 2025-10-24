@@ -6,4 +6,4 @@
  * - wrapLanguageModel() for AI SDK models (lib/model-provider.ts)
  */
 
-export { generateText, tool, stepCountIs, type CoreMessage } from "ai";
+export { generateText, generateObject, tool, stepCountIs, type CoreMessage } from "ai";

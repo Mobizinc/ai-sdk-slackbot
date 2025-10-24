@@ -354,7 +354,7 @@ async function handleReassignSubmission(payload: any): Promise<void> {
             text: "📝 _Next step: Update assignment in ServiceNow or manually notify the assignee_",
           },
         ],
-      }
+      } as any
     );
 
     await client.chat.postMessage({
@@ -483,12 +483,13 @@ async function handleKBApprovalAction(
     `[Interactivity] KB approval action ${actionId} for case ${caseNumber} by user ${user.id}`
   );
 
+  // Declare action outside try block so it's accessible in catch block
+  let action: "approve" | "reject" | "edit" = "approve";
+  let processingEmoji: string;
+  let processingText: string;
+
   try {
     // Map action_id to action type
-    let action: "approve" | "reject" | "edit";
-    let processingEmoji: string;
-    let processingText: string;
-
     if (actionId === "kb_approve") {
       action = "approve";
       processingEmoji = "⏳";
@@ -595,14 +596,14 @@ async function updateKBMessageToProcessing(
           type: "mrkdwn",
           text: `${emoji} *${processingText}*\n\n_Processing request by <@${userId}>..._`,
         },
-      });
+      } as any);
     }
 
     // Update the message
     await client.chat.update({
       channel,
       ts: messageTs,
-      blocks,
+      blocks: blocks as any,
       text: `${processingText}`, // Fallback text for notifications
     });
   } catch (error) {
@@ -1084,11 +1085,11 @@ async function updateEscalationMessage(
     }
 
     const originalMessage = result.messages[0];
-    const blocks = originalMessage.blocks || [];
+    const blocks: any[] = originalMessage.blocks || [];
 
     // Add status to context block (last block)
     const contextBlockIndex = blocks.findIndex((b: any) => b.type === "context");
-    if (contextBlockIndex >= 0) {
+    if (contextBlockIndex >= 0 && blocks[contextBlockIndex].elements) {
       blocks[contextBlockIndex].elements.push({
         type: "mrkdwn",
         text: `\n${statusText}`,
