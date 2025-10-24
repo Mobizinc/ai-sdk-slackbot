@@ -1,7 +1,12 @@
 import type { NewCallInteraction } from "../db/schema";
 
-const DEFAULT_WEBEX_BASE_URL = "https://webexapis.com/v1";
+// Webex Contact Center API configuration
+// API Base: https://api.wxcc-us1.cisco.com (US region)
+// Other regions: wxcc-eu1, wxcc-eu2, wxcc-anz1, wxcc-ca1, wxcc-jp1, wxcc-sg1
+const DEFAULT_WEBEX_BASE_URL = "https://api.wxcc-us1.cisco.com";
 const DEFAULT_PAGE_SIZE = 100;
+const MAX_PAGINATION_PAGES = 100; // Prevent infinite loops
+const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
 
 const WEBEX_CLIENT_ID = process.env.WEBEX_CC_CLIENT_ID;
 const WEBEX_CLIENT_SECRET = process.env.WEBEX_CC_CLIENT_SECRET;
@@ -9,36 +14,59 @@ const WEBEX_REFRESH_TOKEN = process.env.WEBEX_CC_REFRESH_TOKEN;
 const WEBEX_ACCESS_TOKEN = process.env.WEBEX_CC_ACCESS_TOKEN;
 const WEBEX_BASE_URL = (process.env.WEBEX_CC_BASE_URL || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
 const WEBEX_ORG_ID = process.env.WEBEX_CC_ORG_ID;
-const WEBEX_INTERACTION_PATH =
-  process.env.WEBEX_CC_INTERACTION_PATH || "contactCenter/interactionHistory";
+const WEBEX_TASKS_PATH = process.env.WEBEX_CC_TASKS_PATH || "v1/tasks";
 
 type WebexInteractionRecord = {
-  sessionId: string;
-  contactId?: string;
-  mediaType?: string;
-  direction?: string;
-  ani?: string;
-  dnis?: string;
-  startTime?: string;
-  endTime?: string;
-  queueName?: string;
-  wrapUpCode?: string;
-  participants?: Array<{
-    role?: string;
-    id?: string;
-    name?: string;
-  }>;
-  attributes?: Record<string, unknown>;
-  recording?: {
-    id?: string;
+  id: string;
+  attributes: {
+    owner?: {
+      id?: string;
+      name?: string;
+    };
+    queue?: {
+      id?: string;
+      name?: string;
+    };
+    channelType?: string;
+    status?: string;
+    createdTime?: number;
+    lastUpdatedTime?: number;
+    captureRequested?: boolean;
+    origin?: string;
+    destination?: string;
+    direction?: string;
+    wrapUpCode?: string;
+    [key: string]: unknown;
   };
   [key: string]: unknown;
 };
 
 type WebexInteractionResponse = {
-  items?: WebexInteractionRecord[];
+  data?: WebexInteractionRecord[];
+  meta?: {
+    orgId?: string;
+  };
   links?: {
     next?: string;
+  };
+};
+
+// Captures API types for recording download
+export type CaptureRecord = {
+  id: string;
+  taskId: string;
+  filepath: string; // Signed download URL
+  startTime?: number;
+  endTime?: number;
+  durationMs?: number;
+  format?: string;
+  status?: string;
+};
+
+type CapturesResponse = {
+  data?: CaptureRecord[];
+  meta?: {
+    orgId?: string;
   };
 };
 
@@ -98,7 +126,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 function extractCaseNumber(record: WebexInteractionRecord): string | undefined {
-  const attributes = record.attributes || {};
+  const attributes = record.attributes;
   const possibleKeys = [
     "caseNumber",
     "CaseNumber",
@@ -117,40 +145,37 @@ function extractCaseNumber(record: WebexInteractionRecord): string | undefined {
   return undefined;
 }
 
-function pickAgentParticipant(record: WebexInteractionRecord) {
-  const participants = record.participants || [];
-  const agent =
-    participants.find((p) => p.role?.toLowerCase() === "agent") ||
-    participants.find((p) => p.role?.toLowerCase() === "user");
-  return agent ?? null;
+function extractAgentInfo(record: WebexInteractionRecord) {
+  return record.attributes.owner ?? null;
 }
 
 function toNewCallInteraction(record: WebexInteractionRecord): NewCallInteraction | null {
-  if (!record.sessionId) {
+  if (!record.id) {
     return null;
   }
 
-  const agent = pickAgentParticipant(record);
-  const startTime = record.startTime ? new Date(record.startTime) : undefined;
-  const endTime = record.endTime ? new Date(record.endTime) : undefined;
+  const attrs = record.attributes;
+  const agent = extractAgentInfo(record);
+  const startTime = attrs.createdTime ? new Date(attrs.createdTime) : undefined;
+  const endTime = attrs.lastUpdatedTime ? new Date(attrs.lastUpdatedTime) : undefined;
   const durationSeconds =
     startTime && endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : undefined;
 
   return {
-    sessionId: record.sessionId,
-    contactId: record.contactId,
+    sessionId: record.id,
+    contactId: record.id,
     caseNumber: extractCaseNumber(record),
-    direction: record.direction,
-    ani: record.ani,
-    dnis: record.dnis,
+    direction: attrs.direction,
+    ani: attrs.origin,
+    dnis: attrs.destination,
     agentId: agent?.id,
     agentName: agent?.name,
-    queueName: record.queueName,
+    queueName: attrs.queue?.name,
     startTime,
     endTime,
     durationSeconds,
-    wrapUpCode: record.wrapUpCode,
-    recordingId: record.recording?.id,
+    wrapUpCode: attrs.wrapUpCode,
+    recordingId: attrs.captureRequested ? record.id : undefined,
     transcriptStatus: "pending",
     rawPayload: record as Record<string, unknown>,
     syncedAt: new Date(),
@@ -177,53 +202,226 @@ export async function fetchVoiceInteractions(
   const interactions: NewCallInteraction[] = [];
   let latestEndTime: Date | null = null;
   let nextUrl: string | null = buildInitialUrl(params, pageSize);
+  let pageCount = 0;
 
   while (nextUrl) {
-    const res = await fetch(nextUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new WebexContactCenterError(
-        `Failed to retrieve Webex interactions: ${res.status} ${text}`,
+    // Pagination limit to prevent infinite loops
+    pageCount++;
+    if (pageCount > MAX_PAGINATION_PAGES) {
+      console.warn(
+        `[Webex CC] Reached max pagination limit (${MAX_PAGINATION_PAGES} pages). ` +
+        `Stopping to prevent infinite loop. Collected ${interactions.length} interactions so far.`
       );
+      break;
     }
 
-    const payload = (await res.json()) as WebexInteractionResponse;
-    const items = payload.items ?? [];
+    // Create AbortController for request timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    for (const item of items) {
-      const mapped = toNewCallInteraction(item);
-      if (!mapped) continue;
+    try {
+      const res = await fetch(nextUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+        signal: controller.signal,
+      });
 
-      interactions.push(mapped);
+      clearTimeout(timeoutId);
 
-      if (mapped.endTime) {
-        if (!latestEndTime || mapped.endTime > latestEndTime) {
-          latestEndTime = mapped.endTime;
+      if (!res.ok) {
+        const text = await res.text();
+        throw new WebexContactCenterError(
+          `Failed to retrieve Webex interactions (page ${pageCount}): ${res.status} ${text}`,
+        );
+      }
+
+      const payload = (await res.json()) as WebexInteractionResponse;
+      const items = payload.data ?? [];
+
+      for (const item of items) {
+        const mapped = toNewCallInteraction(item);
+        if (!mapped) continue;
+
+        interactions.push(mapped);
+
+        if (mapped.endTime) {
+          if (!latestEndTime || mapped.endTime > latestEndTime) {
+            latestEndTime = mapped.endTime;
+          }
         }
       }
-    }
 
-    nextUrl = payload.links?.next ?? null;
+      nextUrl = payload.links?.next ?? null;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Handle timeout errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new WebexContactCenterError(
+          `Request timeout after ${REQUEST_TIMEOUT_MS}ms on page ${pageCount}`
+        );
+      }
+
+      throw error;
+    }
   }
+
+  console.log(
+    `[Webex CC] Fetched ${interactions.length} interactions across ${pageCount} page(s)`
+  );
 
   return { interactions, latestEndTime };
 }
 
 function buildInitialUrl(params: FetchInteractionsParams, pageSize: number): string {
-  const url = new URL(`${WEBEX_BASE_URL}/${WEBEX_INTERACTION_PATH}`);
-  url.searchParams.set("mediaType", "telephony");
-  url.searchParams.set("startTime", params.startTime.toISOString());
-  url.searchParams.set("endTime", params.endTime.toISOString());
+  const url = new URL(`${WEBEX_BASE_URL}/${WEBEX_TASKS_PATH}`);
+
+  // Convert dates to epoch milliseconds (Webex Contact Center API requirement)
+  url.searchParams.set("from", String(params.startTime.getTime()));
+  url.searchParams.set("to", String(params.endTime.getTime()));
+
+  // Channel type for voice interactions
+  url.searchParams.set("channelType", "telephony");
+
+  // Page size for pagination
   url.searchParams.set("pageSize", String(pageSize));
+
+  // Organization ID (required for multi-tenant environments)
   if (WEBEX_ORG_ID) {
     url.searchParams.set("orgId", WEBEX_ORG_ID);
   }
 
   return url.toString();
+}
+
+/**
+ * Retrieve recording metadata (including download URL) for given task IDs
+ * Uses the Webex Contact Center Captures API
+ *
+ * @param taskIds - Array of task/session IDs to fetch recordings for
+ * @param urlExpirationSeconds - How long the signed download URL should be valid (default: 3600 = 1 hour)
+ * @returns Array of capture records with download URLs
+ */
+export async function getCapturesByTaskIds(
+  taskIds: string[],
+  urlExpirationSeconds = 3600
+): Promise<CaptureRecord[]> {
+  if (!taskIds || taskIds.length === 0) {
+    return [];
+  }
+
+  if (!WEBEX_ORG_ID) {
+    throw new WebexContactCenterError("WEBEX_CC_ORG_ID is required for Captures API");
+  }
+
+  const accessToken = await getAccessToken();
+
+  // Build request URL
+  const url = new URL(`${WEBEX_BASE_URL}/v1/captures`);
+  url.searchParams.set("orgId", WEBEX_ORG_ID);
+  url.searchParams.set("taskIds", taskIds.join(","));
+  url.searchParams.set("urlExpiration", String(urlExpirationSeconds));
+
+  console.log(`[Webex Captures] Fetching recordings for ${taskIds.length} task(s)`);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const text = await res.text();
+
+      // Handle 404 gracefully - means no recordings exist for these tasks
+      if (res.status === 404) {
+        console.log(`[Webex Captures] No recordings found for task IDs: ${taskIds.join(", ")}`);
+        return [];
+      }
+
+      throw new WebexContactCenterError(
+        `Failed to retrieve Webex captures: ${res.status} ${text}`
+      );
+    }
+
+    const payload = (await res.json()) as CapturesResponse;
+    const captures = payload.data ?? [];
+
+    console.log(`[Webex Captures] Retrieved ${captures.length} recording(s)`);
+
+    return captures;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new WebexContactCenterError(
+        `Captures API request timeout after ${REQUEST_TIMEOUT_MS}ms`
+      );
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Download a recording file from a signed URL
+ *
+ * @param filepath - Signed download URL from Captures API
+ * @param outputPath - Local file path to save the recording (e.g., '/tmp/recording-123.mp3')
+ * @returns File size in bytes
+ */
+export async function downloadRecording(
+  filepath: string,
+  outputPath: string
+): Promise<number> {
+  console.log(`[Webex Recording] Downloading from: ${filepath}`);
+  console.log(`[Webex Recording] Saving to: ${outputPath}`);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS * 3); // 90 seconds for large files
+
+  try {
+    const res = await fetch(filepath, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new WebexContactCenterError(
+        `Failed to download recording: ${res.status} ${res.statusText}`
+      );
+    }
+
+    // Get file as buffer
+    const buffer = await res.arrayBuffer();
+
+    // Save to file (Node.js only)
+    const fs = await import("fs/promises");
+    await fs.writeFile(outputPath, Buffer.from(buffer));
+
+    console.log(`[Webex Recording] Downloaded ${buffer.byteLength} bytes`);
+
+    return buffer.byteLength;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new WebexContactCenterError(
+        `Recording download timeout after ${REQUEST_TIMEOUT_MS * 3}ms`
+      );
+    }
+
+    throw error;
+  }
 }

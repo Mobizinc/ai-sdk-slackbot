@@ -274,6 +274,13 @@ export const caseClassificationResults = pgTable(
     // Service Portfolio Classification (NEW)
     serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
     applicationService: text("application_service"), // Specific application if Application Administration
+    // ITSM Record Creation Tracking (NEW - for idempotency)
+    incidentNumber: text("incident_number"), // Incident number created from this case (if any)
+    incidentSysId: text("incident_sys_id"), // Incident sys_id for direct linking
+    incidentUrl: text("incident_url"), // Full URL to incident in ServiceNow
+    problemNumber: text("problem_number"), // Problem number created from this case (if any)
+    problemSysId: text("problem_sys_id"), // Problem sys_id for direct linking
+    problemUrl: text("problem_url"), // Full URL to problem in ServiceNow
   },
   (table) => ({
     caseNumberIdx: index("idx_results_case_number").on(table.caseNumber),

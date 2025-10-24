@@ -364,6 +364,93 @@ export class ServiceNowClient {
     });
   }
 
+  /**
+   * Get incident by parent case sys_id
+   * Used to check if an incident already exists for a case before creating a duplicate
+   */
+  public async getIncidentByParentCase(
+    caseSysId: string
+  ): Promise<ServiceNowIncidentSummary | null> {
+    const query = `parent=${caseSysId}`;
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}` +
+      `&sysparm_fields=${fields.join(",")}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result?.length) return null;
+
+    const incident = data.result[0];
+    const sysId = extractDisplayValue(incident.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(incident.number),
+      short_description: extractDisplayValue(incident.short_description) || undefined,
+      state: extractDisplayValue(incident.state) || undefined,
+      resolved_at: extractDisplayValue(incident.resolved_at) || undefined,
+      close_code: extractDisplayValue(incident.close_code) || undefined,
+      parent: extractDisplayValue(incident.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+    } satisfies ServiceNowIncidentSummary;
+  }
+
+  /**
+   * Get problem by parent case sys_id
+   * Used to check if a problem already exists for a case before creating a duplicate
+   */
+  public async getProblemByParentCase(
+    caseSysId: string
+  ): Promise<{
+    sys_id: string;
+    number: string;
+    short_description?: string;
+    state?: string;
+    parent?: string;
+    url: string;
+  } | null> {
+    const query = `parent=${caseSysId}`;
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/problem?sysparm_query=${encodeURIComponent(query)}` +
+      `&sysparm_fields=${fields.join(",")}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result?.length) return null;
+
+    const problem = data.result[0];
+    const sysId = extractDisplayValue(problem.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(problem.number),
+      short_description: extractDisplayValue(problem.short_description) || undefined,
+      state: extractDisplayValue(problem.state) || undefined,
+      parent: extractDisplayValue(problem.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${sysId}`,
+    };
+  }
+
   public async searchKnowledge(
     input: ServiceNowKnowledgeSearchInput,
   ): Promise<ServiceNowKnowledgeArticle[]> {
