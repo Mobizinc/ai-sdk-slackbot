@@ -4,8 +4,6 @@
  * Centralized constants and utilities for consistent Slack Block Kit messages
  */
 
-import type { KnownBlock, Block } from '@slack/web-api';
-
 // ============================================================================
 // EMOJI CONSTANTS
 // ============================================================================
@@ -104,7 +102,7 @@ export function getPriorityLabel(priority: string | number): string {
 /**
  * Create a header block
  */
-export function createHeaderBlock(text: string): KnownBlock {
+export function createHeaderBlock(text: string): any {
   return {
     type: 'header',
     text: {
@@ -118,7 +116,7 @@ export function createHeaderBlock(text: string): KnownBlock {
 /**
  * Create a section block with markdown text
  */
-export function createSectionBlock(text: string, accessory?: any): KnownBlock {
+export function createSectionBlock(text: string, accessory?: any): any {
   const block: any = {
     type: 'section',
     text: {
@@ -137,7 +135,7 @@ export function createSectionBlock(text: string, accessory?: any): KnownBlock {
 /**
  * Create a section block with fields (two-column layout)
  */
-export function createFieldsBlock(fields: Array<{ label: string; value: string }>): KnownBlock {
+export function createFieldsBlock(fields: Array<{ label: string; value: string }>): any {
   return {
     type: 'section',
     fields: fields.map(f => ({
@@ -150,14 +148,14 @@ export function createFieldsBlock(fields: Array<{ label: string; value: string }
 /**
  * Create a divider block
  */
-export function createDivider(): KnownBlock {
+export function createDivider(): any {
   return { type: 'divider' };
 }
 
 /**
  * Create a context block (small gray text at bottom)
  */
-export function createContextBlock(text: string): KnownBlock {
+export function createContextBlock(text: string): any {
   return {
     type: 'context',
     elements: [
@@ -184,7 +182,7 @@ export function createActionsBlock(buttons: Array<{
     confirm: string;
     deny: string;
   };
-}>): KnownBlock {
+}>): any {
   return {
     type: 'actions',
     elements: buttons.map(btn => {
@@ -257,7 +255,7 @@ export function createOverflowMenu(
 /**
  * Add a processing status indicator to blocks
  */
-export function addProcessingStatus(blocks: KnownBlock[], statusText: string): KnownBlock[] {
+export function addProcessingStatus(blocks: any[], statusText: string): any[] {
   const newBlocks = [...blocks];
   const actionIndex = newBlocks.findIndex(b => b.type === 'actions');
 
@@ -274,9 +272,9 @@ export function addProcessingStatus(blocks: KnownBlock[], statusText: string): K
  * Add a completed status indicator and disable buttons
  */
 export function addCompletedStatus(
-  blocks: KnownBlock[],
+  blocks: any[],
   statusText: string
-): KnownBlock[] {
+): any[] {
   // Remove any processing status blocks
   const newBlocks = blocks.filter(b => {
     if (b.type === 'section' && 'text' in b && b.text && typeof b.text === 'object' && 'text' in b.text) {
@@ -321,8 +319,8 @@ export function createErrorBlocks(
     actionId: string;
     value: string;
   }
-): KnownBlock[] {
-  const blocks: KnownBlock[] = [
+): any[] {
+  const blocks: any[] = [
     createSectionBlock(`${MessageEmojis.ERROR} *Failed to ${actionLabel}*`),
     createSectionBlock(errorGuidance),
   ];
@@ -398,7 +396,7 @@ export function getErrorGuidance(actionId: string, error: any): string {
 /**
  * Create a loading message block
  */
-export function createLoadingBlocks(status: string): KnownBlock[] {
+export function createLoadingBlocks(status: string): any[] {
   return [
     createSectionBlock(`${MessageEmojis.PROCESSING} ${status}`),
   ];
@@ -410,8 +408,8 @@ export function createLoadingBlocks(status: string): KnownBlock[] {
 export function createProgressiveLoadingBlocks(
   mainStatus: string,
   details?: string[]
-): KnownBlock[] {
-  const blocks: KnownBlock[] = [
+): any[] {
+  const blocks: any[] = [
     createSectionBlock(`${MessageEmojis.PROCESSING} ${mainStatus}`),
   ];
 

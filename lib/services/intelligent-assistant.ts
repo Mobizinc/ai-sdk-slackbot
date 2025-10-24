@@ -10,7 +10,6 @@ import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
-import type { KnownBlock } from "@slack/web-api";
 import {
   MessageEmojis,
   createHeaderBlock,
@@ -93,8 +92,8 @@ export async function buildIntelligentAssistance(
   channelName?: string,
   channelTopic?: string,
   channelPurpose?: string
-): Promise<{ blocks: KnownBlock[]; text: string }> {
-  const blocks: KnownBlock[] = [];
+): Promise<{ blocks: any[]; text: string }> {
+  const blocks: any[] = [];
 
   // Header
   blocks.push(createHeaderBlock(`${MessageEmojis.GREETING} Case Detected`));
