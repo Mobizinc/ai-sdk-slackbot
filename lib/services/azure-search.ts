@@ -4,7 +4,7 @@
  */
 
 import { SearchClient, AzureKeyCredential } from "@azure/search-documents";
-import { OpenAI } from "openai";
+import { EmbeddingService } from "./embedding-service";
 
 export interface SimilarCase {
   id: string;
@@ -24,14 +24,12 @@ export interface SearchOptions {
 
 export class AzureSearchService {
   private searchClient: SearchClient<any>;
-  private openaiClient: OpenAI;
-  private embeddingModel: string;
+  private embeddingService: EmbeddingService;
 
   constructor(
     endpoint: string,
     apiKey: string,
     indexName: string,
-    openaiApiKey: string,
     embeddingModel: string = "text-embedding-3-small"
   ) {
     this.searchClient = new SearchClient(
@@ -40,11 +38,7 @@ export class AzureSearchService {
       new AzureKeyCredential(apiKey)
     );
 
-    this.openaiClient = new OpenAI({
-      apiKey: openaiApiKey,
-    });
-
-    this.embeddingModel = embeddingModel;
+    this.embeddingService = new EmbeddingService(embeddingModel);
   }
 
   /**
@@ -52,12 +46,7 @@ export class AzureSearchService {
    */
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
-      const response = await this.openaiClient.embeddings.create({
-        model: this.embeddingModel,
-        input: text,
-      });
-
-      return response.data[0].embedding;
+      return await this.embeddingService.generateEmbedding(text);
     } catch (error) {
       console.error("Failed to generate embedding:", error);
       throw new Error("Failed to generate query embedding");
@@ -189,7 +178,6 @@ export function createAzureSearchService(): AzureSearchService | null {
     endpoint,
     apiKey,
     indexName,
-    openaiApiKey,
     embeddingModel
   );
 }

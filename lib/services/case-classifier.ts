@@ -3,7 +3,7 @@
  * Classifies ServiceNow cases into categories using AI with similar case and KB article context
  */
 
-import { generateText } from 'ai';
+import { generateText } from '../instrumented-ai';
 import { modelProvider, getActiveModelId, anthropic, anthropicModel } from '../model-provider';
 import { getAnthropicClient, calculateCost as calculateAnthropicCost, formatUsageMetrics, calculateCacheHitRate } from '../anthropic-provider';
 import type Anthropic from '@anthropic-ai/sdk';
@@ -42,12 +42,12 @@ export interface TechnicalEntities {
 }
 
 export interface BusinessIntelligence {
-  project_scope_detected?: boolean;
+  project_scope_detected: boolean;
   project_scope_reason?: string;
   client_technology?: string;
   client_technology_context?: string;
   related_entities?: string[];
-  outside_service_hours?: boolean;
+  outside_service_hours: boolean;
   service_hours_note?: string;
   executive_visibility?: boolean;
   executive_visibility_reason?: string;
@@ -459,7 +459,8 @@ Identify which Service Offering best matches this case. Select ONE of the follow
    - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
    - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
    - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
-   - **Helpdesk and Endpoint Support**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch
+   - **Helpdesk and Endpoint Support - 24/7**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch. Use when: case indicates 24/7 support contract, after-hours support needed, or business context mentions round-the-clock coverage.
+   - **Helpdesk and Endpoint - Standard**: Standard business hours user support, endpoint device management, tiered support. Use when: case during business hours, no 24/7 indicators, or standard support tier. DEFAULT to this if uncertain.
    - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
 
 16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}
@@ -612,7 +613,7 @@ Respond with a JSON object in this exact format:
     "is_major_incident": false,
     "reasoning": "Service disruption explanation"
   },
-  "service_offering": "Helpdesk and Endpoint Support",
+  "service_offering": "Helpdesk and Endpoint - Standard",
   "application_service": "Office 365" (optional, only if service_offering is "Application Administration")
 }
 </json_schema>
@@ -1507,7 +1508,8 @@ Identify which Service Offering best matches this case. Select ONE of the follow
    - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
    - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
    - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
-   - **Helpdesk and Endpoint Support**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch
+   - **Helpdesk and Endpoint Support - 24/7**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch. Use when: case indicates 24/7 support contract, after-hours support needed, or business context mentions round-the-clock coverage.
+   - **Helpdesk and Endpoint - Standard**: Standard business hours user support, endpoint device management, tiered support. Use when: case during business hours, no 24/7 indicators, or standard support tier. DEFAULT to this if uncertain.
    - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
 
 16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}

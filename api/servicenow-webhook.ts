@@ -239,7 +239,7 @@ function parseWebhookPayload(rawPayload: string): unknown {
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
-export async function POST(request: Request) {
+async function postImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -412,6 +412,8 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = postImpl;
 
 /**
  * Health check endpoint

@@ -3,7 +3,7 @@
  * and gather missing information for KB article creation.
  */
 
-import { generateText } from "ai";
+import { generateText } from "../instrumented-ai";
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
 import { modelProvider } from "../model-provider";

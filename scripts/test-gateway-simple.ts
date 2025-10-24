@@ -3,7 +3,7 @@
  */
 
 import { createGateway } from "@ai-sdk/gateway";
-import { generateText } from "ai";
+import { generateText } from "../lib/instrumented-ai";
 
 async function testSimpleGateway() {
   console.log("Testing Gateway directly...\n");

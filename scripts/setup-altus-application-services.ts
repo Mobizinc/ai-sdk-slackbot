@@ -1,6 +1,6 @@
 /**
  * STEP 2: ServiceNow Application Services Setup Script (ADMIN-ONLY)
- * Creates 24 Application Services for Altus Health
+ * Creates 24 Application Services for Altus Health + CI Relationships
  *
  * This script is idempotent - safe to run multiple times.
  * It creates records only if they don't already exist.
@@ -336,6 +336,8 @@ async function setupAltusApplicationServices() {
 
     let createdCount = 0;
     let foundCount = 0;
+    let ciRelCreatedCount = 0;
+    let ciRelFoundCount = 0;
 
     for (const appService of applicationServices) {
       // Add delay between operations to help auto-numbering settle
@@ -364,9 +366,49 @@ async function setupAltusApplicationServices() {
         // Application Service already exists
         foundCount++;
         const sysId = queryData.result[0].sys_id;
+        const parentSysId = offeringSysIds.get(appService.parentOffering);
         console.log(`✅ Found: "${appService.name}"`);
         console.log(`   sys_id: ${sysId}`);
         console.log(`   type: ${appService.serviceType}`);
+
+        // Check if CI relationship exists
+        if (parentSysId) {
+          const ciRelCheckUrl = `${instanceUrl}/api/now/table/cmdb_rel_ci?sysparm_query=${encodeURIComponent(`parent=${parentSysId}^child=${sysId}`)}&sysparm_limit=1`;
+          const ciRelCheckResponse = await fetch(ciRelCheckUrl, {
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (ciRelCheckResponse.ok) {
+            const ciRelCheckData = await ciRelCheckResponse.json();
+            if (ciRelCheckData.result && ciRelCheckData.result.length > 0) {
+              ciRelFoundCount++;
+            } else {
+              // Create missing CI relationship
+              const ciRelPayload = {
+                parent: parentSysId,
+                child: sysId,
+                type: 'Contains::Contained by',
+              };
+
+              const ciRelCreateResponse = await fetch(`${instanceUrl}/api/now/table/cmdb_rel_ci`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': authHeader,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(ciRelPayload),
+              });
+
+              if (ciRelCreateResponse.ok) {
+                ciRelCreatedCount++;
+                console.log(`   ✨ Created CI Relationship`);
+              }
+            }
+          }
+        }
       } else {
         // Create new Application Service
         const parentSysId = offeringSysIds.get(appService.parentOffering);
@@ -404,6 +446,29 @@ async function setupAltusApplicationServices() {
         console.log(`   sys_id: ${createData.result.sys_id}`);
         console.log(`   parent: ${appService.parentOffering} (${parentSysId})`);
         console.log(`   type: ${appService.serviceType}`);
+
+        // Create CI relationship for newly created Application Service
+        const ciRelPayload = {
+          parent: parentSysId,
+          child: createData.result.sys_id,
+          type: 'Contains::Contained by',
+        };
+
+        const ciRelCreateResponse = await fetch(`${instanceUrl}/api/now/table/cmdb_rel_ci`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(ciRelPayload),
+        });
+
+        if (ciRelCreateResponse.ok) {
+          ciRelCreatedCount++;
+          console.log(`   ✨ Created CI Relationship`);
+        } else {
+          console.log(`   ⚠️  Failed to create CI relationship`);
+        }
       }
     }
 
@@ -413,6 +478,9 @@ async function setupAltusApplicationServices() {
     console.log(`   Application Services: ${applicationServices.length} total`);
     console.log(`     - Found existing: ${foundCount}`);
     console.log(`     - Created new: ${createdCount}`);
+    console.log(`   CI Relationships: ${ciRelFoundCount + ciRelCreatedCount} total`);
+    console.log(`     - Found existing: ${ciRelFoundCount}`);
+    console.log(`     - Created new: ${ciRelCreatedCount}`);
     console.log('');
     console.log('   By Service Offering:');
     console.log('     - Application Administration: 18 services');

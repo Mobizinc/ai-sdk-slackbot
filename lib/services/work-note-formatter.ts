@@ -206,25 +206,12 @@ export function formatWorkNote(classification: CompleteClassification): string {
       const desc = escapeHtml(similarCase.short_description?.substring(0, 50) || 'N/A');
       const score = similarCase.similarity_score || 0;
 
-      // MSP Client attribution label
-      let clientLabel = '';
-      const sameClient = similarCase.same_client;
-      const clientName = similarCase.client_name;
-
-      if (sameClient) {
-        clientLabel = '[Your Organization]';
-      } else if (clientName) {
-        clientLabel = `[${escapeHtml(clientName)}]`;
-      } else {
-        clientLabel = '[Different Client]';
-      }
-
       // Format date (try opened_at first, fall back to sys_created_on)
       const dateStr = similarCase.opened_at || similarCase.sys_created_on;
       const dateDisplay = formatCaseDate(dateStr);
       const dateLabel = dateDisplay ? ` (${dateDisplay})` : '';
 
-      note += `<li><strong>${caseNum}</strong> ${clientLabel}${dateLabel} - ${desc} (Score: ${score.toFixed(2)})</li>\n`;
+      note += `<li><strong>${caseNum}</strong>${dateLabel} - ${desc} (Score: ${score.toFixed(2)})</li>\n`;
     });
     note += `</ul>\n<br>\n\n`;
   }

@@ -3,7 +3,7 @@
  * Generates structured KB articles from case conversations with AI assistance
  */
 
-import { generateText, tool } from "ai";
+import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";

@@ -21,17 +21,12 @@ export class EmbeddingService {
    * Returns: 1536-dimensional vector for text-embedding-3-small
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    try {
-      const { embedding } = await embed({
-        model: openai.embedding(this.model),
-        value: text,
-      });
+    const { embedding } = await embed({
+      model: openai.embedding(this.model),
+      value: text,
+    });
 
-      return embedding;
-    } catch (error) {
-      console.error('[Embedding Service] Failed to generate embedding:', error);
-      throw error;
-    }
+    return embedding;
   }
 
   /**

@@ -138,7 +138,7 @@ echo -e "You've completed:"
 echo -e "  ✅ Infrastructure discovery from Slack"
 echo -e "  ✅ Created and validated 3 CI records\n"
 
-echo -e "Next steps (from ${YELLOW}docs/CMDB_PILOT_ALTUS.md${NC}):\n"
+echo -e "Next steps (from ${YELLOW}operations/cmdb/CMDB_PILOT_ALTUS.md${NC}):\n"
 
 echo -e "1. ${YELLOW}Upload CI records to ServiceNow CMDB${NC}"
 echo -e "   - Manual entry in ServiceNow UI, OR"
@@ -158,7 +158,7 @@ echo -e "   - What would make this easier?\n"
 echo -e "4. ${YELLOW}Proceed to Phase 2${NC}"
 echo -e "   - Refine template based on learnings"
 echo -e "   - Document 10-15 more Altus CIs"
-echo -e "   - See: docs/CMDB_PILOT_ALTUS.md\n"
+echo -e "   - See: operations/cmdb/CMDB_PILOT_ALTUS.md\n"
 
 echo -e "${GREEN}╔════════════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║                    Phase 1 Complete! 🎉                                ║${NC}"

@@ -76,6 +76,7 @@ describe("CmdbReconciliationService", () => {
           users: ["user1"],
           software: ["software1"],
           error_codes: ["ERR001"],
+          network_devices: [],
         },
       };
 
@@ -138,6 +139,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -192,6 +194,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -238,6 +241,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -314,6 +318,7 @@ describe("CmdbReconciliationService", () => {
           users: ["user1"],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -345,6 +350,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -401,6 +407,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 
@@ -478,6 +485,7 @@ describe("CmdbReconciliationService", () => {
           users: [],
           software: [],
           error_codes: [],
+          network_devices: [],
         },
       };
 

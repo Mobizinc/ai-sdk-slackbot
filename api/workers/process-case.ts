@@ -30,7 +30,7 @@ const IDEMPOTENCY_WINDOW_MINUTES = parseInt(process.env.IDEMPOTENCY_WINDOW_MINUT
 /**
  * Process case triage (async worker)
  */
-export async function POST(request: Request) {
+async function postWorkerImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -212,6 +212,8 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = postWorkerImpl;
 
 /**
  * Health check for worker
