@@ -10,6 +10,7 @@
     "smoke": "tsx scripts/smoke-test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
+    "db:migrate:vercel": "tsx scripts/migrate-vercel.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:import-contexts": "tsx scripts/import-business-contexts.ts",

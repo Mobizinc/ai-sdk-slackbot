@@ -23,18 +23,18 @@ export interface CaseData {
 }
 
 export interface BusinessIntelligence {
-  project_scope_detected: boolean;
+  project_scope_detected?: boolean;
   project_scope_reason?: string;
   client_technology?: string;
   client_technology_context?: string;
   related_entities?: string[];
-  outside_service_hours: boolean;
+  outside_service_hours?: boolean;
   service_hours_note?: string;
-  executive_visibility: boolean;
+  executive_visibility?: boolean;
   executive_visibility_reason?: string;
-  compliance_impact: boolean;
+  compliance_impact?: boolean;
   compliance_impact_reason?: string;
-  financial_impact: boolean;
+  financial_impact?: boolean;
   financial_impact_reason?: string;
 }
 
@@ -233,19 +233,19 @@ export function calculateBusinessIntelligenceScore(bi: BusinessIntelligence): nu
   let score = 0;
 
   // Project scope adds 20 points
-  if (bi.project_scope_detected) score += 20;
+  if (bi.project_scope_detected ?? false) score += 20;
 
   // Executive visibility adds 30 points
-  if (bi.executive_visibility) score += 30;
+  if (bi.executive_visibility ?? false) score += 30;
 
   // Compliance impact adds 25 points
-  if (bi.compliance_impact) score += 25;
+  if (bi.compliance_impact ?? false) score += 25;
 
   // Financial impact adds 25 points
-  if (bi.financial_impact) score += 25;
+  if (bi.financial_impact ?? false) score += 25;
 
   // Outside service hours adds 10 points
-  if (bi.outside_service_hours) score += 10;
+  if (bi.outside_service_hours ?? false) score += 10;
 
   // Client technology context adds 5 points
   if (bi.client_technology) score += 5;

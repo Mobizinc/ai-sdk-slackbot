@@ -82,4 +82,26 @@ export const config = {
   incidentCreationAllowedGroups: getStringArrayEnv("INCIDENT_CREATION_ALLOWED_GROUPS", [
     "Incident and Case Management",
   ]),
+
+  // Case Escalation configuration
+  // Enable/disable automatic escalation for non-BAU cases
+  escalationEnabled: getBooleanEnv("ESCALATION_ENABLED", true),
+  // Business intelligence score threshold for automatic escalation (0-100)
+  escalationBiScoreThreshold: getNumberEnv("ESCALATION_BI_SCORE_THRESHOLD", 20),
+  // Default Slack channel for escalations (if no client-specific channel configured)
+  escalationDefaultChannel: process.env.ESCALATION_DEFAULT_CHANNEL || "case-escalations",
+  // Whether to @mention the assigned engineer in escalation notifications
+  escalationNotifyAssignedEngineer: getBooleanEnv("ESCALATION_NOTIFY_ASSIGNED_ENGINEER", true),
+  // Whether to use LLM to generate contextual escalation messages
+  escalationUseLlmMessages: getBooleanEnv("ESCALATION_USE_LLM_MESSAGES", true),
+
+  // LLM Timeout configurations (in milliseconds)
+  // Default timeout for general LLM operations
+  llmTimeoutMs: getNumberEnv("LLM_TIMEOUT_MS", 30000), // 30 seconds
+  // Timeout for case classification (typically faster)
+  llmClassificationTimeoutMs: getNumberEnv("LLM_CLASSIFICATION_TIMEOUT_MS", 15000), // 15 seconds
+  // Timeout for KB generation (may take longer)
+  llmKBGenerationTimeoutMs: getNumberEnv("LLM_KB_GENERATION_TIMEOUT_MS", 45000), // 45 seconds
+  // Timeout for escalation message generation
+  llmEscalationTimeoutMs: getNumberEnv("LLM_ESCALATION_TIMEOUT_MS", 20000), // 20 seconds
 };

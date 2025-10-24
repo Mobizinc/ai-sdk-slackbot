@@ -688,3 +688,62 @@ export type CallInteraction = typeof callInteractions.$inferSelect;
 export type NewCallInteraction = typeof callInteractions.$inferInsert;
 export type CallTranscript = typeof callTranscripts.$inferSelect;
 export type NewCallTranscript = typeof callTranscripts.$inferInsert;
+
+/**
+ * Case Escalations Table
+ * Tracks non-BAU case escalations sent to Slack channels
+ * Used for tracking escalation history and preventing duplicate notifications
+ */
+export const caseEscalations = pgTable(
+  "case_escalations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    // Escalation trigger details
+    escalationReason: text("escalation_reason").notNull(), // e.g., "project_scope", "executive_visibility"
+    businessIntelligenceScore: integer("business_intelligence_score"), // 0-100 score at time of escalation
+    triggerFlags: jsonb("trigger_flags").$type<{
+      project_scope_detected?: boolean;
+      executive_visibility?: boolean;
+      compliance_impact?: boolean;
+      financial_impact?: boolean;
+    }>().default({}).notNull(),
+    // Slack notification details
+    slackChannel: text("slack_channel").notNull(), // Channel where escalation was posted (without #)
+    slackThreadTs: text("slack_thread_ts"), // Thread timestamp (if posted in thread)
+    slackMessageTs: text("slack_message_ts").notNull(), // Message timestamp
+    // Case context at time of escalation
+    assignedTo: text("assigned_to"), // Engineer assigned when escalated
+    assignmentGroup: text("assignment_group"), // Group assigned when escalated
+    companyName: text("company_name"), // Client name (from account_id)
+    category: text("category"), // Case category
+    subcategory: text("subcategory"), // Case subcategory
+    priority: text("priority"), // Priority level
+    urgency: text("urgency"), // Urgency level
+    // Escalation lifecycle tracking
+    status: text("status").notNull().default("active"), // active, acknowledged, dismissed, resolved
+    acknowledgedBy: text("acknowledged_by"), // Slack user_id who acknowledged
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    acknowledgedAction: text("acknowledged_action"), // e.g., "create_project", "acknowledge_bau"
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    // Metadata
+    llmGenerated: boolean("llm_generated").notNull().default(false), // Whether LLM was used for message
+    tokenUsage: integer("token_usage"), // Tokens used if LLM generated
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_escalations_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_escalations_case_sys_id").on(table.caseSysId),
+    statusIdx: index("idx_escalations_status").on(table.status),
+    channelIdx: index("idx_escalations_channel").on(table.slackChannel),
+    createdAtIdx: index("idx_escalations_created_at").on(table.createdAt),
+    // Composite index for finding active escalations for a case
+    activeCaseIdx: index("idx_escalations_active_case").on(table.caseNumber, table.status),
+  })
+);
+
+export type CaseEscalation = typeof caseEscalations.$inferSelect;
+export type NewCaseEscalation = typeof caseEscalations.$inferInsert;
