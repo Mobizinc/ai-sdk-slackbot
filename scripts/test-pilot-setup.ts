@@ -122,9 +122,12 @@ function testFileStructure() {
   console.log(`\n📁 Testing File Structure...\n`);
 
   const requiredFiles = [
-    { path: "docs/CMDB_PILOT_ALTUS.md", desc: "Pilot plan documentation" },
     {
-      path: "docs/CMDB_TOOLS_SUMMARY.md",
+      path: "operations/cmdb/CMDB_PILOT_ALTUS.md",
+      desc: "Pilot plan documentation",
+    },
+    {
+      path: "operations/cmdb/CMDB_TOOLS_SUMMARY.md",
       desc: "Tools summary documentation",
     },
     { path: "templates/cmdb-ci-template.json", desc: "CI template" },
