@@ -42,12 +42,12 @@ export interface TechnicalEntities {
 }
 
 export interface BusinessIntelligence {
-  project_scope_detected: boolean;
+  project_scope_detected?: boolean;
   project_scope_reason?: string;
   client_technology?: string;
   client_technology_context?: string;
   related_entities?: string[];
-  outside_service_hours: boolean;
+  outside_service_hours?: boolean;
   service_hours_note?: string;
   executive_visibility?: boolean;
   executive_visibility_reason?: string;

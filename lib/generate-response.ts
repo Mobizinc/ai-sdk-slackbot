@@ -13,6 +13,7 @@ import { getContextUpdateManager, type ContextUpdateAction } from "./context-upd
 import { getCurrentIssuesService } from "./services/current-issues-service";
 import { getSystemPrompt } from "./system-prompt";
 import { getCaseTriageService } from "./services/case-triage";
+import { getLoadingIndicator } from "./utils/loading-indicator";
 
 type WeatherToolInput = {
   latitude: number;
@@ -599,6 +600,9 @@ export const generateResponse = async (
           "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
         inputSchema: generateKbArticleInputSchema,
         execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
+          const loadingIndicator = getLoadingIndicator();
+          let loadingTs: string | undefined;
+
           try {
             updateStatus?.(`is generating KB article for ${caseNumber}...`);
 
@@ -621,12 +625,36 @@ export const generateResponse = async (
               };
             }
 
+            // Post loading indicator
+            try {
+              loadingTs = await loadingIndicator.postLoadingMessage(
+                context.channelId,
+                context.threadTs,
+                "kb_generation"
+              );
+            } catch (loadingError) {
+              console.warn("[KB Generation Tool] Failed to post loading indicator:", loadingError);
+              // Continue without loading indicator
+            }
+
             const caseDetails = serviceNowClient.isConfigured()
               ? await serviceNowClient.getCase(caseNumber).catch(() => null)
               : null;
 
             const kbGenerator = getKBGenerator();
             const result = await kbGenerator.generateArticle(context, caseDetails);
+
+            // Update loading indicator to success
+            if (loadingTs) {
+              try {
+                await loadingIndicator.updateToSuccess(
+                  loadingTs,
+                  `KB article generated with ${result.confidence}% confidence`
+                );
+              } catch (loadingError) {
+                console.warn("[KB Generation Tool] Failed to update loading indicator:", loadingError);
+              }
+            }
 
             if (result.isDuplicate) {
               return {
@@ -645,6 +673,19 @@ export const generateResponse = async (
             };
           } catch (error) {
             console.error("KB generation error", error);
+
+            // Update loading indicator to error state
+            if (loadingTs) {
+              try {
+                await loadingIndicator.updateToError(
+                  loadingTs,
+                  error instanceof Error ? error.message : "Failed to generate KB article"
+                );
+              } catch (loadingError) {
+                console.warn("[KB Generation Tool] Failed to update loading indicator to error:", loadingError);
+              }
+            }
+
             return {
               error:
                 error instanceof Error

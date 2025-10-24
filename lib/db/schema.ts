@@ -15,6 +15,7 @@ import {
   uniqueIndex,
   primaryKey,
   real,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -273,6 +274,13 @@ export const caseClassificationResults = pgTable(
     // Service Portfolio Classification (NEW)
     serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
     applicationService: text("application_service"), // Specific application if Application Administration
+    // ITSM Record Creation Tracking (NEW - for idempotency)
+    incidentNumber: text("incident_number"), // Incident number created from this case (if any)
+    incidentSysId: text("incident_sys_id"), // Incident sys_id for direct linking
+    incidentUrl: text("incident_url"), // Full URL to incident in ServiceNow
+    problemNumber: text("problem_number"), // Problem number created from this case (if any)
+    problemSysId: text("problem_sys_id"), // Problem sys_id for direct linking
+    problemUrl: text("problem_url"), // Full URL to problem in ServiceNow
   },
   (table) => ({
     caseNumberIdx: index("idx_results_case_number").on(table.caseNumber),
@@ -609,3 +617,133 @@ export const cmdbReconciliationResults = pgTable(
 
 export type CmdbReconciliationResult = typeof cmdbReconciliationResults.$inferSelect;
 export type NewCmdbReconciliationResult = typeof cmdbReconciliationResults.$inferInsert;
+
+/**
+ * Call Interactions Table
+ * Stores metadata about voice interactions retrieved from Webex Contact Center
+ */
+export const callInteractions = pgTable(
+  "call_interactions",
+  {
+    sessionId: text("session_id").primaryKey(),
+    contactId: text("contact_id"),
+    caseNumber: text("case_number"),
+    direction: text("direction"),
+    ani: text("ani"),
+    dnis: text("dnis"),
+    agentId: text("agent_id"),
+    agentName: text("agent_name"),
+    queueName: text("queue_name"),
+    startTime: timestamp("start_time", { withTimezone: true }),
+    endTime: timestamp("end_time", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    wrapUpCode: text("wrap_up_code"),
+    recordingId: text("recording_id"),
+    transcriptStatus: text("transcript_status").notNull().default("pending"),
+    rawPayload: jsonb("raw_payload"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    // ServiceNow interaction tracking
+    servicenowInteractionSysId: text("servicenow_interaction_sys_id"),
+    servicenowInteractionNumber: text("servicenow_interaction_number"),
+    servicenowSyncedAt: timestamp("servicenow_synced_at", { withTimezone: true }),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_call_interactions_case").on(table.caseNumber),
+    startTimeIdx: index("idx_call_interactions_start").on(table.startTime),
+    transcriptStatusIdx: index("idx_call_interactions_transcript_status").on(table.transcriptStatus),
+    servicenowInteractionSysIdIdx: index("idx_call_interactions_sn_interaction").on(table.servicenowInteractionSysId),
+  })
+);
+
+/**
+ * Call Transcripts Table
+ * Tracks transcription lifecycle for recorded calls
+ */
+export const callTranscripts = pgTable(
+  "call_transcripts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: text("session_id")
+      .references(() => callInteractions.sessionId, { onDelete: "cascade" })
+      .notNull(),
+    provider: text("provider"),
+    status: text("status").notNull().default("pending"),
+    language: text("language"),
+    transcriptText: text("transcript_text"),
+    transcriptJson: jsonb("transcript_json"),
+    audioUrl: text("audio_url"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("idx_call_transcripts_status").on(table.status),
+    sessionUnique: uniqueIndex("uq_call_transcripts_session").on(table.sessionId),
+  })
+);
+
+export type CallInteraction = typeof callInteractions.$inferSelect;
+export type NewCallInteraction = typeof callInteractions.$inferInsert;
+export type CallTranscript = typeof callTranscripts.$inferSelect;
+export type NewCallTranscript = typeof callTranscripts.$inferInsert;
+
+/**
+ * Case Escalations Table
+ * Tracks non-BAU case escalations sent to Slack channels
+ * Used for tracking escalation history and preventing duplicate notifications
+ */
+export const caseEscalations = pgTable(
+  "case_escalations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    // Escalation trigger details
+    escalationReason: text("escalation_reason").notNull(), // e.g., "project_scope", "executive_visibility"
+    businessIntelligenceScore: integer("business_intelligence_score"), // 0-100 score at time of escalation
+    triggerFlags: jsonb("trigger_flags").$type<{
+      project_scope_detected?: boolean;
+      executive_visibility?: boolean;
+      compliance_impact?: boolean;
+      financial_impact?: boolean;
+    }>().default({}).notNull(),
+    // Slack notification details
+    slackChannel: text("slack_channel").notNull(), // Channel where escalation was posted (without #)
+    slackThreadTs: text("slack_thread_ts"), // Thread timestamp (if posted in thread)
+    slackMessageTs: text("slack_message_ts").notNull(), // Message timestamp
+    // Case context at time of escalation
+    assignedTo: text("assigned_to"), // Engineer assigned when escalated
+    assignmentGroup: text("assignment_group"), // Group assigned when escalated
+    companyName: text("company_name"), // Client name (from account_id)
+    category: text("category"), // Case category
+    subcategory: text("subcategory"), // Case subcategory
+    priority: text("priority"), // Priority level
+    urgency: text("urgency"), // Urgency level
+    // Escalation lifecycle tracking
+    status: text("status").notNull().default("active"), // active, acknowledged, dismissed, resolved
+    acknowledgedBy: text("acknowledged_by"), // Slack user_id who acknowledged
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    acknowledgedAction: text("acknowledged_action"), // e.g., "create_project", "acknowledge_bau"
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    // Metadata
+    llmGenerated: boolean("llm_generated").notNull().default(false), // Whether LLM was used for message
+    tokenUsage: integer("token_usage"), // Tokens used if LLM generated
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_escalations_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_escalations_case_sys_id").on(table.caseSysId),
+    statusIdx: index("idx_escalations_status").on(table.status),
+    channelIdx: index("idx_escalations_channel").on(table.slackChannel),
+    createdAtIdx: index("idx_escalations_created_at").on(table.createdAt),
+    // Composite index for finding active escalations for a case
+    activeCaseIdx: index("idx_escalations_active_case").on(table.caseNumber, table.status),
+  })
+);
+
+export type CaseEscalation = typeof caseEscalations.$inferSelect;
+export type NewCaseEscalation = typeof caseEscalations.$inferInsert;

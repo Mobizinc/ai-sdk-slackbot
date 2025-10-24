@@ -10,6 +10,7 @@ import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
+import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
 
 export interface KBArticle {
   title: string;
@@ -185,16 +186,32 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
         (context as any).channelPurpose
       );
 
-      const result = await generateText({
-        model: modelProvider.languageModel("kb-generator"),
-        system:
-          "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
-        prompt: enhancedPrompt,
-        tools: {
-          draft_kb_article: kbArticleTool,
-        },
-        toolChoice: { type: "tool", toolName: "draft_kb_article" },
-      });
+      // Wrap LLM call with timeout and fallback
+      const result = await withTimeout(
+        generateText({
+          model: modelProvider.languageModel("kb-generator"),
+          system:
+            "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
+          prompt: enhancedPrompt,
+          tools: {
+            draft_kb_article: kbArticleTool,
+          },
+          toolChoice: { type: "tool", toolName: "draft_kb_article" },
+        }),
+        config.llmKBGenerationTimeoutMs,
+        // Fallback to basic article on timeout
+        async () => {
+          console.warn(
+            `[KB Generator] LLM timeout (${config.llmKBGenerationTimeoutMs}ms) - using fallback template`
+          );
+          return null; // Will trigger fallback below
+        }
+      );
+
+      // Check if timeout fallback was used
+      if (!result) {
+        return this.createFallbackArticle(context, caseDetails);
+      }
 
       const toolResult = result.toolResults[0];
 
@@ -209,6 +226,13 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
         conversationSummary: parsed.conversationSummary ?? conversationSummary,
       };
     } catch (error) {
+      if (isTimeoutError(error)) {
+        console.error(
+          `[KB Generator] LLM timeout after ${error.timeoutMs}ms - using fallback template`
+        );
+        return this.createFallbackArticle(context, caseDetails);
+      }
+
       console.error("Error generating KB with LLM:", error);
 
       // Fallback: Create basic article from conversation
