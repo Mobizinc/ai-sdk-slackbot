@@ -27,68 +27,90 @@ async function runVercelMigrations() {
   try {
     const sql = neon(databaseUrl);
 
-    // Check and mark migration 0011 if columns already exist
-    console.log("🔍 Checking migration 0011 columns (service_offering, application_service)...");
-    const migration0011Check = await sql`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'case_classifications'
-      AND column_name = 'service_offering'
-    `;
+    // Check if migrations tracking table exists and has the correct schema
+    console.log("🔍 Checking migrations tracking table...");
+    let migrationsTableReady = false;
 
-    if (migration0011Check.length > 0) {
-      console.log("✅ Migration 0011 columns already exist");
-
-      const migration0011Tracked = await sql`
-        SELECT * FROM drizzle.__drizzle_migrations
-        WHERE tag = '0011_cute_skin'
+    try {
+      const tableCheck = await sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'drizzle'
+        AND table_name = '__drizzle_migrations'
+        AND column_name = 'tag'
       `;
-
-      if (migration0011Tracked.length === 0) {
-        console.log("📝 Marking migration 0011 as applied...");
-        const migrationPath = path.join(process.cwd(), "migrations", "0011_cute_skin.sql");
-        const migrationSQL = fs.readFileSync(migrationPath, "utf8");
-        const hash = crypto.createHash("sha256").update(migrationSQL).digest("hex");
-
-        await sql`
-          INSERT INTO drizzle.__drizzle_migrations (hash, created_at, tag)
-          VALUES (${hash}, ${Date.now()}, '0011_cute_skin')
-        `;
-
-        console.log("✅ Migration 0011 marked as applied");
-      }
+      migrationsTableReady = tableCheck.length > 0;
+    } catch (error) {
+      console.log("⚠️  Migrations table not yet initialized");
+      migrationsTableReady = false;
     }
 
-    // Check and mark migration 0014 if columns already exist
-    console.log("🔍 Checking migration 0014 columns (incident_number, problem_number, etc.)...");
-    const migration0014Check = await sql`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'case_classification_results'
-      AND column_name = 'incident_number'
-    `;
-
-    if (migration0014Check.length > 0) {
-      console.log("✅ Migration 0014 columns already exist");
-
-      const migration0014Tracked = await sql`
-        SELECT * FROM drizzle.__drizzle_migrations
-        WHERE tag = '0014_greedy_tusk'
+    if (migrationsTableReady) {
+      // Check and mark migration 0011 if columns already exist
+      console.log("🔍 Checking migration 0011 columns (service_offering, application_service)...");
+      const migration0011Check = await sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'case_classifications'
+        AND column_name = 'service_offering'
       `;
 
-      if (migration0014Tracked.length === 0) {
-        console.log("📝 Marking migration 0014 as applied...");
-        const migrationPath = path.join(process.cwd(), "migrations", "0014_greedy_tusk.sql");
-        const migrationSQL = fs.readFileSync(migrationPath, "utf8");
-        const hash = crypto.createHash("sha256").update(migrationSQL).digest("hex");
+      if (migration0011Check.length > 0) {
+        console.log("✅ Migration 0011 columns already exist");
 
-        await sql`
-          INSERT INTO drizzle.__drizzle_migrations (hash, created_at, tag)
-          VALUES (${hash}, ${Date.now()}, '0014_greedy_tusk')
+        const migration0011Tracked = await sql`
+          SELECT * FROM drizzle.__drizzle_migrations
+          WHERE tag = '0011_cute_skin'
         `;
 
-        console.log("✅ Migration 0014 marked as applied");
+        if (migration0011Tracked.length === 0) {
+          console.log("📝 Marking migration 0011 as applied...");
+          const migrationPath = path.join(process.cwd(), "migrations", "0011_cute_skin.sql");
+          const migrationSQL = fs.readFileSync(migrationPath, "utf8");
+          const hash = crypto.createHash("sha256").update(migrationSQL).digest("hex");
+
+          await sql`
+            INSERT INTO drizzle.__drizzle_migrations (hash, created_at, tag)
+            VALUES (${hash}, ${Date.now()}, '0011_cute_skin')
+          `;
+
+          console.log("✅ Migration 0011 marked as applied");
+        }
       }
+
+      // Check and mark migration 0014 if columns already exist
+      console.log("🔍 Checking migration 0014 columns (incident_number, problem_number, etc.)...");
+      const migration0014Check = await sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'case_classification_results'
+        AND column_name = 'incident_number'
+      `;
+
+      if (migration0014Check.length > 0) {
+        console.log("✅ Migration 0014 columns already exist");
+
+        const migration0014Tracked = await sql`
+          SELECT * FROM drizzle.__drizzle_migrations
+          WHERE tag = '0014_greedy_tusk'
+        `;
+
+        if (migration0014Tracked.length === 0) {
+          console.log("📝 Marking migration 0014 as applied...");
+          const migrationPath = path.join(process.cwd(), "migrations", "0014_greedy_tusk.sql");
+          const migrationSQL = fs.readFileSync(migrationPath, "utf8");
+          const hash = crypto.createHash("sha256").update(migrationSQL).digest("hex");
+
+          await sql`
+            INSERT INTO drizzle.__drizzle_migrations (hash, created_at, tag)
+            VALUES (${hash}, ${Date.now()}, '0014_greedy_tusk')
+          `;
+
+          console.log("✅ Migration 0014 marked as applied");
+        }
+      }
+    } else {
+      console.log("⏭️  Skipping migration checks - table will be initialized by migrate");
     }
 
     // Now run normal migrations
