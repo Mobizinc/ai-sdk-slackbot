@@ -1,0 +1,221 @@
+{
+  "tenant": {
+    "id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a",
+    "name": "Exceptional Emergency Center",
+    "domain": "altuscommunityhealthcare.onmicrosoft.com"
+  },
+  "discovered_at": "2025-10-15T22:51:00.326Z",
+  "vm_count": 13,
+  "resource_group_count": 20,
+  "vms": [
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/RG-EER-SCUS-PALOALTO-001/providers/Microsoft.Compute/virtualMachines/vm-eer-paloalto-firewall-001",
+      "name": "vm-eer-paloalto-firewall-001",
+      "resourceGroup": "RG-EER-SCUS-PALOALTO-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_F8s_v2",
+      "osType": "Linux",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.0.4",
+        "10.53.0.36",
+        "10.53.0.20",
+        "10.53.0.52"
+      ],
+      "publicIpAddresses": [
+        "4.151.90.158"
+      ],
+      "tags": {
+        "Client": "eer Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "eer",
+        "Purpose": "Palo Alto VM-Series Firewall"
+      }
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/RG-EER-SCUS-SHAREDSERVICES-001/providers/Microsoft.Compute/virtualMachines/EERADSYNC",
+      "name": "EERADSYNC",
+      "resourceGroup": "RG-EER-SCUS-SHAREDSERVICES-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.1.5"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/RG-EER-SCUS-SHAREDSERVICES-001/providers/Microsoft.Compute/virtualMachines/EERSNOWMID",
+      "name": "EERSNOWMID",
+      "resourceGroup": "RG-EER-SCUS-SHAREDSERVICES-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.1.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/RG-EER-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/EERDC01",
+      "name": "EERDC01",
+      "resourceGroup": "RG-EER-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.1.20"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/4bc35b20-9e96-4c19-a480-d47ec54d186d/resourceGroups/RG-EER-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/EERDC02",
+      "name": "EERDC02",
+      "resourceGroup": "RG-EER-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.1.21"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/901696f3-6cf0-4415-9c4e-d482ac8795cb/resourceGroups/RG-EER24-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AZMIGAPPv2",
+      "name": "AZMIGAPPv2",
+      "resourceGroup": "RG-EER24-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.53.2.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/AVDI/providers/Microsoft.Compute/virtualMachines/Domain",
+      "name": "Domain",
+      "resourceGroup": "AVDI",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.6"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/AVDI/providers/Microsoft.Compute/virtualMachines/EER-OnePACS-GW",
+      "name": "EER-OnePACS-GW",
+      "resourceGroup": "AVDI",
+      "location": "eastus",
+      "vmSize": "Standard_D4as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.25"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/AVDI/providers/Microsoft.Compute/virtualMachines/Fileserver-EER",
+      "name": "Fileserver-EER",
+      "resourceGroup": "AVDI",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Updating",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.5"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/AVDI/providers/Microsoft.Compute/virtualMachines/jumpserver-0",
+      "name": "jumpserver-0",
+      "resourceGroup": "AVDI",
+      "location": "eastus",
+      "vmSize": "Standard_D8s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {
+        "cm-resource-parent": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/Avdi/providers/Microsoft.DesktopVirtualization/Azurevdi"
+      }
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/RG-EER24-SCUS-AZMIG-01/providers/Microsoft.Compute/virtualMachines/AZMIGAPP01",
+      "name": "AZMIGAPP01",
+      "resourceGroup": "RG-EER24-SCUS-AZMIG-01",
+      "location": "eastus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.8"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/RG-EER24-SCUS-JMPBX-01/providers/Microsoft.Compute/virtualMachines/JMPBX-EER01",
+      "name": "JMPBX-EER01",
+      "resourceGroup": "RG-EER24-SCUS-JMPBX-01",
+      "location": "eastus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.0.7"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6c43d09f-e8d4-4d83-85cb-0fd545f4d356/resourceGroups/TEST/providers/Microsoft.Compute/virtualMachines/test-vapt",
+      "name": "test-vapt",
+      "resourceGroup": "TEST",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Linux",
+      "provisioningState": "Succeeded",
+      "powerState": "VM deallocated",
+      "privateIpAddresses": [
+        "10.1.0.6"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    }
+  ]
+}

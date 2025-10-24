@@ -1,42 +1,31 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  createMockMCPClient,
-  createMockSearchResponse,
-  createMockCodeSampleResponse,
-  createMockDocResponse,
-  createEmptyResponse,
-  createPlainTextResponse,
-  createErrorResponse,
-} from "./mocks/mcp-client";
+import { MicrosoftLearnMCPClient } from "../lib/tools/microsoft-learn-mcp";
 import {
   sampleDocResults,
   sampleCodeSamples,
   sampleFullDoc,
-  sampleErrors,
   samplePlainTextResponse,
+  sampleErrors,
 } from "./fixtures/microsoft-learn-responses";
 
-// Mock the MCP SDK modules
-vi.mock("@modelcontextprotocol/sdk/client/index.js");
-vi.mock("@modelcontextprotocol/sdk/client/sse.js");
+// Helper to build SSE payloads coming back from the MCP service
+const buildSSE = (payload: unknown) =>
+  `event: message\n` + `data: ${JSON.stringify(payload)}\n\n`;
+
+const buildJsonRpcResult = (result: unknown) =>
+  buildSSE({ jsonrpc: "2.0", id: 1, result });
+
+const buildJsonRpcError = (message: string) =>
+  buildSSE({ jsonrpc: "2.0", id: 1, error: { message } });
 
 describe("MicrosoftLearnMCPClient", () => {
-  let client: any;
-  let mockMCPClient: ReturnType<typeof createMockMCPClient>;
+  const fetchMock = vi.fn();
+  let client: MicrosoftLearnMCPClient;
 
-  beforeEach(async () => {
-    // Clear all mocks
-    vi.clearAllMocks();
-
-    // Create mock MCP client
-    mockMCPClient = createMockMCPClient();
-
-    // Mock the Client constructor to return our mock
-    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-    vi.mocked(Client).mockImplementation(() => mockMCPClient as any);
-
-    // Import the actual client class
-    const { MicrosoftLearnMCPClient } = await import("../lib/tools/microsoft-learn-mcp");
+  beforeEach(() => {
+    vi.resetAllMocks();
+    // @ts-expect-error override global fetch for tests
+    global.fetch = fetchMock;
     client = new MicrosoftLearnMCPClient();
   });
 
@@ -44,319 +33,216 @@ describe("MicrosoftLearnMCPClient", () => {
     vi.restoreAllMocks();
   });
 
+  const mockFetchResponse = (body: string, init: ResponseInit = { status: 200 }) => {
+    fetchMock.mockResolvedValue(
+      new Response(body, {
+        headers: { "Content-Type": "text/event-stream" },
+        ...init,
+      })
+    );
+  };
+
   describe("isAvailable", () => {
-    it("returns true for public MCP service", () => {
+    it("returns true because the MCP endpoint is public", () => {
       expect(client.isAvailable()).toBe(true);
     });
   });
 
   describe("searchDocs", () => {
-    it("successfully searches and returns documentation results", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults)
-      );
+    it("parses JSON results from the MCP endpoint", async () => {
+      const responsePayload = {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(sampleDocResults),
+          },
+        ],
+      };
 
-      const results = await client.searchDocs("Azure AD password reset", 3);
+      mockFetchResponse(buildJsonRpcResult(responsePayload));
 
-      expect(mockMCPClient.callTool).toHaveBeenCalledWith({
-        name: "microsoft_docs_search",
-        arguments: {
-          query: "Azure AD password reset",
-          limit: 3,
+      const results = await client.searchDocs("Azure AD password reset", 2);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] ?? [];
+      expect(JSON.parse((requestInit as RequestInit).body as string)).toMatchObject({
+        method: "tools/call",
+        params: {
+          name: "microsoft_docs_search",
+          arguments: { query: "Azure AD password reset" },
         },
       });
-
-      expect(results).toHaveLength(3);
-      expect(results[0]).toEqual({
-        title: "Reset Azure AD user password with PowerShell",
-        url: "https://learn.microsoft.com/en-us/powershell/module/azuread/set-azureaduserpassword",
-        content: expect.stringContaining("Set-AzureADUserPassword"),
-      });
-    });
-
-    it("respects the limit parameter", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults)
-      );
-
-      const results = await client.searchDocs("Azure", 2);
-
       expect(results).toHaveLength(2);
+      expect(results[0].title).toBe(sampleDocResults[0].title);
     });
 
-    it("returns empty array when no results found", async () => {
-      mockMCPClient.callTool.mockResolvedValue(createEmptyResponse());
+    it("returns empty array when no content is returned", async () => {
+      mockFetchResponse(buildJsonRpcResult({ content: [] }));
 
-      const results = await client.searchDocs("nonexistent query");
-
+      const results = await client.searchDocs("missing");
       expect(results).toEqual([]);
     });
 
-    it("handles plain text responses gracefully", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createPlainTextResponse(samplePlainTextResponse)
+    it("falls back to plain text when JSON parsing fails", async () => {
+      mockFetchResponse(
+        buildJsonRpcResult({
+          content: [{ type: "text", text: samplePlainTextResponse }],
+        })
       );
 
-      const results = await client.searchDocs("Microsoft Learn");
-
-      expect(results).toHaveLength(1);
-      expect(results[0]).toEqual({
-        title: "Microsoft Learn Documentation",
-        url: "",
-        content: samplePlainTextResponse,
-      });
+      const results = await client.searchDocs("plain");
+      expect(results).toEqual([
+        {
+          title: "Microsoft Learn Documentation",
+          url: "",
+          content: samplePlainTextResponse,
+        },
+      ]);
     });
 
-    it("handles malformed JSON gracefully", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createPlainTextResponse("{ invalid json")
-      );
-
-      const results = await client.searchDocs("test");
-
-      expect(results).toHaveLength(1);
-      expect(results[0].content).toBe("{ invalid json");
-    });
-
-    it("throws error on network failure", async () => {
-      mockMCPClient.callTool.mockImplementation(() =>
-        createErrorResponse(sampleErrors.networkError.message)
-      );
+    it("wraps network errors with a helpful message", async () => {
+      fetchMock.mockRejectedValue(sampleErrors.networkError);
 
       await expect(client.searchDocs("test")).rejects.toThrow(
-        "Failed to search Microsoft Learn docs"
-      );
-    });
-
-    it("handles connection failure gracefully", async () => {
-      // Force connection to fail
-      const failingMockClient = createMockMCPClient();
-      failingMockClient.connect.mockRejectedValue(new Error("Connection refused"));
-
-      const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-      vi.mocked(Client).mockImplementation(() => failingMockClient as any);
-
-      // Create new client instance that will fail to connect
-      const { MicrosoftLearnMCPClient } = await import("../lib/tools/microsoft-learn-mcp");
-      const failingClient = new MicrosoftLearnMCPClient();
-
-      await expect(failingClient.searchDocs("test")).rejects.toThrow(
-        "Failed to connect to Microsoft Learn MCP server"
+        /Failed to connect to Microsoft Learn MCP server: Network timeout/
       );
     });
   });
 
   describe("searchCode", () => {
-    it("successfully searches and returns code samples", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockCodeSampleResponse(sampleCodeSamples)
-      );
+    it("parses code samples", async () => {
+      const responsePayload = {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(sampleCodeSamples),
+          },
+        ],
+      };
 
-      const results = await client.searchCode("Azure PowerShell", "powershell", 2);
+      mockFetchResponse(buildJsonRpcResult(responsePayload));
 
-      expect(mockMCPClient.callTool).toHaveBeenCalledWith({
-        name: "microsoft_code_sample_search",
-        arguments: {
-          query: "Azure PowerShell",
-          language: "powershell",
-        },
-      });
+      const results = await client.searchCode("Azure PowerShell", "powershell", 1);
 
-      expect(results).toHaveLength(2);
-      expect(results[0]).toEqual({
-        title: "Reset Azure AD Password - PowerShell",
-        url: expect.stringContaining("microsoft.com"),
-        code: expect.stringContaining("Set-AzureADUserPassword"),
-        language: "powershell",
-      });
-    });
-
-    it("works without language filter", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockCodeSampleResponse(sampleCodeSamples)
-      );
-
-      const results = await client.searchCode("Azure code sample");
-
-      expect(mockMCPClient.callTool).toHaveBeenCalledWith({
-        name: "microsoft_code_sample_search",
-        arguments: {
-          query: "Azure code sample",
-          language: undefined,
-        },
-      });
-
-      expect(results).toHaveLength(2);
-    });
-
-    it("respects limit parameter", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockCodeSampleResponse(sampleCodeSamples)
-      );
-
-      const results = await client.searchCode("test", undefined, 1);
-
+      expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(results).toHaveLength(1);
+      expect(results[0].title).toBe(sampleCodeSamples[0].title);
+      expect(results[0].language).toBe("powershell");
     });
 
-    it("returns empty array when no code samples found", async () => {
-      mockMCPClient.callTool.mockResolvedValue(createEmptyResponse());
+    it("returns empty array when response has no content", async () => {
+      mockFetchResponse(buildJsonRpcResult({ content: [] }));
 
-      const results = await client.searchCode("nonexistent");
-
+      const results = await client.searchCode("missing");
       expect(results).toEqual([]);
     });
 
-    it("handles plain text code gracefully", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createPlainTextResponse("Get-AzureADUser")
+    it("treats plain text responses as a generic sample", async () => {
+      mockFetchResponse(
+        buildJsonRpcResult({
+          content: [{ type: "text", text: "Get-AzureADUser" }],
+        })
       );
 
-      const results = await client.searchCode("Azure", "powershell");
-
-      expect(results).toHaveLength(1);
-      expect(results[0].code).toBe("Get-AzureADUser");
-      expect(results[0].language).toBe("powershell");
+      const [sample] = await client.searchCode("Azure", "powershell");
+      expect(sample.code).toBe("Get-AzureADUser");
+      expect(sample.language).toBe("powershell");
     });
   });
 
   describe("fetchDoc", () => {
-    it("successfully fetches full documentation", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockDocResponse(sampleFullDoc)
-      );
+    it("fetches and formats documentation", async () => {
+      const responsePayload = {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(sampleFullDoc),
+          },
+        ],
+      };
+
+      mockFetchResponse(buildJsonRpcResult(responsePayload));
 
       const doc = await client.fetchDoc(
         "https://learn.microsoft.com/en-us/powershell/module/azuread/set-azureaduserpassword"
       );
 
-      expect(mockMCPClient.callTool).toHaveBeenCalledWith({
-        name: "microsoft_docs_fetch",
-        arguments: {
-          url: "https://learn.microsoft.com/en-us/powershell/module/azuread/set-azureaduserpassword",
-        },
-      });
-
-      expect(doc).toEqual({
-        title: "Set-AzureADUserPassword",
+      expect(doc).toMatchObject({
+        title: sampleFullDoc.title,
         url: "https://learn.microsoft.com/en-us/powershell/module/azuread/set-azureaduserpassword",
-        content: expect.stringContaining("Set-AzureADUserPassword"),
-        fullText: expect.stringContaining("## Synopsis"),
       });
     });
 
-    it("validates URL is from Microsoft Learn", async () => {
-      await expect(
-        client.fetchDoc("https://example.com/docs")
-      ).rejects.toThrow("URL must be from Microsoft Learn documentation");
+    it("validates Microsoft Learn URLs", async () => {
+      await expect(client.fetchDoc("https://example.com"))
+        .rejects.toThrow("URL must be from Microsoft Learn documentation");
     });
 
-    it("accepts microsoft.com URLs", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockDocResponse(sampleFullDoc)
-      );
-
-      const doc = await client.fetchDoc("https://microsoft.com/docs/azure");
-
-      expect(doc).toBeTruthy();
-    });
-
-    it("returns null when no content found", async () => {
-      mockMCPClient.callTool.mockResolvedValue(createEmptyResponse());
+    it("returns null when no content is returned", async () => {
+      mockFetchResponse(buildJsonRpcResult({ content: [] }));
 
       const doc = await client.fetchDoc("https://learn.microsoft.com/en-us/azure");
-
       expect(doc).toBeNull();
     });
 
-    it("handles markdown/text responses", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createPlainTextResponse("# Azure Documentation\n\nSample content here.")
+    it("handles plain text documentation", async () => {
+      const markdown = "# Azure\nSample";
+      mockFetchResponse(
+        buildJsonRpcResult({
+          content: [{ type: "text", text: markdown }],
+        })
       );
 
       const doc = await client.fetchDoc("https://learn.microsoft.com/en-us/azure");
-
       expect(doc).toEqual({
         title: "Microsoft Learn Documentation",
         url: "https://learn.microsoft.com/en-us/azure",
-        content: expect.stringContaining("Azure"),
-        fullText: "# Azure Documentation\n\nSample content here.",
+        content: markdown,
+        fullText: markdown,
       });
     });
   });
 
   describe("searchAndFormat", () => {
-    it("formats search results for Slack", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults.slice(0, 1))
-      );
+    it("formats Slack copy when results exist", async () => {
+      const responsePayload = {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(sampleDocResults.slice(0, 1)),
+          },
+        ],
+      };
 
-      const formatted = await client.searchAndFormat("Azure password reset");
+      mockFetchResponse(buildJsonRpcResult(responsePayload));
 
-      expect(formatted).toContain("📚 *Microsoft Learn Documentation");
-      expect(formatted).toContain("Reset Azure AD user password");
-      expect(formatted).toContain("🔗 https://learn.microsoft.com");
+      const message = await client.searchAndFormat("Azure password reset");
+
+      expect(message).toContain("📚 *Microsoft Learn Documentation for \"Azure password reset\":*");
+      expect(message).toContain(sampleDocResults[0].title);
     });
 
-    it("returns message when no results found", async () => {
-      mockMCPClient.callTool.mockResolvedValue(createEmptyResponse());
+    it("returns friendly message when nothing is found", async () => {
+      mockFetchResponse(buildJsonRpcResult({ content: [] }));
 
-      const formatted = await client.searchAndFormat("nonexistent");
-
-      expect(formatted).toContain('No Microsoft Learn documentation found for "nonexistent"');
+      const message = await client.searchAndFormat("nonexistent");
+      expect(message).toContain('No Microsoft Learn documentation found for "nonexistent"');
     });
 
-    it("handles errors gracefully", async () => {
-      mockMCPClient.callTool.mockImplementation(() =>
-        createErrorResponse("Network error")
-      );
+    it("surfaces errors from the service", async () => {
+      mockFetchResponse(buildJsonRpcError("Service unavailable"));
 
-      const formatted = await client.searchAndFormat("test");
-
-      expect(formatted).toContain("Error searching Microsoft Learn");
-      expect(formatted).toContain("Network error");
+      const message = await client.searchAndFormat("test");
+      expect(message).toContain("Error searching Microsoft Learn");
+      expect(message).toContain("Service unavailable");
     });
   });
 
-  describe("connection lifecycle", () => {
-    it("connects to MCP server on first search", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults)
-      );
+  describe("error handling", () => {
+    it("throws when the HTTP call fails", async () => {
+      mockFetchResponse("Server error", { status: 500, statusText: "Server Error" });
 
-      await client.searchDocs("test");
-
-      expect(mockMCPClient.connect).toHaveBeenCalledTimes(1);
-    });
-
-    it("disconnects from MCP server", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults)
-      );
-
-      await client.searchDocs("test");
-      await client.disconnect();
-
-      expect(mockMCPClient.close).toHaveBeenCalledTimes(1);
-    });
-
-    it("handles disconnect errors gracefully", async () => {
-      mockMCPClient.close.mockRejectedValue(new Error("Disconnect failed"));
-
-      // Should not throw
-      await expect(client.disconnect()).resolves.toBeUndefined();
-    });
-
-    it("reuses existing connection for multiple searches", async () => {
-      mockMCPClient.callTool.mockResolvedValue(
-        createMockSearchResponse(sampleDocResults)
-      );
-
-      await client.searchDocs("test1");
-      await client.searchDocs("test2");
-
-      // Should only connect once
-      expect(mockMCPClient.connect).toHaveBeenCalledTimes(1);
+      await expect(client.searchDocs("test")).rejects.toThrow(/HTTP 500/);
     });
   });
 });

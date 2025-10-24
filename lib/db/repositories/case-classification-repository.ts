@@ -130,6 +130,51 @@ export class CaseClassificationRepository {
   }
 
   /**
+   * Check if a case was recently processed (for idempotency)
+   * Returns the recent classification if found within the time window
+   *
+   * @param caseNumber - Case number to check
+   * @param withinMinutes - Time window in minutes (default: 10)
+   * @returns Recent classification result if found within time window, undefined otherwise
+   */
+  async getRecentClassificationForIdempotency(
+    caseNumber: string,
+    withinMinutes: number = 10
+  ): Promise<CaseClassificationResults | undefined> {
+    const db = getDb();
+    if (!db) return undefined;
+
+    try {
+      const cutoffTime = new Date();
+      cutoffTime.setMinutes(cutoffTime.getMinutes() - withinMinutes);
+
+      const result = await db
+        .select()
+        .from(caseClassificationResults)
+        .where(
+          and(
+            eq(caseClassificationResults.caseNumber, caseNumber),
+            gt(caseClassificationResults.createdAt, cutoffTime)
+          )
+        )
+        .orderBy(desc(caseClassificationResults.createdAt))
+        .limit(1);
+
+      if (result[0]) {
+        const ageMinutes = Math.round((Date.now() - result[0].createdAt.getTime()) / 60000);
+        console.log(
+          `[DB] Found recent classification for case ${caseNumber} (${ageMinutes} minutes old) - idempotency check`
+        );
+      }
+
+      return result[0];
+    } catch (error) {
+      console.error(`[DB] Error checking recent classification for case ${caseNumber}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
    * Get classification results by workflow ID
    */
   async getClassificationsByWorkflow(workflowId: string, limit: number = 10): Promise<CaseClassificationResults[]> {

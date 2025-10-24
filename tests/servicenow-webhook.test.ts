@@ -1,499 +1,277 @@
-/**
- * ServiceNow Webhook Tests
- * Tests for the ServiceNow case triage webhook endpoint
- */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { POST, GET } from '../api/servicenow-webhook';
-import { server } from './setup';
-import { http } from 'msw';
+const ORIGINAL_ENV = { ...process.env };
 
-// Mock the services
-vi.mock('../lib/services/case-classifier');
-vi.mock('../lib/services/business-context-service');
-vi.mock('../lib/services/entity-extractor');
-vi.mock('../lib/services/business-intelligence');
-vi.mock('../lib/services/kb-article-search');
-vi.mock('../lib/services/work-note-formatter');
-vi.mock('../lib/services/azure-search');
-vi.mock('../lib/tools/servicenow');
-
-import { getCaseClassifier } from '../lib/services/case-classifier';
-import { getBusinessContextService } from '../lib/services/business-context-service';
-import { extractTechnicalEntities } from '../lib/services/entity-extractor';
-import { analyzeBusinessIntelligence } from '../lib/services/business-intelligence';
-import { searchKBArticles } from '../lib/services/kb-article-search';
-import { formatWorkNote } from '../lib/services/work-note-formatter';
-import { createAzureSearchService } from '../lib/services/azure-search';
-import { serviceNowClient } from '../lib/tools/servicenow';
-
-// Mock data
-const mockCaseData = {
-  case_number: 'CASE0010001',
-  sys_id: 'sys123456789',
-  short_description: 'User cannot access email',
-  description: 'User reports unable to access Outlook email for the past 2 hours',
-  priority: '2',
-  urgency: 'High',
-  state: 'New',
-  assignment_group: 'IT Support',
-  company: 'Acme Corp',
-  company_name: 'Acme Corporation',
-  current_category: 'Email Issue',
-  sys_created_on: '2025-01-10T10:00:00Z',
-  contact_type: 'Self-service',
-  caller_id: 'user123',
+const triageMock = {
+  triageCase: vi.fn(),
+  testConnectivity: vi.fn(),
+  getTriageStats: vi.fn(),
 };
 
-const mockClassification = {
-  category: 'Email & Collaboration',
-  subcategory: 'Email Access Issue',
-  confidence_score: 0.92,
-  reasoning: 'User reports email access problems, clearly falls under Email & Collaboration category',
-  keywords: ['email', 'outlook', 'access', 'unable'],
-  quick_summary: 'User cannot access Outlook email for past 2 hours. Issue appears to be related to email authentication or connectivity. Requires immediate investigation.',
-  immediate_next_steps: ['Check user account status', 'Verify email service health', 'Contact user for troubleshooting'],
-  urgency_level: 'High',
+const qstashModuleMock = {
+  getQStashClient: vi.fn(),
+  getWorkerUrl: vi.fn((path: string) => `https://worker${path}`),
+  isQStashEnabled: vi.fn(() => false),
 };
 
-const mockTechnicalEntities = {
-  ip_addresses: [],
-  systems: [],
-  users: ['user123'],
-  software: ['Outlook'],
-  error_codes: [],
-};
+vi.mock("../lib/services/case-triage", () => ({
+  getCaseTriageService: () => triageMock,
+}));
 
-const mockBusinessIntelligence = {
-  project_scope_detected: false,
-  outside_service_hours: false,
-  executive_visibility: false,
-  compliance_impact: false,
-  financial_impact: false,
-};
+vi.mock("../lib/queue/qstash-client", () => qstashModuleMock);
 
-const mockSimilarCases = [
-  {
-    case_number: 'CASE0009999',
-    content: 'Outlook access denied',
-    score: 0.85,
-  },
-];
+let POST: typeof import("../api/servicenow-webhook").POST;
+let GET: typeof import("../api/servicenow-webhook").GET;
 
-const mockKBArticles = [
-  {
-    kb_number: 'KB0012345',
-    title: 'How to troubleshoot Outlook access issues',
-    similarity_score: 0.9,
-    url: 'https://kb.example.com/outlook-troubleshoot',
-  },
-];
+async function reloadApiModule() {
+  vi.resetModules();
+  const mod = await import("../api/servicenow-webhook");
+  POST = mod.POST;
+  GET = mod.GET;
+}
 
-const mockWorkNote = 'AI Classification: Email & Collaboration - Email Access Issue (Confidence: 92%)';
-
-describe('ServiceNow Webhook', () => {
-  beforeEach(() => {
+describe("ServiceNow Webhook", () => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    
-    // Setup default mocks
-    vi.mocked(getCaseClassifier).mockReturnValue({
-      classifyCase: vi.fn().mockResolvedValue(mockClassification),
-    } as any);
 
-    vi.mocked(getBusinessContextService).mockReturnValue({
-      getContextForCompany: vi.fn().mockResolvedValue({
-        entityName: 'Acme Corporation',
-        industry: 'Technology',
-        criticality: 'High',
-      }),
-    } as any);
+    for (const key of Object.keys(process.env)) {
+      if (!(key in ORIGINAL_ENV)) {
+        delete process.env[key];
+      }
+    }
+    for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
+      process.env[key] = value;
+    }
 
-    vi.mocked(extractTechnicalEntities).mockReturnValue(mockTechnicalEntities);
-    vi.mocked(analyzeBusinessIntelligence).mockResolvedValue(mockBusinessIntelligence);
-    vi.mocked(searchKBArticles).mockResolvedValue(mockKBArticles);
-    vi.mocked(formatWorkNote).mockReturnValue(mockWorkNote);
+    process.env.ENABLE_CASE_CLASSIFICATION = "true";
+    process.env.ENABLE_ASYNC_TRIAGE = "false";
 
-    vi.mocked(createAzureSearchService).mockReturnValue({
-      searchSimilarCases: vi.fn().mockResolvedValue(mockSimilarCases),
-    } as any);
+    triageMock.triageCase.mockResolvedValue({
+      caseNumber: "CASE0010001",
+      caseSysId: "sys123",
+      workflowId: "default",
+      classification: {
+        category: "Email & Collaboration",
+        subcategory: "Email Access Issue",
+        confidence_score: 0.92,
+        urgency_level: "High",
+        reasoning: "Mock reasoning",
+        quick_summary: "Summary",
+        immediate_next_steps: ["Step"],
+        technical_entities: {},
+        business_intelligence: {},
+        record_type_suggestion: null,
+      },
+      similarCases: [],
+      kbArticles: [],
+      servicenowUpdated: true,
+      updateError: undefined,
+      processingTimeMs: 123,
+      entitiesDiscovered: 2,
+      cached: false,
+      cacheReason: undefined,
+      incidentCreated: false,
+      incidentNumber: undefined,
+      incidentSysId: undefined,
+      incidentUrl: undefined,
+      recordTypeSuggestion: undefined,
+      catalogRedirected: false,
+      catalogRedirectReason: undefined,
+      catalogItemsProvided: 0,
+    });
 
-    vi.mocked(serviceNowClient.isConfigured).mockReturnValue(true);
+    triageMock.testConnectivity.mockResolvedValue({
+      azureSearch: true,
+      database: true,
+      serviceNow: true,
+    });
+
+    triageMock.getTriageStats.mockResolvedValue({
+      totalCases: 12,
+      averageProcessingTime: 1111,
+      averageConfidence: 0.87,
+      cacheHitRate: 0.4,
+      topWorkflows: [],
+    });
+
+    qstashModuleMock.getQStashClient.mockReturnValue(null);
+    qstashModuleMock.getWorkerUrl.mockImplementation((path: string) => `https://worker${path}`);
+    qstashModuleMock.isQStashEnabled.mockReturnValue(false);
+
+    await reloadApiModule();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('POST /api/servicenow-webhook', () => {
-    it('should process a valid ServiceNow webhook request', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.case_number).toBe('CASE0010001');
-      expect(data.classification.category).toBe('Email & Collaboration');
-      expect(data.classification.confidence_score).toBe(0.92);
-      expect(data.servicenow_updated).toBe(true);
-      expect(data.processing_time_ms).toBeGreaterThan(0);
+  const buildRequest = (body: unknown, init: RequestInit = {}) =>
+    new Request("http://localhost/api/servicenow-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(init.headers || {}) },
+      body:
+        typeof body === "string"
+          ? body
+          : JSON.stringify(body),
+      ...init,
     });
 
-    it('should handle requests with missing optional fields', async () => {
-      const minimalCaseData = {
-        case_number: 'CASE0010002',
-        sys_id: 'sys123456790',
-        short_description: 'Password reset needed',
-      };
+  it("returns 503 when classification is disabled", async () => {
+    process.env.ENABLE_CASE_CLASSIFICATION = "false";
+    await reloadApiModule();
 
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(minimalCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.case_number).toBe('CASE0010002');
-      expect(data.classification).toBeDefined();
-    });
-
-    it('should return 400 for invalid request body', async () => {
-      const invalidData = {
-        case_number: 'CASE0010003',
-        // Missing required sys_id and short_description
-      };
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(invalidData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid request body');
-      expect(data.details).toBeDefined();
-    });
-
-    it('should return 401 for invalid webhook signature when secret is configured', async () => {
-      // Set webhook secret
-      process.env.SERVICENOW_WEBHOOK_SECRET = 'test-secret';
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Missing signature header
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid webhook signature');
-
-      // Clean up
-      delete process.env.SERVICENOW_WEBHOOK_SECRET;
-    });
-
-    it('should skip classification when disabled', async () => {
-      process.env.ENABLE_CASE_CLASSIFICATION = 'false';
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.classification).toBeNull();
-      expect(data.skipped).toBe(true);
-      expect(data.reason).toBe('Classification disabled');
-
-      // Clean up
-      delete process.env.ENABLE_CASE_CLASSIFICATION;
-    });
-
-    it('should handle classification service errors gracefully', async () => {
-      vi.mocked(getCaseClassifier).mockReturnValue({
-        classifyCase: vi.fn().mockRejectedValue(new Error('AI service unavailable')),
-      } as any);
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      // Should use fallback classification
-      expect(data.classification).toBeDefined();
-      expect(data.classification.confidence_score).toBeLessThan(0.5);
-    });
-
-    it('should not write work notes when disabled', async () => {
-      process.env.CASE_CLASSIFICATION_WRITE_NOTES = 'false';
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.servicenow_updated).toBe(false);
-
-      // Clean up
-      delete process.env.CASE_CLASSIFICATION_WRITE_NOTES;
-    });
-
-    it('should handle ServiceNow write errors gracefully', async () => {
-      // Mock ServiceNow API failure
-      server.use(
-        http.patch('https://example.service-now.com/api/now/table/*', () => {
-          return new Response(JSON.stringify({ error: 'ServiceNow API error' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        })
-      );
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.servicenow_updated).toBe(false);
-      // Classification should still succeed
-      expect(data.classification).toBeDefined();
-    });
-
-    it('should handle Azure Search errors gracefully', async () => {
-      vi.mocked(createAzureSearchService).mockReturnValue({
-        searchSimilarCases: vi.fn().mockRejectedValue(new Error('Azure Search unavailable')),
-      } as any);
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.similar_cases).toEqual([]);
-      // Other functionality should still work
-      expect(data.classification).toBeDefined();
-    });
-
-    it('should handle KB search errors gracefully', async () => {
-      vi.mocked(searchKBArticles).mockRejectedValue(new Error('KB search unavailable'));
-
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.kb_articles).toEqual([]);
-      // Other functionality should still work
-      expect(data.classification).toBeDefined();
-    });
-
-    it('should include all classification components in response', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      
-      // Check all components are included
-      expect(data.classification.technical_entities).toEqual(mockTechnicalEntities);
-      expect(data.classification.business_intelligence).toEqual(mockBusinessIntelligence);
-      expect(data.similar_cases).toEqual(mockSimilarCases);
-      expect(data.kb_articles).toEqual(mockKBArticles);
-      
-      // Check work note was formatted
-      expect(formatWorkNote).toHaveBeenCalledWith({
-        ...mockClassification,
-        technical_entities: mockTechnicalEntities,
-        business_intelligence: mockBusinessIntelligence,
-        similar_cases: mockSimilarCases,
-        kb_articles: mockKBArticles,
-      });
-    });
-
-    it('should handle malformed JSON in request body', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: 'invalid json',
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.error).toBe('Internal server error');
-    });
+    const response = await POST(
+      buildRequest({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "User cannot access email",
+      })
+    );
+    expect(response.status).toBe(503);
   });
 
-  describe('GET /api/servicenow-webhook', () => {
-    it('should return health check information', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook');
-      const response = await GET();
-      const data = await response.json();
+  it("processes a valid webhook synchronously", async () => {
+    const response = await POST(
+      buildRequest({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "User cannot access email",
+      })
+    );
+    const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.status).toBe('ok');
-      expect(data.service).toBe('ServiceNow Webhook');
-      expect(data.version).toBe('1.0.0');
-      expect(data.timestamp).toBeDefined();
-    });
+    expect(response.status).toBe(200);
+    expect(data.case_number).toBe("CASE0010001");
+    expect(data.classification.category).toBe("Email & Collaboration");
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
   });
 
-  describe('Webhook Signature Validation', () => {
-    beforeEach(() => {
-      process.env.SERVICENOW_WEBHOOK_SECRET = 'test-secret';
-    });
-
-    afterEach(() => {
-      delete process.env.SERVICENOW_WEBHOOK_SECRET;
-    });
-
-    it('should accept requests with signature header', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-servicenow-signature': 'test-signature',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(200);
-    });
-
-    it('should reject requests without signature header when secret is configured', async () => {
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(401);
-    });
+  it("returns 422 when payload fails validation", async () => {
+    const response = await POST(buildRequest({ case_number: "ONLY" }));
+    expect(response.status).toBe(422);
   });
 
-  describe('ServiceNow Integration', () => {
-    it('should use correct ServiceNow configuration', async () => {
-      process.env.SERVICENOW_INSTANCE_URL = 'https://test.service-now.com';
-      process.env.SERVICENOW_CASE_TABLE = 'custom_case_table';
+  it("returns 400 for invalid JSON body", async () => {
+    const request = new Request("http://localhost/api/servicenow-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+  });
 
-      // Mock successful ServiceNow response
-      server.use(
-        http.patch('https://test.service-now.com/api/now/table/custom_case_table/*', () => {
-          return new Response(JSON.stringify({ result: 'success' }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          });
-        })
-      );
+  it("parses payload containing control characters", async () => {
+    const rawPayload = '{"case_number":"CASE0010001","sys_id":"sys123","short_description":"Hello\u0002World"}';
 
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(mockCaseData),
-      });
+    const response = await POST(
+      buildRequest(rawPayload, { headers: { "Content-Type": "application/json" } })
+    );
 
-      const response = await POST(request);
-      expect(response.status).toBe(200);
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
 
-      // Clean up
-      delete process.env.SERVICENOW_INSTANCE_URL;
-      delete process.env.SERVICENOW_CASE_TABLE;
+  it("parses base64 encoded payloads", async () => {
+    const jsonPayload = JSON.stringify({
+      case_number: "CASE0010001",
+      sys_id: "sys123",
+      short_description: "Base64 payload",
+    });
+    const base64Payload = Buffer.from(jsonPayload, "utf8").toString("base64");
+
+    const response = await POST(
+      buildRequest(base64Payload, { headers: { "Content-Type": "text/plain" } })
+    );
+
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("parses x-www-form-urlencoded payloads", async () => {
+    const params = new URLSearchParams();
+    params.set(
+      "payload",
+      JSON.stringify({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "URLEncoded payload",
+      })
+    );
+
+    const request = new Request("http://localhost/api/servicenow-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
     });
 
-    it('should handle missing ServiceNow configuration', async () => {
-      vi.mocked(serviceNowClient.isConfigured).mockReturnValue(false);
+    const response = await POST(request);
 
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    expect(response.status).toBe(200);
+    expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates secrets when configured", async () => {
+    process.env.SERVICENOW_WEBHOOK_SECRET = "secret";
+    await reloadApiModule();
+
+    const response = await POST(
+      buildRequest(
+        {
+          case_number: "CASE0010001",
+          sys_id: "sys123",
+          short_description: "Test",
         },
-        body: JSON.stringify(mockCaseData),
-      });
+        { headers: { "x-api-key": "secret" } }
+      )
+    );
 
-      const response = await POST(request);
-      const data = await response.json();
+    expect(response.status).toBe(200);
+  });
 
-      expect(response.status).toBe(200);
-      expect(data.servicenow_updated).toBe(false);
-    });
+  it("rejects unauthenticated requests when secret is set", async () => {
+    process.env.SERVICENOW_WEBHOOK_SECRET = "secret";
+    await reloadApiModule();
+
+    const response = await POST(
+      buildRequest({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "Test",
+      })
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("queues cases when async triage is enabled", async () => {
+    process.env.ENABLE_ASYNC_TRIAGE = "true";
+    qstashModuleMock.isQStashEnabled.mockReturnValue(true);
+    const publish = vi.fn().mockResolvedValue(undefined);
+    qstashModuleMock.getQStashClient.mockReturnValue({ publishJSON: publish });
+    await reloadApiModule();
+
+    const response = await POST(
+      buildRequest({
+        case_number: "CASE0010001",
+        sys_id: "sys123",
+        short_description: "User cannot access email",
+      })
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(202);
+    expect(data.queued).toBe(true);
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(triageMock.triageCase).not.toHaveBeenCalled();
+  });
+
+  it("reports healthy status from GET endpoint", async () => {
+    const response = await GET();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.status).toBe("healthy");
+    expect(data.connectivity.azure_search).toBe(true);
   });
 });

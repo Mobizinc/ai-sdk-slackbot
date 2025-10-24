@@ -1,0 +1,505 @@
+[
+  {
+    "attested_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "parent": {
+      "display_value": "Flex SC",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmdb_ci_service/1ab4c803872f75100f79caec0ebb3520",
+      "value": "1ab4c803872f75100f79caec0ebb3520"
+    },
+    "operational_status": {
+      "display_value": "Operational",
+      "value": "1"
+    },
+    "consumer_type": {
+      "display_value": "Internal",
+      "value": "internal"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-05-15 00:00:08",
+      "value": "2025-05-15 07:00:08"
+    },
+    "total_vulnerable_items": {
+      "display_value": "",
+      "value": ""
+    },
+    "billing": {
+      "display_value": "Monthly",
+      "value": "monthly"
+    },
+    "number": {
+      "display_value": "BSN0001025",
+      "value": "BSN0001025"
+    },
+    "published_ref": {
+      "display_value": "",
+      "value": ""
+    },
+    "discovery_source": {
+      "display_value": null,
+      "value": ""
+    },
+    "first_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "due_in": {
+      "display_value": null,
+      "value": ""
+    },
+    "price": {
+      "display_value": "$0.00",
+      "currency_display_value": "USD;0.00",
+      "value": "0"
+    },
+    "used_for": {
+      "display_value": "Production",
+      "value": "Production"
+    },
+    "state": {
+      "display_value": null,
+      "value": ""
+    },
+    "gl_account": {
+      "display_value": "",
+      "value": ""
+    },
+    "invoice_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "AKummail@mobizinc.com",
+      "value": "AKummail@mobizinc.com"
+    },
+    "order": {
+      "display_value": "",
+      "value": ""
+    },
+    "warranty_expiration": {
+      "display_value": "",
+      "value": ""
+    },
+    "vulnerability_risk_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "contract": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla": {
+      "display_value": "",
+      "value": ""
+    },
+    "owned_by": {
+      "display_value": "Igor Kochetkov",
+      "link": "https://mobizdev.service-now.com/api/now/table/sys_user/959c6b6f8790dd100fadcbb6dabb3516",
+      "value": "959c6b6f8790dd100fadcbb6dabb3516"
+    },
+    "checked_out": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain_path": {
+      "display_value": "/",
+      "value": "/"
+    },
+    "business_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "version": {
+      "display_value": "",
+      "value": ""
+    },
+    "maintenance_schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "technical_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_center": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "dns_domain": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_status": {
+      "display_value": "Requirements",
+      "value": "requirements"
+    },
+    "assigned": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage": {
+      "display_value": "",
+      "value": ""
+    },
+    "portfolio_status": {
+      "display_value": "Pipeline",
+      "value": "pipeline"
+    },
+    "purchase_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_need": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "",
+      "value": ""
+    },
+    "busines_criticality": {
+      "display_value": "2 - somewhat critical",
+      "value": "2 - somewhat critical"
+    },
+    "managed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "stakeholders": {
+      "display_value": "",
+      "value": ""
+    },
+    "can_print": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "last_discovered": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_owner_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Offering",
+      "value": "service_offering"
+    },
+    "manufacturer": {
+      "display_value": "",
+      "value": ""
+    },
+    "life_cycle_stage_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "",
+      "value": ""
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "serial_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_taxonomy_node": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_unit": {
+      "display_value": "",
+      "value": ""
+    },
+    "support_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "unverified": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "attributes": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset": {
+      "display_value": "",
+      "value": ""
+    },
+    "skip_sync": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "aliases": {
+      "display_value": "",
+      "value": ""
+    },
+    "product_instance_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_score": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_domain": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "service_level_requirement": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_updated_by": {
+      "display_value": "system",
+      "value": "system"
+    },
+    "sys_created_on": {
+      "display_value": "2025-01-14 06:14:10",
+      "value": "2025-01-14 14:14:10"
+    },
+    "sys_domain": {
+      "display_value": "global",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/global",
+      "value": "global"
+    },
+    "install_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "monitoring_requirements": {
+      "display_value": "",
+      "value": ""
+    },
+    "asset_tag": {
+      "display_value": "",
+      "value": ""
+    },
+    "user_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "fqdn": {
+      "display_value": "",
+      "value": ""
+    },
+    "spm_service_portfolio": {
+      "display_value": "",
+      "value": ""
+    },
+    "change_control": {
+      "display_value": "",
+      "value": ""
+    },
+    "unit_description": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_relation_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "last_review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "compatibility_dependencies": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "install_status": {
+      "display_value": "Installed",
+      "value": "1"
+    },
+    "supported_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "name": {
+      "display_value": "Altus Community Healthcare",
+      "value": "Altus Community Healthcare"
+    },
+    "subcategory": {
+      "display_value": "",
+      "value": ""
+    },
+    "price_model": {
+      "display_value": "Per Unit",
+      "value": "per_unit"
+    },
+    "assignment_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "description": {
+      "display_value": "",
+      "value": ""
+    },
+    "managed_by_group": {
+      "display_value": "",
+      "value": ""
+    },
+    "prerequisites": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "f382ded2c34b52501302560fb00131f2",
+      "value": "f382ded2c34b52501302560fb00131f2"
+    },
+    "po_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "checked_in": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_path": {
+      "display_value": "/!!/!7/!$",
+      "value": "/!!/!7/!$"
+    },
+    "mac_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "company": {
+      "display_value": "",
+      "value": ""
+    },
+    "justification": {
+      "display_value": "",
+      "value": ""
+    },
+    "department": {
+      "display_value": "",
+      "value": ""
+    },
+    "checkout": {
+      "display_value": null,
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost": {
+      "display_value": "",
+      "value": ""
+    },
+    "attestation_status": {
+      "display_value": "Not Yet Reviewed",
+      "value": "Not Yet Reviewed"
+    },
+    "cmdb_ot_entity": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "4",
+      "value": "4"
+    },
+    "monitor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "ip_address": {
+      "display_value": "",
+      "value": ""
+    },
+    "model_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "duplicate_of": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cost_cc": {
+      "display_value": "USD",
+      "value": "USD"
+    },
+    "order_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "schedule": {
+      "display_value": "",
+      "value": ""
+    },
+    "environment": {
+      "display_value": null,
+      "value": ""
+    },
+    "due": {
+      "display_value": "",
+      "value": ""
+    },
+    "attested": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "link": "https://mobizdev.service-now.com/api/now/table/cmn_location/444444",
+      "value": "444444"
+    },
+    "category": {
+      "display_value": "",
+      "value": ""
+    },
+    "fault_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "lease_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "service_classification": {
+      "display_value": "Application Service",
+      "value": "Application Service"
+    }
+  }
+]

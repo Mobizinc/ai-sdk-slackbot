@@ -11,63 +11,26 @@
  * 3. Return success (QStash marks complete) or throw error (QStash retries)
  */
 
-import { Receiver } from '@upstash/qstash';
 import { getCaseTriageService } from '../../lib/services/case-triage';
 import {
   validateServiceNowWebhook,
   type ServiceNowCaseWebhook,
 } from '../../lib/schemas/servicenow-webhook';
-import { getSigningKeys } from '../../lib/queue/qstash-client';
+import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
+import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
+const classificationRepository = getCaseClassificationRepository();
 
 // Configuration
 const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
-
-/**
- * Verify QStash signature
- * @param signature - The upstash-signature header value
- * @param body - The raw request body string
- */
-async function verifyQStashRequest(
-  signature: string | null,
-  body: string
-): Promise<boolean> {
-  const { current, next } = getSigningKeys();
-
-  if (!current || !next) {
-    console.warn('[Worker] QStash signing keys not configured - skipping signature verification');
-    return true; // Allow in development
-  }
-
-  if (!signature) {
-    console.error('[Worker] Missing upstash-signature header');
-    return false;
-  }
-
-  try {
-    const receiver = new Receiver({
-      currentSigningKey: current,
-      nextSigningKey: next,
-    });
-
-    const isValid = await receiver.verify({
-      signature,
-      body,
-    });
-
-    return isValid;
-  } catch (error) {
-    console.error('[Worker] QStash signature verification failed:', error);
-    return false;
-  }
-}
+const IDEMPOTENCY_WINDOW_MINUTES = parseInt(process.env.IDEMPOTENCY_WINDOW_MINUTES || '10', 10);
 
 /**
  * Process case triage (async worker)
  */
-export async function POST(request: Request) {
+async function postWorkerImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -77,9 +40,24 @@ export async function POST(request: Request) {
     // Get signature from headers
     const signature = request.headers.get('upstash-signature');
 
-    // Verify QStash signature (pass body and signature)
-    const isValidSignature = await verifyQStashRequest(signature, body);
-    if (!isValidSignature) {
+    const qstashEnabled = isQStashEnabled();
+
+    if (qstashEnabled) {
+      const signingKeys = getSigningKeys();
+      const isValidSignature = verifyQStashSignature(signature, signingKeys.current || '', body);
+      if (!isValidSignature) {
+        console.warn('[Worker] Invalid QStash signature - rejecting request');
+        return Response.json(
+          { error: 'Invalid signature' },
+          { status: 401 }
+        );
+      }
+    } else if (!signature) {
+      console.warn('[Worker] QStash disabled - processing without signature');
+    }
+
+    if (qstashEnabled && !signature) {
+      console.error('[Worker] Missing upstash-signature header');
       console.warn('[Worker] Invalid QStash signature - rejecting request');
       return Response.json(
         { error: 'Invalid signature' },
@@ -88,11 +66,37 @@ export async function POST(request: Request) {
     }
 
     // Parse webhook data from QStash message
-    const messageData = JSON.parse(body);
+    let messageData: unknown;
+    if (!body) {
+      console.error('[Worker] Missing request body');
+      return Response.json(
+        { success: false, error: 'Invalid JSON' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      messageData = JSON.parse(body);
+    } catch (error) {
+      console.error('[Worker] Failed to parse JSON body:', error);
+      return Response.json(
+        { success: false, error: 'Invalid JSON' },
+        { status: 400 }
+      );
+    }
 
     // Extract the actual webhook payload
     // QStash wraps the message, so we need to get the body
-    const webhookData: ServiceNowCaseWebhook = messageData.body || messageData;
+    const rawWebhook = (messageData as any)?.body ?? messageData;
+
+    if (!rawWebhook) {
+      return Response.json(
+        { success: false, error: 'Invalid JSON' },
+        { status: 400 }
+      );
+    }
+
+    const webhookData: ServiceNowCaseWebhook = rawWebhook as ServiceNowCaseWebhook;
 
     // Validate schema
     const validationResult = validateServiceNowWebhook(webhookData);
@@ -116,7 +120,45 @@ export async function POST(request: Request) {
       `[Worker] Processing case ${caseNumber} (QStash message: ${messageId})`
     );
 
-    // Execute full triage workflow (no timeout constraints here)
+    // ============================================================================
+    // IDEMPOTENCY CHECK: Skip processing if case was recently classified
+    // ============================================================================
+    // This prevents duplicate work notes when:
+    // 1. Webhook is sent multiple times (testing, network retries, etc.)
+    // 2. QStash retries failed requests
+    // 3. ServiceNow sends duplicate webhooks on case updates
+    //
+    // Default window: 10 minutes (configurable via IDEMPOTENCY_WINDOW_MINUTES)
+    const recentClassification = await classificationRepository.getRecentClassificationForIdempotency(
+      caseNumber,
+      IDEMPOTENCY_WINDOW_MINUTES
+    );
+
+    if (recentClassification) {
+      const ageMinutes = Math.round((Date.now() - recentClassification.createdAt.getTime()) / 60000);
+      console.info(
+        `[Worker] ⏭️  Skipping case ${caseNumber} - already processed ${ageMinutes} minutes ago ` +
+        `(idempotency window: ${IDEMPOTENCY_WINDOW_MINUTES} minutes)`
+      );
+
+      // Return success with idempotency flag - this prevents duplicate processing
+      return Response.json({
+        success: true,
+        case_number: caseNumber,
+        processing_time_ms: Date.now() - startTime,
+        classification: recentClassification.classificationJson,
+        servicenow_updated: recentClassification.servicenowUpdated,
+        cached: true, // Mark as cached since we're reusing recent result
+        idempotent: true, // Flag indicating this was an idempotent response
+        skipped_reason: `Already processed ${ageMinutes} minutes ago`,
+        previous_processing_time_ms: recentClassification.processingTimeMs,
+      });
+    }
+
+    // ============================================================================
+    // EXECUTE FULL TRIAGE WORKFLOW
+    // ============================================================================
+    // No recent classification found - proceed with normal processing
     const triageResult = await caseTriageService.triageCase(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
@@ -128,29 +170,29 @@ export async function POST(request: Request) {
 
     const processingTime = Date.now() - startTime;
 
-    console.info(
-      `[Worker] Case ${triageResult.caseNumber} processed successfully in ${processingTime}ms | ` +
-      `Classification: ${triageResult.classification.category}` +
-      `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
-      ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
-      `${triageResult.cached ? ' [CACHED]' : ''}` +
-      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}`
-    );
+    if (triageResult) {
+      console.info(
+        `[Worker] Case ${triageResult.caseNumber} processed successfully in ${processingTime}ms | ` +
+        `Classification: ${triageResult.classification.category}` +
+        `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
+        ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
+        `${triageResult.cached ? ' [CACHED]' : ''}` +
+        `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}`
+      );
+    } else {
+      console.warn('[Worker] Case triage returned no result payload');
+    }
 
     // Return success - QStash will mark message as completed
     return Response.json({
       success: true,
-      case_number: triageResult.caseNumber,
+      case_number: triageResult?.caseNumber ?? (webhookData as any)?.case_number ?? null,
       processing_time_ms: processingTime,
-      classification: {
-        category: triageResult.classification.category,
-        subcategory: triageResult.classification.subcategory,
-        confidence_score: triageResult.classification.confidence_score,
-      },
-      servicenow_updated: triageResult.servicenowUpdated,
-      cached: triageResult.cached,
-      incident_created: triageResult.incidentCreated,
-      incident_number: triageResult.incidentNumber,
+      classification: triageResult?.classification ?? null,
+      servicenow_updated: triageResult?.servicenowUpdated ?? false,
+      cached: triageResult?.cached ?? false,
+      incident_created: triageResult?.incidentCreated ?? false,
+      incident_number: triageResult?.incidentNumber ?? null,
     });
 
   } catch (error) {
@@ -162,7 +204,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         success: false,
-        error: 'Processing failed',
+        error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',
         processing_time_ms: processingTime,
       },
@@ -170,6 +212,8 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = postWorkerImpl;
 
 /**
  * Health check for worker

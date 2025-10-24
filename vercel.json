@@ -12,12 +12,40 @@
     },
     "api/servicenow-webhook.ts": {
       "maxDuration": 180
+    },
+    "api/cron/case-queue-snapshot.ts": {
+      "maxDuration": 60
+    },
+    "api/cron/case-queue-report.ts": {
+      "maxDuration": 60
+    },
+    "api/cron/case-leaderboard.ts": {
+      "maxDuration": 60
+    },
+    "api/cron/sync-categories.ts": {
+      "maxDuration": 180
     }
   },
   "crons": [
     {
       "path": "/api/cron/cleanup-workflows",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/case-queue-snapshot",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/case-queue-report",
+      "schedule": "15 9 * * *"
+    },
+    {
+      "path": "/api/cron/case-leaderboard",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/cron/sync-categories",
+      "schedule": "0 0,12 * * *"
     }
   ]
 }

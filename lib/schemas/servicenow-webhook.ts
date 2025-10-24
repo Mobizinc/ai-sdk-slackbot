@@ -29,15 +29,24 @@ export const ServiceNowCaseWebhookSchema = z.object({
   assignment_group_sys_id: z.string().optional().describe("Assigned group sys_id"),
   assigned_to: z.string().optional().describe("Assigned user"),
   caller_id: z.string().optional().describe("Case caller/requester"),
+  contact: z.string().optional().describe("Customer contact sys_id"),
   contact_type: z.string().optional().describe("How case was created"),
   company: z.string().optional().describe("Customer company sys_id"),
   account_id: z.string().optional().describe("Customer account sys_id"),
+  account: z.string().optional().describe("Customer account sys_id (alternative field)"),
+  location: z.string().optional().describe("Physical location sys_id"),
   opened_at: z.coerce.date().optional().describe("Case creation timestamp"),
+  opened_by: z.string().optional().describe("User who opened the case"),
 
   // Additional metadata
   configuration_item: z.string().optional().describe("Related CI from CMDB"),
+  cmdb_ci: z.string().optional().describe("Related CI from CMDB (actual ServiceNow field name)"),
   business_service: z.string().optional().describe("Related business service"),
   additional_comments: z.string().optional().describe("Additional notes"),
+
+  // Multi-tenancy / Domain separation
+  sys_domain: z.string().optional().describe("ServiceNow domain sys_id (for MSP multi-tenancy)"),
+  sys_domain_path: z.string().optional().describe("ServiceNow domain path (for MSP multi-tenancy)"),
 
   // Routing context for workflow determination
   routing_context: z
@@ -147,6 +156,9 @@ export const SimilarCaseResultSchema = z.object({
   client_id: z.string().optional(),
   client_name: z.string().optional(),
   same_client: z.boolean().optional(),
+  // Date fields for recency filtering and display
+  opened_at: z.string().optional().describe("Case creation date (ISO 8601)"),
+  sys_created_on: z.string().optional().describe("ServiceNow creation timestamp (fallback field)"),
 });
 
 export type SimilarCaseResult = z.infer<typeof SimilarCaseResultSchema>;

@@ -326,7 +326,49 @@ export class BusinessContextService {
   }
 
   /**
-   * Search contexts by criteria
+   * Search business contexts by entity value (name or alias)
+   */
+  public async searchContextsByEntity(entityValue: string): Promise<BusinessContextInfo[]> {
+    const repository = getBusinessContextRepository();
+    
+    try {
+      const allContexts = await repository.getAllActive();
+      const lowerEntityValue = entityValue.toLowerCase();
+      
+      const matchingContexts = allContexts.filter(context => {
+        // Check exact name match
+        if (context.entityName.toLowerCase() === lowerEntityValue) {
+          return true;
+        }
+        
+        // Check alias matches
+        return context.aliases.some(alias => 
+          alias.toLowerCase() === lowerEntityValue
+        );
+      });
+      
+      return matchingContexts.map(context => ({
+        entityName: context.entityName,
+        entityType: context.entityType,
+        description: context.description || undefined,
+        industry: context.industry || undefined,
+        technologyPortfolio: context.technologyPortfolio || undefined,
+        serviceDetails: context.serviceDetails || undefined,
+        keyContacts: context.keyContacts,
+        slackChannels: context.slackChannels,
+        cmdbIdentifiers: context.cmdbIdentifiers,
+        contextStewards: context.contextStewards,
+        aliases: context.aliases,
+        relatedEntities: context.relatedEntities
+      }));
+    } catch (error) {
+      console.error("[BusinessContext] Error searching contexts by entity:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Search business contexts by various criteria
    */
   public async searchContexts(criteria: {
     entityType?: string;

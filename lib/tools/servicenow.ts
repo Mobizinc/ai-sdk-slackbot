@@ -10,6 +10,7 @@ interface ServiceNowConfig {
   caseTable?: string;
   caseJournalName?: string;
   ciTable?: string;
+  taskTable?: string;
 }
 
 const config: ServiceNowConfig = {
@@ -23,6 +24,7 @@ const config: ServiceNowConfig = {
     process.env.SERVICENOW_CASE_JOURNAL_NAME?.trim() ||
     "x_mobit_serv_case_service_case",
   ciTable: process.env.SERVICENOW_CI_TABLE?.trim() || "cmdb_ci",
+  taskTable: process.env.SERVICENOW_TASK_TABLE?.trim() || "sn_customerservice_task",
 };
 
 function detectAuthMode(): ServiceNowAuthMode | null {
@@ -102,6 +104,17 @@ function extractDisplayValue(field: any): string {
   return String(field);
 }
 
+/**
+ * Extract reference sys_id from ServiceNow reference field
+ * Reference fields return as { value: "sys_id", display_value: "name", link: "url" }
+ */
+function extractReferenceSysId(field: any): string | undefined {
+  if (!field) return undefined;
+  if (typeof field === "string") return field; // Already a sys_id
+  if (typeof field === "object" && field.value) return field.value; // Extract sys_id from reference
+  return undefined;
+}
+
 function normalizeIpAddresses(field: any): string[] {
   if (!field) return [];
   if (Array.isArray(field)) {
@@ -120,11 +133,36 @@ function normalizeIpAddresses(field: any): string[] {
     .filter((value) => Boolean(value));
 }
 
+function pad(value: number): string {
+  return value.toString().padStart(2, "0");
+}
+
+function formatDateForServiceNow(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = pad(date.getUTCMonth() + 1);
+  const day = pad(date.getUTCDate());
+  const hours = pad(date.getUTCHours());
+  const minutes = pad(date.getUTCMinutes());
+  const seconds = pad(date.getUTCSeconds());
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export interface ServiceNowIncidentResult {
   number: string;
   sys_id: string;
   short_description: string;
   state?: string;
+  url: string;
+}
+
+export interface ServiceNowIncidentSummary {
+  sys_id: string;
+  number: string;
+  short_description?: string;
+  state?: string;
+  resolved_at?: string;
+  close_code?: string;
+  parent?: string;
   url: string;
 }
 
@@ -155,6 +193,8 @@ export interface ServiceNowCaseResult {
   opened_by?: string;
   caller_id?: string;
   submitted_by?: string;
+  contact?: string; // Reference to customer_contact table (sys_id)
+  account?: string; // Reference to customer_account table (sys_id)
   url?: string;
 }
 
@@ -166,6 +206,16 @@ export interface ServiceNowCaseJournalEntry {
   sys_created_on: string;
   sys_created_by: string;
   value?: string;
+}
+
+export interface ServiceNowCatalogItem {
+  sys_id: string;
+  name: string;
+  short_description?: string;
+  description?: string;
+  category?: string;
+  active: boolean;
+  url: string;
 }
 
 export interface ServiceNowConfigurationItem {
@@ -197,6 +247,47 @@ export interface ServiceNowCaseSummary {
   url: string;
 }
 
+export interface ServiceNowBusinessService {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  url: string;
+}
+
+export interface ServiceNowServiceOffering {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  parent_name?: string;
+  url: string;
+}
+
+export interface ServiceNowWorkNote {
+  sys_id: string;
+  element_id: string;
+  value: string;
+  sys_created_on: string;
+  sys_created_by?: string;
+}
+
+export interface ServiceNowApplicationService {
+  sys_id: string;
+  name: string;
+  description?: string;
+  parent?: string;
+  parent_name?: string;
+  url: string;
+}
+
+export interface ServiceNowCustomerAccount {
+  sys_id: string;
+  number: string;
+  name: string;
+  url: string;
+}
+
 export class ServiceNowClient {
   public isConfigured(): boolean {
     return Boolean(config.instanceUrl && detectAuthMode());
@@ -213,6 +304,150 @@ export class ServiceNowClient {
     return {
       ...incident,
       url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
+    };
+  }
+
+  public async getResolvedIncidents(options: {
+    limit?: number;
+    olderThanMinutes?: number;
+    requireParentCase?: boolean;
+    requireEmptyCloseCode?: boolean;
+  } = {}): Promise<ServiceNowIncidentSummary[]> {
+    const limit = options.limit ?? 50;
+    const queryParts: string[] = ["state=6", "active=true"];
+
+    if (options.requireParentCase !== false) {
+      queryParts.push("parentISNOTEMPTY");
+    }
+
+    if (options.requireEmptyCloseCode !== false) {
+      queryParts.push("close_codeISEMPTY");
+    }
+
+    if (options.olderThanMinutes && options.olderThanMinutes > 0) {
+      queryParts.push(`resolved_atRELATIVELE@minute@ago@${Math.floor(options.olderThanMinutes)}`);
+    }
+
+    const query = queryParts.join("^");
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}&sysparm_fields=${fields.join(
+        ",",
+      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+    );
+
+    const incidents = data.result ?? [];
+
+    return incidents.map((record) => {
+      const sysId = extractDisplayValue(record.sys_id);
+      return {
+        sys_id: sysId,
+        number: extractDisplayValue(record.number),
+        short_description: extractDisplayValue(record.short_description) || undefined,
+        state: extractDisplayValue(record.state) || undefined,
+        resolved_at: extractDisplayValue(record.resolved_at) || undefined,
+        close_code: extractDisplayValue(record.close_code) || undefined,
+        parent: extractDisplayValue(record.parent) || undefined,
+        url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+      } satisfies ServiceNowIncidentSummary;
+    });
+  }
+
+  /**
+   * Get incident by parent case sys_id
+   * Used to check if an incident already exists for a case before creating a duplicate
+   */
+  public async getIncidentByParentCase(
+    caseSysId: string
+  ): Promise<ServiceNowIncidentSummary | null> {
+    const query = `parent=${caseSysId}`;
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}` +
+      `&sysparm_fields=${fields.join(",")}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result?.length) return null;
+
+    const incident = data.result[0];
+    const sysId = extractDisplayValue(incident.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(incident.number),
+      short_description: extractDisplayValue(incident.short_description) || undefined,
+      state: extractDisplayValue(incident.state) || undefined,
+      resolved_at: extractDisplayValue(incident.resolved_at) || undefined,
+      close_code: extractDisplayValue(incident.close_code) || undefined,
+      parent: extractDisplayValue(incident.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+    } satisfies ServiceNowIncidentSummary;
+  }
+
+  /**
+   * Get problem by parent case sys_id
+   * Used to check if a problem already exists for a case before creating a duplicate
+   */
+  public async getProblemByParentCase(
+    caseSysId: string
+  ): Promise<{
+    sys_id: string;
+    number: string;
+    short_description?: string;
+    state?: string;
+    parent?: string;
+    url: string;
+  } | null> {
+    const query = `parent=${caseSysId}`;
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/problem?sysparm_query=${encodeURIComponent(query)}` +
+      `&sysparm_fields=${fields.join(",")}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result?.length) return null;
+
+    const problem = data.result[0];
+    const sysId = extractDisplayValue(problem.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(problem.number),
+      short_description: extractDisplayValue(problem.short_description) || undefined,
+      state: extractDisplayValue(problem.state) || undefined,
+      parent: extractDisplayValue(problem.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${sysId}`,
     };
   }
 
@@ -273,6 +508,43 @@ export class ServiceNowClient {
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+    };
+  }
+
+  public async getCaseBySysId(sysId: string): Promise<ServiceNowCaseResult | null> {
+    const table = config.caseTable ?? "sn_customerservice_case";
+    const data = await request<{
+      result: Array<any>;
+    }>(
+      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
+        `sys_id=${sysId}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) return null;
+
+    const raw = data.result[0];
+
+    return {
+      sys_id: extractDisplayValue(raw.sys_id),
+      number: extractDisplayValue(raw.number),
+      short_description: extractDisplayValue(raw.short_description),
+      description: extractDisplayValue(raw.description),
+      priority: extractDisplayValue(raw.priority),
+      state: extractDisplayValue(raw.state),
+      category: extractDisplayValue(raw.category),
+      subcategory: extractDisplayValue(raw.subcategory),
+      opened_at: extractDisplayValue(raw.opened_at),
+      assignment_group: extractDisplayValue(raw.assignment_group),
+      assigned_to: extractDisplayValue(raw.assigned_to),
+      opened_by: extractDisplayValue(raw.opened_by),
+      caller_id: extractDisplayValue(raw.caller_id),
+      submitted_by: extractDisplayValue(raw.submitted_by),
+      contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
+      account: extractReferenceSysId(raw.account), // Extract account sys_id
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
+        raw.sys_id,
+      )}`,
     };
   }
 
@@ -388,13 +660,27 @@ export class ServiceNowClient {
       query?: string;
       limit?: number;
       activeOnly?: boolean;
+      priority?: string;
+      state?: string;
+      assignmentGroup?: string;
+      assignedTo?: string;
+      openedAfter?: string;
+      openedBefore?: string;
+      sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<ServiceNowCaseSummary[]> {
     const table = config.caseTable ?? "sn_customerservice_case";
-    const limit = input.limit ?? 5;
+    const limit = input.limit ?? 25; // Increased default from 5 to 25
 
-    const queryParts: string[] = ["ORDERBYDESCopened_at"];
+    const queryParts: string[] = [];
 
+    // Sort configuration
+    const sortField = input.sortBy || 'opened_at';
+    const sortDirection = input.sortOrder === 'asc' ? '' : 'DESC';
+    queryParts.push(`ORDERBY${sortDirection}${sortField}`);
+
+    // Filter conditions
     if (input.accountName) {
       queryParts.push(`account.nameLIKE${input.accountName}`);
     }
@@ -404,11 +690,41 @@ export class ServiceNowClient {
     }
 
     if (input.query) {
-      queryParts.push(`short_descriptionLIKE${input.query}`);
+      queryParts.push(`short_descriptionLIKE${input.query}^ORdescriptionLIKE${input.query}`);
     }
 
-    if (input.activeOnly) {
-      queryParts.push("active=true");
+    if (input.priority) {
+      queryParts.push(`priority=${input.priority}`);
+    }
+
+    if (input.state) {
+      queryParts.push(`state=${input.state}`);
+    }
+
+    if (input.assignmentGroup) {
+      queryParts.push(`assignment_group.nameLIKE${input.assignmentGroup}`);
+    }
+
+    if (input.assignedTo) {
+      queryParts.push(`assigned_to.nameLIKE${input.assignedTo}`);
+    }
+
+    if (input.openedAfter) {
+      queryParts.push(`opened_at>${input.openedAfter}`);
+    }
+
+    if (input.openedBefore) {
+      queryParts.push(`opened_at<${input.openedBefore}`);
+    }
+
+    // Active/closed filter
+    if (input.activeOnly !== undefined) {
+      queryParts.push(`active=${input.activeOnly ? 'true' : 'false'}`);
+    }
+
+    // If no filters specified (only sort parameter), default to active cases only
+    if (queryParts.length === 1 && queryParts[0].startsWith('ORDERBY')) { // Only sort parameter
+      queryParts.push('active=true');
     }
 
     const query = queryParts.join("^");
@@ -485,6 +801,77 @@ export class ServiceNowClient {
     await this.addCaseWorkNote(sysId, comment, false);
   }
 
+  public async addIncidentWorkNote(
+    incidentSysId: string,
+    workNote: string,
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({ work_notes: workNote }),
+    });
+  }
+
+  public async getVoiceWorkNotesSince(options: {
+    since: Date;
+    limit?: number;
+  }): Promise<ServiceNowWorkNote[]> {
+    const sinceString = formatDateForServiceNow(options.since);
+    const limit = options.limit ?? 200;
+
+    const queryParts = [
+      "element=work_notes",
+      `sys_created_on>=${sinceString}`,
+      "valueLIKECall",
+      "valueLIKESession ID",
+    ];
+
+    const query = queryParts.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sys_journal_field?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_limit=${limit}&sysparm_display_value=all&sysparm_fields=sys_id,element_id,value,sys_created_on,sys_created_by`,
+    );
+
+    return (data.result ?? []).map((row) => ({
+      sys_id: extractDisplayValue(row.sys_id),
+      element_id: extractDisplayValue(row.element_id),
+      value: extractDisplayValue(row.value) || "",
+      sys_created_on: extractDisplayValue(row.sys_created_on) || "",
+      sys_created_by: extractDisplayValue(row.sys_created_by) || undefined,
+    }));
+  }
+
+  public async closeIncident(
+    incidentSysId: string,
+    options: {
+      closeCode?: string;
+      closeNotes?: string;
+      additionalUpdates?: Record<string, unknown>;
+    } = {},
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    const payload: Record<string, unknown> = {
+      state: "7", // Closed
+      active: false,
+      close_code: options.closeCode ?? "Solved Remotely (Permanently)",
+      close_notes:
+        options.closeNotes ??
+        "Automatically closed after remaining in Resolved state during scheduled incident audit.",
+      ...options.additionalUpdates,
+    };
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
   /**
    * Create Incident from Case
    * Implements ITSM best practice: service disruptions become Incident records
@@ -502,7 +889,22 @@ export class ServiceNowClient {
     priority?: string;
     callerId?: string;
     assignmentGroup?: string;
+    assignedTo?: string;
     isMajorIncident?: boolean;
+    // Company/Account context (prevents orphaned incidents)
+    company?: string;
+    account?: string;
+    businessService?: string;
+    location?: string;
+    // Contact information
+    contact?: string;
+    contactType?: string;
+    openedBy?: string;
+    // Technical context
+    cmdbCi?: string;
+    // Multi-tenancy / Domain separation
+    sysDomain?: string;
+    sysDomainPath?: string;
   }): Promise<{
     incident_number: string;
     incident_sys_id: string;
@@ -514,8 +916,6 @@ export class ServiceNowClient {
     const payload: Record<string, any> = {
       short_description: input.shortDescription,
       description: input.description || input.shortDescription,
-      category: input.category,
-      subcategory: input.subcategory,
       urgency: input.urgency || "3", // Default to medium urgency
       priority: input.priority || "3", // Default to medium priority
       caller_id: input.callerId,
@@ -525,6 +925,57 @@ export class ServiceNowClient {
       // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
     };
+
+    // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
+    if (input.category) {
+      payload.category = input.category;
+    }
+    if (input.subcategory) {
+      payload.subcategory = input.subcategory;
+    }
+
+    // Add assigned_to if provided (user explicitly assigned to case)
+    if (input.assignedTo) {
+      payload.assigned_to = input.assignedTo;
+    }
+
+    // Add company/account context (prevents orphaned incidents)
+    if (input.company) {
+      payload.company = input.company;
+    }
+    if (input.account) {
+      payload.account = input.account;
+    }
+    if (input.businessService) {
+      payload.business_service = input.businessService;
+    }
+    if (input.location) {
+      payload.location = input.location;
+    }
+
+    // Add contact information
+    if (input.contact) {
+      payload.contact = input.contact;
+    }
+    if (input.contactType) {
+      payload.contact_type = input.contactType;
+    }
+    if (input.openedBy) {
+      payload.opened_by = input.openedBy;
+    }
+
+    // Add technical context
+    if (input.cmdbCi) {
+      payload.cmdb_ci = input.cmdbCi;
+    }
+
+    // Add multi-tenancy / domain separation
+    if (input.sysDomain) {
+      payload.sys_domain = input.sysDomain;
+    }
+    if (input.sysDomainPath) {
+      payload.sys_domain_path = input.sysDomainPath;
+    }
 
     // Set severity for major incidents
     if (input.isMajorIncident) {
@@ -552,6 +1003,140 @@ export class ServiceNowClient {
       incident_number: incident.number,
       incident_sys_id: incident.sys_id,
       incident_url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
+    };
+  }
+
+  /**
+   * Create Problem from Case
+   * Implements ITSM best practice: recurring issues requiring root cause analysis become Problem records
+   *
+   * Problems differ from Incidents:
+   * - Incidents: Unplanned service disruptions requiring immediate restoration
+   * - Problems: Root cause investigations for recurring/potential incidents
+   */
+  public async createProblemFromCase(input: {
+    caseSysId: string;
+    caseNumber: string;
+    category?: string;
+    subcategory?: string;
+    shortDescription: string;
+    description?: string;
+    urgency?: string;
+    priority?: string;
+    callerId?: string;
+    assignmentGroup?: string;
+    assignedTo?: string;
+    firstReportedBy?: string;
+    // Company/Account context (prevents orphaned problems)
+    company?: string;
+    account?: string;
+    businessService?: string;
+    location?: string;
+    // Contact information
+    contact?: string;
+    contactType?: string;
+    openedBy?: string;
+    // Technical context
+    cmdbCi?: string;
+    // Multi-tenancy / Domain separation
+    sysDomain?: string;
+    sysDomainPath?: string;
+  }): Promise<{
+    problem_number: string;
+    problem_sys_id: string;
+    problem_url: string;
+  }> {
+    const table = "problem";
+
+    // Build problem payload
+    const payload: Record<string, any> = {
+      short_description: input.shortDescription,
+      description: input.description || input.shortDescription,
+      urgency: input.urgency || "3", // Default to medium urgency
+      priority: input.priority || "3", // Default to medium priority
+      caller_id: input.callerId,
+      assignment_group: input.assignmentGroup,
+      // Link to parent Case
+      parent: input.caseSysId,
+      // Add work notes documenting source
+      work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this requires root cause analysis via problem management.`,
+    };
+
+    // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
+    if (input.category) {
+      payload.category = input.category;
+    }
+    if (input.subcategory) {
+      payload.subcategory = input.subcategory;
+    }
+
+    // Add assigned_to if provided (user explicitly assigned to case)
+    if (input.assignedTo) {
+      payload.assigned_to = input.assignedTo;
+    }
+
+    // Add first_reported_by_task if provided (task that first reported this problem)
+    if (input.firstReportedBy) {
+      payload.first_reported_by_task = input.firstReportedBy;
+    }
+
+    // Add company/account context (prevents orphaned problems)
+    if (input.company) {
+      payload.company = input.company;
+    }
+    if (input.account) {
+      payload.account = input.account;
+    }
+    if (input.businessService) {
+      payload.business_service = input.businessService;
+    }
+    if (input.location) {
+      payload.location = input.location;
+    }
+
+    // Add contact information
+    if (input.contact) {
+      payload.contact = input.contact;
+    }
+    if (input.contactType) {
+      payload.contact_type = input.contactType;
+    }
+    if (input.openedBy) {
+      payload.opened_by = input.openedBy;
+    }
+
+    // Add technical context
+    if (input.cmdbCi) {
+      payload.cmdb_ci = input.cmdbCi;
+    }
+
+    // Add multi-tenancy / domain separation
+    if (input.sysDomain) {
+      payload.sys_domain = input.sysDomain;
+    }
+    if (input.sysDomainPath) {
+      payload.sys_domain_path = input.sysDomainPath;
+    }
+
+    // Create problem via ServiceNow Table API
+    const response = await request<{ result: any }>(
+      `/api/now/table/${table}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const problem = response.result;
+
+    console.log(
+      `[ServiceNow] Created Problem ${problem.number} from Case ${input.caseNumber}`
+    );
+
+    return {
+      problem_number: problem.number,
+      problem_sys_id: problem.sys_id,
+      problem_url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
     };
   }
 
@@ -642,6 +1227,325 @@ export class ServiceNowClient {
   }
 
   /**
+   * Get catalog items from Service Catalog
+   */
+  public async getCatalogItems(input: {
+    category?: string;
+    keywords?: string[];
+    active?: boolean;
+    limit?: number;
+  }): Promise<ServiceNowCatalogItem[]> {
+    const limit = input.limit ?? 10;
+    const queryParts: string[] = [];
+
+    // Filter by active status (default to active only)
+    if (input.active !== false) {
+      queryParts.push('active=true');
+    }
+
+    // Filter by category
+    if (input.category) {
+      queryParts.push(`category.nameLIKE${input.category}`);
+    }
+
+    // Keyword search in name and short description
+    if (input.keywords && input.keywords.length > 0) {
+      const keywordQuery = input.keywords
+        .map(keyword => `nameLIKE${keyword}^ORshort_descriptionLIKE${keyword}`)
+        .join('^OR');
+      queryParts.push(`(${keywordQuery})`);
+    }
+
+    const query = queryParts.length > 0 ? queryParts.join('^') : 'active=true';
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
+        query
+      )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=sys_id,name,short_description,description,category,active,order`
+    );
+
+    return data.result.map((item) => {
+      const sysId = extractDisplayValue(item.sys_id);
+      return {
+        sys_id: sysId,
+        name: extractDisplayValue(item.name) || 'Untitled',
+        short_description: extractDisplayValue(item.short_description) || undefined,
+        description: extractDisplayValue(item.description) || undefined,
+        category: extractDisplayValue(item.category) || undefined,
+        active: extractDisplayValue(item.active) === 'true',
+        url: this.getCatalogItemUrl(sysId),
+      } satisfies ServiceNowCatalogItem;
+    });
+  }
+
+  /**
+   * Get a specific catalog item by name
+   */
+  public async getCatalogItemByName(name: string): Promise<ServiceNowCatalogItem | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sc_cat_item?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1&sysparm_fields=sys_id,name,short_description,description,category,active,order`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const item = data.result[0];
+    const sysId = extractDisplayValue(item.sys_id);
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(item.name) || 'Untitled',
+      short_description: extractDisplayValue(item.short_description) || undefined,
+      description: extractDisplayValue(item.description) || undefined,
+      category: extractDisplayValue(item.category) || undefined,
+      active: extractDisplayValue(item.active) === 'true',
+      url: this.getCatalogItemUrl(sysId),
+    };
+  }
+
+  /**
+   * Get URL for catalog item
+   */
+  private getCatalogItemUrl(sysId: string): string {
+    return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
+  }
+
+  /**
+   * Get Business Service by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getBusinessService(name: string): Promise<ServiceNowBusinessService | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/cmdb_ci_service_business?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const service = data.result[0];
+    const sysId = extractDisplayValue(service.sys_id);
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(service.name),
+      description: extractDisplayValue(service.description) || undefined,
+      parent: extractDisplayValue(service.parent) || undefined,
+      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Service Offering by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getServiceOffering(name: string): Promise<ServiceNowServiceOffering | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/service_offering?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const offering = data.result[0];
+    const sysId = extractDisplayValue(offering.sys_id);
+
+    // Extract parent sys_id (value) and parent name (display_value)
+    let parentSysId: string | undefined;
+    let parentName: string | undefined;
+    if (offering.parent) {
+      if (typeof offering.parent === 'object') {
+        parentSysId = offering.parent.value || undefined;
+        parentName = offering.parent.display_value || undefined;
+      } else if (typeof offering.parent === 'string') {
+        parentSysId = offering.parent;
+        parentName = offering.parent;
+      }
+    }
+
+    // Extract description, handling object format
+    let description: string | undefined;
+    if (offering.description) {
+      if (typeof offering.description === 'string') {
+        description = offering.description || undefined;
+      } else if (typeof offering.description === 'object' && offering.description.display_value) {
+        description = offering.description.display_value || undefined;
+      } else if (typeof offering.description === 'object' && offering.description.value) {
+        description = offering.description.value || undefined;
+      }
+    }
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(offering.name),
+      description,
+      parent: parentSysId,
+      parent_name: parentName,
+      url: `${config.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Application Service by name (READ-ONLY)
+   * Used by LLM for service classification - does not create records
+   */
+  public async getApplicationService(name: string): Promise<ServiceNowApplicationService | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(
+        `name=${name}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const service = data.result[0];
+    const sysId = extractDisplayValue(service.sys_id);
+
+    // Extract parent sys_id (value) and parent name (display_value)
+    let parentSysId: string | undefined;
+    let parentName: string | undefined;
+    if (service.parent) {
+      if (typeof service.parent === 'object') {
+        parentSysId = service.parent.value || undefined;
+        parentName = service.parent.display_value || undefined;
+      } else if (typeof service.parent === 'string') {
+        parentSysId = service.parent;
+        parentName = service.parent;
+      }
+    }
+
+    // Extract description, handling object format
+    let description: string | undefined;
+    if (service.description) {
+      if (typeof service.description === 'string') {
+        description = service.description || undefined;
+      } else if (typeof service.description === 'object' && service.description.display_value) {
+        description = service.description.display_value || undefined;
+      } else if (typeof service.description === 'object' && service.description.value) {
+        description = service.description.value || undefined;
+      }
+    }
+
+    return {
+      sys_id: sysId,
+      name: extractDisplayValue(service.name),
+      description,
+      parent: parentSysId,
+      parent_name: parentName,
+      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
+   * Get Application Services for a company (READ-ONLY)
+   * Returns list of application services linked to a company
+   * Optionally filter by parent service offering (e.g., "Application Administration")
+   */
+  public async getApplicationServicesForCompany(input: {
+    companySysId: string;
+    parentServiceOffering?: string;
+    limit?: number;
+  }): Promise<Array<{ name: string; sys_id: string; parent_name?: string }>> {
+    const limit = input.limit ?? 100;
+
+    // Build query to filter by company
+    const queryParts = [`company=${input.companySysId}`];
+
+    // If parent service offering is specified, filter by it
+    if (input.parentServiceOffering) {
+      queryParts.push(`parent.name=${input.parentServiceOffering}`);
+    }
+
+    const query = queryParts.join('^');
+
+    try {
+      const data = await request<{
+        result: Array<Record<string, any>>;
+      }>(
+        `/api/now/table/cmdb_ci_service_discovered?sysparm_query=${encodeURIComponent(
+          query
+        )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=sys_id,name,parent`
+      );
+
+      if (!data.result || data.result.length === 0) {
+        return [];
+      }
+
+      return data.result.map((service) => {
+        const sysId = extractDisplayValue(service.sys_id);
+        const name = extractDisplayValue(service.name);
+
+        // Extract parent name
+        let parentName: string | undefined;
+        if (service.parent) {
+          if (typeof service.parent === 'object' && service.parent.display_value) {
+            parentName = service.parent.display_value;
+          } else if (typeof service.parent === 'string') {
+            parentName = service.parent;
+          }
+        }
+
+        return {
+          sys_id: sysId,
+          name,
+          parent_name: parentName,
+        };
+      });
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching application services for company:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get Customer Account by number (READ-ONLY)
+   * Used to query customer account information
+   */
+  public async getCustomerAccount(number: string): Promise<ServiceNowCustomerAccount | null> {
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/customer_account?sysparm_query=${encodeURIComponent(
+        `number=${number}`
+      )}&sysparm_display_value=all&sysparm_limit=1`
+    );
+
+    if (!data.result || data.result.length === 0) {
+      return null;
+    }
+
+    const account = data.result[0];
+    const sysId = extractDisplayValue(account.sys_id);
+
+    return {
+      sys_id: sysId,
+      number: extractDisplayValue(account.number),
+      name: extractDisplayValue(account.name),
+      url: `${config.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
+    };
+  }
+
+  /**
    * Fetch all categories and subcategories for a ServiceNow table
    */
   public async getCategoriesForTable(table: string = 'sn_customerservice_case'): Promise<{
@@ -681,6 +1585,155 @@ export class ServiceNowClient {
         subcategoryDetails: [],
       };
     }
+  }
+
+  /**
+   * Create a child task for a case
+   */
+  public async createChildTask(input: {
+    caseSysId: string;
+    caseNumber: string;
+    description: string;
+    assignmentGroup?: string;
+    shortDescription?: string;
+    priority?: string;
+  }): Promise<{
+    sys_id: string;
+    number: string;
+    url: string;
+  }> {
+    const table = config.taskTable ?? "sn_customerservice_task";
+    const endpoint = `/api/now/table/${table}`;
+
+    // Build task payload
+    const payload: Record<string, any> = {
+      parent: input.caseSysId, // Link to parent case
+      short_description: input.shortDescription || `CMDB Asset Creation Task for ${input.caseNumber}`,
+      description: input.description,
+      state: "1", // New state
+      priority: input.priority || "4", // Medium priority by default
+    };
+
+    // Add assignment group if provided
+    if (input.assignmentGroup) {
+      payload.assignment_group = input.assignmentGroup;
+    }
+
+    const data = await request<{
+      result: Array<{
+        sys_id: string;
+        number: string;
+      }>;
+    }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!data.result?.length) {
+      throw new Error('Failed to create child task: No response from ServiceNow');
+    }
+
+    const task = data.result[0];
+    return {
+      sys_id: task.sys_id,
+      number: task.number,
+      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
+    };
+  }
+
+  /**
+   * Create a phone call interaction record in ServiceNow
+   */
+  public async createPhoneInteraction(input: {
+    caseSysId: string;
+    caseNumber: string;
+    channel: string;
+    direction?: string;
+    phoneNumber?: string;
+    sessionId: string;
+    startTime: Date;
+    endTime: Date;
+    durationSeconds?: number;
+    agentName?: string;
+    queueName?: string;
+    summary?: string;
+    notes?: string;
+  }): Promise<{
+    interaction_sys_id: string;
+    interaction_number: string;
+    interaction_url: string;
+  }> {
+    const table = "interaction";
+    const endpoint = `/api/now/table/${table}`;
+
+    // Fetch case to get contact and account references
+    const caseData = await this.getCaseBySysId(input.caseSysId);
+    if (!caseData) {
+      throw new Error(`Case not found: ${input.caseNumber} (${input.caseSysId})`);
+    }
+
+    // Build interaction payload with correct ServiceNow field names
+    const payload: Record<string, any> = {
+      // Required field
+      type: 'phone',
+
+      // Interaction details
+      direction: input.direction || 'inbound', // Default to 'inbound' if not provided
+      caller_phone_number: input.phoneNumber || '', // Can be empty if not provided
+
+      // CRITICAL: Link to parent case using the 'parent' field
+      // This is THE field that makes interactions appear in the case's related list!
+      parent: input.caseSysId, // Direct reference to the case record
+
+      // Context fields for metadata (do NOT create UI relationship)
+      context_table: config.caseTable, // e.g., 'x_mobit_serv_case_service_case'
+      context_document: input.caseSysId, // Case sys_id
+
+      // Channel metadata provides alternative linking method
+      channel_metadata_table: config.caseTable,
+      channel_metadata_document: input.caseSysId,
+
+      // CRITICAL: Customer contact and account from case
+      // These fields link the interaction to the customer contact and account
+      contact: caseData.contact || undefined, // Reference to customer_contact table
+      account: caseData.account || undefined, // Reference to customer_account table
+
+      // Timing - use correct field names
+      opened_at: formatDateForServiceNow(input.startTime), // Not 'start_time'
+      closed_at: formatDateForServiceNow(input.endTime),   // Not 'end_time'
+
+      // Metadata
+      short_description: input.summary || `Phone call - ${input.direction || 'unknown'} - ${input.sessionId}`,
+      work_notes: input.notes || `Call Session ID: ${input.sessionId}\nDuration: ${input.durationSeconds ?? 'N/A'} seconds${input.agentName ? `\nAgent: ${input.agentName}` : ''}${input.queueName ? `\nQueue: ${input.queueName}` : ''}`,
+
+      // Status - Use 'closed_complete' instead of 'closed' (which is invalid)
+      state: 'closed_complete', // Valid closed state for completed interactions
+    };
+
+    // Add duration if provided (in seconds)
+    if (input.durationSeconds !== undefined) {
+      payload.duration = input.durationSeconds;
+    }
+
+    const data = await request<{
+      result: {
+        sys_id: string;
+        number: string;
+      };
+    }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    if (!data.result) {
+      throw new Error('Failed to create phone interaction: No response from ServiceNow');
+    }
+
+    return {
+      interaction_sys_id: data.result.sys_id,
+      interaction_number: data.result.number,
+      interaction_url: `${config.instanceUrl}/nav_to.do?uri=interaction.do?sys_id=${data.result.sys_id}`,
+    };
   }
 }
 

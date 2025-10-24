@@ -22,7 +22,20 @@ afterEach(() => {
 });
 
 describe("selectLanguageModel", () => {
-  it("falls back to OpenAI when gateway is not configured", async () => {
+  it("uses Anthropic model when API key is available", async () => {
+    // Set ANTHROPIC_API_KEY so module detects Anthropic as available
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+    const { selectLanguageModel } = await loadModule();
+    const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
+
+    expect(selection.modelId).toBe("claude-sonnet-4-5");
+    expect(selection.provider).toBe("anthropic");
+  });
+
+  it("falls back to OpenAI when OpenAI model is specified and no Anthropic", async () => {
+    // Temporarily remove Anthropic to test OpenAI fallback
+    const originalAnthropicKey = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
     delete process.env.AI_GATEWAY_API_KEY;
     process.env.OPENAI_FALLBACK_MODEL = "gpt-test-mini";
 
@@ -30,15 +43,9 @@ describe("selectLanguageModel", () => {
     const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
 
     expect(selection.modelId).toBe("gpt-test-mini");
-  });
-
-  it("uses AI Gateway model when configured", async () => {
-    process.env.AI_GATEWAY_API_KEY = "test-key";
-    process.env.AI_GATEWAY_DEFAULT_MODEL = "zai/glm-4.6";
-
-    const { selectLanguageModel } = await loadModule();
-    const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
-
-    expect(selection.modelId).toBe("zai/glm-4.6");
+    expect(selection.provider).toBe("openai");
+    
+    // Restore original key
+    process.env.ANTHROPIC_API_KEY = originalAnthropicKey;
   });
 });

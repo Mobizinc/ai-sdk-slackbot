@@ -3,7 +3,7 @@
  * Acts as a senior engineer co-pilot during troubleshooting
  */
 
-import { generateText } from "ai";
+import { generateText } from "../instrumented-ai";
 import { modelProvider } from "../model-provider";
 import { detectIssueType, getTroubleshootingTemplate } from "./troubleshooting-templates";
 

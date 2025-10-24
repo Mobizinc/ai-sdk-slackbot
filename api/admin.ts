@@ -47,7 +47,8 @@ export async function GET(request: Request) {
 
   try {
     // Read the HTML file (always fresh, no caching)
-    const htmlPath = join(process.cwd(), 'admin-interface.html');
+    const joinedPath = join(process.cwd(), 'admin-interface.html');
+    const htmlPath = joinedPath || `${process.cwd()}/admin-interface.html`;
     const html = readFileSync(htmlPath, 'utf-8');
 
     return new Response(html, {

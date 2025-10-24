@@ -1,0 +1,364 @@
+[
+  {
+    "banner_image_light": {
+      "display_value": "0b906f99836f961068537cdfeeaad3d7.iix",
+      "value": "c7c7a8fdc3239a505bcb9df0150131a4"
+    },
+    "country": {
+      "display_value": "US",
+      "value": "US"
+    },
+    "parent": {
+      "display_value": "",
+      "value": ""
+    },
+    "notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_primary_portal": {
+      "display_value": "",
+      "value": ""
+    },
+    "minority_ownership_status": {
+      "display_value": null,
+      "value": ""
+    },
+    "stock_symbol": {
+      "display_value": "",
+      "value": ""
+    },
+    "discount": {
+      "display_value": "",
+      "value": ""
+    },
+    "active_escalation": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_updated_on": {
+      "display_value": "2025-08-20 00:00:10",
+      "value": "2025-08-20 07:00:10"
+    },
+    "apple_icon": {
+      "display_value": "",
+      "value": ""
+    },
+    "number": {
+      "display_value": "ACCT0010145",
+      "value": "ACCT0010145"
+    },
+    "sys_updated_by": {
+      "display_value": "system",
+      "value": "system"
+    },
+    "fiscal_year": {
+      "display_value": "",
+      "value": ""
+    },
+    "sso_source": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_on": {
+      "display_value": "2024-08-23 14:18:58",
+      "value": "2024-08-23 21:18:58"
+    },
+    "contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Altus Community Healthcare",
+      "link": "https://mobizdev.service-now.com/api/now/table/domain/87eec28c931c9a1049d9764efaba10f4",
+      "value": "87eec28c931c9a1049d9764efaba10f4"
+    },
+    "rural_based_status": {
+      "display_value": null,
+      "value": ""
+    },
+    "stock_price": {
+      "display_value": "",
+      "value": ""
+    },
+    "banner_image": {
+      "display_value": "a3972835c36712101302560fb00131b2.iix",
+      "value": "6dd7e4fdc3239a505bcb9df015013162"
+    },
+    "state": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_by": {
+      "display_value": "system",
+      "value": "system"
+    },
+    "longitude": {
+      "display_value": "-119.8093025",
+      "value": "-119.8093025"
+    },
+    "u_color_schema": {
+      "display_value": "",
+      "value": ""
+    },
+    "zip": {
+      "display_value": "",
+      "value": ""
+    },
+    "profits": {
+      "display_value": "$0.00",
+      "currency_display_value": "USD;0.00",
+      "value": "0"
+    },
+    "u_logo": {
+      "display_value": "",
+      "value": ""
+    },
+    "active": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "assumed_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "x_mobit_role_mgmt_fulfiller_licenses": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!$9/",
+      "value": "!!!/!$9/"
+    },
+    "tax_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "incorporated_on": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_num_employees": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_company_size": {
+      "display_value": null,
+      "value": ""
+    },
+    "fax_phone": {
+      "display_value": "",
+      "value": ""
+    },
+    "phone": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "x_mobit_subscr_mng_business_stakeholder_licenses": {
+      "display_value": "1",
+      "value": "1"
+    },
+    "banner_text": {
+      "display_value": "",
+      "value": ""
+    },
+    "name": {
+      "display_value": "Altus Community Healthcare",
+      "value": "Altus Community Healthcare"
+    },
+    "account_code": {
+      "display_value": "!!$J",
+      "value": "!!$J"
+    },
+    "coordinates_retrieved_on": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_dynamics_crm_id": {
+      "display_value": "8e95bf32-79fb-ef11-9341-00224833c03e",
+      "value": "8e95bf32-79fb-ef11-9341-00224833c03e"
+    },
+    "primary": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "identification_number": {
+      "display_value": "",
+      "value": ""
+    },
+    "city": {
+      "display_value": "-",
+      "value": "-"
+    },
+    "x_mobit_role_mgmt_business_stakeholder_licenses": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "latitude": {
+      "display_value": "44.2423649",
+      "value": "44.2423649"
+    },
+    "x_mobit_csp_brand_csp_banner_short_description": {
+      "display_value": "",
+      "value": ""
+    },
+    "industry": {
+      "display_value": null,
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Account",
+      "value": "customer_account"
+    },
+    "manufacturer": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "account_parent": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "c3eec28c931c9a1049d9764efaba10f3",
+      "value": "c3eec28c931c9a1049d9764efaba10f3"
+    },
+    "tribal_affiliation_status": {
+      "display_value": null,
+      "value": ""
+    },
+    "business_structure": {
+      "display_value": null,
+      "value": ""
+    },
+    "market_cap": {
+      "display_value": "$0.00",
+      "currency_display_value": "USD;0.00",
+      "value": "0"
+    },
+    "num_employees": {
+      "display_value": "",
+      "value": ""
+    },
+    "rank_tier": {
+      "display_value": null,
+      "value": ""
+    },
+    "street": {
+      "display_value": "-",
+      "value": "-"
+    },
+    "vendor": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "x_mobit_csp_brand_csp_banner_text": {
+      "display_value": "",
+      "value": ""
+    },
+    "lat_long_error": {
+      "display_value": "",
+      "value": ""
+    },
+    "theme": {
+      "display_value": "",
+      "value": ""
+    },
+    "trademark": {
+      "display_value": "",
+      "value": ""
+    },
+    "email": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_annual_revenue": {
+      "display_value": "",
+      "value": ""
+    },
+    "x_mobit_role_mgmt_admin_licenses": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "u_region": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor_type": {
+      "display_value": "",
+      "value": ""
+    },
+    "revenue_per_year": {
+      "display_value": "$0.00",
+      "currency_display_value": "USD;0.00",
+      "value": "0"
+    },
+    "website": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_sub_region": {
+      "display_value": "",
+      "value": ""
+    },
+    "publicly_traded": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "u_email_domains": {
+      "display_value": "altushealthsystem.com,neighborshealth.com,austiner.com,eer24.com",
+      "value": "altushealthsystem.com,neighborshealth.com,austiner.com,eer24.com"
+    },
+    "x_mobit_subscr_mng_fulfiller_licenses": {
+      "display_value": "20",
+      "value": "20"
+    },
+    "sys_mod_count": {
+      "display_value": "19",
+      "value": "19"
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_time_zone": {
+      "display_value": "",
+      "value": ""
+    },
+    "women_ownership_status": {
+      "display_value": null,
+      "value": ""
+    },
+    "partner": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "registration_code": {
+      "display_value": "",
+      "value": ""
+    },
+    "vendor_manager": {
+      "display_value": "",
+      "value": ""
+    },
+    "account_path": {
+      "display_value": "!!$J",
+      "value": "!!$J"
+    },
+    "legal_entity_name": {
+      "display_value": "",
+      "value": ""
+    },
+    "primary_contact": {
+      "display_value": "",
+      "value": ""
+    },
+    "customer": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "u_effort_type": {
+      "display_value": "Billable",
+      "value": "billable"
+    }
+  }
+]

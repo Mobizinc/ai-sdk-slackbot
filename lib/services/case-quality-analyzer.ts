@@ -3,7 +3,7 @@
  * Uses gpt-5 for accurate quality assessment at critical decision points.
  */
 
-import { generateText, tool } from "ai";
+import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { modelProvider } from "../model-provider";

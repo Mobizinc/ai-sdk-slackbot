@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-10-15T03:18:12.352Z",
+  "environments": [
+    "DEV",
+    "PRODUCTION"
+  ],
+  "totalRecords": 104,
+  "results": [
+    {
+      "environment": "DEV",
+      "table": "service_offering",
+      "count": 1
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci_service_discovered",
+      "count": 12
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci_service",
+      "count": 13
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci_server",
+      "count": 3
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci_win_server",
+      "count": 3
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci_computer",
+      "count": 3
+    },
+    {
+      "environment": "DEV",
+      "table": "svc_ci_assoc",
+      "count": 1
+    },
+    {
+      "environment": "DEV",
+      "table": "customer_account",
+      "count": 1
+    },
+    {
+      "environment": "DEV",
+      "table": "cmdb_ci",
+      "count": 30
+    },
+    {
+      "environment": "PRODUCTION",
+      "table": "service_offering",
+      "count": 1
+    },
+    {
+      "environment": "PRODUCTION",
+      "table": "cmdb_ci_service",
+      "count": 1
+    },
+    {
+      "environment": "PRODUCTION",
+      "table": "cmdb_ci_netgear",
+      "count": 16
+    },
+    {
+      "environment": "PRODUCTION",
+      "table": "customer_account",
+      "count": 1
+    },
+    {
+      "environment": "PRODUCTION",
+      "table": "cmdb_ci",
+      "count": 18
+    }
+  ]
+}

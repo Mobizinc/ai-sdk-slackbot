@@ -3,8 +3,10 @@
  * Classifies ServiceNow cases into categories using AI with similar case and KB article context
  */
 
-import { generateText } from 'ai';
-import { modelProvider, getActiveModelId } from '../model-provider';
+import { generateText } from '../instrumented-ai';
+import { modelProvider, getActiveModelId, anthropic, anthropicModel } from '../model-provider';
+import { getAnthropicClient, calculateCost as calculateAnthropicCost, formatUsageMetrics, calculateCacheHitRate } from '../anthropic-provider';
+import type Anthropic from '@anthropic-ai/sdk';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
 import { searchKBArticles, type KBArticle } from './kb-article-search';
 import { getWorkflowRouter, type RoutingResult } from './workflow-router';
@@ -81,6 +83,9 @@ export interface CaseClassification {
   business_intelligence?: BusinessIntelligence;
   // ITSM record type suggestion
   record_type_suggestion?: RecordTypeSuggestion;
+  // Service Portfolio Classification (NEW)
+  service_offering?: string; // Main service offering (e.g., "Helpdesk and Endpoint Support")
+  application_service?: string; // Optional: Specific application if Application Administration
   // Token usage and cost tracking
   token_usage_input?: number;
   token_usage_output?: number;
@@ -88,6 +93,10 @@ export interface CaseClassification {
   // Model info
   model_used?: string;
   llm_provider?: string;
+  // Cache metrics (Anthropic prompt caching)
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_hit_rate?: number;
   // Context from search - using new SimilarCaseResult with MSP attribution
   similar_cases?: SimilarCaseResult[];
   kb_articles?: KBArticle[];
@@ -110,6 +119,8 @@ export class CaseClassifier {
   private availableIncidentCategories: string[] = [];
   private availableIncidentSubcategories: string[] = [];
   private currentCaseData: CaseData | null = null; // For mismatch logging
+  // SERVICE PORTFOLIO: Store application services dynamically
+  private availableApplicationServices: Array<{ name: string; sys_id: string }> = [];
 
   /**
    * Set available categories from ServiceNow cache (TABLE-SPECIFIC)
@@ -129,6 +140,17 @@ export class CaseClassifier {
       `[CaseClassifier] Loaded categories: ` +
       `Cases (${caseCategories.length} categories, ${caseSubcategories.length} subcategories), ` +
       `Incidents (${incidentCategories.length} categories, ${incidentSubcategories.length} subcategories)`
+    );
+  }
+
+  /**
+   * Set available application services from ServiceNow dynamically
+   * Should be called before classification to inject company-specific applications into prompt
+   */
+  setApplicationServices(applications: Array<{ name: string; sys_id: string }>): void {
+    this.availableApplicationServices = applications;
+    console.log(
+      `[CaseClassifier] Loaded application services: ${applications.length} applications`
     );
   }
 
@@ -282,7 +304,10 @@ export class CaseClassifier {
           classification.business_intelligence?.financial_impact
         ),
         confidenceScore: classification.confidence_score,
-        retryCount: 0
+        retryCount: 0,
+        // Service Portfolio Classification (NEW)
+        serviceOffering: classification.service_offering,
+        applicationService: classification.application_service,
       });
 
       return {
@@ -304,15 +329,688 @@ export class CaseClassifier {
   private calculateCost(classification: CaseClassification): number {
     const promptTokens = classification.token_usage_input || 0;
     const completionTokens = classification.token_usage_output || 0;
-    
+
     // Simple cost calculation - adjust based on actual pricing
     const promptCostPer1K = 0.003;
     const completionCostPer1K = 0.004;
-    
+
     const promptCost = (promptTokens / 1000) * promptCostPer1K;
     const completionCost = (completionTokens / 1000) * completionCostPer1K;
-    
+
     return promptCost + completionCost;
+  }
+
+  /**
+   * PROMPT CACHING HELPERS
+   * These methods build prompt sections for Anthropic Messages API with cache control
+   */
+
+  /**
+   * Build system instructions (static, cacheable)
+   * This is the main system prompt that rarely changes
+   */
+  private buildSystemInstructions(): string {
+    return `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.`;
+  }
+
+  /**
+   * Get application list text for prompt (dynamic based on company)
+   */
+  private getApplicationListText(): string {
+    if (this.availableApplicationServices.length === 0) {
+      return " the company's applications (e.g., O365, NextGen, Advantx, etc.)";
+    }
+    const appNames = this.availableApplicationServices.map(app => app.name).join(', ');
+    return ` ${this.availableApplicationServices.length} applications (${appNames})`;
+  }
+
+  /**
+   * Get application list prompt text for instruction 16
+   */
+  private getApplicationListPrompt(): string {
+    if (this.availableApplicationServices.length === 0) {
+      return " from the company's applications (e.g., \"Office 365\", \"NextGen\", \"Advantx\")";
+    }
+    const exampleApps = this.availableApplicationServices
+      .slice(0, 3)
+      .map(app => `"${app.name}"`)
+      .join(', ');
+    return ` from the ${this.availableApplicationServices.length} available (e.g., ${exampleApps})`;
+  }
+
+  /**
+   * Build categories section (semi-static, cacheable)
+   * Categories change infrequently (when ServiceNow categories are updated)
+   */
+  private buildCategoriesSection(): string {
+    const caseCategoryList = this.availableCaseCategories.length > 0
+      ? this.availableCaseCategories.map(c => `- ${c}`).join('\n')
+      : `- User Access Management
+- Networking
+- Application Support
+- Infrastructure
+- Security
+- Database
+- Hardware
+- Email & Collaboration
+- Telephony
+- Cloud Services
+- Unclassified`;
+
+    const incidentCategoryList = this.availableIncidentCategories.length > 0
+      ? this.availableIncidentCategories.map(c => `- ${c}`).join('\n')
+      : caseCategoryList;
+
+    return `<available_categories>
+<case_categories>
+${caseCategoryList}
+</case_categories>
+
+<incident_categories>
+${incidentCategoryList}
+</incident_categories>
+</available_categories>`;
+  }
+
+  /**
+   * Build instructions section (static, cacheable)
+   */
+  private buildInstructionsSection(): string {
+    return `<instructions>
+Analyze the case in <case_data> and provide:
+1. The most appropriate CASE category from the CASE categories list above
+2. An optional CASE subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
+3. **IF AND ONLY IF** record_type_suggestion.type is "Incident" or "Problem":
+   - Select the most appropriate INCIDENT category from the INCIDENT categories list
+   - An optional INCIDENT subcategory
+4. A confidence score between 0.0 and 1.0
+5. A brief reasoning (1-2 sentences) explaining why this category was chosen
+6. Key keywords that influenced your decision (list 3-5 relevant terms)
+
+Additionally, provide quick triage guidance for the support agent:
+6. SUMMARY: Write a brief technical diagnostic as a senior engineer would explain it to a junior (2-3 sentences):
+   - What's happening (the symptom)
+   - What's likely causing it (root cause hypothesis with reasoning)
+   - What this means for troubleshooting (diagnostic direction)
+   - **CRITICAL:** If you found a pattern in similar cases (2+ from same client), EXPLICITLY MENTION IT in summary
+   Style: Conversational but technical. Include "likely" or "probably" for hypotheses.
+
+7. NEXT STEPS: List 3-5 diagnostic steps like you're walking a junior engineer through the triage. Format each step as: [Action with command/path] - [Brief rationale or what to look for]
+   - Start with what to check/gather (include WHY briefly)
+   - Provide specific commands/paths/settings
+   - Note prerequisites inline only when critical (e.g., licensing, permissions)
+   - Explain what you're looking for in results
+
+8. ENTITIES: Extract technical entities like IP addresses, hostnames, usernames, software names, error codes
+9. URGENCY: Assess urgency as Low/Medium/High/Critical based on business impact
+
+EXCEPTION-BASED BUSINESS INTELLIGENCE:
+If you detect any of the following exceptions based on the client's business context (technology, service hours, related entities), populate the relevant fields. ONLY populate when exceptions are detected - leave fields null/empty otherwise:
+10. PROJECT SCOPE: If work appears to require professional services engagement (server migrations, new infrastructure, extensive coordination, not typical BAU support), set project_scope_detected=true and explain why
+11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
+12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
+13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
+14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
+
+SERVICE PORTFOLIO CLASSIFICATION:
+Identify which Service Offering best matches this case. Select ONE of the following:
+
+15. SERVICE OFFERING: Choose the most appropriate Service Offering from Altus Health's portfolio:
+   - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
+   - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
+   - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
+   - **Helpdesk and Endpoint Support - 24/7**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch. Use when: case indicates 24/7 support contract, after-hours support needed, or business context mentions round-the-clock coverage.
+   - **Helpdesk and Endpoint - Standard**: Standard business hours user support, endpoint device management, tiered support. Use when: case during business hours, no 24/7 indicators, or standard support tier. DEFAULT to this if uncertain.
+   - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
+
+16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}
+</instructions>
+
+<itsm_synthesis_rules>
+Based on the business intelligence you just analyzed, determine the correct ITSM record type using these synthesis rules:
+
+**Rule 1: PROBLEM** (Highest Priority)
+IF business_intelligence.systemic_issue_detected === true
+→ type: "Problem"
+→ reasoning: "Recurring pattern from [X] similar cases indicates root cause investigation needed"
+→ Example: 3+ file server access failures from same client = underlying problem requiring RCA
+
+**Rule 2: MAJOR INCIDENT**
+IF business_intelligence.executive_visibility === true
+OR keywords present: "production down", "entire team", "all users", "system unavailable", "outage affecting"
+→ type: "Incident"
+→ is_major_incident: true
+→ reasoning: "High-impact service disruption requiring coordinated response"
+→ Escalation: Immediate on-call notification
+
+**Rule 3: STANDARD INCIDENT**
+IF unplanned service disruption (doesn't meet above criteria)
+→ type: "Incident"
+→ is_major_incident: false
+→ Indicators: Something that should be working is broken/unavailable/degraded/erroring
+→ Examples: "cannot connect to VPN", "email not working", "error when logging in"
+
+**Rule 4: CHANGE**
+IF requesting new service, modification, access, or planned work
+→ type: "Change"
+→ Keywords: "install", "add user", "new server", "upgrade", "configure", "provision", "setup new"
+→ Examples: "install Photoshop", "add me to Marketing group", "configure new printer"
+→ Note: Changes require Change Management approval process
+
+**Rule 5: CASE (Default)**
+IF question, how-to, inquiry, or doesn't match above
+→ type: "Case"
+→ Examples: "How do I reset password?", "What are service desk hours?", "Request laptop for new hire"
+→ Indicators: "how do I", "what is", "can you explain", general inquiry
+
+SYNTHESIS DECISION TREE:
+1. First check: systemic_issue_detected=true? → Problem
+2. Then check: executive_visibility OR widespread outage keywords? → Major Incident
+3. Then check: Service disruption (broken/down/error)? → Standard Incident
+4. Then check: Requesting something new/different? → Change
+5. Default: → Case
+</itsm_synthesis_rules>`;
+  }
+
+  /**
+   * Build examples section (static, cacheable)
+   */
+  private buildExamplesSection(): string {
+    return `<examples>
+FEW-SHOT EXAMPLES (follow these patterns):
+
+<example id="systemic">
+EXAMPLE 1 - SYSTEMIC ISSUE (2+ cases from same client):
+Input: "User can't access L drive" + Similar cases: 3 L drive issues from Neighbors
+Pattern: SYSTEMIC (3 cases from same client with same issue)
+Summary: "Shift-wide L drive failures affecting multiple Neighbors users - file server or network infrastructure problem"
+Next Steps (INFRASTRUCTURE-FOCUSED):
+1. "Verify file server status: Check if file server hosting L drive is online for ALL users - ping server, check SMB service (Test-NetConnection -Port 445)"
+2. "Test UNC path from different workstation: Access \\\\servername\\sharename from another user's PC - confirms if issue is server-wide"
+3. "Check domain controller health: Verify AD replication status (repadmin /showrepl) - AD auth failures affect all file share access"
+4. "Review file server event logs: Check for SMB errors (EventID 1020) or disk failures affecting all connections"
+Business Intelligence: systemic_issue_detected=true, affected_cases_same_client=3
+Record Type: Problem (systemic pattern detected requiring RCA)
+</example>
+
+<example id="individual">
+EXAMPLE 2 - INDIVIDUAL ISSUE (no pattern, appears isolated):
+Input: "User kdevries can't access L drive" + Similar cases: None from same client
+Pattern: INDIVIDUAL (no similar cases from same client)
+Summary: "Single user L drive access issue - need to validate if infrastructure problem or user-specific"
+Next Steps (INFRASTRUCTURE VALIDATION FIRST, THEN INDIVIDUAL):
+1. "Verify if systemic: Ask if OTHER users can currently access L drive - if multiple can't, escalate to infrastructure team; if only kdevries affected, proceed to user troubleshooting"
+2. "Quick infrastructure sanity check: Ping file server hostname and test UNC path \\\\servername\\sharename from your workstation - confirms server is operational before troubleshooting user"
+3. "Check kdevries AD account status: ADUC → Find user → Account tab - look for locked/disabled/expired"
+4. "Verify kdevries group memberships: Get-ADUser kdevries -Properties MemberOf - confirm has security group for L drive access"
+Business Intelligence: systemic_issue_detected=false
+Record Type: Incident (service disruption, but individual user - not systemic)
+</example>
+
+<example id="false_positive">
+EXAMPLE 3 - FALSE POSITIVE (2+ cases but DIFFERENT root causes):
+Input: "Microsoft Office license expired - all apps showing activation required"
+Similar Cases from Altus Community Healthcare:
+1. Case SCS0045197 (5 days ago): "Microsoft Key Expired" → Resolution: "Reactivated Office via KMS server - ran 'cscript ospp.vbs /act' to force activation"
+2. Case SCS0048952 (today): "Microsoft Office license expired" → Current case
+Pattern Analysis:
+✅ Client Match: Both from Altus Community Healthcare [Same Client]
+✅ Recency Check: Both within last 14 days (5 days ago + today)
+❌ Resolution Analysis: Case 1 was KMS server activation issue, BUT need to verify if Case 2 has same root cause
+Investigation Reveals: User Lerene's actual issue = signing in with wrong email (@gmail.com instead of @altus.com for M365 license)
+→ systemic_issue_detected=FALSE
+→ systemic_issue_reason="Similar cases have DIFFERENT root causes - Case 1 was KMS server issue, Case 2 is user email signin mismatch - NOT systemic"
+Summary: "Microsoft license error - appears similar to recent KMS case, but need to verify user's signin email first (common M365 license issue when users sign in with personal vs work email)"
+Next Steps:
+1. "Check user's current Office signin email: Open any Office app → File → Account → look at email shown under 'Product Information' - verify it matches @altus.com domain, not personal email"
+2. "If wrong email: Sign out and sign in with correct work email (@altus.com) - this is most common cause of license errors that look like infrastructure issues"
+3. "If correct email AND recently resolved KMS case exists: Then check KMS server status - may be infrastructure issue"
+4. "Verify license assignment in M365 admin center: Check if user has valid Office 365 license assigned to their @altus.com account"
+Business Intelligence: systemic_issue_detected=false, systemic_issue_reason="Different root causes - not a systemic pattern", affected_cases_same_client=1
+Record Type: Incident (individual user configuration issue)
+</example>
+
+Key Difference: Systemic = infrastructure-only steps. Individual = infrastructure validation FIRST, then user troubleshooting.
+</examples>`;
+  }
+
+  /**
+   * Build output format section (static, cacheable)
+   */
+  private buildOutputFormatSection(): string {
+    return `<output_format>
+Respond with a JSON object in this exact format:
+
+<json_schema>
+{
+  "category": "exact CASE category name from CASE categories list",
+  "subcategory": "specific CASE subcategory or null",
+  "incident_category": "exact INCIDENT category name from INCIDENT categories list (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
+  "incident_subcategory": "specific INCIDENT subcategory (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
+  "confidence_score": 0.95,
+  "reasoning": "explanation here",
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "quick_summary": "VPN dropping every 5-10min - textbook DTLS keepalive or NAT timeout issue...",
+  "immediate_next_steps": [
+    "Step 1 with command/path - rationale",
+    "Step 2 with command/path - rationale"
+  ],
+  "technical_entities": {
+    "ip_addresses": ["192.168.1.79"],
+    "systems": ["AVD thin client"],
+    "users": ["user.name"],
+    "software": ["Application Name"],
+    "error_codes": []
+  },
+  "urgency_level": "Medium",
+  "business_intelligence": {
+    "project_scope_detected": false,
+    "systemic_issue_detected": false,
+    "outside_service_hours": false
+  },
+  "record_type_suggestion": {
+    "type": "Incident",
+    "is_major_incident": false,
+    "reasoning": "Service disruption explanation"
+  },
+  "service_offering": "Helpdesk and Endpoint - Standard",
+  "application_service": "Office 365" (optional, only if service_offering is "Application Administration")
+}
+</json_schema>
+
+Important: Return ONLY the JSON object, no additional text.
+</output_format>`;
+  }
+
+  /**
+   * Build case data section (dynamic, NOT cacheable)
+   */
+  private buildCaseDataSection(caseData: CaseData): string {
+    let section = `<case_data>
+- Case Number: ${caseData.case_number}
+- Short Description: ${caseData.short_description}`;
+
+    if (caseData.description) {
+      section += `\n- Detailed Description: ${caseData.description}`;
+    }
+    if (caseData.priority) {
+      section += `\n- Priority: ${caseData.priority}`;
+    }
+    if (caseData.urgency) {
+      section += `\n- Urgency: ${caseData.urgency}`;
+    }
+    if (caseData.current_category) {
+      section += `\n- Current Category: ${caseData.current_category}`;
+    }
+    if (caseData.company_name || caseData.company) {
+      section += `\n- Company: ${caseData.company_name || caseData.company}`;
+    }
+
+    section += `\n</case_data>`;
+    return section;
+  }
+
+  /**
+   * Build business context section (dynamic, NOT cacheable)
+   */
+  private buildBusinessContextSection(businessContext?: BusinessEntityContext | null): string {
+    if (!businessContext) {
+      return '';
+    }
+
+    const businessContextText = this.businessContextService.toPromptText(businessContext);
+    return `\n\n<business_context>\n${businessContextText}\n</business_context>`;
+  }
+
+  /**
+   * Build similar cases section (dynamic, cacheable if cases don't change frequently)
+   * This is a good cache breakpoint since similar cases can be reused across requests
+   */
+  private buildSimilarCasesSection(
+    similarCases: SimilarCaseResult[],
+    caseData: CaseData,
+    businessContext?: BusinessEntityContext | null
+  ): string {
+    if (!similarCases || similarCases.length === 0) {
+      return '';
+    }
+
+    let section = `\n\n<similar_cases>\n`;
+    section += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n`;
+    section += `IMPORTANT: These cases are from the last 30 days (configurable). Check dates to assess recency.\n\n`;
+
+    // Pattern analysis
+    const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
+    const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
+
+    const sameClientCases = similarCases.filter(c => {
+      let isSameClient = false;
+      if (c.same_client) {
+        isSameClient = true;
+      } else if (currentClientName && c.client_name) {
+        const caseClientName = c.client_name.toLowerCase();
+        if (caseClientName === currentClientName ||
+            caseClientName.includes(currentClientName) ||
+            currentClientName.includes(caseClientName)) {
+          isSameClient = true;
+        }
+      }
+
+      if (!isSameClient) return false;
+
+      const caseDate = c.opened_at || c.sys_created_on;
+      if (!caseDate) return true;
+
+      try {
+        const caseDateObj = new Date(caseDate);
+        return caseDateObj >= cutoffDate;
+      } catch (e) {
+        return true;
+      }
+    });
+
+    let relatedEntityCases = 0;
+    if (businessContext?.relatedEntities && businessContext.relatedEntities.length > 0) {
+      const relatedEntityNames = businessContext.relatedEntities.map(e => e.toLowerCase());
+      relatedEntityCases = similarCases.filter(c =>
+        !sameClientCases.includes(c) &&
+        c.client_name && relatedEntityNames.some(re =>
+          c.client_name!.toLowerCase().includes(re.toLowerCase()) ||
+          re.toLowerCase().includes(c.client_name!.toLowerCase())
+        )
+      ).length;
+    }
+
+    const totalRelatedCases = sameClientCases.length + relatedEntityCases;
+
+    if (totalRelatedCases >= 2) {
+      section += `⚠️ PATTERN DETECTED: ${totalRelatedCases} similar cases from THE SAME CLIENT/RELATED ENTITIES in last ${systemic_pattern_days} days.\n`;
+      if (relatedEntityCases > 0) {
+        section += `   (${sameClientCases.length} from same client + ${relatedEntityCases} from related entities sharing infrastructure)\n`;
+      }
+      section += `IMPORTANT: This is NOT automatically systemic. Read resolution notes below CAREFULLY to verify if they show SAME root cause.\n`;
+      section += `If resolutions differ (e.g., one=server fix, another=user config fix), this is NOT systemic.\n\n`;
+    }
+
+    section += `Similar cases:\n\n`;
+
+    similarCases.slice(0, 5).forEach((case_, index) => {
+      const clientLabel = case_.same_client ? '[Same Client]' :
+                         case_.client_name ? `[${case_.client_name}]` : '[Different Client]';
+
+      const caseDate = case_.opened_at || case_.sys_created_on;
+      let dateLabel = '';
+      if (caseDate) {
+        try {
+          const date = new Date(caseDate);
+          const diffMs = Date.now() - date.getTime();
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          dateLabel = diffDays === 0 ? ' (today)' :
+                     diffDays === 1 ? ' (yesterday)' :
+                     diffDays < 14 ? ` (${diffDays} days ago)` :
+                     ` (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      section += `<case id="${index + 1}">\n`;
+      section += `${index + 1}. Case ${case_.case_number} ${clientLabel}${dateLabel} (similarity: ${(case_.similarity_score || 0).toFixed(2)}):\n`;
+      section += `   - Description: ${(case_.short_description || case_.description || '').substring(0, 200)}...\n`;
+      if (case_.category) {
+        section += `   - Category: ${case_.category}\n`;
+      }
+      if (case_.resolution_notes) {
+        const resolutionPreview = case_.resolution_notes.substring(0, 300);
+        section += `   - Resolution: ${resolutionPreview}${case_.resolution_notes.length > 300 ? '...' : ''}\n`;
+      }
+      section += `</case>\n\n`;
+    });
+
+    section += `\n<pattern_analysis_requirements>\n`;
+    section += `BEFORE declaring systemic_issue_detected=true, you MUST verify ALL of the following:\n\n`;
+    section += `1. ✅ RECENCY CHECK:\n`;
+    section += `   - Are cases from last 7-14 days? (check dates above)\n`;
+    section += `   - Old cases (30+ days ago) ≠ systemic issue NOW\n\n`;
+    section += `2. ✅ RESOLUTION ANALYSIS (MOST CRITICAL):\n`;
+    section += `   - Read the "Resolution:" notes above carefully\n`;
+    section += `   - Do resolutions show SAME/SIMILAR root cause?\n`;
+    section += `   - If resolutions differ significantly → set systemic_issue_detected=FALSE\n\n`;
+    section += `3. ✅ CLIENT MATCH:\n`;
+    section += `   - Are 2+ cases from [Same Client] or related entities?\n\n`;
+    section += `CRITICAL TROUBLESHOOTING LOGIC:\n`;
+    section += `IF systemic_issue_detected=true: Focus on INFRASTRUCTURE/SERVERS affecting ALL users\n`;
+    section += `IF systemic_issue_detected=false: Start with infrastructure validation FIRST, then individual troubleshooting\n`;
+    section += `\n</pattern_analysis_requirements>\n`;
+    section += `</similar_cases>`;
+
+    return section;
+  }
+
+  /**
+   * Build KB articles section (dynamic, NOT cacheable)
+   */
+  private buildKBArticlesSection(kbArticles: KBArticle[]): string {
+    if (!kbArticles || kbArticles.length === 0) {
+      return '';
+    }
+
+    let section = `\n\n<kb_articles>\n`;
+    section += `These KB articles may help resolve this case:\n\n`;
+
+    kbArticles.forEach((kb, index) => {
+      section += `<article id="${index + 1}">\n`;
+      section += `${index + 1}. ${kb.kb_number}: ${kb.title} (similarity: ${kb.similarity_score.toFixed(2)})\n`;
+      if (kb.category) {
+        section += `   Category: ${kb.category}\n`;
+      }
+      if (kb.summary) {
+        section += `   Summary: ${kb.summary.substring(0, 150)}...\n`;
+      }
+      section += `</article>\n\n`;
+    });
+
+    section += `Consider these KB articles when suggesting next steps or troubleshooting guidance.\n`;
+    section += `</kb_articles>`;
+
+    return section;
+  }
+
+  /**
+   * Classify a case using Anthropic Messages API with prompt caching
+   *
+   * Implements 3-tier caching strategy for 90% cost reduction:
+   * 1. Categories section (semi-static, updates when ServiceNow categories change)
+   * 2. Instructions + examples section (static, rarely changes)
+   * 3. Similar cases section (cacheable across similar requests)
+   *
+   * Expected savings:
+   * - Without caching: ~15K input tokens × $3.00/MTok = $0.045 per classification
+   * - With caching (80% hit rate): ~3K new + 12K cached × $0.30/MTok = $0.0126 per classification
+   * - Cost reduction: 72%
+   */
+  private async classifyCaseWithCaching(
+    caseData: CaseData,
+    businessContext?: BusinessEntityContext | null,
+    similarCases: SimilarCaseResult[] = [],
+    kbArticles: KBArticle[] = []
+  ): Promise<CaseClassification> {
+    if (!anthropic || !anthropicModel) {
+      throw new Error('Anthropic client not initialized');
+    }
+
+    const startTime = Date.now();
+
+    try {
+      // Build message content blocks with cache control markers
+      const userContentBlocks: Anthropic.MessageParam['content'] = [];
+
+      // CACHE BREAKPOINT 1: Categories section (semi-static)
+      // Changes only when ServiceNow categories are updated
+      userContentBlocks.push({
+        type: 'text',
+        text: this.buildCategoriesSection(),
+        cache_control: { type: 'ephemeral' }
+      });
+
+      // CACHE BREAKPOINT 2: Instructions + examples section (static)
+      // This is the largest section and rarely changes
+      const instructionsText = this.buildInstructionsSection() + '\n\n' +
+                              this.buildExamplesSection() + '\n\n' +
+                              this.buildOutputFormatSection();
+      userContentBlocks.push({
+        type: 'text',
+        text: instructionsText,
+        cache_control: { type: 'ephemeral' }
+      });
+
+      // CACHE BREAKPOINT 3: Similar cases section (semi-dynamic, cacheable)
+      // Can be cached if cases don't change frequently
+      if (similarCases.length > 0) {
+        userContentBlocks.push({
+          type: 'text',
+          text: this.buildSimilarCasesSection(similarCases, caseData, businessContext),
+          cache_control: { type: 'ephemeral' }
+        });
+      }
+
+      // Dynamic sections (NOT cached) - these change every request
+      userContentBlocks.push({
+        type: 'text',
+        text: this.buildCaseDataSection(caseData)
+      });
+
+      if (businessContext) {
+        userContentBlocks.push({
+          type: 'text',
+          text: this.buildBusinessContextSection(businessContext)
+        });
+      }
+
+      if (kbArticles.length > 0) {
+        userContentBlocks.push({
+          type: 'text',
+          text: this.buildKBArticlesSection(kbArticles)
+        });
+      }
+
+      // Call Anthropic Messages API with caching
+      const aiCallStart = Date.now();
+      console.log(
+        `[CaseClassifier] Starting Anthropic classification with prompt caching for case ${caseData.case_number} | ` +
+        `Model: ${anthropicModel} | Cache breakpoints: 3`
+      );
+
+      const response = await anthropic.messages.create({
+        model: anthropicModel,
+        max_tokens: 4096,
+        temperature: 0.1,
+        system: [
+          {
+            type: 'text',
+            text: this.buildSystemInstructions(),
+            cache_control: { type: 'ephemeral' }
+          }
+        ],
+        messages: [
+          {
+            role: 'user',
+            content: userContentBlocks
+          }
+        ]
+      });
+
+      const aiCallDuration = Date.now() - aiCallStart;
+
+      // Extract usage metrics
+      const usage = response.usage;
+      const cacheMetrics = {
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens || 0,
+        cache_read_input_tokens: usage.cache_read_input_tokens || 0,
+      };
+
+      // Calculate cache hit rate
+      const cacheHitRate = calculateCacheHitRate(cacheMetrics);
+
+      // Calculate cost using Anthropic pricing
+      const cost = calculateAnthropicCost(cacheMetrics, anthropicModel);
+
+      // Log usage metrics
+      const metricsText = formatUsageMetrics(usage);
+      console.log(
+        `[CaseClassifier] Anthropic call completed in ${aiCallDuration}ms for case ${caseData.case_number} | ` +
+        `${metricsText} | Cost: $${cost.toFixed(4)}`
+      );
+
+      // Extract text content from response
+      const textContent = response.content.find(block => block.type === 'text');
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text content in Anthropic response');
+      }
+
+      const classificationText = textContent.text.trim();
+
+      // Log response for debugging (truncate if too long)
+      if (classificationText.length > 2000) {
+        console.log(
+          `[CaseClassifier] Anthropic response for ${caseData.case_number} (truncated): ` +
+          classificationText.substring(0, 2000) + '... [+' +
+          (classificationText.length - 2000) + ' more chars]'
+        );
+      } else {
+        console.log(
+          `[CaseClassifier] Anthropic response for ${caseData.case_number}:\n${classificationText}`
+        );
+      }
+
+      // Try to extract JSON from the response
+      const jsonMatch = classificationText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in classification response');
+      }
+
+      const classification = JSON.parse(jsonMatch[0]);
+
+      // Log parsed classification for visibility
+      console.log(
+        `[CaseClassifier] Parsed classification for ${caseData.case_number}: ` +
+        `${classification.category}` +
+        `${classification.subcategory ? ` > ${classification.subcategory}` : ''}` +
+        ` (${Math.round((classification.confidence_score || 0) * 100)}% confidence)`
+      );
+
+      // Validate and normalize the classification
+      const validatedClassification = await this.validateClassification(classification);
+
+      // Return with cache metrics and Anthropic metadata
+      return {
+        ...validatedClassification,
+        // Token usage
+        token_usage_input: usage.input_tokens,
+        token_usage_output: usage.output_tokens,
+        total_tokens: usage.input_tokens + usage.output_tokens,
+        // Cache metrics (Anthropic-specific)
+        cache_creation_input_tokens: usage.cache_creation_input_tokens || 0,
+        cache_read_input_tokens: usage.cache_read_input_tokens || 0,
+        cache_hit_rate: cacheHitRate,
+        // Model info
+        model_used: anthropicModel,
+        llm_provider: 'anthropic',
+        // Context
+        similar_cases: similarCases,
+        kb_articles: kbArticles,
+        similar_cases_count: similarCases.length,
+        kb_articles_count: kbArticles.length,
+      };
+
+    } catch (error) {
+      console.error(`[CaseClassifier] Anthropic classification with caching failed for ${caseData.case_number}:`, error);
+      throw error;
+    }
   }
 
   /**
@@ -363,6 +1061,25 @@ export class CaseClassifier {
         console.log(`[CaseClassifier] Found ${kbArticles.length} KB articles`);
       } catch (error) {
         console.warn('[CaseClassifier] Failed to fetch KB articles:', error);
+      }
+    }
+
+    // ROUTING: Use Anthropic with prompt caching if available, otherwise fall back to AI Gateway/OpenAI
+    if (anthropic && anthropicModel) {
+      try {
+        console.log(`[CaseClassifier] Using Anthropic API with prompt caching for case ${caseData.case_number}`);
+        return await this.classifyCaseWithCaching(
+          caseData,
+          businessContext,
+          similarCases,
+          kbArticles
+        );
+      } catch (error) {
+        console.warn(
+          `[CaseClassifier] Anthropic classification failed for ${caseData.case_number}, falling back to AI Gateway/OpenAI:`,
+          error
+        );
+        // Fall through to AI Gateway/OpenAI fallback below
       }
     }
 
@@ -509,7 +1226,7 @@ export class CaseClassifier {
     // CRITICAL: Use the EXACT system prompt from Python for quality
     let prompt = `You are a senior L2/L3 Technical Support Engineer triaging this case for a junior engineer who will work it. Analyze the case, classify it accurately, and provide diagnostic guidance that teaches while troubleshooting. Be specific with commands and technical details, but explain your reasoning so they understand the 'why' behind each step.
 
-Case Information:
+<case_data>
 - Case Number: ${caseData.case_number}
 - Short Description: ${caseData.short_description}`;
 
@@ -533,35 +1250,61 @@ Case Information:
       prompt += `\n- Company: ${caseData.company_name || caseData.company}`;
     }
 
+    prompt += `\n</case_data>`;
+
     // Add business context (client-specific intelligence)
     if (businessContext) {
-      prompt += `\n\n--- BUSINESS CONTEXT ---\n`;
+      prompt += `\n\n<business_context>\n`;
       prompt += businessContextText;
-      prompt += `\n`;
+      prompt += `\n</business_context>`;
     }
 
     // Add similar cases context if available (using NEW structure with MSP attribution)
     if (similarCases && similarCases.length > 0) {
-      prompt += `\n\n--- SIMILAR RESOLVED CASES (for context) ---\n`;
-      prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n\n`;
+      prompt += `\n\n<similar_cases>\n`;
+      prompt += `CRITICAL: ANALYZE THESE FOR PATTERNS! Don't just reference them.\n`;
+      prompt += `IMPORTANT: These cases are from the last 30 days (configurable). Check dates to assess recency.\n\n`;
 
       // Get current case client name from business context or company name
       const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
 
       // Pattern analysis: Count cases from same client using BOTH same_client flag AND name matching
-      const sameClientCases = similarCases.filter(c => {
-        // Check same_client flag first (ID-based matching)
-        if (c.same_client) return true;
+      // ALSO filter by recency - only count cases from last 14 days for systemic detection
+      const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
 
+      const sameClientCases = similarCases.filter(c => {
+        // First check if from same client
+        let isSameClient = false;
+
+        // Check same_client flag first (ID-based matching)
+        if (c.same_client) {
+          isSameClient = true;
+        }
         // Fallback to name-based matching if client names available
-        if (currentClientName && c.client_name) {
+        else if (currentClientName && c.client_name) {
           const caseClientName = c.client_name.toLowerCase();
           // Check if names match (exact or contains)
-          if (caseClientName === currentClientName) return true;
-          if (caseClientName.includes(currentClientName) || currentClientName.includes(caseClientName)) return true;
+          if (caseClientName === currentClientName) {
+            isSameClient = true;
+          } else if (caseClientName.includes(currentClientName) || currentClientName.includes(caseClientName)) {
+            isSameClient = true;
+          }
         }
 
-        return false;
+        if (!isSameClient) return false;
+
+        // Then check recency - only count recent cases for systemic detection
+        const caseDate = c.opened_at || c.sys_created_on;
+        if (!caseDate) return true; // Include if no date available (legacy data)
+
+        try {
+          const caseDateObj = new Date(caseDate);
+          return caseDateObj >= cutoffDate; // Only include cases within time window
+        } catch (e) {
+          return true; // Include if date parsing fails
+        }
       });
 
       // Check for related entity patterns (subsidiaries, sister companies)
@@ -580,12 +1323,12 @@ Case Information:
       const totalRelatedCases = sameClientCases.length + relatedEntityCases;
 
       if (totalRelatedCases >= 2) {
-        prompt += `⚠️ PATTERN ALERT: ${totalRelatedCases} similar cases from THE SAME CLIENT/RELATED ENTITIES detected.\n`;
+        prompt += `⚠️ PATTERN DETECTED: ${totalRelatedCases} similar cases from THE SAME CLIENT/RELATED ENTITIES in last ${systemic_pattern_days} days.\n`;
         if (relatedEntityCases > 0) {
           prompt += `   (${sameClientCases.length} from same client + ${relatedEntityCases} from related entities sharing infrastructure)\n`;
         }
-        prompt += `This suggests a SYSTEMIC/INFRASTRUCTURE issue, not isolated user problems.\n`;
-        prompt += `Escalate your troubleshooting from user-level to infrastructure/server-level.\n\n`;
+        prompt += `IMPORTANT: This is NOT automatically systemic. Read resolution notes below CAREFULLY to verify if they show SAME root cause.\n`;
+        prompt += `If resolutions differ (e.g., one=server fix, another=user config fix), this is NOT systemic.\n\n`;
       }
 
       prompt += `Similar cases:\n\n`;
@@ -593,22 +1336,68 @@ Case Information:
       similarCases.slice(0, 5).forEach((case_, index) => {
         const clientLabel = case_.same_client ? '[Same Client]' :
                            case_.client_name ? `[${case_.client_name}]` : '[Different Client]';
-        prompt += `${index + 1}. Case ${case_.case_number} ${clientLabel} (similarity: ${(case_.similarity_score || 0).toFixed(2)}):\n`;
+
+        // Format date for display
+        const caseDate = case_.opened_at || case_.sys_created_on;
+        let dateLabel = '';
+        if (caseDate) {
+          try {
+            const date = new Date(caseDate);
+            const diffMs = Date.now() - date.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            dateLabel = diffDays === 0 ? ' (today)' :
+                       diffDays === 1 ? ' (yesterday)' :
+                       diffDays < 14 ? ` (${diffDays} days ago)` :
+                       ` (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+          } catch (e) {
+            // Ignore date parsing errors
+          }
+        }
+
+        prompt += `<case id="${index + 1}">\n`;
+        prompt += `${index + 1}. Case ${case_.case_number} ${clientLabel}${dateLabel} (similarity: ${(case_.similarity_score || 0).toFixed(2)}):\n`;
         prompt += `   - Description: ${(case_.short_description || case_.description || '').substring(0, 200)}...\n`;
         if (case_.category) {
           prompt += `   - Category: ${case_.category}\n`;
         }
-        prompt += `\n`;
+
+        // CRITICAL: Include resolution notes for root cause analysis
+        if (case_.resolution_notes) {
+          const resolutionPreview = case_.resolution_notes.substring(0, 300);
+          prompt += `   - Resolution: ${resolutionPreview}${case_.resolution_notes.length > 300 ? '...' : ''}\n`;
+        }
+
+        prompt += `</case>\n\n`;
       });
 
-      prompt += `\nIMPORTANT PATTERN ANALYSIS RULES:\n`;
-      prompt += `- If 2+ cases from SAME CLIENT or RELATED ENTITIES with SAME ISSUE → This is a SYSTEMIC problem\n`;
-      prompt += `- Related entities = subsidiaries/sister companies sharing infrastructure (check business context)\n`;
-      prompt += `- If cases are from DIFFERENT UNRELATED CLIENTS → Individual/isolated issues\n`;
-      prompt += `- Check client labels [Same Client] vs [Different Client] vs [Related Entity] to identify patterns\n\n`;
+      prompt += `\n<pattern_analysis_requirements>\n`;
+      prompt += `BEFORE declaring systemic_issue_detected=true, you MUST verify ALL of the following:\n\n`;
+
+      prompt += `1. ✅ RECENCY CHECK:\n`;
+      prompt += `   - Are cases from last 7-14 days? (check dates above)\n`;
+      prompt += `   - Old cases (30+ days ago) ≠ systemic issue NOW\n`;
+      prompt += `   - Cases from different weeks/months = isolated incidents, not ongoing pattern\n\n`;
+
+      prompt += `2. ✅ RESOLUTION ANALYSIS (MOST CRITICAL):\n`;
+      prompt += `   - Read the "Resolution:" notes above carefully\n`;
+      prompt += `   - Do resolutions show SAME/SIMILAR root cause?\n`;
+      prompt += `   - COUNTER-EXAMPLE: Case 1 fixed by "KMS server reactivation" vs Case 2 fixed by "user email signin correction" = DIFFERENT issues, NOT systemic\n`;
+      prompt += `   - If resolutions differ significantly → likely different problems, set systemic_issue_detected=FALSE\n`;
+      prompt += `   - If resolutions same/similar → likely systemic, set systemic_issue_detected=TRUE\n\n`;
+
+      prompt += `3. ✅ CLIENT MATCH:\n`;
+      prompt += `   - Are 2+ cases from [Same Client] or related entities?\n`;
+      prompt += `   - Related entities = subsidiaries sharing infrastructure (check business context)\n`;
+      prompt += `   - Cases from [Different Client] = not a pattern for this client\n\n`;
+
+      prompt += `PATTERN ANALYSIS RULES:\n`;
+      prompt += `- If 2+ RECENT cases (last 14 days) from SAME CLIENT with SAME ROOT CAUSE (verified via resolution notes) → systemic_issue_detected=true\n`;
+      prompt += `- If cases have DIFFERENT resolutions → systemic_issue_detected=false (different issues, not a pattern)\n`;
+      prompt += `- If cases are OLD (30+ days) → systemic_issue_detected=false (not an active/ongoing issue)\n`;
+      prompt += `- If cases are from DIFFERENT UNRELATED CLIENTS → systemic_issue_detected=false\n\n`;
 
       prompt += `CRITICAL TROUBLESHOOTING LOGIC:\n`;
-      prompt += `IF systemic_issue_detected=true (2+ cases from same client/related entities):\n`;
+      prompt += `IF systemic_issue_detected=true (2+ RECENT cases, SAME root cause verified):\n`;
       prompt += `→ Your NEXT STEPS **MUST** focus on INFRASTRUCTURE/SERVERS affecting ALL users\n`;
       prompt += `→ Examples: "Check domain controller replication", "Verify file server status for ALL users", "Review AD infrastructure health"\n`;
       prompt += `→ DO NOT provide individual user account troubleshooting (no "Check kdevries account")\n`;
@@ -619,15 +1408,18 @@ Case Information:
       prompt += `→ Step 1: Ask "Can OTHER users access [resource]?" - determines if systemic or individual\n`;
       prompt += `→ Step 2: Quick infrastructure check - ping server, verify service running\n`;
       prompt += `→ Step 3-5: THEN proceed to individual user troubleshooting IF infrastructure checks pass\n`;
-      prompt += `→ Rationale: Validates shared resources work before assuming user-specific problem\n\n`;
+      prompt += `→ Rationale: Validates shared resources work before assuming user-specific problem\n`;
+      prompt += `\n</pattern_analysis_requirements>\n`;
+      prompt += `</similar_cases>\n`;
     }
 
     // Add KB articles context if available
     if (kbArticles && kbArticles.length > 0) {
-      prompt += `\n\n--- RELEVANT KB ARTICLES ---\n`;
+      prompt += `\n\n<kb_articles>\n`;
       prompt += `These KB articles may help resolve this case:\n\n`;
 
       kbArticles.forEach((kb, index) => {
+        prompt += `<article id="${index + 1}">\n`;
         prompt += `${index + 1}. ${kb.kb_number}: ${kb.title} (similarity: ${kb.similarity_score.toFixed(2)})\n`;
         if (kb.category) {
           prompt += `   Category: ${kb.category}\n`;
@@ -635,10 +1427,11 @@ Case Information:
         if (kb.summary) {
           prompt += `   Summary: ${kb.summary.substring(0, 150)}...\n`;
         }
-        prompt += `\n`;
+        prompt += `</article>\n\n`;
       });
 
       prompt += `Consider these KB articles when suggesting next steps or troubleshooting guidance.\n`;
+      prompt += `</kb_articles>`;
     }
 
     // Use real ServiceNow categories if available, otherwise use default list
@@ -662,13 +1455,18 @@ Case Information:
 
     prompt += `
 
-Available Categories for CASE record (sn_customerservice_case table):
+<available_categories>
+<case_categories>
 ${caseCategoryList}
+</case_categories>
 
-Available Categories for INCIDENT record (incident table):
+<incident_categories>
 ${incidentCategoryList}
+</incident_categories>
+</available_categories>
 
-Analyze the case and provide:
+<instructions>
+Analyze the case in <case_data> and provide:
 1. The most appropriate CASE category from the CASE categories list above
 2. An optional CASE subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
 3. **IF AND ONLY IF** record_type_suggestion.type is "Incident" or "Problem":
@@ -701,10 +1499,23 @@ If you detect any of the following exceptions based on the client's business con
 11. CLIENT TECHNOLOGY: If case mentions client-specific technology from their portfolio (e.g., EPD EMR, GoRev, Palo Alto 460), capture the technology name and context
 12. RELATED ENTITIES: If case may affect sibling companies or related entities, list them
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
-14. SYSTEMIC ISSUE: **CRITICAL** - If you found 2+ similar cases from SAME CLIENT (check both same_client flag AND client_name text) in the similar cases list above, you MUST set systemic_issue_detected=true, explain what the pattern is, and note how many cases (affected_cases_same_client). This indicates infrastructure/server-level problem affecting multiple users, not isolated issue. DO NOT miss this - patterns are the most valuable intelligence we can provide.
+14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
 
---- ITSM RECORD TYPE SYNTHESIS ---
+SERVICE PORTFOLIO CLASSIFICATION:
+Identify which Service Offering best matches this case. Select ONE of the following:
 
+15. SERVICE OFFERING: Choose the most appropriate Service Offering from Altus Health's portfolio:
+   - **Infrastructure and Cloud Management**: Server maintenance (physical/virtual/cloud), asset tracking, warranty management, license tracking
+   - **Network Management**: Routers, switches, wireless networks, VoIP systems, Internet/Broadband, vendor coordination, failover redundancy
+   - **Cybersecurity Management**: Security monitoring, firewall management, VPN management, endpoint security, threat assessments
+   - **Helpdesk and Endpoint Support - 24/7**: 24/7 user support (phone/email), endpoint device management (desktops, laptops, tablets, mobile), tiered support (Tier 1-3), onsite dispatch. Use when: case indicates 24/7 support contract, after-hours support needed, or business context mentions round-the-clock coverage.
+   - **Helpdesk and Endpoint - Standard**: Standard business hours user support, endpoint device management, tiered support. Use when: case during business hours, no 24/7 indicators, or standard support tier. DEFAULT to this if uncertain.
+   - **Application Administration**: Administrative support for${this.getApplicationListText()}, patch management, incident coordination
+
+16. APPLICATION SERVICE (OPTIONAL): If service_offering is "Application Administration", specify which application${this.getApplicationListPrompt()}
+</instructions>
+
+<itsm_synthesis_rules>
 Based on the business intelligence you just analyzed, determine the correct ITSM record type using these synthesis rules:
 
 **Rule 1: PROBLEM** (Highest Priority)
@@ -747,9 +1558,12 @@ SYNTHESIS DECISION TREE:
 3. Then check: Service disruption (broken/down/error)? → Standard Incident
 4. Then check: Requesting something new/different? → Change
 5. Default: → Case
+</itsm_synthesis_rules>
 
+<examples>
 FEW-SHOT EXAMPLES (follow these patterns):
 
+<example id="systemic">
 EXAMPLE 1 - SYSTEMIC ISSUE (2+ cases from same client):
 Input: "User can't access L drive" + Similar cases: 3 L drive issues from Neighbors
 Pattern: SYSTEMIC (3 cases from same client with same issue)
@@ -761,7 +1575,9 @@ Next Steps (INFRASTRUCTURE-FOCUSED):
 4. "Review file server event logs: Check for SMB errors (EventID 1020) or disk failures affecting all connections"
 Business Intelligence: systemic_issue_detected=true, affected_cases_same_client=3
 Record Type: Problem (systemic pattern detected requiring RCA)
+</example>
 
+<example id="individual">
 EXAMPLE 2 - INDIVIDUAL ISSUE (no pattern, appears isolated):
 Input: "User kdevries can't access L drive" + Similar cases: None from same client
 Pattern: INDIVIDUAL (no similar cases from same client)
@@ -773,10 +1589,38 @@ Next Steps (INFRASTRUCTURE VALIDATION FIRST, THEN INDIVIDUAL):
 4. "Verify kdevries group memberships: Get-ADUser kdevries -Properties MemberOf - confirm has security group for L drive access"
 Business Intelligence: systemic_issue_detected=false
 Record Type: Incident (service disruption, but individual user - not systemic)
+</example>
+
+<example id="false_positive">
+EXAMPLE 3 - FALSE POSITIVE (2+ cases but DIFFERENT root causes):
+Input: "Microsoft Office license expired - all apps showing activation required"
+Similar Cases from Altus Community Healthcare:
+1. Case SCS0045197 (5 days ago): "Microsoft Key Expired" → Resolution: "Reactivated Office via KMS server - ran 'cscript ospp.vbs /act' to force activation"
+2. Case SCS0048952 (today): "Microsoft Office license expired" → Current case
+Pattern Analysis:
+✅ Client Match: Both from Altus Community Healthcare [Same Client]
+✅ Recency Check: Both within last 14 days (5 days ago + today)
+❌ Resolution Analysis: Case 1 was KMS server activation issue, BUT need to verify if Case 2 has same root cause
+Investigation Reveals: User Lerene's actual issue = signing in with wrong email (@gmail.com instead of @altus.com for M365 license)
+→ systemic_issue_detected=FALSE
+→ systemic_issue_reason="Similar cases have DIFFERENT root causes - Case 1 was KMS server issue, Case 2 is user email signin mismatch - NOT systemic"
+Summary: "Microsoft license error - appears similar to recent KMS case, but need to verify user's signin email first (common M365 license issue when users sign in with personal vs work email)"
+Next Steps:
+1. "Check user's current Office signin email: Open any Office app → File → Account → look at email shown under 'Product Information' - verify it matches @altus.com domain, not personal email"
+2. "If wrong email: Sign out and sign in with correct work email (@altus.com) - this is most common cause of license errors that look like infrastructure issues"
+3. "If correct email AND recently resolved KMS case exists: Then check KMS server status - may be infrastructure issue"
+4. "Verify license assignment in M365 admin center: Check if user has valid Office 365 license assigned to their @altus.com account"
+Business Intelligence: systemic_issue_detected=false, systemic_issue_reason="Different root causes - not a systemic pattern", affected_cases_same_client=1
+Record Type: Incident (individual user configuration issue)
+</example>
 
 Key Difference: Systemic = infrastructure-only steps. Individual = infrastructure validation FIRST, then user troubleshooting.
+</examples>
 
+<output_format>
 Respond with a JSON object in this exact format:
+
+<json_schema>
 {
   "category": "exact CASE category name from CASE categories list",
   "subcategory": "specific CASE subcategory or null",
@@ -818,8 +1662,10 @@ Respond with a JSON object in this exact format:
     "reasoning": "VPN connectivity failure is an unplanned service disruption. Not major incident as it affects single user and no executive visibility flags."
   }
 }
+</json_schema>
 
-Important: Return ONLY the JSON object, no additional text.`;
+Important: Return ONLY the JSON object, no additional text.
+</output_format>`;
 
     return prompt;
   }

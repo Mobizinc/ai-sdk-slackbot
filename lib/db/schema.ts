@@ -12,8 +12,10 @@ import {
   serial,
   jsonb,
   index,
+  uniqueIndex,
   primaryKey,
   real,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -89,6 +91,61 @@ export const kbGenerationStates = pgTable(
     lastUpdatedStateIdx: index("idx_last_updated_state").on(table.lastUpdated),
   })
 );
+
+/**
+ * Case Queue Snapshots Table
+ * Stores periodic snapshots of Service Desk queue metrics by assignee
+ */
+export const caseQueueSnapshots = pgTable(
+  "case_queue_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    snapshotAt: timestamp("snapshot_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    assignedTo: text("assigned_to").notNull(),
+    assignedToEmail: text("assigned_to_email"),
+    assignmentGroup: text("assignment_group"),
+    openCases: integer("open_cases").notNull(),
+    highPriorityCases: integer("high_priority_cases").notNull().default(0),
+    escalatedCases: integer("escalated_cases").notNull().default(0),
+    lastSeenUtc: timestamp("last_seen_utc", { withTimezone: true }),
+    source: text("source").notNull().default("azure_sql"),
+    rawPayload: jsonb("raw_payload"),
+  },
+  (table) => ({
+    snapshotIdx: index("idx_case_queue_snapshot_timestamp").on(table.snapshotAt),
+    assigneeIdx: index("idx_case_queue_snapshot_assignee").on(table.assignedTo),
+    uniqueSnapshotAssignee: uniqueIndex("uq_case_queue_snapshot").on(
+      table.snapshotAt,
+      table.assignedTo
+    ),
+  })
+);
+
+export type CaseQueueSnapshot = typeof caseQueueSnapshots.$inferSelect;
+export type NewCaseQueueSnapshot = typeof caseQueueSnapshots.$inferInsert;
+
+/**
+ * Application Settings Table
+ * Stores global key/value configuration (e.g., Slack channel IDs)
+ */
+export const appSettings = pgTable(
+  "app_settings",
+  {
+    key: text("key").primaryKey(),
+    value: text("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    updatedIdx: index("idx_app_settings_updated").on(table.updatedAt),
+  })
+);
+
+export type AppSetting = typeof appSettings.$inferSelect;
+export type NewAppSetting = typeof appSettings.$inferInsert;
 
 // Type exports for TypeScript
 export type CaseContext = typeof caseContexts.$inferSelect;
@@ -214,6 +271,16 @@ export const caseClassificationResults = pgTable(
     confidenceScore: real("confidence_score").notNull(),
     retryCount: integer("retry_count").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // Service Portfolio Classification (NEW)
+    serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
+    applicationService: text("application_service"), // Specific application if Application Administration
+    // ITSM Record Creation Tracking (NEW - for idempotency)
+    incidentNumber: text("incident_number"), // Incident number created from this case (if any)
+    incidentSysId: text("incident_sys_id"), // Incident sys_id for direct linking
+    incidentUrl: text("incident_url"), // Full URL to incident in ServiceNow
+    problemNumber: text("problem_number"), // Problem number created from this case (if any)
+    problemSysId: text("problem_sys_id"), // Problem sys_id for direct linking
+    problemUrl: text("problem_url"), // Full URL to problem in ServiceNow
   },
   (table) => ({
     caseNumberIdx: index("idx_results_case_number").on(table.caseNumber),
@@ -315,6 +382,9 @@ export const caseClassifications = pgTable(
     processingTimeMs: real("processing_time_ms"),
     servicenowUpdated: boolean("servicenow_updated").default(false).notNull(),
     workNoteContent: text("work_note_content"),
+    // Service Portfolio Classification (NEW)
+    serviceOffering: text("service_offering"), // Main service offering (e.g., "Application Administration")
+    applicationService: text("application_service"), // Specific application if Application Administration
   },
   (table) => ({
     caseNumberIdx: index("idx_case_number_classifications").on(table.caseNumber),
@@ -392,6 +462,86 @@ export type ServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferS
 export type NewServiceNowCategorySyncLog = typeof servicenowCategorySyncLog.$inferInsert;
 
 /**
+ * Client Settings Table
+ * Stores per-client configuration for catalog redirect and other features
+ */
+export const clientSettings = pgTable(
+  "client_settings",
+  {
+    id: serial("id").primaryKey(),
+    clientId: text("client_id").notNull().unique(), // ServiceNow company sys_id
+    clientName: text("client_name").notNull(),
+    // Catalog redirect settings
+    catalogRedirectEnabled: boolean("catalog_redirect_enabled").default(true).notNull(),
+    catalogRedirectConfidenceThreshold: real("catalog_redirect_confidence_threshold").default(0.5).notNull(),
+    catalogRedirectAutoClose: boolean("catalog_redirect_auto_close").default(false).notNull(),
+    supportContactInfo: text("support_contact_info"),
+    // Custom catalog mappings (optional overrides)
+    customCatalogMappings: jsonb("custom_catalog_mappings").$type<Array<{
+      requestType: string;
+      keywords: string[];
+      catalogItemNames: string[];
+      priority: number;
+    }>>().default([]).notNull(),
+    // Feature flags
+    features: jsonb("features").$type<Record<string, boolean>>().default({}).notNull(),
+    // Metadata
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (table) => ({
+    clientIdIdx: index("idx_client_id").on(table.clientId),
+    clientNameIdx: index("idx_client_name").on(table.clientName),
+    catalogRedirectEnabledIdx: index("idx_catalog_redirect_enabled").on(table.catalogRedirectEnabled),
+  })
+);
+
+/**
+ * Catalog Redirect Log Table
+ * Tracks all catalog redirects for metrics and reporting
+ */
+export const catalogRedirectLog = pgTable(
+  "catalog_redirect_log",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    clientId: text("client_id"),
+    clientName: text("client_name"),
+    requestType: text("request_type").notNull(), // onboarding, termination, etc.
+    confidence: real("confidence").notNull(),
+    confidenceThreshold: real("confidence_threshold").notNull(),
+    catalogItemsProvided: integer("catalog_items_provided").notNull(),
+    catalogItemNames: jsonb("catalog_item_names").$type<string[]>().default([]).notNull(),
+    caseClosed: boolean("case_closed").notNull(),
+    closeState: text("close_state"),
+    matchedKeywords: jsonb("matched_keywords").$type<string[]>().default([]).notNull(),
+    submittedBy: text("submitted_by"), // user who submitted the case
+    shortDescription: text("short_description"),
+    category: text("category"),
+    subcategory: text("subcategory"),
+    redirectedAt: timestamp("redirected_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_redirect_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_redirect_case_sys_id").on(table.caseSysId),
+    clientIdIdx: index("idx_redirect_client_id").on(table.clientId),
+    requestTypeIdx: index("idx_redirect_request_type").on(table.requestType),
+    redirectedAtIdx: index("idx_redirect_redirected_at").on(table.redirectedAt),
+    caseClosedIdx: index("idx_redirect_case_closed").on(table.caseClosed),
+  })
+);
+
+export type ClientSettings = typeof clientSettings.$inferSelect;
+export type NewClientSettings = typeof clientSettings.$inferInsert;
+
+export type CatalogRedirectLog = typeof catalogRedirectLog.$inferSelect;
+export type NewCatalogRedirectLog = typeof catalogRedirectLog.$inferInsert;
+
+/**
  * Category Mismatch Log Table
  * Tracks when AI suggests categories that don't exist in ServiceNow
  * Used to identify categories that should be added to ServiceNow
@@ -425,3 +575,116 @@ export const categoryMismatchLog = pgTable(
 
 export type CategoryMismatchLog = typeof categoryMismatchLog.$inferSelect;
 export type NewCategoryMismatchLog = typeof categoryMismatchLog.$inferInsert;
+
+/**
+ * CMDB Reconciliation Results Table
+ * Tracks results of CMDB reconciliation process for case entities
+ */
+export const cmdbReconciliationResults = pgTable(
+  "cmdb_reconciliation_results",
+  {
+    id: serial("id").primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    caseSysId: text("case_sys_id").notNull(),
+    entityValue: text("entity_value").notNull(),
+    entityType: text("entity_type").notNull(), // IP_ADDRESS, SYSTEM, USER, SOFTWARE, ERROR_CODE
+    originalEntityValue: text("original_entity_value").notNull(), // Before alias resolution
+    resolvedEntityValue: text("resolved_entity_value"), // After alias resolution
+    reconciliationStatus: text("reconciliation_status").notNull(), // matched, unmatched, ambiguous, skipped
+    cmdbSysId: text("cmdb_sys_id"),
+    cmdbName: text("cmdb_name"),
+    cmdbClass: text("cmdb_class"),
+    cmdbUrl: text("cmdb_url"),
+    confidence: real("confidence").notNull(),
+    businessContextMatch: text("business_context_match"), // Name of matching business context
+    childTaskNumber: text("child_task_number"), // If task was created
+    childTaskSysId: text("child_task_sys_id"), // If task was created
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_cmdb_reconcile_case_number").on(table.caseNumber),
+    caseSysIdIdx: index("idx_cmdb_reconcile_case_sys_id").on(table.caseSysId),
+    entityValueIdx: index("idx_cmdb_reconcile_entity_value").on(table.entityValue),
+    entityTypeIdx: index("idx_cmdb_reconcile_entity_type").on(table.entityType),
+    statusIdx: index("idx_cmdb_reconcile_status").on(table.reconciliationStatus),
+    confidenceIdx: index("idx_cmdb_reconcile_confidence").on(table.confidence),
+    createdAtIdx: index("idx_cmdb_reconcile_created_at").on(table.createdAt),
+  })
+);
+
+export type CmdbReconciliationResult = typeof cmdbReconciliationResults.$inferSelect;
+export type NewCmdbReconciliationResult = typeof cmdbReconciliationResults.$inferInsert;
+
+/**
+ * Call Interactions Table
+ * Stores metadata about voice interactions retrieved from Webex Contact Center
+ */
+export const callInteractions = pgTable(
+  "call_interactions",
+  {
+    sessionId: text("session_id").primaryKey(),
+    contactId: text("contact_id"),
+    caseNumber: text("case_number"),
+    direction: text("direction"),
+    ani: text("ani"),
+    dnis: text("dnis"),
+    agentId: text("agent_id"),
+    agentName: text("agent_name"),
+    queueName: text("queue_name"),
+    startTime: timestamp("start_time", { withTimezone: true }),
+    endTime: timestamp("end_time", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    wrapUpCode: text("wrap_up_code"),
+    recordingId: text("recording_id"),
+    transcriptStatus: text("transcript_status").notNull().default("pending"),
+    rawPayload: jsonb("raw_payload"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    // ServiceNow interaction tracking
+    servicenowInteractionSysId: text("servicenow_interaction_sys_id"),
+    servicenowInteractionNumber: text("servicenow_interaction_number"),
+    servicenowSyncedAt: timestamp("servicenow_synced_at", { withTimezone: true }),
+  },
+  (table) => ({
+    caseNumberIdx: index("idx_call_interactions_case").on(table.caseNumber),
+    startTimeIdx: index("idx_call_interactions_start").on(table.startTime),
+    transcriptStatusIdx: index("idx_call_interactions_transcript_status").on(table.transcriptStatus),
+    servicenowInteractionSysIdIdx: index("idx_call_interactions_sn_interaction").on(table.servicenowInteractionSysId),
+  })
+);
+
+/**
+ * Call Transcripts Table
+ * Tracks transcription lifecycle for recorded calls
+ */
+export const callTranscripts = pgTable(
+  "call_transcripts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: text("session_id")
+      .references(() => callInteractions.sessionId, { onDelete: "cascade" })
+      .notNull(),
+    provider: text("provider"),
+    status: text("status").notNull().default("pending"),
+    language: text("language"),
+    transcriptText: text("transcript_text"),
+    transcriptJson: jsonb("transcript_json"),
+    audioUrl: text("audio_url"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("idx_call_transcripts_status").on(table.status),
+    sessionUnique: uniqueIndex("uq_call_transcripts_session").on(table.sessionId),
+  })
+);
+
+export type CallInteraction = typeof callInteractions.$inferSelect;
+export type NewCallInteraction = typeof callInteractions.$inferInsert;
+export type CallTranscript = typeof callTranscripts.$inferSelect;
+export type NewCallTranscript = typeof callTranscripts.$inferInsert;

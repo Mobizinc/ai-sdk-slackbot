@@ -1,0 +1,103 @@
+{
+  "client_name": "Altus Community Healthcare",
+  "company_sys_id": "c3eec28c931c9a1049d9764efaba10f3",
+  "description": "Azure subscription structure for Altus and related entities",
+  "tenants": [
+    {
+      "tenant_name": "Altus Community Healthcare",
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669",
+      "tenant_domain": "ztaltus.onmicrosoft.com",
+      "company_name": "Altus Community Healthcare",
+      "subscriptions": [
+        {
+          "subscription_name": "Altus Production",
+          "subscription_id": "PLACEHOLDER_SUBSCRIPTION_ID_1",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Primary production Azure subscription for Altus Community Healthcare"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Neighbors Health",
+      "tenant_id": "fa52c9a8-e65a-4d5f-bbb1-4f545fc79443",
+      "tenant_domain": "neighborshealth.onmicrosoft.com",
+      "company_name": "Altus Community Healthcare",
+      "subscriptions": [
+        {
+          "subscription_name": "Neighbors Production",
+          "subscription_id": "PLACEHOLDER_SUBSCRIPTION_ID_2",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Neighbors Health under Altus tenant"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Austin Emergency Center",
+      "tenant_id": "059c922d-abff-42ec-8f0a-ca78ccdec003",
+      "tenant_domain": "austiner.onmicrosoft.com",
+      "company_name": "Altus Community Healthcare",
+      "subscriptions": [
+        {
+          "subscription_name": "Austin Emergency Production",
+          "subscription_id": "PLACEHOLDER_SUBSCRIPTION_ID_3",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Austin Emergency Center"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Exceptional Emergency Center",
+      "tenant_id": "0b166095-cbbb-4a47-b5d2-45df5415ee8a",
+      "tenant_domain": "altuscommunityhealthcare.onmicrosoft.com",
+      "company_name": "Altus Community Healthcare",
+      "subscriptions": [
+        {
+          "subscription_name": "EER AVD Subscription",
+          "subscription_id": "25b1ca49-56f4-47ca-91d8-8502721988e2",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Exceptional Emergency Center. State: Enabled"
+        },
+        {
+          "subscription_name": "EER Hub Subscription",
+          "subscription_id": "4bc35b20-9e96-4c19-a480-d47ec54d186d",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Exceptional Emergency Center. State: Enabled"
+        },
+        {
+          "subscription_name": "EER Workloads Subscription",
+          "subscription_id": "901696f3-6cf0-4415-9c4e-d482ac8795cb",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Exceptional Emergency Center. State: Enabled"
+        },
+        {
+          "subscription_name": "Azure subscription 1",
+          "subscription_id": "6c43d09f-e8d4-4d83-85cb-0fd545f4d356",
+          "subscription_type": "Production",
+          "environment": "Production",
+          "link_to_application_service": "Altus Health - Azure Environment",
+          "description": "Azure subscription for Exceptional Emergency Center. State: Enabled"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "ServiceNow does NOT have cmdb_ci_azure_tenant or cmdb_ci_azure_management_group tables",
+    "Subscriptions are created in cmdb_ci_azure_subscription table",
+    "Tenant ID is stored in subscription's object_id field",
+    "Tenant domain is stored in subscription's short_description field",
+    "REQUIRED: Update PLACEHOLDER_SUBSCRIPTION_ID values with actual Azure subscription IDs",
+    "REQUIRED: Update company_sys_id with actual Altus company sys_id from ServiceNow"
+  ]
+}

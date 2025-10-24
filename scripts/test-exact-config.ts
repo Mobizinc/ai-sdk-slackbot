@@ -5,7 +5,7 @@
 
 import { createGateway } from "@ai-sdk/gateway";
 import { customProvider } from "ai";
-import { generateText, tool } from "ai";
+import { generateText, tool } from "../lib/instrumented-ai";
 import { z } from "zod";
 
 async function testExactConfig() {

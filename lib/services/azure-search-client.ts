@@ -30,6 +30,7 @@ export interface SearchSimilarCasesOptions {
   crossClient?: boolean;
   searchFields?: string[];
   selectFields?: string[];
+  withinDays?: number; // Filter to cases opened within last N days (default: 30)
 }
 
 export interface KeywordSearchResponse {
@@ -43,6 +44,8 @@ export interface KeywordSearchResponse {
     subcategory?: string;
     state?: string;
     resolution_notes?: string;
+    created_at?: string;
+    resolved_at?: string;
     "@search.score": number;
   }>;
   "@odata.count"?: number;
@@ -128,19 +131,56 @@ export class AzureSearchClient {
     const {
       accountSysId,
       topK = 5,
-      crossClient = true,
+      crossClient = false,
+      searchFields = ["short_description", "description"],
       selectFields = [
         "case_number",
-        "client_id",
-        "client_name",
         "short_description",
         "description",
         "category",
         "subcategory",
         "state",
         "resolution_notes",
+        "created_at",
+        "resolved_at",
       ],
+      withinDays,
     } = options;
+
+    // Generate embedding for the query
+    const queryVector = await this.embeddingService.generateEmbedding(queryText);
+
+    // Build vector search request
+    const searchBody: any = {
+      vector: {
+        value: queryVector,
+        fields: "embedding",
+        k: topK,
+      },
+      select: selectFields.join(","),
+      top: topK,
+    };
+
+    // Build filters
+    const filters: string[] = [];
+
+      // Add date filter (limit to recent cases using created_at field) - only for single-client search and when explicitly provided
+      if (!crossClient && withinDays !== undefined && withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        filters.push(`created_at ge ${cutoffIso}`);
+      }
+
+    // Add client filter if not cross-client search
+    if (!crossClient && accountSysId) {
+      filters.push(`client_id eq '${accountSysId}'`);
+    }
+
+    // Add client filter if not cross-client search
+    if (!crossClient && accountSysId) {
+      filters.push(`client_id eq '${accountSysId}'`);
+    }
 
     try {
       const searchUrl = `${this.endpoint}/indexes/${this.indexName}/docs/search?api-version=${this.apiVersion}`;
@@ -163,12 +203,31 @@ export class AzureSearchClient {
         top: topK,
       };
 
+      // Build filters
+      const filters: string[] = [];
+
+      // Add date filter (limit to recent cases using created_at field) - only for single-client search and when explicitly provided
+      if (!crossClient && withinDays !== undefined && withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        filters.push(`created_at ge ${cutoffIso}`);
+      }
+
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
-        searchBody.filter = `client_id eq '${accountSysId}'`;
-        console.log(`[Azure Search] Vector search for client: ${accountSysId}`);
+        filters.push(`client_id eq '${accountSysId}'`);
+      }
+
+      // Combine filters
+      if (filters.length > 0) {
+        searchBody.filter = filters.join(" and ");
+      }
+
+      if (!crossClient && accountSysId) {
+        console.log(`[Azure Search] Vector search for client: ${accountSysId} (within ${withinDays || 30} days)`);
       } else {
-        console.log("[Azure Search] Vector search across ALL clients (MSP mode)");
+        console.log(`[Azure Search] Vector search across ALL clients (MSP mode, within ${withinDays || 30} days)`);
       }
 
       // Execute vector search via REST API
@@ -208,6 +267,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
+          // Date fields for recency display (map Azure Search fields to ServiceNow field names)
+          opened_at: result.created_at,  // Map created_at to opened_at for compatibility
+          sys_created_on: result.created_at,  // Also map to sys_created_on for compatibility
         };
       });
 
@@ -251,6 +313,7 @@ export class AzureSearchClient {
       accountSysId,
       topK = 5,
       crossClient = true,
+      withinDays,
       searchFields = ["short_description", "description"],
       selectFields = [
         "case_number",
@@ -262,6 +325,8 @@ export class AzureSearchClient {
         "subcategory",
         "state",
         "resolution_notes",
+        "created_at",
+        "resolved_at",
       ],
     } = options;
 
@@ -283,12 +348,31 @@ export class AzureSearchClient {
         top: topK,
       };
 
+      // Build filters
+      const filters: string[] = [];
+
+      // Add date filter (limit to recent cases using created_at field) - only for single-client search and when explicitly provided
+      if (!crossClient && withinDays !== undefined && withinDays > 0) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+        const cutoffIso = cutoffDate.toISOString();
+        filters.push(`created_at ge ${cutoffIso}`);
+      }
+
       // Add client filter if not cross-client search
       if (!crossClient && accountSysId) {
-        searchBody.filter = `client_id eq '${accountSysId}'`;
-        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId}`);
+        filters.push(`client_id eq '${accountSysId}'`);
+      }
+
+      // Combine filters
+      if (filters.length > 0) {
+        searchBody.filter = filters.join(" and ");
+      }
+
+      if (!crossClient && accountSysId) {
+        console.log(`[Azure Search] Searching similar cases for client: ${accountSysId} (within ${withinDays || 30} days)`);
       } else {
-        console.log("[Azure Search] Searching similar cases across ALL clients (MSP mode)");
+        console.log(`[Azure Search] Searching similar cases across ALL clients (MSP mode, within ${withinDays || 30} days)`);
       }
 
       // Execute keyword search via REST API
@@ -328,6 +412,9 @@ export class AzureSearchClient {
           client_id: resultClientId,
           client_name: result.client_name,
           same_client: sameClient,
+          // Date fields for recency display (map Azure Search fields to ServiceNow field names)
+          opened_at: result.created_at,  // Map created_at to opened_at for compatibility
+          sys_created_on: result.created_at,  // Also map to sys_created_on for compatibility
         };
       });
 

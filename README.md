@@ -11,11 +11,13 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - Works both with app mentions and as an assistant in direct messages
 - Maintains conversation context within both threads and direct messages
 - **Passive Case Number Monitoring**: Automatically detects case numbers (e.g., SCS0048402) in channel conversations and tracks context for knowledge base generation
+- **CMDB Reconciliation**: Automatically links Configuration Items (CIs) from ServiceNow to cases and creates child tasks for missing CIs, turning entity extraction into actionable CMDB data governance
 - Built-in tools for enhanced capabilities:
   - Real-time weather lookup
   - Web search (powered by [Exa](https://exa.ai))
   - ServiceNow incident, case, and knowledge-base lookups (when configured)
   - Similar cases search using Azure AI Search vector store (when configured)
+  - Entity extraction and CMDB reconciliation (when configured)
 - Easily extensible architecture to add custom tools (e.g., knowledge search)
 - **Inbound Relay Gateway**: Authenticated `/api/relay` endpoint lets upstream agents and services deliver Slack messages without creating their own Slack apps
 
@@ -26,6 +28,7 @@ An AI-powered chatbot for Slack powered by the [AI SDK by Vercel](https://sdk.ve
 - [OpenAI API key](https://platform.openai.com/api-keys)
 - [Exa API key](https://exa.ai) (for web search functionality)
 - Azure AI Search service (optional, for similar cases search)
+- ServiceNow instance with CMDB access (optional, for CMDB reconciliation)
 - A server or hosting platform (e.g., [Vercel](https://vercel.com)) to deploy the bot
 
 ## Setup
@@ -138,6 +141,40 @@ KB_SIMILAR_CASES_TOP_K=3
 
 # Database (optional, for persisting context and KB generation state)
 DATABASE_URL=postgresql://user:password@host.neon.tech/dbname?sslmode=require
+
+# CMDB Reconciliation (optional)
+CMDB_RECONCILIATION_ENABLED=false
+CMDB_RECONCILIATION_CONFIDENCE_THRESHOLD=0.7
+CMDB_RECONCILIATION_CACHE_RESULTS=true
+CMDB_RECONCILIATION_ASSIGNMENT_GROUP="CMDB Administrators"
+CMDB_RECONCILIATION_SLACK_CHANNEL="cmdb-alerts"
+
+# Observability (optional - LangSmith tracing)
+LANGSMITH_TRACING=false
+LANGSMITH_API_KEY=your-langsmith-api-key
+# Optional customization:
+# LANGSMITH_PROJECT=ai-sdk-slackbot
+# LANGSMITH_TAGS=production,slackbot
+# LANGSMITH_SAMPLE_RATE=1
+# LANGSMITH_API_URL=https://api.smith.langchain.com
+# LANGSMITH_WORKSPACE_ID=your-workspace-id
+
+# Webex Contact Center (optional - voice interaction sync)
+# Supply either an access token or the refresh flow credentials.
+# If using direct access tokens:
+# WEBEX_CC_ACCESS_TOKEN=your-access-token
+# Otherwise configure refresh token exchange:
+WEBEX_CC_CLIENT_ID=your-webex-client-id
+WEBEX_CC_CLIENT_SECRET=your-webex-client-secret
+WEBEX_CC_REFRESH_TOKEN=your-webex-refresh-token
+# Optional overrides:
+# WEBEX_CC_BASE_URL=https://webexapis.com/v1
+# WEBEX_CC_ORG_ID=your-org-id
+# WEBEX_CC_INTERACTION_PATH=contactCenter/interactionHistory
+# CALL_SYNC_LOOKBACK_MINUTES=15
+# INCIDENT_AUTO_CLOSE_MINUTES=60
+# INCIDENT_AUTO_CLOSE_LIMIT=50
+# INCIDENT_AUTO_CLOSE_CODE="Resolved - Awaiting Confirmation"
 ```
 
 Replace the placeholder values with your actual tokens.
@@ -163,11 +200,56 @@ npm run db:push
 npm run db:migrate
 ```
 
+**⚠️ Migration Note:** If the standard migration fails due to existing tables, use the targeted migration script:
+
+```bash
+# For CMDB reconciliation table specifically
+npx tsx scripts/migrate-cmdb-only.ts
+```
+
+This bypasses migration system issues and creates only the missing `cmdb_reconciliation_results` table needed for CMDB functionality.
+
 **Database features:**
 - ✅ Context survives bot restarts
 - ✅ KB gathering workflows resume after deployments
 - ✅ Historical conversation tracking
 - ✅ Graceful degradation (works without database)
+
+## Development Workflow
+
+This project uses a three-tier branch strategy with environment-specific database branches:
+
+```
+main (production) ← staging ← dev ← feature/*
+```
+
+### Branch Strategy
+
+| Branch | Environment | Database Branch | Purpose |
+|--------|------------|-----------------|---------|
+| `main` | Production | `main` | Live production environment |
+| `staging` | Staging | `staging` | Pre-production testing |
+| `dev` | Development | `dev` | Active development |
+| `feature/*` | Preview | Preview branches | Feature development |
+
+### Getting Started
+
+```bash
+# 1. Link to Vercel project
+vercel link
+
+# 2. Pull environment variables
+vercel env pull .env.development.local
+
+# 3. Create a feature branch from dev
+git checkout dev
+git checkout -b feature/your-feature
+
+# 4. Start development server
+vercel dev
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed workflow and best practices.
 
 ## Local Development
 
@@ -197,6 +279,7 @@ Make sure to modify the [subscription URL](./README.md/#enable-slack-events) to 
 - The assistant manager logs context fallbacks (`missing_scope`) so you can verify Slack permissions during development.
 - ServiceNow tool calls emit structured errors in the function logs; verify credentials before enabling in production.
 - Add integration tests (or manual scripts) that replay `assistant_thread_started`, `assistant_thread_context_changed`, and `message.im` payloads to validate the new event flow before deployment.
+- Enable `LANGSMITH_TRACING=true` with `LANGSMITH_API_KEY` to capture LLM calls (AI SDK + direct Anthropic) in LangSmith for deep debugging; optional `LANGSMITH_SAMPLE_RATE` and `LANGSMITH_TAGS` control sampling and labeling.
 
 ## Production Deployment
 
@@ -315,6 +398,12 @@ The bot maintains context within both threads and direct messages, so it can fol
 - Configure a Vercel Cron Job to call `GET /api/cron/cleanup-workflows` (or `POST`) on your preferred cadence.
 - The endpoint runs the same `cleanupTimedOutGathering` logic that previously lived in an in-process timer, ensuring stale gathering sessions are closed even on serverless platforms.
 - Environment variable `KB_GATHERING_TIMEOUT_HOURS` controls when conversations are considered abandoned.
+- Optional: schedule `GET /api/cron/close-resolved-incidents` to automatically close incidents that remain in the Resolved state beyond your threshold. Tune the cadence and thresholds with:
+  - `INCIDENT_AUTO_CLOSE_MINUTES` (default: 60)
+  - `INCIDENT_AUTO_CLOSE_LIMIT` (default: 50 incidents per run)
+  - `INCIDENT_AUTO_CLOSE_CODE` (default: `Resolved - Awaiting Confirmation`)
+- Optional: schedule `GET /api/cron/sync-webex-voice` to ingest Webex Contact Center voice interactions into Postgres for downstream reporting and transcripts.
+- Optional: schedule `GET /api/cron/sync-voice-worknotes` to backfill voice call metadata by parsing legacy ServiceNow work notes (pre-Webex integration).
 
 ### Extending with New Tools
 

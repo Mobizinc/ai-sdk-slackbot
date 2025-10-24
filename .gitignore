@@ -5,6 +5,7 @@ dist
 .next
 .vercel
 .env*.local
+*.bak
 
 # Work-in-progress CI records (keep README)
 ci-records/*

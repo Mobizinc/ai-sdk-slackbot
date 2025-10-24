@@ -86,24 +86,160 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
+ * Fix invalid escape sequences in JSON strings
+ *
+ * ServiceNow may send paths like "L:\" which contain backslashes that aren't
+ * properly escaped for JSON. This function escapes backslashes that aren't
+ * part of valid JSON escape sequences.
+ *
+ * Valid JSON escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+ */
+function fixInvalidEscapeSequences(payload: string): string {
+  // Replace backslashes that are NOT followed by valid escape characters
+  // Valid: ", \, /, b, f, n, r, t, u (for unicode)
+  // This regex finds backslashes NOT followed by these valid characters
+  return payload.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+}
+
+/**
  * Sanitize payload by removing problematic control characters
  * Keeps properly escaped newlines, tabs, and carriage returns
  * Removes other ASCII control characters that can break JSON.parse()
  */
 function sanitizePayload(payload: string): string {
-  // Remove ASCII control characters (0x00-0x1F) except:
-  // - \t (tab, 0x09)
-  // - \n (newline, 0x0A)
-  // - \r (carriage return, 0x0D)
-  // Also remove DEL character (0x7F)
-  return payload.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+  // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
+  let sanitized = fixInvalidEscapeSequences(payload);
+
+  // Also remove DEL character (0x7F) and unicode line/paragraph separators
+  return sanitized
+    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u2028\u2029]/g, '');
+}
+
+function removeBom(payload: string): string {
+  return payload.replace(/^\uFEFF/, '');
+}
+
+function looksLikeJson(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  );
+}
+
+function isProbablyBase64(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length % 4 !== 0) return false;
+  if (/[^A-Za-z0-9+/=\r\n]/.test(trimmed)) return false;
+  // Do not treat actual JSON as base64
+  if (trimmed.includes('{') || trimmed.includes('"')) return false;
+  return true;
+}
+
+function decodeFormEncodedPayload(payload: string): string | null {
+  const trimmed = payload.trim();
+  if (!trimmed) return null;
+
+  try {
+    if (trimmed.includes('=')) {
+      const params = new URLSearchParams(trimmed);
+      const possibleKeys = ['payload', 'body', 'data', 'json'];
+      for (const key of possibleKeys) {
+        const value = params.get(key);
+        if (value) {
+          return value;
+        }
+      }
+    }
+
+    if (/^%7B/i.test(trimmed) || trimmed.includes('%7B')) {
+      return decodeURIComponent(trimmed);
+    }
+  } catch (error) {
+    console.warn('[Webhook] Failed to decode form-encoded payload:', error);
+  }
+
+  return null;
+}
+
+function decodeBase64Payload(payload: string): string | null {
+  if (!isProbablyBase64(payload)) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(payload.trim(), 'base64').toString('utf8');
+    return decoded;
+  } catch (error) {
+    console.warn('[Webhook] Failed to decode base64 payload:', error);
+    return null;
+  }
+}
+
+function parseWebhookPayload(rawPayload: string): unknown {
+  const attempts: Array<{ description: string; value: () => string | null }> = [
+    {
+      description: 'trimmed payload',
+      value: () => removeBom(rawPayload).trim(),
+    },
+    {
+      description: 'sanitized payload',
+      value: () => sanitizePayload(removeBom(rawPayload)),
+    },
+    {
+      description: 'form-encoded payload',
+      value: () => decodeFormEncodedPayload(rawPayload),
+    },
+    {
+      description: 'base64-decoded payload',
+      value: () => decodeBase64Payload(rawPayload),
+    },
+    {
+      description: 'sanitized base64 payload',
+      value: () => {
+        const decoded = decodeBase64Payload(rawPayload);
+        return decoded ? sanitizePayload(decoded) : null;
+      },
+    },
+  ];
+
+  const errors: Error[] = [];
+
+  for (const attempt of attempts) {
+    const candidate = attempt.value();
+    if (!candidate) continue;
+
+    if (!looksLikeJson(candidate)) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(candidate);
+      if (Object.keys(parsed as Record<string, unknown>).length === 0) {
+        continue;
+      }
+      if (attempt.description !== 'trimmed payload') {
+        console.info(`[Webhook] Parsed payload using ${attempt.description}`);
+      }
+      return parsed;
+    } catch (error) {
+      errors.push(error as Error);
+    }
+  }
+
+  const finalError = errors[errors.length - 1];
+  if (finalError) {
+    throw finalError;
+  }
+  throw new Error('Unable to parse webhook payload');
 }
 
 /**
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
-export async function POST(request: Request) {
+async function postImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -130,20 +266,7 @@ export async function POST(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      // Try parsing raw payload first
-      let parsedPayload;
-      try {
-        parsedPayload = JSON.parse(payload);
-      } catch (parseError) {
-        // If parse fails due to control characters, sanitize and retry
-        console.warn(
-          '[Webhook] Initial JSON parse failed (likely control characters), ' +
-          'attempting with sanitized payload'
-        );
-        const sanitizedPayload = sanitizePayload(payload);
-        parsedPayload = JSON.parse(sanitizedPayload);
-        console.info('[Webhook] Successfully parsed sanitized payload');
-      }
+      const parsedPayload = parseWebhookPayload(payload);
 
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
@@ -223,6 +346,7 @@ export async function POST(request: Request) {
       enableBusinessContext: true,
       enableWorkflowRouting: true,
       writeToServiceNow: true,
+      enableCatalogRedirect: true,
     });
 
     const processingTime = Date.now() - startTime;
@@ -233,7 +357,8 @@ export async function POST(request: Request) {
       ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
       ` in ${processingTime}ms` +
       `${triageResult.cached ? ' [CACHED]' : ''}` +
-      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}`
+      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}` +
+      `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
     );
 
     // Return comprehensive response matching original format
@@ -269,6 +394,10 @@ export async function POST(request: Request) {
       incident_sys_id: triageResult.incidentSysId,
       incident_url: triageResult.incidentUrl,
       record_type_suggestion: triageResult.recordTypeSuggestion,
+      // Catalog redirect fields
+      catalog_redirected: triageResult.catalogRedirected,
+      catalog_redirect_reason: triageResult.catalogRedirectReason,
+      catalog_items_provided: triageResult.catalogItemsProvided,
     });
 
   } catch (error) {
@@ -283,6 +412,8 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const POST = postImpl;
 
 /**
  * Health check endpoint
