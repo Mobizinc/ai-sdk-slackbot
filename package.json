@@ -29,7 +29,6 @@
     "pnpm": ">=8.15.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.38.0",
     "@ai-sdk/gateway": "^1.0.15",
     "@ai-sdk/openai": "^2.0.42",
     "@anthropic-ai/sdk": "^0.38.0",
@@ -38,7 +37,6 @@
     "@neondatabase/serverless": "^1.0.2",
     "@slack/web-api": "^7.9.3",
     "@upstash/qstash": "^2.8.4",
-    "mssql": "^11.0.0",
     "@vercel/functions": "^2.0.0",
     "ai": "^5.0.26",
     "dotenv": "^17.2.3",
