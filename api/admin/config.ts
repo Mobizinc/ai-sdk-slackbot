@@ -1,6 +1,7 @@
 // Shared config utilities
 import {
   CONFIG_DEFINITIONS,
+  config as runtimeConfig,
   type ConfigDefinition,
   type ConfigKey,
   getConfig,
@@ -25,12 +26,12 @@ function buildUnauthorizedResponse(message: string, status: number): Response {
 
 function authorize(request: Request): Response | null {
   const isDevelopment =
-    !process.env.VERCEL_ENV || process.env.VERCEL_ENV === "development";
+    !runtimeConfig.vercelEnv || runtimeConfig.vercelEnv === "development";
   if (isDevelopment) {
     return null;
   }
 
-  const adminToken = process.env.BUSINESS_CONTEXT_ADMIN_TOKEN;
+  const adminToken = runtimeConfig.businessContextAdminToken;
   if (!adminToken) {
     return buildUnauthorizedResponse(
       "Admin configuration API is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.",

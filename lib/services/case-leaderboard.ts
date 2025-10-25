@@ -41,7 +41,7 @@ interface SqlActiveRow {
 function parseConnectionUrl(rawUrl?: string) {
   const configuredUrl = config.azureSqlDatabaseUrl || rawUrl;
   if (!configuredUrl) {
-    throw new Error("AZURE_SQL_DATABASE_URL environment variable is not set");
+    throw new Error("Azure SQL connection string is not configured");
   }
 
   const normalized = configuredUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
@@ -61,7 +61,7 @@ function parseConnectionUrl(rawUrl?: string) {
 }
 
 async function withSqlPool<T>(callback: (pool: ConnectionPool) => Promise<T>): Promise<T> {
-  const connectionConfig = parseConnectionUrl(config.azureSqlDatabaseUrl || process.env.AZURE_SQL_DATABASE_URL);
+  const connectionConfig = parseConnectionUrl();
   const pool = new ConnectionPool(connectionConfig as any);
   await pool.connect();
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { apiClient, type ConfigValue } from "@/lib/api-client"
-import { Settings, Search, RefreshCcw, Save } from "lucide-react"
+import { Settings, Search, RefreshCcw, Save, X, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 interface StatusMessage {
   type: "success" | "error"
@@ -17,11 +18,27 @@ export default function ConfigPage() {
   const [selectedGroup, setSelectedGroup] = useState<string>("all")
   const [pendingValues, setPendingValues] = useState<Record<string, unknown>>({})
   const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [savingAll, setSavingAll] = useState(false)
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null)
+
+  const hasUnsavedChanges = Object.keys(pendingValues).length > 0
 
   useEffect(() => {
     void loadConfig()
   }, [])
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   async function loadConfig() {
     try {
@@ -104,7 +121,7 @@ export default function ConfigPage() {
 
   async function handleSave(item: ConfigValue) {
     if (item.definition.sensitive) {
-      setStatusMessage({ type: "error", text: "Sensitive values must be managed via secret storage." })
+      toast.error("Sensitive values must be managed via secret storage.")
       return
     }
 
@@ -112,11 +129,10 @@ export default function ConfigPage() {
     const parsedValue = parseInputValue(item, rawValue)
 
     setSavingKey(item.key)
-    setStatusMessage(null)
 
     try {
       await apiClient.updateConfig({ [item.key]: parsedValue })
-      setStatusMessage({ type: "success", text: `Updated ${item.key}` })
+      toast.success(`Updated ${item.key}`)
       setPendingValues((prev) => {
         const clone = { ...prev }
         delete clone[item.key]
@@ -125,10 +141,49 @@ export default function ConfigPage() {
       await loadConfig()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to update configuration"
-      setStatusMessage({ type: "error", text: message })
+      toast.error(message)
     } finally {
       setSavingKey(null)
     }
+  }
+
+  async function handleSaveAll() {
+    if (Object.keys(pendingValues).length === 0) return
+
+    // Filter out sensitive values
+    const updates: Record<string, unknown> = {}
+    const configMap = new Map(config.map(c => [c.key, c]))
+
+    for (const [key, rawValue] of Object.entries(pendingValues)) {
+      const item = configMap.get(key)
+      if (!item || item.definition.sensitive) continue
+      updates[key] = parseInputValue(item, rawValue)
+    }
+
+    if (Object.keys(updates).length === 0) {
+      toast.error("No valid changes to save")
+      return
+    }
+
+    setSavingAll(true)
+
+    try {
+      await apiClient.updateConfig(updates)
+      toast.success(`Saved ${Object.keys(updates).length} setting(s)`)
+      setPendingValues({})
+      await loadConfig()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save changes"
+      toast.error(message)
+    } finally {
+      setSavingAll(false)
+    }
+  }
+
+  function handleDiscardAll() {
+    if (!confirm(`Discard ${Object.keys(pendingValues).length} unsaved change(s)?`)) return
+    setPendingValues({})
+    toast.info("Changes discarded")
   }
 
   function renderInput(item: ConfigValue) {
@@ -216,25 +271,45 @@ export default function ConfigPage() {
   return (
     <div>
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Settings className="w-8 h-8 text-gray-700" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Configuration</h1>
-            <p className="text-gray-600 mt-1">System settings and environment variables</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Settings className="w-8 h-8 text-gray-700" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Configuration</h1>
+              <p className="text-gray-600 mt-1">System settings and environment variables</p>
+            </div>
           </div>
-        </div>
 
-        {statusMessage && (
-          <div
-            className={`mb-4 px-4 py-2 rounded-lg border ${
-              statusMessage.type === "success"
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
-            {statusMessage.text}
-          </div>
-        )}
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm font-medium text-yellow-800">
+                  {Object.keys(pendingValues).length} unsaved change{Object.keys(pendingValues).length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <button
+                onClick={handleDiscardAll}
+                disabled={savingAll}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+                Discard
+              </button>
+              <button
+                onClick={handleSaveAll}
+                disabled={savingAll}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {savingAll ? (
+                  <><RefreshCcw className="w-4 h-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><Save className="w-4 h-4" /> Save All</>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-4 mb-6">
           <div className="flex-1 relative">
@@ -294,22 +369,43 @@ export default function ConfigPage() {
                     {items.map((item) => {
                       const isSaving = savingKey === item.key
                       const disabled = item.definition.sensitive
+                      const hasChanges = Object.prototype.hasOwnProperty.call(pendingValues, item.key)
 
                       return (
-                        <tr key={item.key} className="hover:bg-gray-50">
+                        <tr key={item.key} className={`hover:bg-gray-50 ${hasChanges ? 'bg-yellow-50' : ''}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <code className="text-sm font-mono text-gray-900">{item.key}</code>
+                            <div className="flex items-center gap-2">
+                              <code className="text-sm font-mono text-gray-900">{item.key}</code>
+                              {hasChanges && (
+                                <span className="text-yellow-600 font-bold text-sm">*</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             {disabled ? (
                               <span className="text-sm text-gray-400 italic">hidden</span>
                             ) : (
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <div className="flex-1">{renderInput(item)}</div>
+                                {hasChanges && (
+                                  <button
+                                    onClick={() => {
+                                      setPendingValues((prev) => {
+                                        const clone = { ...prev }
+                                        delete clone[item.key]
+                                        return clone
+                                      })
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 text-sm text-gray-600 hover:text-gray-900"
+                                    title="Discard changes"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => void handleSave(item)}
-                                  disabled={isSaving}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300"
+                                  disabled={isSaving || !hasChanges}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
                                 >
                                   {isSaving ? <RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                   Save
