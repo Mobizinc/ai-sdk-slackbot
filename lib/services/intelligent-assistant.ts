@@ -10,7 +10,8 @@ import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
-import type { KnownBlock } from "@slack/web-api";
+// Slack Block Kit types
+type KnownBlock = any;
 import {
   MessageEmojis,
   createHeaderBlock,

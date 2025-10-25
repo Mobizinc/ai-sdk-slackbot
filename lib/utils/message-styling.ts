@@ -4,7 +4,9 @@
  * Centralized constants and utilities for consistent Slack Block Kit messages
  */
 
-import type { KnownBlock, Block } from '@slack/web-api';
+// Slack Block Kit types
+type Block = any;
+type KnownBlock = any;
 import { config } from '../config';
 
 // ============================================================================
