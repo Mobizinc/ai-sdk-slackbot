@@ -110,7 +110,13 @@ function sanitizePayload(payload: string): string {
   // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
   let sanitized = fixInvalidEscapeSequences(payload);
 
-  // Also remove DEL character (0x7F) and unicode line/paragraph separators
+  // Step 2: Escape literal newlines, carriage returns, and tabs that are not already escaped
+  sanitized = sanitized
+    .replace(/(?<!\\)\n/g, '\\n')
+    .replace(/(?<!\\)\r/g, '\\r')
+    .replace(/(?<!\\)\t/g, '\\t');
+
+  // Step 3: Remove other problematic control characters and unicode separators
   return sanitized
     .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/[\u2028\u2029]/g, '');
