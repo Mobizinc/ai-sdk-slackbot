@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.api.json",
+    "build": "pnpm build:api && pnpm build:admin",
+    "build:api": "tsc -p tsconfig.api.json",
+    "build:admin": "cd admin && pnpm build",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "smoke": "tsx scripts/smoke-test.ts",
@@ -20,8 +22,7 @@
     "queue:snapshot:dry": "tsx scripts/pull-case-queue-snapshot.ts --dry-run",
     "queue:post": "tsx scripts/post-case-queue-report.ts",
     "queue:leaderboard": "tsx scripts/post-case-leaderboard.ts",
-    "set:app-setting": "tsx scripts/set-app-setting.ts",
-    "build:admin": "tsc -p tsconfig.frontend.json"
+    "set:app-setting": "tsx scripts/set-app-setting.ts"
   },
   "keywords": [],
   "author": "",
