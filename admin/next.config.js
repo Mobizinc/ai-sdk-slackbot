@@ -10,12 +10,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
-  // Since this is deployed on Vercel alongside the main API
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
 }
 
 module.exports = nextConfig
