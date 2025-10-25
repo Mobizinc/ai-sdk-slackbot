@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm build:api && pnpm build:admin",
-  "installCommand": "pnpm install -r --frozen-lockfile && pnpm db:migrate:vercel",
+  "installCommand": "pnpm install --frozen-lockfile && cd admin && pnpm install --frozen-lockfile && cd .. && pnpm db:migrate:vercel",
   "redirects": [
     {
       "source": "/",
