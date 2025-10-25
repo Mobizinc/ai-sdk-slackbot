@@ -89,10 +89,11 @@ async function loadOverridesFromDatabase(): Promise<RawOverrides> {
 }
 
 function applyOverrides(target: ConfigValueMap, overrides: RawOverrides): void {
+  const mutableTarget = target as unknown as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
     const definition = CONFIG_DEFINITIONS[key];
     const raw = overrides.get(key) ?? (definition.envVar ? process.env[definition.envVar] : undefined);
-    target[key] = parseValue(definition, raw);
+    mutableTarget[key] = parseValue(definition, raw);
   }
 }
 
