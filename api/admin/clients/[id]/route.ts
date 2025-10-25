@@ -14,22 +14,35 @@ export async function GET(
     const settings = await repo.getClientSettings(params.id);
 
     if (!settings) {
-      return Response.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      );
+      return new Response(JSON.stringify({ success: false, error: 'Client not found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
     }
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
       data: settings,
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     });
   } catch (error) {
     console.error('[Client Settings API] GET Error:', error);
-    return Response.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
 }
 
@@ -49,16 +62,37 @@ export async function PATCH(
 
     const updated = await repo.getClientSettings(params.id);
 
-    return Response.json({
+    return new Response(JSON.stringify({
       success: true,
       data: updated,
       message: 'Client settings updated successfully',
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     });
   } catch (error) {
     console.error('[Client Settings API] PATCH Error:', error);
-    return Response.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ success: false, error: 'Internal server error' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
+}
+
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
