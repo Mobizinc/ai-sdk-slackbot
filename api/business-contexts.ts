@@ -29,7 +29,7 @@ function jsonResponse(data: any, status: number = 200) {
 // Security check
 function checkAuth(request: Request) {
   const isDevelopment = !appConfig.vercelEnv || appConfig.vercelEnv === 'development';
-  const adminToken = appConfig.businessContextAdminToken;
+  const adminToken = appConfig.adminApiToken;
   const authHeader = request.headers.get('authorization');
 
   if (!isDevelopment) {
@@ -37,7 +37,7 @@ function checkAuth(request: Request) {
     if (!adminToken) {
       return jsonResponse({
         success: false,
-        error: "Business Context Admin API is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.",
+        error: "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
       }, 503);
     }
 

@@ -579,12 +579,12 @@ export const CONFIG_DEFINITIONS = {
     description: "Shared secret for admin metrics endpoints.",
     sensitive: true,
   },
-  businessContextAdminToken: {
-    envVar: "BUSINESS_CONTEXT_ADMIN_TOKEN",
+  adminApiToken: {
+    envVar: "ADMIN_API_TOKEN",
     type: "string",
     default: "",
     group: "admin",
-    description: "Token required for accessing business context APIs.",
+    description: "Authentication token for all admin API endpoints (business contexts, config, reports, etc.).",
     sensitive: true,
   },
   callSyncLookbackMinutes: {

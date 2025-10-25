@@ -31,10 +31,10 @@ function authorize(request: Request): Response | null {
     return null;
   }
 
-  const adminToken = runtimeConfig.businessContextAdminToken;
+  const adminToken = runtimeConfig.adminApiToken;
   if (!adminToken) {
     return buildUnauthorizedResponse(
-      "Admin configuration API is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.",
+      "Admin configuration API is disabled in production. Set ADMIN_API_TOKEN to enable.",
       403,
     );
   }
