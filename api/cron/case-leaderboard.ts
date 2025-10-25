@@ -1,5 +1,6 @@
 import { postCaseLeaderboard } from "../../lib/services/case-leaderboard";
 import { APP_SETTING_KEYS, getAppSettingWithFallback } from "../../lib/services/app-settings";
+import { config } from "../../lib/config";
 
 function json(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -34,7 +35,7 @@ async function run(request: Request): Promise<Response> {
     ?? bodyChannel
     ?? (await getAppSettingWithFallback(
       APP_SETTING_KEYS.leaderboardChannel,
-      process.env.MOBIZ_LEADERBOARD_CHANNEL ?? process.env.CASE_QUEUE_CHANNEL_ID ?? null,
+      config.mobizLeaderboardChannel || config.caseQueueChannelId || null,
     ));
 
   if (!channel) {

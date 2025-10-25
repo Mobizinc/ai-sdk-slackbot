@@ -7,6 +7,7 @@ import {
   getAppSettingValue,
   setAppSetting,
 } from "../../lib/db/repositories/app-settings-repository";
+import { config } from "../../lib/config";
 
 type JsonResponse =
   | {
@@ -28,7 +29,7 @@ type JsonResponse =
     };
 
 const SETTING_KEY = "webex:last_voice_sync_at";
-const FALLBACK_MINUTES = parseInt(process.env.CALL_SYNC_LOOKBACK_MINUTES || "15", 10);
+const getFallbackMinutes = () => config.callSyncLookbackMinutes ?? 15;
 
 function json(body: JsonResponse, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -41,12 +42,11 @@ function json(body: JsonResponse, status = 200): Response {
 }
 
 function isConfigured(): boolean {
-  // Require either an access token or refresh credentials
-  const hasDirectToken = Boolean(process.env.WEBEX_CC_ACCESS_TOKEN);
+  const hasDirectToken = Boolean(config.webexAccessToken);
   const hasRefreshFlow =
-    Boolean(process.env.WEBEX_CC_CLIENT_ID) &&
-    Boolean(process.env.WEBEX_CC_CLIENT_SECRET) &&
-    Boolean(process.env.WEBEX_CC_REFRESH_TOKEN);
+    Boolean(config.webexClientId) &&
+    Boolean(config.webexClientSecret) &&
+    Boolean(config.webexRefreshToken);
 
   return hasDirectToken || hasRefreshFlow;
 }
@@ -66,7 +66,8 @@ async function determineStartTime(): Promise<Date> {
     return latestSync;
   }
 
-  const fallback = new Date(Date.now() - FALLBACK_MINUTES * 60 * 1000);
+  const fallbackMinutes = getFallbackMinutes();
+  const fallback = new Date(Date.now() - fallbackMinutes * 60 * 1000);
   return fallback;
 }
 

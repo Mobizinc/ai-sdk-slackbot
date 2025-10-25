@@ -13,16 +13,16 @@
 
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
 import { isQStashEnabled, getSigningKeys } from '../../lib/queue/qstash-client';
+import { config as appConfig } from '../../lib/config';
 /**
  * Get queue statistics
  */
 export async function GET(request: Request) {
   try {
     const repository = getCaseClassificationRepository();
-    const enableAsyncTriage = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
-    // Get auth header for admin access
+    const enableAsyncTriage = appConfig.enableAsyncTriage;
     const authHeader = request.headers.get('authorization');
-    const adminKey = process.env.ADMIN_API_KEY;
+    const adminKey = appConfig.adminApiKey;
 
     // Simple API key auth (optional - remove if not needed)
     if (adminKey && authHeader !== `Bearer ${adminKey}`) {
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         async_triage_enabled: enableAsyncTriage,
         qstash_enabled: isQStashEnabled(),
         qstash_configured: !!(signingKeys.current && signingKeys.next),
-        worker_url: process.env.VERCEL_URL || 'localhost:3000', // Auto-detected
+        worker_url: appConfig.vercelUrl || 'localhost:3000',
       },
       stats_7d: {
         total_classifications: stats7d.totalClassifications,

@@ -1,5 +1,6 @@
 import { postCaseQueueReport } from "../../lib/services/case-queue-report";
 import { APP_SETTING_KEYS, getAppSettingWithFallback } from "../../lib/services/app-settings";
+import { config } from "../../lib/config";
 
 function parseMentions(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
@@ -34,7 +35,7 @@ async function run(trigger: URL): Promise<Response> {
     const channelId = channelParam
       ?? (await getAppSettingWithFallback(
         APP_SETTING_KEYS.queueReportChannel,
-        process.env.CASE_QUEUE_CHANNEL_ID ?? undefined,
+        config.caseQueueChannelId || undefined,
       ));
 
     if (!channelId) {

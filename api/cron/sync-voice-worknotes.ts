@@ -10,12 +10,11 @@ import {
   getAppSettingValue,
   setAppSetting,
 } from "../../lib/db/repositories/app-settings-repository";
+import { config } from "../../lib/config";
 
 const SETTING_KEY = "sn:last_voice_worknote_sync_at";
-const DEFAULT_LOOKBACK_MINUTES = parseInt(
-  process.env.WORKNOTE_LOOKBACK_MINUTES || "60",
-  10,
-);
+
+const getLookbackMinutes = () => config.worknoteLookbackMinutes ?? 60;
 
 type JsonResponse =
   | {
@@ -42,7 +41,8 @@ function json(body: JsonResponse, status = 200): Response {
 }
 
 function determineFallbackStart(): Date {
-  return new Date(Date.now() - DEFAULT_LOOKBACK_MINUTES * 60 * 1000);
+  const minutes = getLookbackMinutes();
+  return new Date(Date.now() - minutes * 60 * 1000);
 }
 
 async function determineStartTime(): Promise<Date> {

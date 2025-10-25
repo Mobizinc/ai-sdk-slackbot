@@ -5,11 +5,12 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { config as appConfig } from "../lib/config";
 
 export async function GET(request: Request) {
   // Security: Only allow access in development or with admin token
-  const isDevelopment = !process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'development';
-  const adminToken = process.env.BUSINESS_CONTEXT_ADMIN_TOKEN;
+  const isDevelopment = !appConfig.vercelEnv || appConfig.vercelEnv === 'development';
+  const adminToken = appConfig.businessContextAdminToken;
   const authHeader = request.headers.get('authorization');
 
   // Allow if in development mode

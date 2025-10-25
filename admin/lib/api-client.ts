@@ -97,14 +97,29 @@ export interface QueueStats {
   timestamp: string
 }
 
+const resolveBaseUrl = (): string => {
+  const explicit = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+  if (explicit) {
+    return explicit.replace(/\/$/, '')
+  }
+
+  if (typeof window === 'undefined') {
+    const deployment = process.env.VERCEL_URL?.trim()
+    if (deployment) {
+      const normalized = deployment.startsWith('http') ? deployment : `https://${deployment}`
+      return normalized.replace(/\/$/, '')
+    }
+  }
+
+  return ''
+}
+
 class ApiClient {
-  private baseUrl: string
-  private authToken?: string
+  private readonly baseUrl: string
+  private readonly authToken?: string
 
   constructor() {
-    // In development, use relative URLs
-    // In production, use the deployment URL
-    this.baseUrl = typeof window !== 'undefined' ? '' : process.env.VERCEL_URL || ''
+    this.baseUrl = resolveBaseUrl()
     this.authToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN
   }
 
@@ -194,6 +209,35 @@ class ApiClient {
   // Queue Stats
   async getQueueStats(): Promise<QueueStats> {
     return this.request<QueueStats>('/api/admin/queue-stats')
+  }
+
+  // Reports
+  async getMissingCategories(days: number = 30) {
+    return this.request<any>(`/api/admin/reports/missing-categories?days=${days}`)
+  }
+
+  async getCatalogRedirectStats(clientId?: string, days: number = 30) {
+    const query = clientId ? `clientId=${clientId}&days=${days}` : `days=${days}`
+    return this.request<any>(`/api/admin/reports/catalog-redirects?${query}`)
+  }
+
+  // Clients
+  async getClients() {
+    return this.request<{ success: boolean; data: any[] }>('/api/admin/clients/route')
+  }
+
+  async getClientSettings(clientId: string) {
+    return this.request<{ success: boolean; data: any }>(`/api/admin/clients/${clientId}/route`)
+  }
+
+  async updateClientSettings(clientId: string, settings: any) {
+    return this.request<{ success: boolean; data: any; message: string }>(
+      `/api/admin/clients/${clientId}/route`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(settings),
+      }
+    )
   }
 }
 

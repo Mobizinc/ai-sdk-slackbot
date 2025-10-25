@@ -1,4 +1,5 @@
 import { serviceNowClient } from "../../lib/tools/servicenow";
+import { config } from "../../lib/config";
 
 type JsonBody =
   | {
@@ -12,14 +13,6 @@ type JsonBody =
       status: "error";
       message: string;
     };
-
-const DEFAULT_LIMIT = parseInt(process.env.INCIDENT_AUTO_CLOSE_LIMIT || "50", 10);
-const DEFAULT_OLDER_THAN_MINUTES = parseInt(
-  process.env.INCIDENT_AUTO_CLOSE_MINUTES || "60",
-  10,
-);
-const DEFAULT_CLOSE_CODE =
-  process.env.INCIDENT_AUTO_CLOSE_CODE || "Resolved - Awaiting Confirmation";
 
 function jsonResponse(body: JsonBody, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -42,9 +35,9 @@ async function runAutoClose(): Promise<Response> {
     );
   }
 
-  const limit = Math.max(DEFAULT_LIMIT, 1);
-  const olderThan = Math.max(DEFAULT_OLDER_THAN_MINUTES, 1);
-  const closeCode = DEFAULT_CLOSE_CODE;
+  const limit = Math.max(config.incidentAutoCloseLimit ?? 50, 1);
+  const olderThan = Math.max(config.incidentAutoCloseMinutes ?? 60, 1);
+  const closeCode = config.incidentAutoCloseCode || "Resolved - Awaiting Confirmation";
 
   try {
     const incidents = await serviceNowClient.getResolvedIncidents({

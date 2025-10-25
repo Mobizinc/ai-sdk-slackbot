@@ -37,10 +37,12 @@ pnpm install
 ### Run Development Server
 
 ```bash
+# In another terminal, run the main API (for example `pnpm dev` from the repo root)
 pnpm dev
 ```
 
-Open [http://localhost:3001/admin](http://localhost:3001/admin)
+Open [http://localhost:3001/admin](http://localhost:3001/admin) and ensure
+`NEXT_PUBLIC_API_BASE_URL` in `.env.local` points to the API host (e.g. `http://localhost:3000`).
 
 ### Build for Production
 
