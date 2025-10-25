@@ -40,6 +40,8 @@ export interface RoutingResult {
   matchedRule?: WorkflowRoutingRule;
 }
 
+import { config } from "../config";
+
 export class WorkflowRouter {
   private config: WorkflowRoutingConfig;
   private configLoaded = false;
@@ -60,7 +62,7 @@ export class WorkflowRouter {
 
     try {
       // Load workflow routing rules
-      const routingConfig = process.env.CASE_WORKFLOW_ROUTING;
+      const routingConfig = config.caseWorkflowRouting || process.env.CASE_WORKFLOW_ROUTING;
       if (routingConfig) {
         const parsed = JSON.parse(routingConfig);
         if (parsed.rules && Array.isArray(parsed.rules)) {
@@ -72,7 +74,7 @@ export class WorkflowRouter {
       }
 
       // Load prompt overrides
-      const promptConfig = process.env.CASE_WORKFLOW_PROMPTS;
+      const promptConfig = config.caseWorkflowPrompts || process.env.CASE_WORKFLOW_PROMPTS;
       if (promptConfig) {
         this.config.promptOverrides = JSON.parse(promptConfig);
       }

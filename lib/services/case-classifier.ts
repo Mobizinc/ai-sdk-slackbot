@@ -15,6 +15,7 @@ import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
 import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
+import { config } from '../config';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
@@ -681,7 +682,7 @@ Important: Return ONLY the JSON object, no additional text.
 
     // Pattern analysis
     const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
-    const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+    const systemic_pattern_days = config.systemicPatternWithinDays || parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
 
@@ -1270,7 +1271,7 @@ Important: Return ONLY the JSON object, no additional text.
 
       // Pattern analysis: Count cases from same client using BOTH same_client flag AND name matching
       // ALSO filter by recency - only count cases from last 14 days for systemic detection
-      const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+      const systemic_pattern_days = config.systemicPatternWithinDays || parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
 

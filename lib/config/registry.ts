@@ -528,6 +528,49 @@ export const CONFIG_DEFINITIONS = {
     description: "API key for Exa search service.",
     sensitive: true,
   },
+  caseWorkflowRouting: {
+    envVar: "CASE_WORKFLOW_ROUTING",
+    type: "string",
+    default: "",
+    group: "workflow",
+    description: "JSON configuration for workflow routing rules.",
+  },
+  caseWorkflowPrompts: {
+    envVar: "CASE_WORKFLOW_PROMPTS",
+    type: "string",
+    default: "",
+    group: "workflow",
+    description: "JSON configuration for workflow-specific prompt overrides.",
+  },
+  systemicPatternWithinDays: {
+    envVar: "SYSTEMIC_PATTERN_WITHIN_DAYS",
+    type: "number",
+    default: 14,
+    group: "classification",
+    description: "Number of days considered for systemic pattern detection.",
+  },
+  mobizServiceDeskDomains: {
+    envVar: "MOBIZ_SERVICE_DESK_DOMAINS",
+    type: "string",
+    default: "",
+    group: "filters",
+    description: "Comma-separated list of service desk domains for Mobiz filtering.",
+  },
+  hrRequestDetectorConfig: {
+    envVar: "HR_REQUEST_DETECTOR_CONFIG",
+    type: "string",
+    default: "",
+    group: "catalog_redirect",
+    description: "JSON configuration overrides for HR request detector mappings.",
+  },
+  azureSqlDatabaseUrl: {
+    envVar: "AZURE_SQL_DATABASE_URL",
+    type: "string",
+    default: "",
+    group: "database",
+    description: "Connection string for Azure SQL (sensitive).",
+    sensitive: true,
+  },
 } as const satisfies Record<string, ConfigDefinition>;
 
 type ValueType<T extends ConfigDefinition["type"]> = T extends "boolean"

@@ -1,3 +1,4 @@
+import { config } from "../config";
 /**
  * Utility helpers for detecting Mobiz service-desk staff by email domain.
  */
@@ -9,7 +10,7 @@ const DEFAULT_DOMAIN = "mobizinc.com";
  * Controlled via MOBIZ_SERVICE_DESK_DOMAINS env variable.
  */
 export function getAllowedMobizDomains(): string[] {
-  const raw = process.env.MOBIZ_SERVICE_DESK_DOMAINS;
+  const raw = config.mobizServiceDeskDomains || process.env.MOBIZ_SERVICE_DESK_DOMAINS;
   if (!raw) {
     return [DEFAULT_DOMAIN];
   }

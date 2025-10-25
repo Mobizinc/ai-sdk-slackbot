@@ -1,3 +1,4 @@
+import { config } from "../config";
 /**
  * HR Request Detector Service
  * Detects HR-related requests that should be submitted via catalog items
@@ -359,8 +360,8 @@ let hrRequestDetector: HRRequestDetector | null = null;
 
 export function getHRRequestDetector(): HRRequestDetector {
   if (!hrRequestDetector) {
-    const config = process.env.HR_REQUEST_DETECTOR_CONFIG;
-    hrRequestDetector = HRRequestDetector.fromConfig(config);
+    const runtimeConfig = config.hrRequestDetectorConfig || process.env.HR_REQUEST_DETECTOR_CONFIG;
+    hrRequestDetector = HRRequestDetector.fromConfig(runtimeConfig);
   }
   return hrRequestDetector;
 }
