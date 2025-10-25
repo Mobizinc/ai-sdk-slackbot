@@ -206,6 +206,13 @@ class ApiClient {
     }))
   }
 
+  async updateConfig(updates: Record<string, unknown>): Promise<void> {
+    await this.request('/api/admin/config', {
+      method: 'PATCH',
+      body: JSON.stringify({ updates }),
+    })
+  }
+
   // Queue Stats
   async getQueueStats(): Promise<QueueStats> {
     return this.request<QueueStats>('/api/admin/queue-stats')
