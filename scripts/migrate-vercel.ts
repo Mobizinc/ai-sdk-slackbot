@@ -15,14 +15,14 @@ dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 async function runVercelMigrations() {
+  console.log("🔄 Running Vercel database migrations...");
+
   const databaseUrl = process.env.DATABASE_URL;
 
   if (!databaseUrl) {
-    console.error("❌ DATABASE_URL environment variable is not set");
-    process.exit(1);
+    console.log("⏭️  Skipping migrations - DATABASE_URL not set (likely admin-only deployment)");
+    process.exit(0);
   }
-
-  console.log("🔄 Running Vercel database migrations...");
 
   try {
     const sql = neon(databaseUrl);
