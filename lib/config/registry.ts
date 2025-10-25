@@ -1,0 +1,333 @@
+export type ConfigValueTypeName = "string" | "number" | "boolean" | "string[]";
+
+export interface ConfigDefinition {
+  envVar?: string;
+  type: ConfigValueTypeName;
+  default: unknown;
+  group: string;
+  description: string;
+  sensitive?: boolean;
+}
+
+export type ConfigKey = keyof typeof CONFIG_DEFINITIONS;
+
+export const CONFIG_DEFINITIONS = {
+  kbGatheringTimeoutHours: {
+    envVar: "KB_GATHERING_TIMEOUT_HOURS",
+    type: "number",
+    default: 24,
+    group: "knowledge_base",
+    description: "Hours before cached KB gathering results expire.",
+  },
+  kbGatheringMaxAttempts: {
+    envVar: "KB_GATHERING_MAX_ATTEMPTS",
+    type: "number",
+    default: 5,
+    group: "knowledge_base",
+    description: "Maximum retries when fetching KB context.",
+  },
+  assistantMinDescriptionLength: {
+    envVar: "ASSISTANT_MIN_DESCRIPTION_LENGTH",
+    type: "number",
+    default: 10,
+    group: "assistant",
+    description: "Minimum characters required to trigger assistant analysis.",
+  },
+  assistantSimilarCasesTopK: {
+    envVar: "ASSISTANT_SIMILAR_CASES_TOP_K",
+    type: "number",
+    default: 3,
+    group: "assistant",
+    description: "Number of similar cases to surface for assistants.",
+  },
+  kbSimilarCasesTopK: {
+    envVar: "KB_SIMILAR_CASES_TOP_K",
+    type: "number",
+    default: 3,
+    group: "knowledge_base",
+    description: "Number of KB articles to retrieve per classification.",
+  },
+  caseClassificationWriteNotes: {
+    envVar: "CASE_CLASSIFICATION_WRITE_NOTES",
+    type: "boolean",
+    default: false,
+    group: "classification",
+    description: "Write classification results back to ServiceNow as work notes.",
+  },
+  caseClassificationMaxRetries: {
+    envVar: "CASE_CLASSIFICATION_MAX_RETRIES",
+    type: "number",
+    default: 3,
+    group: "classification",
+    description: "Maximum retry attempts for classification jobs.",
+  },
+  assistantActiveStates: {
+    envVar: "ASSISTANT_ACTIVE_STATES",
+    type: "string[]",
+    default: [
+      "New",
+      "In Progress",
+      "On Hold",
+      "Pending",
+      "Awaiting Info",
+      "Work in Progress",
+    ],
+    group: "assistant",
+    description: "Case states that allow intelligent assistance.",
+  },
+  proactiveTroubleshootingEnabled: {
+    envVar: "PROACTIVE_TROUBLESHOOTING_ENABLED",
+    type: "boolean",
+    default: true,
+    group: "assistant",
+    description: "Enable proactive troubleshooting suggestions.",
+  },
+  autoCmdbLookupEnabled: {
+    envVar: "AUTO_CMDB_LOOKUP_ENABLED",
+    type: "boolean",
+    default: true,
+    group: "cmdb",
+    description: "Auto-fetch CMDB context during triage.",
+  },
+  maxClarifyingQuestions: {
+    envVar: "MAX_CLARIFYING_QUESTIONS",
+    type: "number",
+    default: 4,
+    group: "assistant",
+    description: "Maximum follow-up questions the assistant asks.",
+  },
+  cmdbReconciliationEnabled: {
+    envVar: "CMDB_RECONCILIATION_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "cmdb",
+    description: "Enable CMDB reconciliation workflow.",
+  },
+  cmdbReconciliationConfidenceThreshold: {
+    envVar: "CMDB_RECONCILIATION_CONFIDENCE_THRESHOLD",
+    type: "number",
+    default: 0.7,
+    group: "cmdb",
+    description: "Minimum confidence required to reconcile CMDB records.",
+  },
+  cmdbReconciliationCacheResults: {
+    envVar: "CMDB_RECONCILIATION_CACHE_RESULTS",
+    type: "boolean",
+    default: true,
+    group: "cmdb",
+    description: "Cache reconciliation lookups for faster repeats.",
+  },
+  cmdbReconciliationAssignmentGroup: {
+    envVar: "CMDB_RECONCILIATION_ASSIGNMENT_GROUP",
+    type: "string",
+    default: "CMDB Administrators",
+    group: "cmdb",
+    description: "Default assignment group for CMDB reconciliation tasks.",
+  },
+  cmdbReconciliationSlackChannel: {
+    envVar: "CMDB_RECONCILIATION_SLACK_CHANNEL",
+    type: "string",
+    default: "cmdb-alerts",
+    group: "cmdb",
+    description: "Slack channel for CMDB reconciliation notifications.",
+  },
+  incidentCreationAllowedGroups: {
+    envVar: "INCIDENT_CREATION_ALLOWED_GROUPS",
+    type: "string[]",
+    default: ["Incident and Case Management"],
+    group: "itsm",
+    description: "Assignment groups eligible for auto incident creation.",
+  },
+  escalationEnabled: {
+    envVar: "ESCALATION_ENABLED",
+    type: "boolean",
+    default: true,
+    group: "triage",
+    description: "Automatically escalate non-BAU cases to Slack.",
+  },
+  escalationBiScoreThreshold: {
+    envVar: "ESCALATION_BI_SCORE_THRESHOLD",
+    type: "number",
+    default: 20,
+    group: "triage",
+    description: "Business intelligence score threshold for escalation (0-100).",
+  },
+  escalationDefaultChannel: {
+    envVar: "ESCALATION_DEFAULT_CHANNEL",
+    type: "string",
+    default: "case-escalations",
+    group: "triage",
+    description: "Fallback Slack channel when no client-specific routing exists.",
+  },
+  escalationNotifyAssignedEngineer: {
+    envVar: "ESCALATION_NOTIFY_ASSIGNED_ENGINEER",
+    type: "boolean",
+    default: true,
+    group: "triage",
+    description: "Mention the assigned engineer in escalation messages.",
+  },
+  escalationUseLlmMessages: {
+    envVar: "ESCALATION_USE_LLM_MESSAGES",
+    type: "boolean",
+    default: true,
+    group: "triage",
+    description: "Use LLM-generated Slack content for escalations when available.",
+  },
+  llmTimeoutMs: {
+    envVar: "LLM_TIMEOUT_MS",
+    type: "number",
+    default: 30_000,
+    group: "llm",
+    description: "Default timeout (ms) for general LLM operations.",
+  },
+  llmClassificationTimeoutMs: {
+    envVar: "LLM_CLASSIFICATION_TIMEOUT_MS",
+    type: "number",
+    default: 15_000,
+    group: "llm",
+    description: "Timeout (ms) for case classification requests.",
+  },
+  llmKBGenerationTimeoutMs: {
+    envVar: "LLM_KB_GENERATION_TIMEOUT_MS",
+    type: "number",
+    default: 45_000,
+    group: "llm",
+    description: "Timeout (ms) for KB generation tasks.",
+  },
+  llmEscalationTimeoutMs: {
+    envVar: "LLM_ESCALATION_TIMEOUT_MS",
+    type: "number",
+    default: 20_000,
+    group: "llm",
+    description: "Timeout (ms) for escalation message generation.",
+  },
+  catalogRedirectEnabled: {
+    envVar: "CATALOG_REDIRECT_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "catalog_redirect",
+    description: "Enable HR catalog redirect workflow for misrouted cases.",
+  },
+  catalogRedirectConfidenceThreshold: {
+    envVar: "CATALOG_REDIRECT_CONFIDENCE_THRESHOLD",
+    type: "number",
+    default: 0.5,
+    group: "catalog_redirect",
+    description: "Minimum detector confidence required to trigger redirect.",
+  },
+  catalogRedirectAutoClose: {
+    envVar: "CATALOG_REDIRECT_AUTO_CLOSE",
+    type: "boolean",
+    default: false,
+    group: "catalog_redirect",
+    description: "Automatically close cases after redirect when supported.",
+  },
+  catalogRedirectNotifySlack: {
+    envVar: "CATALOG_REDIRECT_NOTIFY_SLACK",
+    type: "boolean",
+    default: false,
+    group: "catalog_redirect",
+    description: "Send Slack notifications when catalog redirects occur.",
+  },
+  supportContactInfo: {
+    envVar: "SUPPORT_CONTACT_INFO",
+    type: "string",
+    default: "",
+    group: "catalog_redirect",
+    description: "Contact info added to catalog redirect work notes.",
+  },
+  slackSigningSecret: {
+    envVar: "SLACK_SIGNING_SECRET",
+    type: "string",
+    default: "",
+    group: "slack",
+    description: "Slack signing secret used to verify incoming requests.",
+    sensitive: true,
+  },
+  slackBotToken: {
+    envVar: "SLACK_BOT_TOKEN",
+    type: "string",
+    default: "",
+    group: "slack",
+    description: "Bot token for Slack API calls.",
+    sensitive: true,
+  },
+  servicenowInstanceUrl: {
+    envVar: "SERVICENOW_INSTANCE_URL",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "Base URL for the ServiceNow instance (e.g., https://example.service-now.com).",
+  },
+  servicenowUrl: {
+    envVar: "SERVICENOW_URL",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "Alias for ServiceNow instance URL (legacy support).",
+  },
+  servicenowUsername: {
+    envVar: "SERVICENOW_USERNAME",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "ServiceNow username for basic auth.",
+    sensitive: true,
+  },
+  servicenowPassword: {
+    envVar: "SERVICENOW_PASSWORD",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "ServiceNow password for basic auth.",
+    sensitive: true,
+  },
+  servicenowApiToken: {
+    envVar: "SERVICENOW_API_TOKEN",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "ServiceNow API token for bearer authentication.",
+    sensitive: true,
+  },
+  servicenowCaseTable: {
+    envVar: "SERVICENOW_CASE_TABLE",
+    type: "string",
+    default: "sn_customerservice_case",
+    group: "servicenow",
+    description: "Table name used for ServiceNow case records.",
+  },
+  servicenowCaseJournalName: {
+    envVar: "SERVICENOW_CASE_JOURNAL_NAME",
+    type: "string",
+    default: "x_mobit_serv_case_service_case",
+    group: "servicenow",
+    description: "Journal field name used for case work notes.",
+  },
+  servicenowCiTable: {
+    envVar: "SERVICENOW_CI_TABLE",
+    type: "string",
+    default: "cmdb_ci",
+    group: "servicenow",
+    description: "Configuration item table name in ServiceNow.",
+  },
+  servicenowTaskTable: {
+    envVar: "SERVICENOW_TASK_TABLE",
+    type: "string",
+    default: "sn_customerservice_task",
+    group: "servicenow",
+    description: "Task table name used for ServiceNow sub-tasks.",
+  },
+} as const satisfies Record<string, ConfigDefinition>;
+
+type ValueType<T extends ConfigDefinition["type"]> = T extends "boolean"
+  ? boolean
+  : T extends "number"
+    ? number
+    : T extends "string[]"
+      ? string[]
+      : string;
+
+export type ConfigValueMap = {
+  [K in ConfigKey]: ValueType<(typeof CONFIG_DEFINITIONS)[K]["type"]>;
+};

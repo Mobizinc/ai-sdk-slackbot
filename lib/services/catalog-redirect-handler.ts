@@ -10,6 +10,7 @@ import { serviceNowClient } from '../tools/servicenow';
 import { getHRRequestDetector } from './hr-request-detector';
 import { getClientSettingsRepository } from '../db/repositories/client-settings-repository';
 import type { ClientSettings, NewCatalogRedirectLog } from '../db/schema';
+import { config as appConfig } from '../config';
 
 export interface RedirectConfig {
   enabled: boolean;
@@ -228,13 +229,13 @@ export class CatalogRedirectHandler {
 
   constructor(config?: Partial<RedirectConfig>) {
     this.config = {
-      enabled: config?.enabled ?? (process.env.CATALOG_REDIRECT_ENABLED === 'true'),
-      confidenceThreshold: config?.confidenceThreshold ?? parseFloat(process.env.CATALOG_REDIRECT_CONFIDENCE_THRESHOLD || '0.5'),
+      enabled: config?.enabled ?? appConfig.catalogRedirectEnabled,
+      confidenceThreshold: config?.confidenceThreshold ?? appConfig.catalogRedirectConfidenceThreshold,
       closeState: config?.closeState ?? 'Resolved',
       closeCode: config?.closeCode ?? 'Incorrectly Submitted - Please Use Catalog',
-      contactInfo: config?.contactInfo ?? process.env.SUPPORT_CONTACT_INFO ?? 'your IT Support team',
-      autoCloseEnabled: config?.autoCloseEnabled ?? (process.env.CATALOG_REDIRECT_AUTO_CLOSE === 'true'),
-      notifySlack: config?.notifySlack ?? (process.env.CATALOG_REDIRECT_NOTIFY_SLACK === 'true'),
+      contactInfo: config?.contactInfo ?? (appConfig.supportContactInfo || 'your IT Support team'),
+      autoCloseEnabled: config?.autoCloseEnabled ?? appConfig.catalogRedirectAutoClose,
+      notifySlack: config?.notifySlack ?? appConfig.catalogRedirectNotifySlack,
     };
   }
 

@@ -40,6 +40,7 @@ import { formatWorkNote } from "./work-note-formatter";
 import { getCategorySyncService } from "./servicenow-category-sync";
 import { getCmdbReconciliationService } from "./cmdb-reconciliation";
 import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
+import { getEscalationService } from "./escalation-service";
 import { config } from "../config";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
@@ -152,9 +153,9 @@ export class CaseTriageService {
       enableKBArticles = true,
       enableBusinessContext = true,
       enableWorkflowRouting = true,
-      writeToServiceNow = process.env.CASE_CLASSIFICATION_WRITE_NOTES === "true",
-      enableCatalogRedirect = process.env.CATALOG_REDIRECT_ENABLED === "true",
-      maxRetries = parseInt(process.env.CASE_CLASSIFICATION_MAX_RETRIES || "3"),
+      writeToServiceNow = config.caseClassificationWriteNotes,
+      enableCatalogRedirect = config.catalogRedirectEnabled,
+      maxRetries = config.caseClassificationMaxRetries,
     } = options;
 
     console.log(`[Case Triage] Starting triage for case ${webhook.case_number}`);
@@ -771,6 +772,34 @@ export class CaseTriageService {
           inboundId,
           workflowDecision.workflowId
         );
+      }
+
+      // Step 16: Check for escalation (non-BAU cases)
+      if (config.escalationEnabled) {
+        try {
+          const escalationService = getEscalationService();
+          const escalated = await escalationService.checkAndEscalate({
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            classification: classificationResult,
+            caseData: {
+              short_description: webhook.short_description,
+              description: webhook.description,
+              priority: webhook.priority,
+              urgency: webhook.urgency,
+              state: webhook.state,
+            },
+            assignedTo: webhook.assigned_to,
+            assignmentGroup: webhook.assignment_group,
+            companyName: webhook.account_id,
+          });
+
+          if (escalated) {
+            console.log(`[Case Triage] Case ${webhook.case_number} escalated to Slack`);
+          }
+        } catch (error) {
+          console.error("[Case Triage] Escalation failed:", error);
+        }
       }
 
       // Log timing breakdown for performance analysis

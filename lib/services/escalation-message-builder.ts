@@ -455,6 +455,7 @@ function getUrgencyIcon(urgency?: string): string {
  * Get ServiceNow case URL
  */
 function getServiceNowUrl(caseSysId: string): string {
-  const instance = process.env.SERVICENOW_INSTANCE_URL || "https://your-instance.service-now.com";
+  const instance =
+    (config.servicenowInstanceUrl || config.servicenowUrl || "https://your-instance.service-now.com").replace(/\/$/, "");
   return `${instance}/sn_customerservice_case.do?sys_id=${caseSysId}`;
 }

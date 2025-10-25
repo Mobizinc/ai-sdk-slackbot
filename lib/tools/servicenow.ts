@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import { config as appConfig } from "../config";
 
 type ServiceNowAuthMode = "basic" | "token";
 
@@ -13,26 +14,29 @@ interface ServiceNowConfig {
   taskTable?: string;
 }
 
-const config: ServiceNowConfig = {
-  instanceUrl: process.env.SERVICENOW_INSTANCE_URL || process.env.SERVICENOW_URL,
-  username: process.env.SERVICENOW_USERNAME,
-  password: process.env.SERVICENOW_PASSWORD,
-  apiToken: process.env.SERVICENOW_API_TOKEN,
-  caseTable:
-    process.env.SERVICENOW_CASE_TABLE?.trim() || "sn_customerservice_case",
-  caseJournalName:
-    process.env.SERVICENOW_CASE_JOURNAL_NAME?.trim() ||
-    "x_mobit_serv_case_service_case",
-  ciTable: process.env.SERVICENOW_CI_TABLE?.trim() || "cmdb_ci",
-  taskTable: process.env.SERVICENOW_TASK_TABLE?.trim() || "sn_customerservice_task",
+function normalize(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+const serviceNowConfig: ServiceNowConfig = {
+  instanceUrl: normalize(appConfig.servicenowInstanceUrl || appConfig.servicenowUrl),
+  username: normalize(appConfig.servicenowUsername),
+  password: normalize(appConfig.servicenowPassword),
+  apiToken: normalize(appConfig.servicenowApiToken),
+  caseTable: (appConfig.servicenowCaseTable || "sn_customerservice_case").trim(),
+  caseJournalName: (appConfig.servicenowCaseJournalName || "x_mobit_serv_case_service_case").trim(),
+  ciTable: (appConfig.servicenowCiTable || "cmdb_ci").trim(),
+  taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
 };
 
 function detectAuthMode(): ServiceNowAuthMode | null {
-  if (config.username && config.password) {
+  if (serviceNowConfig.username && serviceNowConfig.password) {
     return "basic";
   }
 
-  if (config.apiToken) {
+  if (serviceNowConfig.apiToken) {
     return "token";
   }
 
@@ -43,7 +47,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
   const mode = detectAuthMode();
 
   if (mode === "basic") {
-    const encoded = Buffer.from(`${config.username}:${config.password}`).toString(
+    const encoded = Buffer.from(`${serviceNowConfig.username}:${serviceNowConfig.password}`).toString(
       "base64",
     );
     return {
@@ -53,7 +57,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 
   if (mode === "token") {
     return {
-      Authorization: `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${serviceNowConfig.apiToken}`,
     };
   }
 
@@ -66,7 +70,7 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  if (!config.instanceUrl) {
+  if (!serviceNowConfig.instanceUrl) {
     throw new Error(
       "ServiceNow instance URL is not configured. Set SERVICENOW_INSTANCE_URL.",
     );
@@ -78,7 +82,7 @@ async function request<T>(
     ...(await buildAuthHeaders()),
   } as Record<string, string>;
 
-  const response = await fetch(`${config.instanceUrl}${path}`, {
+  const response = await fetch(`${serviceNowConfig.instanceUrl}${path}`, {
     ...init,
     headers,
   });
@@ -290,7 +294,7 @@ export interface ServiceNowCustomerAccount {
 
 export class ServiceNowClient {
   public isConfigured(): boolean {
-    return Boolean(config.instanceUrl && detectAuthMode());
+    return Boolean(serviceNowConfig.instanceUrl && detectAuthMode());
   }
 
   public async getIncident(number: string): Promise<ServiceNowIncidentResult | null> {
@@ -303,7 +307,7 @@ export class ServiceNowClient {
     const incident = data.result[0];
     return {
       ...incident,
-      url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
     };
   }
 
@@ -359,7 +363,7 @@ export class ServiceNowClient {
         resolved_at: extractDisplayValue(record.resolved_at) || undefined,
         close_code: extractDisplayValue(record.close_code) || undefined,
         parent: extractDisplayValue(record.parent) || undefined,
-        url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
       } satisfies ServiceNowIncidentSummary;
     });
   }
@@ -402,7 +406,7 @@ export class ServiceNowClient {
       resolved_at: extractDisplayValue(incident.resolved_at) || undefined,
       close_code: extractDisplayValue(incident.close_code) || undefined,
       parent: extractDisplayValue(incident.parent) || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
     } satisfies ServiceNowIncidentSummary;
   }
 
@@ -447,7 +451,7 @@ export class ServiceNowClient {
       short_description: extractDisplayValue(problem.short_description) || undefined,
       state: extractDisplayValue(problem.state) || undefined,
       parent: extractDisplayValue(problem.parent) || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${sysId}`,
     };
   }
 
@@ -469,12 +473,12 @@ export class ServiceNowClient {
 
     return data.result.map((article) => ({
       ...article,
-      url: `${config.instanceUrl}/nav_to.do?uri=kb_knowledge.do?sys_id=${article.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=kb_knowledge.do?sys_id=${article.sys_id}`,
     }));
   }
 
   public async getCase(number: string): Promise<ServiceNowCaseResult | null> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const data = await request<{
       result: Array<any>;
     }>(
@@ -507,12 +511,14 @@ export class ServiceNowClient {
       opened_by: openedBy,
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+      contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
+      account: extractReferenceSysId(raw.account), // Extract account sys_id (company)
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
     };
   }
 
   public async getCaseBySysId(sysId: string): Promise<ServiceNowCaseResult | null> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const data = await request<{
       result: Array<any>;
     }>(
@@ -542,7 +548,7 @@ export class ServiceNowClient {
       submitted_by: extractDisplayValue(raw.submitted_by),
       contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
       account: extractReferenceSysId(raw.account), // Extract account sys_id
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
         raw.sys_id,
       )}`,
     };
@@ -552,7 +558,7 @@ export class ServiceNowClient {
     caseSysId: string,
     { limit = 20 }: { limit?: number } = {},
   ): Promise<ServiceNowCaseJournalEntry[]> {
-    const journalName = config.caseJournalName;
+    const journalName = serviceNowConfig.caseJournalName;
     const queryParts = [`element_id=${caseSysId}`];
     if (journalName) {
       queryParts.push(`name=${journalName}`);
@@ -575,7 +581,7 @@ export class ServiceNowClient {
   public async searchConfigurationItems(
     input: { name?: string; ipAddress?: string; sysId?: string; limit?: number },
   ): Promise<ServiceNowConfigurationItem[]> {
-    const table = config.ciTable ?? "cmdb_ci";
+    const table = serviceNowConfig.ciTable ?? "cmdb_ci";
     const limit = input.limit ?? 5;
 
     const queryGroups: string[] = [];
@@ -648,7 +654,7 @@ export class ServiceNowClient {
           extractDisplayValue(item.short_description) ||
           extractDisplayValue(item.description) ||
           undefined,
-        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowConfigurationItem;
     });
   }
@@ -670,7 +676,7 @@ export class ServiceNowClient {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<ServiceNowCaseSummary[]> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const limit = input.limit ?? 25; // Increased default from 5 to 25
 
     const queryParts: string[] = [];
@@ -749,7 +755,7 @@ export class ServiceNowClient {
         company: extractDisplayValue(record.company) || undefined,
         opened_at: extractDisplayValue(record.opened_at) || undefined,
         updated_on: extractDisplayValue(record.sys_updated_on) || undefined,
-        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowCaseSummary;
     });
   }
@@ -762,7 +768,7 @@ export class ServiceNowClient {
     workNote: string,
     workNotes: boolean = true
   ): Promise<void> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const endpoint = `/api/now/table/${table}/${sysId}`;
 
     const payload = workNotes ? 
@@ -782,7 +788,7 @@ export class ServiceNowClient {
     sysId: string,
     updates: Record<string, any>
   ): Promise<void> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const endpoint = `/api/now/table/${table}/${sysId}`;
 
     await request(endpoint, {
@@ -1002,7 +1008,7 @@ export class ServiceNowClient {
     return {
       incident_number: incident.number,
       incident_sys_id: incident.sys_id,
-      incident_url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
+      incident_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
     };
   }
 
@@ -1136,7 +1142,7 @@ export class ServiceNowClient {
     return {
       problem_number: problem.number,
       problem_sys_id: problem.sys_id,
-      problem_url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
+      problem_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
     };
   }
 
@@ -1314,7 +1320,7 @@ export class ServiceNowClient {
    * Get URL for catalog item
    */
   private getCatalogItemUrl(sysId: string): string {
-    return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
+    return `${serviceNowConfig.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
   }
 
   /**
@@ -1342,7 +1348,7 @@ export class ServiceNowClient {
       name: extractDisplayValue(service.name),
       description: extractDisplayValue(service.description) || undefined,
       parent: extractDisplayValue(service.parent) || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
     };
   }
 
@@ -1397,7 +1403,7 @@ export class ServiceNowClient {
       description,
       parent: parentSysId,
       parent_name: parentName,
-      url: `${config.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
     };
   }
 
@@ -1452,7 +1458,7 @@ export class ServiceNowClient {
       description,
       parent: parentSysId,
       parent_name: parentName,
-      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
     };
   }
 
@@ -1541,7 +1547,7 @@ export class ServiceNowClient {
       sys_id: sysId,
       number: extractDisplayValue(account.number),
       name: extractDisplayValue(account.name),
-      url: `${config.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
     };
   }
 
@@ -1602,7 +1608,7 @@ export class ServiceNowClient {
     number: string;
     url: string;
   }> {
-    const table = config.taskTable ?? "sn_customerservice_task";
+    const table = serviceNowConfig.taskTable ?? "sn_customerservice_task";
     const endpoint = `/api/now/table/${table}`;
 
     // Build task payload
@@ -1637,7 +1643,7 @@ export class ServiceNowClient {
     return {
       sys_id: task.sys_id,
       number: task.number,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
     };
   }
 
@@ -1686,11 +1692,11 @@ export class ServiceNowClient {
       parent: input.caseSysId, // Direct reference to the case record
 
       // Context fields for metadata (do NOT create UI relationship)
-      context_table: config.caseTable, // e.g., 'x_mobit_serv_case_service_case'
+      context_table: serviceNowConfig.caseTable, // e.g., 'x_mobit_serv_case_service_case'
       context_document: input.caseSysId, // Case sys_id
 
       // Channel metadata provides alternative linking method
-      channel_metadata_table: config.caseTable,
+      channel_metadata_table: serviceNowConfig.caseTable,
       channel_metadata_document: input.caseSysId,
 
       // CRITICAL: Customer contact and account from case
@@ -1732,7 +1738,7 @@ export class ServiceNowClient {
     return {
       interaction_sys_id: data.result.sys_id,
       interaction_number: data.result.number,
-      interaction_url: `${config.instanceUrl}/nav_to.do?uri=interaction.do?sys_id=${data.result.sys_id}`,
+      interaction_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=interaction.do?sys_id=${data.result.sys_id}`,
     };
   }
 }

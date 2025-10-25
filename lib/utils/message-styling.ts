@@ -5,6 +5,7 @@
  */
 
 import type { KnownBlock, Block } from '@slack/web-api';
+import { config } from '../config';
 
 // ============================================================================
 // EMOJI CONSTANTS
@@ -451,7 +452,8 @@ export function truncateForMobile(text: string): string {
  * Get ServiceNow case URL
  */
 export function getServiceNowCaseUrl(sysId: string): string {
-  const instance = process.env.SERVICENOW_INSTANCE_URL || '';
+  const instance = (config.servicenowInstanceUrl || config.servicenowUrl || '').replace(/\/$/, '');
+  if (!instance) return '';
   return `${instance}/sn_customerservice_case.do?sys_id=${sysId}`;
 }
 
@@ -459,6 +461,7 @@ export function getServiceNowCaseUrl(sysId: string): string {
  * Get ServiceNow table URL
  */
 export function getServiceNowTableUrl(table: string, sysId: string): string {
-  const instance = process.env.SERVICENOW_INSTANCE_URL || '';
+  const instance = (config.servicenowInstanceUrl || config.servicenowUrl || '').replace(/\/$/, '');
+  if (!instance) return '';
   return `${instance}/${table}.do?sys_id=${sysId}`;
 }

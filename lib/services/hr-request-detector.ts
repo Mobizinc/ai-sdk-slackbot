@@ -113,6 +113,18 @@ const DEFAULT_CATALOG_MAPPINGS: CatalogItemMapping[] = [
       'provision user',
       'user provisioning',
       'grant access',
+      // Email-related keywords (added for cases like SCS0049613)
+      'email setup',
+      'email account',
+      'company email',
+      'email addresses',
+      'mailbox',
+      'outlook account',
+      'exchange account',
+      'mail setup',
+      'email creation',
+      'create email',
+      'new email',
     ],
     catalogItemNames: [
       'HR - New Account Request',

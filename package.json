@@ -20,7 +20,8 @@
     "queue:snapshot:dry": "tsx scripts/pull-case-queue-snapshot.ts --dry-run",
     "queue:post": "tsx scripts/post-case-queue-report.ts",
     "queue:leaderboard": "tsx scripts/post-case-leaderboard.ts",
-    "set:app-setting": "tsx scripts/set-app-setting.ts"
+    "set:app-setting": "tsx scripts/set-app-setting.ts",
+    "build:admin": "tsc -p tsconfig.frontend.json"
   },
   "keywords": [],
   "author": "",
