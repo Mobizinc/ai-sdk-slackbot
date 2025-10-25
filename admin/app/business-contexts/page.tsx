@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { apiClient, type BusinessContext } from "@/lib/api-client"
+import Link from "next/link"
 import { Plus, Search, Filter } from "lucide-react"
 
 export default function BusinessContextsPage() {
@@ -149,10 +150,13 @@ export default function BusinessContextsPage() {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">{type}S</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items.map((context) => (
-                  <div
+                  <Link
                     key={context.id}
-                    className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                    href={`/business-contexts/${encodeURIComponent(context.entityName)}`}
+                    className="block"
                   >
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer">
+
                     <div className="flex items-start justify-between mb-3">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {context.entityName}
@@ -194,7 +198,8 @@ export default function BusinessContextsPage() {
                         </span>
                       )}
                     </div>
-                  </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </div>
