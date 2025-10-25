@@ -75,7 +75,7 @@ export default function HomePage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-sm font-medium text-gray-500 mb-1">Environment</h3>
           <p className="text-2xl font-bold text-gray-900">
-            {process.env.VERCEL_ENV || 'Development'}
+            {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
           </p>
         </div>
 

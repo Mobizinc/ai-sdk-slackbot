@@ -54,7 +54,7 @@ export function Navigation() {
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">
-              {process.env.VERCEL_ENV || 'Development'}
+              {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
             </span>
           </div>
         </div>
