@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { config } from "./config";
 
 interface SignatureResultSuccess {
   ok: true;
@@ -16,7 +17,11 @@ export type SignatureVerificationResult =
   | SignatureResultFailure;
 
 function resolveSecret(): string | null {
-  const secret = process.env.RELAY_WEBHOOK_SECRET;
+  const configured = config.relayWebhookSecret;
+  if (configured && !process.env.RELAY_WEBHOOK_SECRET) {
+    process.env.RELAY_WEBHOOK_SECRET = configured;
+  }
+  const secret = configured || process.env.RELAY_WEBHOOK_SECRET;
   if (!secret || secret.trim().length === 0) {
     return null;
   }

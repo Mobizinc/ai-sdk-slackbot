@@ -5,13 +5,14 @@
  * Original: api/app/services/case_intelligence/embedding_service.py
  */
 
-import { openai } from '@ai-sdk/openai';
-import { embed } from 'ai';
+import { openai } from "@ai-sdk/openai";
+import { embed } from "ai";
+import { config } from "../config";
 
 export class EmbeddingService {
   private model: string;
 
-  constructor(model: string = 'text-embedding-3-small') {
+  constructor(model: string = config.caseEmbeddingModel || "text-embedding-3-small") {
     this.model = model;
   }
 
@@ -49,7 +50,10 @@ let embeddingService: EmbeddingService | null = null;
 
 export function getEmbeddingService(): EmbeddingService {
   if (!embeddingService) {
-    const model = process.env.CASE_EMBEDDING_MODEL || 'text-embedding-3-small';
+    const model = config.caseEmbeddingModel || process.env.CASE_EMBEDDING_MODEL || "text-embedding-3-small";
+    if (config.openaiApiKey && !process.env.OPENAI_API_KEY) {
+      process.env.OPENAI_API_KEY = config.openaiApiKey;
+    }
     embeddingService = new EmbeddingService(model);
   }
   return embeddingService;

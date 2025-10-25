@@ -12,6 +12,8 @@
  */
 
 import type { SimilarCaseResult } from "../schemas/servicenow-webhook";
+import { config } from "../config";
+import { getEmbeddingService } from "./embedding-service";
 
 export interface EmbeddingService {
   generateEmbedding(text: string): Promise<number[]>;
@@ -520,8 +522,8 @@ export class AzureSearchClient {
 export function createAzureSearchClient(
   indexName: string = "case-intelligence-prod"
 ): AzureSearchClient | null {
-  const endpoint = process.env.AZURE_SEARCH_ENDPOINT;
-  const apiKey = process.env.AZURE_SEARCH_KEY;
+  const endpoint = config.azureSearchEndpoint || process.env.AZURE_SEARCH_ENDPOINT;
+  const apiKey = config.azureSearchKey || process.env.AZURE_SEARCH_KEY;
 
   if (!endpoint || !apiKey) {
     console.warn(
@@ -530,26 +532,32 @@ export function createAzureSearchClient(
     return null;
   }
 
+  if (config.azureSearchKey && !process.env.AZURE_SEARCH_KEY) {
+    process.env.AZURE_SEARCH_KEY = config.azureSearchKey;
+  }
+
   // Check if we should enable vector search (requires OpenAI for embeddings)
   let embeddingService: EmbeddingService | undefined;
 
-  if (process.env.OPENAI_API_KEY) {
+  const openAiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+  if (openAiKey) {
+    if (!process.env.OPENAI_API_KEY) {
+      process.env.OPENAI_API_KEY = openAiKey;
+    }
     try {
-      // Import embedding service dynamically to avoid circular dependencies
-      const { getEmbeddingService } = require('./embedding-service');
       embeddingService = getEmbeddingService();
-      console.log('[Azure Search] Embedding service enabled - will use VECTOR SEARCH');
+      console.log("[Azure Search] Embedding service enabled - will use VECTOR SEARCH");
     } catch (error) {
-      console.warn('[Azure Search] Failed to initialize embedding service, using keyword search:', error);
+      console.warn("[Azure Search] Failed to initialize embedding service, using keyword search:", error);
     }
   } else {
-    console.log('[Azure Search] OpenAI not configured - using KEYWORD SEARCH (BM25) fallback');
+    console.log("[Azure Search] OpenAI not configured - using KEYWORD SEARCH (BM25) fallback");
   }
 
   return new AzureSearchClient({
     endpoint,
     apiKey,
-    indexName,
+    indexName: indexName || config.azureSearchIndexName || "case-intelligence-prod",
     embeddingService,
   });
 }

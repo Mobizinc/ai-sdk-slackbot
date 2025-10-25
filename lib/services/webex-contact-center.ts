@@ -1,4 +1,5 @@
 import type { NewCallInteraction } from "../db/schema";
+import { config } from "../config";
 
 // Webex Contact Center API configuration
 // API Base: https://api.wxcc-us1.cisco.com (US region)
@@ -8,13 +9,36 @@ const DEFAULT_PAGE_SIZE = 100;
 const MAX_PAGINATION_PAGES = 100; // Prevent infinite loops
 const REQUEST_TIMEOUT_MS = 30000; // 30 seconds
 
-const WEBEX_CLIENT_ID = process.env.WEBEX_CC_CLIENT_ID;
-const WEBEX_CLIENT_SECRET = process.env.WEBEX_CC_CLIENT_SECRET;
-const WEBEX_REFRESH_TOKEN = process.env.WEBEX_CC_REFRESH_TOKEN;
-const WEBEX_ACCESS_TOKEN = process.env.WEBEX_CC_ACCESS_TOKEN;
-const WEBEX_BASE_URL = (process.env.WEBEX_CC_BASE_URL || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
-const WEBEX_ORG_ID = process.env.WEBEX_CC_ORG_ID;
-const WEBEX_TASKS_PATH = process.env.WEBEX_CC_TASKS_PATH || "v1/tasks";
+function pickConfigValue(preferred: string, fallback?: string | null): string | undefined {
+  if (preferred && preferred.trim()) {
+    return preferred.trim();
+  }
+  if (fallback && fallback.trim()) {
+    return fallback.trim();
+  }
+  return undefined;
+}
+
+const WEBEX_CLIENT_ID = pickConfigValue(config.webexClientId, process.env.WEBEX_CC_CLIENT_ID);
+const WEBEX_CLIENT_SECRET = pickConfigValue(config.webexClientSecret, process.env.WEBEX_CC_CLIENT_SECRET);
+const WEBEX_REFRESH_TOKEN = pickConfigValue(config.webexRefreshToken, process.env.WEBEX_CC_REFRESH_TOKEN);
+const WEBEX_ACCESS_TOKEN = pickConfigValue(config.webexAccessToken, process.env.WEBEX_CC_ACCESS_TOKEN);
+const WEBEX_BASE_URL = (pickConfigValue(config.webexBaseUrl, process.env.WEBEX_CC_BASE_URL) || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
+const WEBEX_ORG_ID = pickConfigValue(config.webexOrgId, process.env.WEBEX_CC_ORG_ID);
+const WEBEX_TASKS_PATH = pickConfigValue(config.webexTasksPath, process.env.WEBEX_CC_TASKS_PATH) || "v1/tasks";
+
+if (config.webexClientId && !process.env.WEBEX_CC_CLIENT_ID) {
+  process.env.WEBEX_CC_CLIENT_ID = config.webexClientId;
+}
+if (config.webexClientSecret && !process.env.WEBEX_CC_CLIENT_SECRET) {
+  process.env.WEBEX_CC_CLIENT_SECRET = config.webexClientSecret;
+}
+if (config.webexRefreshToken && !process.env.WEBEX_CC_REFRESH_TOKEN) {
+  process.env.WEBEX_CC_REFRESH_TOKEN = config.webexRefreshToken;
+}
+if (config.webexAccessToken && !process.env.WEBEX_CC_ACCESS_TOKEN) {
+  process.env.WEBEX_CC_ACCESS_TOKEN = config.webexAccessToken;
+}
 
 type WebexInteractionRecord = {
   id: string;
@@ -85,7 +109,7 @@ async function exchangeRefreshToken(): Promise<string> {
   }
 
   const tokenEndpoint =
-    process.env.WEBEX_CC_TOKEN_URL || "https://webexapis.com/v1/access_token";
+    pickConfigValue(config.webexTokenUrl, process.env.WEBEX_CC_TOKEN_URL) || "https://webexapis.com/v1/access_token";
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",

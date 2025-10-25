@@ -5,6 +5,7 @@
 
 import { SearchClient, AzureKeyCredential } from "@azure/search-documents";
 import { EmbeddingService } from "./embedding-service";
+import { config } from "../config";
 
 export interface SimilarCase {
   id: string;
@@ -161,17 +162,25 @@ export class AzureSearchService {
  * Initialize Azure Search service from environment variables
  */
 export function createAzureSearchService(): AzureSearchService | null {
-  const endpoint = process.env.AZURE_SEARCH_ENDPOINT;
-  const apiKey = process.env.AZURE_SEARCH_KEY;
-  const indexName = process.env.AZURE_SEARCH_INDEX_NAME;
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  const embeddingModel = process.env.CASE_EMBEDDING_MODEL || "text-embedding-3-small";
+  const endpoint = config.azureSearchEndpoint || process.env.AZURE_SEARCH_ENDPOINT;
+  const apiKey = config.azureSearchKey || process.env.AZURE_SEARCH_KEY;
+  const indexName = config.azureSearchIndexName || process.env.AZURE_SEARCH_INDEX_NAME;
+  const openaiApiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+  const embeddingModel =
+    config.caseEmbeddingModel || process.env.CASE_EMBEDDING_MODEL || "text-embedding-3-small";
 
   if (!endpoint || !apiKey || !indexName || !openaiApiKey) {
     console.warn(
       "Azure Search is not configured. Missing required environment variables."
     );
     return null;
+  }
+
+  if (config.azureSearchKey && !process.env.AZURE_SEARCH_KEY) {
+    process.env.AZURE_SEARCH_KEY = config.azureSearchKey;
+  }
+  if (config.openaiApiKey && !process.env.OPENAI_API_KEY) {
+    process.env.OPENAI_API_KEY = config.openaiApiKey;
   }
 
   return new AzureSearchService(

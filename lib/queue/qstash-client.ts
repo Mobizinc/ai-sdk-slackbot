@@ -3,7 +3,8 @@
  * Centralized configuration for Upstash QStash message queue
  */
 
-import { Client } from '@upstash/qstash';
+import { Client } from "@upstash/qstash";
+import { config } from "../config";
 
 function normalizeEnv(value: string | undefined | null): string | undefined {
   if (!value) return undefined;
@@ -12,9 +13,13 @@ function normalizeEnv(value: string | undefined | null): string | undefined {
 }
 
 function getQStashToken(): string | undefined {
-  const token = normalizeEnv(process.env.QSTASH_TOKEN);
+  const configuredToken = normalizeEnv(config.qstashToken);
+  if (configuredToken && !process.env.QSTASH_TOKEN) {
+    process.env.QSTASH_TOKEN = configuredToken;
+  }
+  const token = configuredToken ?? normalizeEnv(process.env.QSTASH_TOKEN);
   if (!token) {
-    console.warn('[QStash] QSTASH_TOKEN not configured - queue functionality disabled');
+    console.warn("[QStash] QSTASH_TOKEN not configured - queue functionality disabled");
   }
   return token;
 }
@@ -67,8 +72,18 @@ export function verifyQStashSignature(
  * Get signing keys
  */
 export function getSigningKeys(): { current: string | undefined; next: string | undefined } {
-  const current = normalizeEnv(process.env.QSTASH_CURRENT_SIGNING_KEY);
-  const next = normalizeEnv(process.env.QSTASH_NEXT_SIGNING_KEY);
+  const currentConfigured = normalizeEnv(config.qstashCurrentSigningKey);
+  const nextConfigured = normalizeEnv(config.qstashNextSigningKey);
+
+  if (currentConfigured && !process.env.QSTASH_CURRENT_SIGNING_KEY) {
+    process.env.QSTASH_CURRENT_SIGNING_KEY = currentConfigured;
+  }
+  if (nextConfigured && !process.env.QSTASH_NEXT_SIGNING_KEY) {
+    process.env.QSTASH_NEXT_SIGNING_KEY = nextConfigured;
+  }
+
+  const current = currentConfigured ?? normalizeEnv(process.env.QSTASH_CURRENT_SIGNING_KEY);
+  const next = nextConfigured ?? normalizeEnv(process.env.QSTASH_NEXT_SIGNING_KEY);
 
   return {
     current,

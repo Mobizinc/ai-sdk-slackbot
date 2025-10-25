@@ -14,6 +14,7 @@ import { getCurrentIssuesService } from "./services/current-issues-service";
 import { getSystemPrompt } from "./system-prompt";
 import { getCaseTriageService } from "./services/case-triage";
 import { getLoadingIndicator } from "./utils/loading-indicator";
+import { config } from "./config";
 
 type WeatherToolInput = {
   latitude: number;
@@ -1254,7 +1255,7 @@ const generateResponseImpl = async (
 
     // Check if this is GLM-4.6 and we can fallback to OpenAI
     const isGatewayModel = activeModelId.includes("glm");
-    const openAiFallback = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
+    const openAiFallback = config.openaiFallbackModel?.trim?.() ?? process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-5-mini";
 
     if (isGatewayModel) {
       console.warn(`[Fallback] Retrying with ${openAiFallback} due to empty GLM response`);

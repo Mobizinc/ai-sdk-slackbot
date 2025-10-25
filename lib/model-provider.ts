@@ -1,8 +1,9 @@
 import { createGateway } from "@ai-sdk/gateway";
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { customProvider } from "ai";
-import { wrapAISDKModel } from 'langsmith/wrappers/vercel';
-import { getAnthropicClient, getConfiguredModel } from './anthropic-provider';
+import { wrapAISDKModel } from "langsmith/wrappers/vercel";
+import { config } from "./config";
+import { getAnthropicClient, getConfiguredModel } from "./anthropic-provider";
 
 /**
  * LLM Provider Configuration
@@ -13,10 +14,23 @@ import { getAnthropicClient, getConfiguredModel } from './anthropic-provider';
  * 3. OpenAI (OPENAI_API_KEY) - Fallback
  */
 
+if (config.openaiApiKey && !process.env.OPENAI_API_KEY) {
+  process.env.OPENAI_API_KEY = config.openaiApiKey;
+}
+if (config.aiGatewayApiKey && !process.env.AI_GATEWAY_API_KEY) {
+  process.env.AI_GATEWAY_API_KEY = config.aiGatewayApiKey;
+}
+if (config.anthropicApiKey && !process.env.ANTHROPIC_API_KEY) {
+  process.env.ANTHROPIC_API_KEY = config.anthropicApiKey;
+}
+if (config.langsmithApiKey && !process.env.LANGSMITH_API_KEY) {
+  process.env.LANGSMITH_API_KEY = config.langsmithApiKey;
+}
+
 // Determine primary provider
-const useAnthropic = !!process.env.ANTHROPIC_API_KEY;
-const useGateway = !useAnthropic && !!process.env.AI_GATEWAY_API_KEY;
-const useOpenAI = !useAnthropic && !useGateway && !!process.env.OPENAI_API_KEY;
+const useAnthropic = !!config.anthropicApiKey;
+const useGateway = !useAnthropic && !!config.aiGatewayApiKey;
+const useOpenAI = !useAnthropic && !useGateway && !!config.openaiApiKey;
 
 if (!useAnthropic && !useGateway && !useOpenAI) {
   throw new Error(
@@ -39,10 +53,11 @@ export const anthropic = useAnthropic ? getAnthropicClient() : null;
 export const anthropicModel = useAnthropic ? getConfiguredModel() : null;
 
 // AI Gateway configuration (legacy)
-const gatewayApiKey = process.env.AI_GATEWAY_API_KEY?.trim();
-const gatewayDefaultModel = process.env.AI_GATEWAY_DEFAULT_MODEL?.trim()
-  ?? process.env.AI_GATEWAY_MODEL?.trim()
-  ?? "anthropic/claude-sonnet-4.5";
+const gatewayApiKey = config.aiGatewayApiKey?.trim?.() || "";
+const gatewayDefaultModel =
+  config.aiGatewayDefaultModel?.trim?.() ||
+  config.aiGatewayModelOverride?.trim?.() ||
+  "anthropic/claude-sonnet-4.5";
 
 const gatewayProvider = gatewayApiKey && !useAnthropic
   ? createGateway({
@@ -51,7 +66,12 @@ const gatewayProvider = gatewayApiKey && !useAnthropic
   : null;
 
 // OpenAI fallback
-const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-4o-mini";
+const openAiClient = createOpenAI({
+  apiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
+});
+
+const openAiFallbackModel =
+  config.openaiFallbackModel?.trim?.() ?? "gpt-4o-mini";
 
 // Legacy AI SDK provider (for services that haven't migrated to Anthropic yet)
 // When Anthropic is primary, we still provide a modelProvider for backwards compatibility
@@ -59,18 +79,18 @@ const openAiFallbackModel = process.env.OPENAI_FALLBACK_MODEL?.trim() ?? "gpt-4o
 const baseModel = gatewayProvider
   ? gatewayProvider(gatewayDefaultModel)
   : useOpenAI
-  ? openai(openAiFallbackModel)
+  ? openAiClient(openAiFallbackModel)
   : useAnthropic && gatewayApiKey
   ? createGateway({ apiKey: gatewayApiKey })(gatewayDefaultModel)
-  : useAnthropic && process.env.OPENAI_API_KEY
-  ? openai(openAiFallbackModel)
-  : openai(openAiFallbackModel); // Final fallback - will use OPENAI_API_KEY env var
+  : useAnthropic && (config.openaiApiKey || process.env.OPENAI_API_KEY)
+  ? openAiClient(openAiFallbackModel)
+  : openAiClient(openAiFallbackModel);
 
 // Wrap with LangSmith for automatic tracing
 // Note: Direct Anthropic client calls are traced via wrapSDK() in anthropic-provider.ts
 const shouldWrapWithLangSmith =
-  (process.env.LANGSMITH_TRACING ?? '').toLowerCase() === 'true' &&
-  !!process.env.LANGSMITH_API_KEY?.trim();
+  config.langsmithTracingEnabled &&
+  !!(config.langsmithApiKey || process.env.LANGSMITH_API_KEY);
 
 const tracedModel = shouldWrapWithLangSmith
   ? wrapAISDKModel(baseModel)
