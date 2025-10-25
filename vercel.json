@@ -1,6 +1,8 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --frozen-lockfile && pnpm db:migrate:vercel",
+  "buildCommand": "pnpm build:api && cd admin && pnpm install && pnpm build",
+  "installCommand": "pnpm install -r --frozen-lockfile && pnpm db:migrate:vercel",
+  "outputDirectory": "admin/.next",
+  "framework": "nextjs",
   "redirects": [
     {
       "source": "/",
