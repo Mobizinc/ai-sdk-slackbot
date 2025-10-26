@@ -4,14 +4,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
-import type { CoreMessage } from "../../../lib/instrumented-ai";
+import type { ChatMessage } from "../../../lib/agent/types";
 
 describe("Weather Tool", () => {
   let tools: any;
   const mockUpdateStatus = vi.fn();
   const originalFetch = global.fetch;
 
-  const createMockMessages = (): CoreMessage[] => [
+  const createMockMessages = (): ChatMessage[] => [
     { role: "user", content: "What's the weather?" },
   ];
 

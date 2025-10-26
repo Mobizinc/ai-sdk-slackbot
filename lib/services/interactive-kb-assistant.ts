@@ -5,7 +5,6 @@
 
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 export interface GatheringQuestions {
@@ -22,7 +21,6 @@ export async function generateGatheringQuestions(
   context: CaseContext,
   caseNumber: string
 ): Promise<GatheringQuestions> {
-  const flags = getFeatureFlags();
   const conversationSummary = context.messages
     .slice(-5) // Last 5 messages for context
     .map((msg) => `${msg.user}: ${msg.text}`)
@@ -74,42 +72,37 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    if (flags.refactorEnabled) {
-      const chatService = AnthropicChatService.getInstance();
-      const response = await chatService.send({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a friendly knowledge management assistant helping to create a KB article. Respond with concise JSON answers only.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a friendly knowledge management assistant helping to create a KB article. Respond with concise JSON answers only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
-      const output = response.outputText ?? extractText(response.message);
+    const output = response.outputText ?? extractText(response.message);
 
-      if (!output) {
-        throw new Error("Anthropic did not return gathering questions");
-      }
-
-      const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in Anthropic response");
-      }
-
-      const result = JSON.parse(jsonMatch[0]) as GatheringQuestions;
-
-      console.log(`[KB Assistant] Generated ${result.questions.length} questions`);
-
-      return result;
+    if (!output) {
+      throw new Error("Anthropic did not return gathering questions");
     }
 
-    // Refactor not enabled - throw error
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in Anthropic response");
+    }
+
+    const result = JSON.parse(jsonMatch[0]) as GatheringQuestions;
+
+    console.log(`[KB Assistant] Generated ${result.questions.length} questions`);
+
+    return result;
   } catch (error) {
     console.error("[KB Assistant] Error generating questions:", error);
 

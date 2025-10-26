@@ -3,7 +3,9 @@
  * Provides visual feedback for long-running operations in Slack
  */
 
-import { client } from "../slack-utils";
+import { getSlackClient } from "../slack/client";
+
+const client = getSlackClient();
 
 export type OperationType =
   | "kb_generation"

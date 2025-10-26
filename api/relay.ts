@@ -1,8 +1,12 @@
 import type { ChatPostMessageArguments } from "@slack/web-api";
 import { z } from "zod";
 
-import { client } from "../lib/slack-utils";
+import { getSlackMessagingService } from "../lib/services/slack-messaging";
+import { getSlackClient } from "../lib/slack/client";
 import { verifyRelaySignature } from "../lib/relay-auth";
+
+const slackMessaging = getSlackMessagingService();
+const client = getSlackClient();
 
 const targetSchema = z
   .object({
@@ -120,7 +124,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // Resolve user by email if no Slack ID provided
     if (!userId && target.email) {
-      const lookupResult = await client.users.lookupByEmail({ email: target.email });
+      const lookupResult = await slackMessaging.lookupUserByEmail(target.email);
       if (lookupResult.user?.id) {
         userId = lookupResult.user.id;
       } else {
@@ -132,8 +136,8 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     if (!channelId && userId) {
-      const dm = await client.conversations.open({ users: userId });
-      channelId = dm.channel?.id ?? undefined;
+      const dm = await slackMessaging.openConversation(userId);
+      channelId = dm.channelId ?? undefined;
       if (!channelId) {
         return jsonResponse(
           { error: "Unable to open conversation for target.user" },

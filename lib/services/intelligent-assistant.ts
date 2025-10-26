@@ -8,7 +8,6 @@ import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { config } from "../config";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 /**
@@ -227,7 +226,6 @@ async function synthesizeGuidance(
   channelTopic?: string,
   channelPurpose?: string
 ): Promise<string> {
-  const flags = getFeatureFlags();
   const currentProblem = currentCase.description || currentCase.short_description || "";
 
   const similarCasesContext = similarCases
@@ -261,55 +259,50 @@ Prioritise actionable insights only.`;
   );
 
   try {
-    if (flags.refactorEnabled) {
-      const chatService = AnthropicChatService.getInstance();
-      const response = await chatService.send({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
-          },
-          {
-            role: "user",
-            content: enhancedPrompt,
-          },
-        ],
-        tools: [
-          {
-            name: "draft_case_guidance",
-            description:
-              "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
-            inputSchema: CASE_GUIDANCE_JSON_SCHEMA,
-          },
-        ],
-        maxSteps: 3,
-      });
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
+        },
+        {
+          role: "user",
+          content: enhancedPrompt,
+        },
+      ],
+      tools: [
+        {
+          name: "draft_case_guidance",
+          description:
+            "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
+          inputSchema: CASE_GUIDANCE_JSON_SCHEMA,
+        },
+      ],
+      maxSteps: 3,
+    });
 
-      if (response.toolCalls.length > 0) {
-        const structured = CaseGuidanceSchema.parse(response.toolCalls[0].input) as CaseGuidancePayload;
-        return formatGuidanceMessage(structured);
-      }
-
-      if (response.outputText) {
-        try {
-          const structured = CaseGuidanceSchema.parse(
-            JSON.parse(response.outputText),
-          ) as CaseGuidancePayload;
-          return formatGuidanceMessage(structured);
-        } catch (parseError) {
-          console.warn(
-            "[Intelligent Assistant] Failed to parse Anthropic text output:",
-            parseError,
-          );
-        }
-      }
-
-      throw new Error("Structured guidance not returned from Anthropic");
+    if (response.toolCalls.length > 0) {
+      const structured = CaseGuidanceSchema.parse(response.toolCalls[0].input) as CaseGuidancePayload;
+      return formatGuidanceMessage(structured);
     }
 
-    // Refactor not enabled - throw error
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    if (response.outputText) {
+      try {
+        const structured = CaseGuidanceSchema.parse(
+          JSON.parse(response.outputText),
+        ) as CaseGuidancePayload;
+        return formatGuidanceMessage(structured);
+      } catch (parseError) {
+        console.warn(
+          "[Intelligent Assistant] Failed to parse Anthropic text output:",
+          parseError,
+        );
+      }
+    }
+
+    throw new Error("Structured guidance not returned from Anthropic");
   } catch (error) {
     console.error("[Intelligent Assistant] Error synthesizing guidance:", error);
 

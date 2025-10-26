@@ -1,10 +1,15 @@
-import { WebClient } from '@slack/web-api';
-import type { CoreMessage } from './instrumented-ai'
-import crypto from 'crypto'
+import crypto from 'crypto';
+import { config } from './config';
+import { getSlackClient } from './slack/client';
 
-const signingSecret = process.env.SLACK_SIGNING_SECRET!
+const signingSecret = config.slackSigningSecret;
 
-export const client = new WebClient(process.env.SLACK_BOT_TOKEN);
+if (!signingSecret) {
+  throw new Error('Slack signing secret is not configured.');
+}
+
+// Re-export for backward compatibility
+export { getSlackClient as client };
 
 // See https://api.slack.com/authentication/verifying-requests-from-slack
 export async function isValidSlackRequest({
@@ -57,87 +62,4 @@ export const verifyRequest = async ({
   if (!validRequest || requestType !== "event_callback") {
     return new Response("Invalid request", { status: 400 });
   }
-};
-
-export const updateStatusUtil = (channel: string, thread_ts: string) => {
-  let assistantStatusSupported = true;
-
-  return async (status: string) => {
-    if (!assistantStatusSupported) return;
-
-    try {
-      await client.assistant.threads.setStatus({
-        channel_id: channel,
-        thread_ts: thread_ts,
-        status: status,
-      });
-    } catch (error: unknown) {
-      const slackError =
-        typeof error === "object" && error !== null ? (error as any) : null;
-      const apiError = slackError?.data?.error ?? slackError?.message;
-      const apiErrorString = String(apiError ?? "");
-
-      if (
-        apiErrorString === "missing_scope" ||
-        apiErrorString === "method_not_supported_for_channel_type" ||
-        apiErrorString.includes("missing_scope") ||
-        apiErrorString.includes("method_not_supported_for_channel_type")
-      ) {
-        assistantStatusSupported = false;
-        console.warn(
-          "Disabling assistant thread status updates",
-          apiErrorString,
-        );
-        return;
-      }
-
-      throw error;
-    }
-  };
-};
-
-export async function getThread(
-  channel_id: string,
-  thread_ts: string,
-  botUserId: string,
-): Promise<CoreMessage[]> {
-  const { messages } = await client.conversations.replies({
-    channel: channel_id,
-    ts: thread_ts,
-    limit: 50,
-  });
-
-  // Ensure we have messages
-
-  if (!messages) throw new Error("No messages found in thread");
-
-  const result = messages
-    .map((message) => {
-      const isBot = !!message.bot_id;
-      if (!message.text) return null;
-
-      // For app mentions, remove the mention prefix
-      // For IM messages, keep the full text
-      let content = message.text;
-      if (!isBot && content.includes(`<@${botUserId}>`)) {
-        content = content.replace(`<@${botUserId}> `, "");
-      }
-
-      return {
-        role: isBot ? "assistant" : "user",
-        content: content,
-      } as CoreMessage;
-    })
-    .filter((msg): msg is CoreMessage => msg !== null);
-
-  return result;
-}
-
-export const getBotId = async () => {
-  const { user_id: botUserId } = await client.auth.test();
-
-  if (!botUserId) {
-    throw new Error("botUserId is undefined");
-  }
-  return botUserId;
 };

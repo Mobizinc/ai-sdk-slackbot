@@ -12,7 +12,7 @@
  */
 
 import { WebClient } from '@slack/web-api';
-import type { CoreMessage } from '../instrumented-ai';
+import type { ChatMessage } from '../agent/types';
 
 export interface PostMessageOptions {
   channel: string;
@@ -119,14 +119,14 @@ export class SlackMessagingService {
   }
 
   /**
-   * Get thread messages formatted as CoreMessage array
+   * Get thread messages formatted as ChatMessage array
    * (Replicates getThread from slack-utils.ts)
    */
   async getThread(
     channelId: string,
     threadTs: string,
     botUserId: string
-  ): Promise<CoreMessage[]> {
+  ): Promise<ChatMessage[]> {
     const messages = await this.getThreadReplies({
       channel: channelId,
       threadTs: threadTs,
@@ -152,9 +152,9 @@ export class SlackMessagingService {
         return {
           role: isBot ? 'assistant' : 'user',
           content: content,
-        } as CoreMessage;
+        } as ChatMessage;
       })
-      .filter((msg): msg is CoreMessage => msg !== null);
+      .filter((msg): msg is ChatMessage => msg !== null);
 
     return result;
   }
@@ -227,6 +227,152 @@ export class SlackMessagingService {
     // For now, pass through as-is. Can add conversions if needed.
     return text;
   }
+
+  /**
+   * Upload a file to Slack
+   */
+  async uploadFile(params: {
+    channelId: string;
+    filename: string;
+    title: string;
+    initialComment?: string;
+    file: Buffer;
+  }): Promise<{ ok: boolean }> {
+    try {
+      const result = await this.client.files.uploadV2({
+        channel_id: params.channelId,
+        filename: params.filename,
+        title: params.title,
+        initial_comment: params.initialComment,
+        file: params.file,
+      });
+      return { ok: true };
+    } catch (error: any) {
+      console.error('[Slack Messaging] Error uploading file:', error);
+      if (error.data?.error === 'missing_scope') {
+        console.error('[Slack Messaging] Missing required scope for files.uploadV2');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get conversation info
+   */
+  async getConversationInfo(channelId: string): Promise<any> {
+    try {
+      const result = await this.client.conversations.info({
+        channel: channelId,
+      });
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error getting conversation info:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get conversation history
+   */
+  async getConversationHistory(params: {
+    channel: string;
+    latest: string;
+    limit: number;
+    inclusive: boolean;
+  }): Promise<any> {
+    try {
+      const result = await this.client.conversations.history(params);
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error getting conversation history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Open a modal view
+   */
+  async openView(params: { triggerId: string; view: any }): Promise<any> {
+    try {
+      const result = await this.client.views.open({
+        trigger_id: params.triggerId,
+        view: params.view,
+      });
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error opening view:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Look up user by email
+   */
+  async lookupUserByEmail(email: string): Promise<any> {
+    try {
+      const result = await this.client.users.lookupByEmail({
+        email: email,
+      });
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error looking up user by email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Open a direct message conversation
+   */
+  async openConversation(userId: string): Promise<{ channelId?: string }> {
+    try {
+      const result = await this.client.conversations.open({
+        users: userId,
+      });
+      return { channelId: result.channel?.id };
+    } catch (error) {
+      console.error('[Slack Messaging] Error opening conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a message
+   */
+  async deleteMessage(params: { channel: string; ts: string }): Promise<void> {
+    try {
+      await this.client.chat.delete({
+        channel: params.channel,
+        ts: params.ts,
+      });
+    } catch (error) {
+      console.error('[Slack Messaging] Error deleting message:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set assistant suggested prompts
+   */
+  async setAssistantSuggestedPrompts(params: {
+    channelId: string;
+    threadTs: string;
+    prompts: Array<{ title: string; message: string }>;
+  }): Promise<void> {
+    try {
+      await this.client.assistant.threads.setSuggestedPrompts({
+        channel_id: params.channelId,
+        thread_ts: params.threadTs,
+        prompts: params.prompts,
+      });
+    } catch (error: any) {
+      if (error.data?.error === 'missing_scope') {
+        console.error('[Slack Messaging] Missing assistant scope for setSuggestedPrompts');
+        return; // Gracefully handle missing scope
+      }
+      console.error('[Slack Messaging] Error setting suggested prompts:', error);
+      throw error;
+    }
+  }
 }
 
 // Singleton instance
@@ -238,8 +384,8 @@ let slackMessagingService: SlackMessagingService | null = null;
 export function getSlackMessagingService(): SlackMessagingService {
   if (!slackMessagingService) {
     // Import client lazily to avoid circular dependency
-    const { client } = require('../slack-utils');
-    slackMessagingService = new SlackMessagingService(client);
+    const { getSlackClient } = require('../slack/client');
+    slackMessagingService = new SlackMessagingService(getSlackClient());
   }
   return slackMessagingService;
 }

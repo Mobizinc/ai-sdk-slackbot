@@ -9,11 +9,10 @@
  * - Mentions assigned engineer if configured
  */
 
-import { generateObject } from "ai";
 import { z } from "zod";
-import { modelProvider } from "../model-provider";
 import { config } from "../config";
 import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
+import { AnthropicChatService } from "./anthropic-chat";
 import type { EscalationContext, EscalationDecision } from "./escalation-service";
 
 /**
@@ -40,44 +39,85 @@ export async function buildEscalationMessage(
   const prompt = buildEscalationPrompt(context, decision);
 
   try {
-    // Wrap LLM call with timeout
-    const result = await withTimeout(
-      generateObject({
-        model: modelProvider.languageModel("chat-model"),
-        schema: EscalationContentSchema as any, // Type assertion to avoid deep instantiation error
-        prompt: prompt,
+    const chatService = AnthropicChatService.getInstance();
+    const response = await withTimeout(
+      chatService.send({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a service desk escalation analyst. Respond with concise JSON by calling the `draft_escalation_content` tool exactly once.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        tools: [
+          {
+            name: "draft_escalation_content",
+            description:
+              "Generate escalation summary and clarifying questions. Call exactly once with structured output.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                summary: { type: "string" },
+                questions: {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 2,
+                  maxItems: 4,
+                },
+              },
+              required: ["summary", "questions"],
+              additionalProperties: false,
+            },
+          },
+        ],
+        maxSteps: 3,
       }),
       config.llmEscalationTimeoutMs,
-      // Fallback to template-based message on timeout
-      async () => {
-        console.warn(
-          `[Escalation Message Builder] LLM timeout (${config.llmEscalationTimeoutMs}ms) - using fallback template`
-        );
-        const fallbackBlocks = buildFallbackEscalationMessage(context, decision);
-        return {
-          object: getFallbackContent(context),
-          usage: { totalTokens: 0, promptTokens: 0, completionTokens: 0 },
-        } as any;
-      }
     );
 
-    const content = result.object as { summary: string; questions: string[] };
+    let content: { summary: string; questions: string[] } | null = null;
+
+    if (response.toolCalls.length > 0) {
+      const firstCall = response.toolCalls[0];
+      content = EscalationContentSchema.parse(firstCall.input);
+    } else if (response.outputText) {
+      try {
+        const parsed = JSON.parse(response.outputText);
+        content = EscalationContentSchema.parse(parsed);
+      } catch (parseError) {
+        console.warn(
+          "[Escalation Message Builder] Failed to parse Anthropic text output:",
+          parseError,
+        );
+      }
+    }
+
+    if (!content) {
+      throw new Error("Structured escalation content not returned from Anthropic");
+    }
+
     const blocks = buildSlackBlocks(context, decision, content);
 
+    const usage =
+      (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0);
+
     console.log(
-      `[Escalation Message Builder] Generated LLM message (${result.usage.totalTokens} tokens)`
+      `[Escalation Message Builder] Generated LLM message (${usage} tokens)`
     );
 
     return {
       blocks,
-      tokenUsage: result.usage.totalTokens,
+      tokenUsage: usage,
     };
   } catch (error) {
     if (isTimeoutError(error)) {
       console.error(
         `[Escalation Message Builder] LLM timeout after ${error.timeoutMs}ms - using fallback`
       );
-      // Return fallback template
       const fallbackBlocks = buildFallbackEscalationMessage(context, decision);
       return {
         blocks: fallbackBlocks,
@@ -90,9 +130,6 @@ export async function buildEscalationMessage(
   }
 }
 
-/**
- * Build prompt for LLM to generate escalation content
- */
 function buildEscalationPrompt(
   context: EscalationContext,
   decision: EscalationDecision

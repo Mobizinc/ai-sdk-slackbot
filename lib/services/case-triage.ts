@@ -152,9 +152,9 @@ export class CaseTriageService {
       enableKBArticles = true,
       enableBusinessContext = true,
       enableWorkflowRouting = true,
-      writeToServiceNow = process.env.CASE_CLASSIFICATION_WRITE_NOTES === "true",
-      enableCatalogRedirect = process.env.CATALOG_REDIRECT_ENABLED === "true",
-      maxRetries = parseInt(process.env.CASE_CLASSIFICATION_MAX_RETRIES || "3"),
+      writeToServiceNow = config.caseClassificationWriteNotes,
+      enableCatalogRedirect = config.catalogRedirectEnabled,
+      maxRetries = config.caseClassificationMaxRetries,
     } = options;
 
     console.log(`[Case Triage] Starting triage for case ${webhook.case_number}`);

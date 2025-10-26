@@ -9,8 +9,11 @@
 
 import type { GenericMessageEvent } from '../../slack-event-types';
 import type { SlackMessagingService } from '../../services/slack-messaging';
+import { getSlackMessagingService } from '../../services/slack-messaging';
 import type { CaseDataService } from '../../services/case-data';
+import { getCaseDataService } from '../../services/case-data';
 import type { SearchFacadeService } from '../../services/search-facade';
+import { getSearchFacadeService } from '../../services/search-facade';
 import type { CaseContext } from '../../context-manager';
 import { getChannelInfo } from '../../services/channel-info';
 import {
@@ -168,11 +171,6 @@ let action: PostAssistanceAction | null = null;
  */
 export function getPostAssistanceAction(): PostAssistanceAction {
   if (!action) {
-    // Import services lazily to avoid circular dependencies
-    const { getSlackMessagingService } = require('../../services/slack-messaging');
-    const { getCaseDataService } = require('../../services/case-data');
-    const { getSearchFacadeService } = require('../../services/search-facade');
-
     action = new PostAssistanceAction({
       slackMessaging: getSlackMessagingService(),
       caseData: getCaseDataService(),

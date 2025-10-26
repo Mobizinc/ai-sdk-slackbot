@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
-import type { CoreMessage } from "../../../lib/instrumented-ai";
+import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
 vi.mock("../../../lib/context-manager");
@@ -18,7 +18,7 @@ describe("Knowledge Base Generation Tool", () => {
   let tools: any;
   const mockUpdateStatus = vi.fn();
 
-  const createMockMessages = (): CoreMessage[] => [
+  const createMockMessages = (): ChatMessage[] => [
     { role: "user", content: "Test message" },
   ];
 

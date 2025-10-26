@@ -8,7 +8,7 @@
  */
 
 import type { GenericMessageEvent } from '../../slack-event-types';
-import type { ContextManager, CaseContext } from '../../context-manager';
+import { getContextManager, type ContextManager, type CaseContext } from '../../context-manager';
 
 export interface AddToContextDeps {
   contextManager: ContextManager;
@@ -188,8 +188,6 @@ let action: AddToContextAction | null = null;
  */
 export function getAddToContextAction(): AddToContextAction {
   if (!action) {
-    // Import lazily to avoid circular dependencies
-    const { getContextManager } = require('../../context-manager');
     action = new AddToContextAction({
       contextManager: getContextManager(),
     });

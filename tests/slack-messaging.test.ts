@@ -387,6 +387,303 @@ describe("SlackMessagingService", () => {
     });
   });
 
+  describe("uploadFile", () => {
+    beforeEach(() => {
+      mockClient.files = {
+        uploadV2: vi.fn().mockResolvedValue({ ok: true }),
+      } as any;
+    });
+
+    it("should upload a file successfully", async () => {
+      const buffer = Buffer.from("file content");
+      const result = await service.uploadFile({
+        channelId: "C123456",
+        filename: "test.txt",
+        title: "Test File",
+        initialComment: "Here's the file",
+        file: buffer,
+      });
+
+      expect(mockClient.files!.uploadV2).toHaveBeenCalledWith({
+        channel_id: "C123456",
+        filename: "test.txt",
+        title: "Test File",
+        initial_comment: "Here's the file",
+        file: buffer,
+      });
+
+      expect(result.ok).toBe(true);
+    });
+
+    it("should handle missing_scope error gracefully", async () => {
+      const error = {
+        data: { error: "missing_scope" },
+      };
+      mockClient.files!.uploadV2 = vi.fn().mockRejectedValue(error);
+
+      const buffer = Buffer.from("file content");
+
+      await expect(
+        service.uploadFile({
+          channelId: "C123456",
+          filename: "test.txt",
+          title: "Test File",
+          file: buffer,
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  describe("getConversationInfo", () => {
+    beforeEach(() => {
+      mockClient.conversations = {
+        ...mockClient.conversations,
+        info: vi.fn().mockResolvedValue({
+          channel: { id: "C123456", name: "general" },
+        }),
+      } as any;
+    });
+
+    it("should get conversation info", async () => {
+      const result = await service.getConversationInfo("C123456");
+
+      expect(mockClient.conversations!.info).toHaveBeenCalledWith({
+        channel: "C123456",
+      });
+
+      expect(result.channel).toBeDefined();
+    });
+
+    it("should handle errors", async () => {
+      const error = new Error("Channel not found");
+      mockClient.conversations!.info = vi.fn().mockRejectedValue(error);
+
+      await expect(service.getConversationInfo("C123456")).rejects.toThrow(
+        "Channel not found"
+      );
+    });
+  });
+
+  describe("getConversationHistory", () => {
+    beforeEach(() => {
+      mockClient.conversations = {
+        ...mockClient.conversations,
+        history: vi.fn().mockResolvedValue({
+          ok: true,
+          messages: [{ text: "Message 1" }, { text: "Message 2" }],
+        }),
+      } as any;
+    });
+
+    it("should get conversation history", async () => {
+      const result = await service.getConversationHistory({
+        channel: "C123456",
+        latest: "1234567890.123456",
+        limit: 10,
+        inclusive: true,
+      });
+
+      expect(mockClient.conversations!.history).toHaveBeenCalledWith({
+        channel: "C123456",
+        latest: "1234567890.123456",
+        limit: 10,
+        inclusive: true,
+      });
+
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe("openView", () => {
+    beforeEach(() => {
+      mockClient.views = {
+        open: vi.fn().mockResolvedValue({ ok: true }),
+      } as any;
+    });
+
+    it("should open a modal view", async () => {
+      const view = { type: "modal", title: { type: "plain_text", text: "Test" } };
+      const result = await service.openView({
+        triggerId: "12345.67890",
+        view,
+      });
+
+      expect(mockClient.views!.open).toHaveBeenCalledWith({
+        trigger_id: "12345.67890",
+        view,
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it("should handle errors", async () => {
+      const error = new Error("Invalid trigger_id");
+      mockClient.views!.open = vi.fn().mockRejectedValue(error);
+
+      await expect(
+        service.openView({
+          triggerId: "invalid",
+          view: {},
+        })
+      ).rejects.toThrow("Invalid trigger_id");
+    });
+  });
+
+  describe("lookupUserByEmail", () => {
+    beforeEach(() => {
+      mockClient.users = {
+        lookupByEmail: vi.fn().mockResolvedValue({
+          user: { id: "U123456", email: "test@example.com" },
+        }),
+      } as any;
+    });
+
+    it("should lookup user by email", async () => {
+      const result = await service.lookupUserByEmail("test@example.com");
+
+      expect(mockClient.users!.lookupByEmail).toHaveBeenCalledWith({
+        email: "test@example.com",
+      });
+
+      expect(result.user.id).toBe("U123456");
+    });
+
+    it("should handle user not found", async () => {
+      const error = new Error("users_not_found");
+      mockClient.users!.lookupByEmail = vi.fn().mockRejectedValue(error);
+
+      await expect(service.lookupUserByEmail("notfound@example.com")).rejects.toThrow(
+        "users_not_found"
+      );
+    });
+  });
+
+  describe("openConversation", () => {
+    beforeEach(() => {
+      mockClient.conversations = {
+        ...mockClient.conversations,
+        open: vi.fn().mockResolvedValue({
+          channel: { id: "D123456" },
+        }),
+      } as any;
+    });
+
+    it("should open a direct message conversation", async () => {
+      const result = await service.openConversation("U123456");
+
+      expect(mockClient.conversations!.open).toHaveBeenCalledWith({
+        users: "U123456",
+      });
+
+      expect(result.channelId).toBe("D123456");
+    });
+
+    it("should handle errors", async () => {
+      const error = new Error("User not found");
+      mockClient.conversations!.open = vi.fn().mockRejectedValue(error);
+
+      await expect(service.openConversation("U123456")).rejects.toThrow(
+        "User not found"
+      );
+    });
+  });
+
+  describe("deleteMessage", () => {
+    beforeEach(() => {
+      mockClient.chat = {
+        ...mockClient.chat,
+        delete: vi.fn().mockResolvedValue({ ok: true }),
+      } as any;
+    });
+
+    it("should delete a message", async () => {
+      await service.deleteMessage({
+        channel: "C123456",
+        ts: "1234567890.123456",
+      });
+
+      expect(mockClient.chat!.delete).toHaveBeenCalledWith({
+        channel: "C123456",
+        ts: "1234567890.123456",
+      });
+    });
+
+    it("should handle errors", async () => {
+      const error = new Error("Message not found");
+      mockClient.chat!.delete = vi.fn().mockRejectedValue(error);
+
+      await expect(
+        service.deleteMessage({
+          channel: "C123456",
+          ts: "1234567890.123456",
+        })
+      ).rejects.toThrow("Message not found");
+    });
+  });
+
+  describe("setAssistantSuggestedPrompts", () => {
+    beforeEach(() => {
+      mockClient.assistant = {
+        threads: {
+          setSuggestedPrompts: vi.fn().mockResolvedValue({ ok: true }),
+          setStatus: mockClient.assistant!.threads!.setStatus,
+        },
+      } as any;
+    });
+
+    it("should set assistant suggested prompts", async () => {
+      const prompts = [
+        { title: "Prompt 1", message: "Message 1" },
+        { title: "Prompt 2", message: "Message 2" },
+      ];
+
+      await service.setAssistantSuggestedPrompts({
+        channelId: "C123456",
+        threadTs: "1234567890.123456",
+        prompts,
+      });
+
+      expect(mockClient.assistant!.threads!.setSuggestedPrompts).toHaveBeenCalledWith({
+        channel_id: "C123456",
+        thread_ts: "1234567890.123456",
+        prompts,
+      });
+    });
+
+    it("should handle missing_scope error gracefully", async () => {
+      const error = {
+        data: { error: "missing_scope" },
+      };
+      mockClient.assistant!.threads!.setSuggestedPrompts = vi
+        .fn()
+        .mockRejectedValue(error);
+
+      // Should not throw
+      await service.setAssistantSuggestedPrompts({
+        channelId: "C123456",
+        threadTs: "1234567890.123456",
+        prompts: [{ title: "Test", message: "Test" }],
+      });
+
+      expect(mockClient.assistant!.threads!.setSuggestedPrompts).toHaveBeenCalled();
+    });
+
+    it("should rethrow non-scope errors", async () => {
+      const error = new Error("Network error");
+      mockClient.assistant!.threads!.setSuggestedPrompts = vi
+        .fn()
+        .mockRejectedValue(error);
+
+      await expect(
+        service.setAssistantSuggestedPrompts({
+          channelId: "C123456",
+          threadTs: "1234567890.123456",
+          prompts: [{ title: "Test", message: "Test" }],
+        })
+      ).rejects.toThrow("Network error");
+    });
+  });
+
   describe("Singleton pattern", () => {
     it("should return the same instance", () => {
       // Set a mock instance first to avoid requiring slack-utils in test

@@ -5,7 +5,6 @@
 
 import { AnthropicChatService } from './anthropic-chat';
 import { anthropic, anthropicModel } from '../model-provider';
-import { getFeatureFlags } from '../config/feature-flags';
 import { getAnthropicClient, calculateCost as calculateAnthropicCost, formatUsageMetrics, calculateCacheHitRate } from '../anthropic-provider';
 import type Anthropic from '@anthropic-ai/sdk';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
@@ -1033,8 +1032,6 @@ Important: Return ONLY the JSON object, no additional text.
     } = options || {};
 
     const startTime = Date.now();
-    const flags = getFeatureFlags();
-
     // Store case data for mismatch logging
     this.currentCaseData = caseData;
 
@@ -1093,73 +1090,71 @@ Important: Return ONLY the JSON object, no additional text.
       kbArticles
     );
 
-    if (flags.refactorEnabled) {
-      try {
-        const chatService = AnthropicChatService.getInstance();
-        const chatStart = Date.now();
+    try {
+      const chatService = AnthropicChatService.getInstance();
+      const chatStart = Date.now();
+      console.log(
+        `[CaseClassifier] Using Anthropic chat fallback for case ${caseData.case_number}`,
+      );
+
+      const response = await chatService.send({
+        messages: [
+          {
+            role: "system",
+            content: this.buildSystemInstructions(),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        maxSteps: 3,
+      });
+
+      const chatDuration = Date.now() - chatStart;
+      const text = response.outputText ?? extractAnthropicText(response.message);
+      if (!text) {
+        throw new Error("Anthropic chat response did not include text output");
+      }
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in classification response (Anthropic chat)");
+      }
+
+      const classification = JSON.parse(jsonMatch[0]);
+      const validatedClassification = await this.validateClassification(classification);
+
+      const usage = response.usage;
+      if (usage) {
         console.log(
-          `[CaseClassifier] Using Anthropic chat fallback for case ${caseData.case_number}`,
-        );
-
-        const response = await chatService.send({
-          messages: [
-            {
-              role: "system",
-              content: this.buildSystemInstructions(),
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          maxSteps: 3,
-        });
-
-        const chatDuration = Date.now() - chatStart;
-        const text = response.outputText ?? extractAnthropicText(response.message);
-        if (!text) {
-          throw new Error("Anthropic chat response did not include text output");
-        }
-
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No JSON found in classification response (Anthropic chat)");
-        }
-
-        const classification = JSON.parse(jsonMatch[0]);
-        const validatedClassification = await this.validateClassification(classification);
-
-        const usage = response.usage;
-        if (usage) {
-          console.log(
-            `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number} | ` +
+          `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number} | ` +
             `Input: ${usage.input_tokens} | Output: ${usage.output_tokens}`,
-          );
-        } else {
-          console.log(
-            `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number}`,
-          );
-        }
-
-        return {
-          ...validatedClassification,
-          token_usage_input: usage?.input_tokens,
-          token_usage_output: usage?.output_tokens,
-          total_tokens:
-            (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0),
-          model_used: anthropicModel ?? "anthropic",
-          llm_provider: "anthropic",
-          similar_cases: similarCases,
-          kb_articles: kbArticles,
-          similar_cases_count: similarCases.length,
-          kb_articles_count: kbArticles.length,
-        };
-      } catch (error) {
-        console.warn(
-          `[CaseClassifier] Anthropic chat fallback failed for ${caseData.case_number}, falling back to AI Gateway/OpenAI:`,
-          error,
+        );
+      } else {
+        console.log(
+          `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number}`,
         );
       }
+
+      return {
+        ...validatedClassification,
+        token_usage_input: usage?.input_tokens,
+        token_usage_output: usage?.output_tokens,
+        total_tokens:
+          (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0),
+        model_used: anthropicModel ?? "anthropic",
+        llm_provider: "anthropic",
+        similar_cases: similarCases,
+        kb_articles: kbArticles,
+        similar_cases_count: similarCases.length,
+        kb_articles_count: kbArticles.length,
+      };
+    } catch (error) {
+      console.warn(
+        `[CaseClassifier] Anthropic chat fallback failed for ${caseData.case_number}, falling back to AI Gateway/OpenAI:`,
+        error,
+      );
     }
 
     // All Anthropic methods failed - use fallback classification
@@ -1703,7 +1698,7 @@ Important: Return ONLY the JSON object, no additional text.
           });
         }
 
-        console.warn(
+      console.warn(
           `[CaseClassifier] AI suggested invalid INCIDENT category: "${originalIncidentCategory}" ` +
           `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
           `defaulting to "Application Support" | ` +

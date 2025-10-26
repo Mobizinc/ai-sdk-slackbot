@@ -1,6 +1,8 @@
 # Phase 3 Refactor - Completion Summary
 
 ## Overview
+_Update 2025-???: Phase 4 removed the legacy fallback and feature flag; this document remains as the Phase 3 completion record._
+
 Phase 3 successfully decomposed the monolithic `lib/generate-response.ts` (originally 1,272 LOC) into modular agent components that reuse shared services from Phases 1-2. The refactored architecture is feature-flagged and maintains 100% behavioral parity with the legacy implementation.
 
 ## Final Module Layout

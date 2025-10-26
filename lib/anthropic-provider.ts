@@ -5,6 +5,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { wrapSDK } from 'langsmith/wrappers';
+import { config } from './config';
 
 // Singleton client instance
 let anthropicClient: Anthropic | null = null;
@@ -15,7 +16,7 @@ let anthropicClientWrapped = false;
  */
 export function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
 
     if (!apiKey) {
       throw new Error(
@@ -44,8 +45,9 @@ export function getAnthropicClient(): Anthropic {
 
 function shouldWrapWithLangSmith(): boolean {
   const tracingEnabled =
+    config.langsmithTracingEnabled ||
     (process.env.LANGSMITH_TRACING ?? '').toLowerCase() === 'true';
-  const hasApiKey = !!process.env.LANGSMITH_API_KEY?.trim();
+  const hasApiKey = !!(config.langsmithApiKey || process.env.LANGSMITH_API_KEY?.trim());
   return tracingEnabled && hasApiKey;
 }
 
@@ -82,7 +84,7 @@ export type AnthropicModel = typeof ANTHROPIC_MODELS[keyof typeof ANTHROPIC_MODE
  * Get configured Anthropic model
  */
 export function getConfiguredModel(): AnthropicModel {
-  const configured = process.env.ANTHROPIC_MODEL?.trim();
+  const configured = config.anthropicModel?.trim?.() || process.env.ANTHROPIC_MODEL?.trim();
 
   // Validate against supported models
   const supportedModels = Object.values(ANTHROPIC_MODELS);

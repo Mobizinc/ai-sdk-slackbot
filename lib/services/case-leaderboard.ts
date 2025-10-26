@@ -1,7 +1,9 @@
 import { ConnectionPool } from "mssql";
 
-import { client } from "../slack-utils";
+import { getSlackClient } from "../slack/client";
 import { getAllowedMobizDomains, isMobizEmail } from "./mobiz-filter";
+
+const client = getSlackClient();
 
 const DEFAULT_LOOKBACK_DAYS = 7;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";

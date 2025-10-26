@@ -3,7 +3,6 @@ import type {
   ServiceNowCaseJournalEntry,
   ServiceNowCaseResult,
 } from "../tools/servicenow";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 interface ResolutionSummaryInput {
@@ -64,7 +63,6 @@ export async function generateResolutionSummary({
   caseDetails,
   journalEntries,
 }: ResolutionSummaryInput): Promise<string | null> {
-  const flags = getFeatureFlags();
   const conversationText = formatConversation(context);
   const journalText = formatJournalEntries(journalEntries);
   const caseDetailText = formatCaseDetails(caseDetails ?? null);
@@ -90,35 +88,30 @@ Produce a Slack-formatted message with:
 Keep bullets concise (≤140 characters) and avoid repeating the case number. Do not invent details beyond the provided information.`;
 
   try {
-    if (flags.refactorEnabled) {
-      const chatService = AnthropicChatService.getInstance();
-      const response = await chatService.send({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an internal Service Desk assistant. Produce concise Slack-formatted summaries without fabricating details.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an internal Service Desk assistant. Produce concise Slack-formatted summaries without fabricating details.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
-      const anthroText =
-        response.outputText ??
-        extractText(response.message);
+    const anthroText =
+      response.outputText ??
+      extractText(response.message);
 
-      if (anthroText && anthroText.trim().length > 0) {
-        return anthroText.trim();
-      }
-
-      throw new Error("Anthropic response missing text");
+    if (anthroText && anthroText.trim().length > 0) {
+      return anthroText.trim();
     }
 
-    // Refactor not enabled - throw error
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    throw new Error("Anthropic response missing text");
   } catch (error) {
     console.error("[ResolutionSummary] Failed to generate summary:", error);
 

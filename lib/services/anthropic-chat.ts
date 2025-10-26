@@ -16,6 +16,7 @@ import type {
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getAnthropicClient, getConfiguredModel } from "../anthropic-provider";
+import { config } from "../config";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool";
@@ -48,6 +49,29 @@ export interface ChatResponse {
   toolCalls: ToolUseBlock[];
   outputText?: string;
   usage?: Anthropic.Messages.Usage;
+}
+
+/**
+ * Caching strategy types
+ */
+export type CachingStrategy = "system-only" | "system-and-tools" | "aggressive";
+
+/**
+ * Helper to determine if caching should be applied based on config
+ */
+function shouldUsePromptCaching(): boolean {
+  return config.anthropicPromptCachingEnabled === true;
+}
+
+/**
+ * Get the configured caching strategy
+ */
+function getCachingStrategy(): CachingStrategy {
+  const strategy = config.anthropicCachingStrategy as string;
+  if (strategy === "system-and-tools" || strategy === "aggressive") {
+    return strategy as CachingStrategy;
+  }
+  return "system-only";
 }
 
 export class AnthropicChatService {
@@ -130,22 +154,75 @@ export class AnthropicChatService {
       type: "tool" as const,
     }));
 
-    const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => ({
-      type: "tool_result",
-      tool_use_id: result.toolUseId,
-      content: String(result.output),
-    }));
+    const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => {
+      let content: string;
+      if (typeof result.output === "string") {
+        content = result.output;
+      } else if (result.output === undefined || result.output === null) {
+        content = "";
+      } else {
+        try {
+          content = JSON.stringify(result.output);
+        } catch (error) {
+          console.warn("[AnthropicChat] Failed to stringify tool output:", error);
+          content = "";
+        }
+      }
+
+      return {
+        type: "tool_result",
+        tool_use_id: result.toolUseId,
+        content,
+      };
+    });
+
+    // Apply prompt caching if enabled
+    const useCaching = shouldUsePromptCaching();
+    const cachingStrategy = getCachingStrategy();
+
+    // Build system prompt with optional caching
+    let systemPrompt: string | Array<{ type: "text"; text: string; cache_control?: { type: "ephemeral" } }> | undefined;
+
+    if (systemSegments.length > 0) {
+      const combinedSystem = systemSegments.join("\n\n");
+
+      if (useCaching && combinedSystem.length > 1024) {
+        // Use structured content with cache_control for system prompts > 1024 chars
+        // Anthropic best practice: mark the last block as cacheable
+        systemPrompt = [
+          {
+            type: "text",
+            text: combinedSystem,
+            cache_control: { type: "ephemeral" },
+          },
+        ];
+      } else {
+        // Use simple string for short prompts or when caching disabled
+        systemPrompt = combinedSystem;
+      }
+    }
 
     const params: MessageCreateParams = {
       model,
       messages: conversation,
       temperature: request.temperature ?? 0.0,
       max_tokens: 4096,
-      system: systemSegments.length > 0 ? systemSegments.join("\n\n") : undefined,
+      system: systemPrompt,
     };
 
     if (tools && tools.length > 0) {
-      (params as any).tools = tools;
+      const toolsWithCaching = tools.map((tool, index) => {
+        // Apply cache_control to tools if strategy includes them
+        const shouldCacheTool = useCaching &&
+          (cachingStrategy === "system-and-tools" || cachingStrategy === "aggressive") &&
+          index === tools.length - 1; // Only cache the last tool (Anthropic best practice)
+
+        return shouldCacheTool
+          ? { ...tool, cache_control: { type: "ephemeral" as const } }
+          : tool;
+      });
+
+      (params as any).tools = toolsWithCaching;
     }
 
     if (toolResults && toolResults.length > 0) {

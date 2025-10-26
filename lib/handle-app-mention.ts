@@ -1,18 +1,20 @@
 import type { AppMentionEvent } from "./slack-event-types";
-import { client, getThread } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
 import { generateResponse } from "./generate-response";
 import { getContextManager } from "./context-manager";
 import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
 
+const slackMessaging = getSlackMessagingService();
+
 const updateStatusUtil = async (
   initialStatus: string,
   event: AppMentionEvent,
 ) => {
-  const initialMessage = await client.chat.postMessage({
+  const initialMessage = await slackMessaging.postMessage({
     channel: event.channel,
-    thread_ts: event.thread_ts ?? event.ts,
+    threadTs: event.thread_ts ?? event.ts,
     text: initialStatus,
   });
 
@@ -20,7 +22,7 @@ const updateStatusUtil = async (
     throw new Error("Failed to post initial message");
 
   const updateMessage = async (status: string) => {
-    await client.chat.update({
+    await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
       text: status,

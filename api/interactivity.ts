@@ -14,9 +14,11 @@
 import { verifyRequest } from "../lib/slack-utils";
 import { getEscalationService } from "../lib/services/escalation-service";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
-import { client } from "../lib/slack-utils";
+import { getSlackMessagingService } from "../lib/services/slack-messaging";
 import { initializeDatabase } from "../lib/db/init";
 import { ErrorHandler } from "../lib/utils/error-handler";
+
+const slackMessaging = getSlackMessagingService();
 
 // Initialize database on cold start
 initializeDatabase().catch((err) => {
@@ -214,11 +216,10 @@ async function handleCreateProjectSubmission(payload: any): Promise<void> {
       },
     ];
 
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: channelId,
-      thread_ts: messageTs,
+      threadTs: messageTs,
       text: `✅ Project created for ${caseNumber}: ${projectName}`,
-      blocks: confirmationBlocks,
     });
 
     // Update original escalation message
@@ -242,9 +243,9 @@ async function handleCreateProjectSubmission(payload: any): Promise<void> {
       const metadata = JSON.parse(payload.view.private_metadata);
       const { channelId, messageTs } = metadata;
 
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: channelId,
-        thread_ts: messageTs,
+        threadTs: messageTs,
         text: `❌ Error creating project: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } catch (notifyError) {
@@ -281,9 +282,9 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       assignmentTarget = assignmentGroup;
     } else {
       // Validation error
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: channelId,
-        thread_ts: messageTs,
+        threadTs: messageTs,
         text: `❌ Reassignment failed: Please specify either a user or a group`,
       });
       return;
@@ -357,11 +358,10 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       } as any
     );
 
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: channelId,
-      thread_ts: messageTs,
+      threadTs: messageTs,
       text: `✅ Case ${caseNumber} reassigned to ${assignmentTarget}`,
-      blocks: confirmationBlocks,
     });
 
     // Update original escalation message
@@ -385,9 +385,9 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       const metadata = JSON.parse(payload.view.private_metadata);
       const { channelId, messageTs } = metadata;
 
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: channelId,
-        thread_ts: messageTs,
+        threadTs: messageTs,
         text: `❌ Error processing reassignment: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } catch (notifyError) {
@@ -459,11 +459,10 @@ async function handleEscalationAction(
     // Post contextual error message with recovery steps
     const errorBlocks = ErrorHandler.formatForSlack(errorResult);
 
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: container.channel_id,
-      thread_ts: container.message_ts,
+      threadTs: container.message_ts,
       text: ErrorHandler.getSimpleMessage(errorResult),
-      blocks: errorBlocks,
     });
   }
 }
@@ -528,9 +527,9 @@ async function handleKBApprovalAction(
 
     // Post feedback message in thread if there was an error
     if (!result.success && result.message) {
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: container.channel_id,
-        thread_ts: container.message_ts,
+        threadTs: container.message_ts,
         text: `⚠️ ${result.message}`,
       });
     }
@@ -549,11 +548,10 @@ async function handleKBApprovalAction(
     // Post contextual error message with recovery steps
     const errorBlocks = ErrorHandler.formatForSlack(errorResult);
 
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: container.channel_id,
-      thread_ts: container.message_ts,
+      threadTs: container.message_ts,
       text: ErrorHandler.getSimpleMessage(errorResult),
-      blocks: errorBlocks,
     });
   }
 }
@@ -571,7 +569,7 @@ async function updateKBMessageToProcessing(
 ): Promise<void> {
   try {
     // Get the original message
-    const result = await client.conversations.history({
+    const result = await slackMessaging.getConversationHistory({
       channel,
       latest: messageTs,
       limit: 1,
@@ -600,11 +598,10 @@ async function updateKBMessageToProcessing(
     }
 
     // Update the message
-    await client.chat.update({
+    await slackMessaging.updateMessage({
       channel,
       ts: messageTs,
-      blocks: blocks as any,
-      text: `${processingText}`, // Fallback text for notifications
+      text: `${processingText}`,
     });
   } catch (error) {
     console.error("[Interactivity] Error updating KB message to processing state:", error);
@@ -972,8 +969,8 @@ async function handleCreateProject(
     // Open modal for project creation
     const modalView = buildCreateProjectModal(caseNumber, container.channel_id, container.message_ts);
 
-    await client.views.open({
-      trigger_id: payload.trigger_id,
+    await slackMessaging.openView({
+      triggerId: payload.trigger_id,
       view: modalView,
     });
 
@@ -982,9 +979,9 @@ async function handleCreateProject(
     console.error(`[Interactivity] Error opening Create Project modal:`, error);
 
     // Fallback: Post message if modal fails
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: container.channel_id,
-      thread_ts: container.message_ts,
+      threadTs: container.message_ts,
       text:
         `✅ <@${user.id}> acknowledged this as a **Project**\n\n` +
         `❌ Unable to open project creation form. Please create the project manually:\n` +
@@ -1007,9 +1004,9 @@ async function handleAcknowledgeBau(
   console.log(`[Interactivity] BAU acknowledgment for ${caseNumber} by ${user.id}`);
 
   // Post acknowledgment in thread
-  await client.chat.postMessage({
+  await slackMessaging.postMessage({
     channel: container.channel_id,
-    thread_ts: container.message_ts,
+    threadTs: container.message_ts,
     text:
       `✅ <@${user.id}> confirmed this is **standard BAU** work\n\n` +
       `The case will continue through normal support channels. ` +
@@ -1039,8 +1036,8 @@ async function handleReassign(
     // Open modal for reassignment
     const modalView = buildReassignModal(caseNumber, container.channel_id, container.message_ts);
 
-    await client.views.open({
-      trigger_id: payload.trigger_id,
+    await slackMessaging.openView({
+      triggerId: payload.trigger_id,
       view: modalView,
     });
 
@@ -1049,9 +1046,9 @@ async function handleReassign(
     console.error(`[Interactivity] Error opening Reassign modal:`, error);
 
     // Fallback: Post message if modal fails
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: container.channel_id,
-      thread_ts: container.message_ts,
+      threadTs: container.message_ts,
       text:
         `✅ <@${user.id}> requested **reassignment**\n\n` +
         `❌ Unable to open reassignment form. Please reassign manually:\n` +
@@ -1072,7 +1069,7 @@ async function updateEscalationMessage(
 ): Promise<void> {
   try {
     // Get the original message
-    const result = await client.conversations.history({
+    const result = await slackMessaging.getConversationHistory({
       channel,
       latest: messageTs,
       limit: 1,
@@ -1097,11 +1094,10 @@ async function updateEscalationMessage(
     }
 
     // Update the message
-    await client.chat.update({
+    await slackMessaging.updateMessage({
       channel,
       ts: messageTs,
-      blocks,
-      text: originalMessage.text, // Keep original text for notifications
+      text: originalMessage.text,
     });
   } catch (error) {
     console.error("[Interactivity] Error updating escalation message:", error);

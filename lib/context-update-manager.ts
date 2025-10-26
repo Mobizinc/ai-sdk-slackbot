@@ -1,7 +1,11 @@
 import type { BusinessContextCmdbIdentifier } from "./db/schema";
 import { getBusinessContextRepository } from "./db/repositories/business-context-repository";
 import { getBusinessContextService } from "./services/business-context-service";
-import { client } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
+import { getSlackClient } from "./slack/client";
+
+const slackMessaging = getSlackMessagingService();
+const client = getSlackClient();
 
 export type ContextUpdateAction =
   | {

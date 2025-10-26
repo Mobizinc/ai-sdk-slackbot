@@ -39,15 +39,36 @@ vi.mock("../lib/services/servicenow", () => ({
   }),
 }));
 
-vi.mock("../lib/context-manager", () => ({
-  contextManager: {
-    getContext: vi.fn().mockReturnValue(null),
-    addMessage: vi.fn(),
-    createContext: vi.fn(),
-    shouldAskForMoreInfo: vi.fn().mockReturnValue(false),
-    isKBGatheringInProgress: vi.fn().mockReturnValue(false),
-    hasEnoughQuality: vi.fn().mockReturnValue(false),
-  },
+const contextManagerMock = {
+  getContextSync: vi.fn().mockReturnValue(undefined),
+  getContext: vi.fn().mockResolvedValue(undefined),
+  addMessage: vi.fn(),
+  createContext: vi.fn(),
+  extractCaseNumbers: vi.fn().mockReturnValue([]),
+  shouldAskForMoreInfo: vi.fn().mockReturnValue(false),
+  isKBGatheringInProgress: vi.fn().mockReturnValue(false),
+  hasEnoughQuality: vi.fn().mockReturnValue(false),
+  removeStaleContexts: vi.fn(),
+};
+
+const slackMessagingServiceMock = {
+  postMessage: vi.fn().mockResolvedValue({ ok: true }),
+  postToThread: vi.fn().mockResolvedValue({ ok: true }),
+  updateMessage: vi.fn().mockResolvedValue({ ok: true }),
+  getThread: vi.fn().mockResolvedValue([]),
+  createStatusUpdater: vi.fn(() => vi.fn()),
+};
+
+// Ensure mocks cover both TS path and compiled JS path resolution
+// Vitest resolves relative imports before normalising, so pre-resolve the module id
+vi.mock("../lib/services/slack-messaging", () => ({
+  getSlackMessagingService: () => slackMessagingServiceMock,
+  __resetSlackMessagingService: vi.fn(),
+}));
+
+vi.mock("../../services/slack-messaging", () => ({
+  getSlackMessagingService: () => slackMessagingServiceMock,
+  __resetSlackMessagingService: vi.fn(),
 }));
 
 describe("handle-passive-messages - Integration Tests", () => {
@@ -261,9 +282,7 @@ describe("handle-passive-messages - Integration Tests", () => {
       } as GenericMessageEvent;
 
       // Should either handle gracefully or throw descriptive error
-      await expect(async () => {
-        await handlePassiveMessage(event, BOT_USER_ID);
-      }).rejects.toThrow();
+      await expect(handlePassiveMessage(event, BOT_USER_ID)).resolves.toBeUndefined();
     });
 
     it("should handle very long messages", async () => {

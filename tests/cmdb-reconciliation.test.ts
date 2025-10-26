@@ -18,6 +18,20 @@ vi.mock("@slack/web-api", () => ({
   })),
 }));
 
+// Mock slack-utils
+vi.mock("../lib/slack-utils", () => ({
+  client: {
+    chat: {
+      postMessage: vi.fn().mockResolvedValue({ ok: true }),
+    },
+  },
+  isValidSlackRequest: vi.fn(),
+  verifyRequest: vi.fn(),
+  updateStatusUtil: vi.fn(),
+  getThread: vi.fn(),
+  getBotId: vi.fn(),
+}));
+
 describe("CmdbReconciliationService", () => {
   let service: CmdbReconciliationService;
   let mockRepository: any;
@@ -148,10 +162,27 @@ describe("CmdbReconciliationService", () => {
         .mockResolvedValueOnce([])
         .mockRejectedValueOnce(new Error("Service unavailable"));
 
+      // Mock ServiceNow client to return empty array for CMDB searches
+      mockServiceNowClient.searchConfigurationItems.mockResolvedValue([]);
+
       mockRepository.create.mockResolvedValue({
         id: 1,
         reconciliationStatus: "skipped",
         errorMessage: "Service unavailable",
+      });
+
+      // Mock findById to return the created record so createChildTaskForMissingCi doesn't throw
+      mockRepository.findById.mockResolvedValue({
+        id: 1,
+        reconciliationStatus: "skipped",
+        entityType: "IP_ADDRESS",
+        confidence: 0.8,
+      });
+
+      // Mock createChildTask to succeed
+      mockServiceNowClient.createChildTask.mockResolvedValue({
+        number: "TASK001001",
+        sys_id: "task_sys_id_123",
       });
 
       mockRepository.getCaseStatistics.mockResolvedValue({

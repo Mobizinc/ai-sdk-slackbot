@@ -22,7 +22,9 @@ import { getEscalationChannel } from "../config/escalation-channels";
 import { getEscalationRepository } from "../db/repositories/escalation-repository";
 import { buildEscalationMessage, buildFallbackEscalationMessage } from "./escalation-message-builder";
 import { calculateBusinessIntelligenceScore } from "./business-intelligence";
-import { client } from "../slack-utils";
+import { getSlackClient } from "../slack/client";
+
+const client = getSlackClient();
 import type { CaseClassificationResult } from "../schemas/servicenow-webhook";
 import type { NewCaseEscalation } from "../db/schema";
 

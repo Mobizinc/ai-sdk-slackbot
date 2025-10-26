@@ -2,8 +2,10 @@ import { ServiceNowClient, ServiceNowConfigurationItem } from "../tools/servicen
 import { getCmdbReconciliationRepository } from "../db/repositories/cmdb-reconciliation-repository";
 import { getBusinessContextService } from "./business-context";
 import { CmdbReconciliationResult } from "../db/schema";
-import { client } from "../slack-utils";
+import { getSlackClient } from "../slack/client";
 import { config } from "../config";
+
+const client = getSlackClient();
 
 export interface ReconciliationInput {
   caseNumber: string;

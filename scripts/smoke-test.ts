@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import { generateResponse, __resetGenerateTextImpl, __setGenerateTextImpl } from "../lib/generate-response";
+import { generateResponse } from "../lib/generate-response";
+import { AnthropicChatService, type ChatRequest, type ChatResponse } from "../lib/services/anthropic-chat";
+import { serviceNowClient } from "../lib/tools/servicenow";
 
 const originalFetch = globalThis.fetch;
 
@@ -9,7 +11,6 @@ process.env.SERVICENOW_CASE_TABLE =
   process.env.SERVICENOW_CASE_TABLE ?? "sn_customerservice_case";
 process.env.SERVICENOW_CASE_JOURNAL_NAME =
   process.env.SERVICENOW_CASE_JOURNAL_NAME ?? "x_mobit_serv_case_service_case";
-process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "test-openai-key";
 
 const jsonResponse = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -53,27 +54,41 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   return jsonResponse({ result: [] }, 404);
 };
 
-__setGenerateTextImpl(async ({ tools }) => {
-  const caseLookup = await tools.serviceNow.execute({
-    action: "getCase",
-    number: "SCS0048402",
-  });
+const stubAnthropicService = {
+  async send(request: ChatRequest): Promise<ChatResponse> {
+    const lastMessage = [...request.messages].reverse().find((msg) => msg.role === "user");
+    const caseMatch = lastMessage?.content.match(/[A-Z]{3}\d{7}/);
+    const caseNumber = caseMatch?.[0] ?? "SCS0048402";
 
-  const journalLookup = await tools.serviceNow.execute({
-    action: "getCaseJournal",
-    caseSysId: caseLookup.case?.sys_id ?? "",
-    limit: 5,
-  });
+    const caseDetails = await serviceNowClient.getCase(caseNumber);
+    const journalEntries = caseDetails?.sys_id
+      ? await serviceNowClient.getCaseJournal(caseDetails.sys_id, { limit: 5 })
+      : [];
 
-  const latestEntry = journalLookup.caseJournal?.[0];
-  const summary = latestEntry
-    ? `${latestEntry.sys_created_on} by ${latestEntry.sys_created_by}: ${latestEntry.value}`
-    : "No recent activity found.";
+    const latestEntry = journalEntries?.[0];
+    const summary = latestEntry
+      ? `${latestEntry.sys_created_on} by ${latestEntry.sys_created_by}: ${latestEntry.value}`
+      : "No recent activity found.";
 
-  return {
-    text: `Case ${caseLookup.case?.number}: ${summary}`,
-  };
-});
+    const text = `Case ${caseNumber}: ${summary}`;
+
+    return {
+      message: {
+        id: "stub-message",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text }],
+        usage: { input_tokens: 0, output_tokens: 0 },
+      } as any,
+      toolCalls: [],
+      outputText: text,
+      usage: { input_tokens: 0, output_tokens: 0 } as any,
+    };
+  },
+};
+
+(AnthropicChatService as unknown as { getInstance: () => typeof stubAnthropicService }).getInstance = () =>
+  stubAnthropicService as any;
 
 async function run() {
   try {
@@ -84,13 +99,13 @@ async function run() {
       },
     ]);
 
-    console.log("Generated response:\n");
+    console.log("Generated response:
+");
     console.log(result);
   } catch (error) {
     console.error("Smoke test failed", error);
     process.exitCode = 1;
   } finally {
-    __resetGenerateTextImpl();
     if (originalFetch) {
       globalThis.fetch = originalFetch;
     }

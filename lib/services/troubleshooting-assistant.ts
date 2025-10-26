@@ -4,7 +4,6 @@
  */
 
 import { detectIssueType, getTroubleshootingTemplate } from "./troubleshooting-templates";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 export interface ClarifyingQuestions {
@@ -74,7 +73,6 @@ export async function generateClarifyingQuestions(
 ): Promise<ClarifyingQuestions> {
   // Detect issue type
   const issueType = detectIssueType(problemDescription);
-  const flags = getFeatureFlags();
 
   try {
     const prompt = `You are a senior IT support engineer helping troubleshoot an issue.
@@ -97,43 +95,38 @@ Return ONLY a JSON object with this structure:
   "reasoning": "Brief explanation of why these questions matter"
 }`;
 
-    if (flags.refactorEnabled) {
-      const chatService = AnthropicChatService.getInstance();
-      const response = await chatService.send({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a senior IT support engineer. Respond with JSON only.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      });
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a senior IT support engineer. Respond with JSON only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
-      const output = response.outputText ?? extractText(response.message);
-      if (!output) {
-        throw new Error("Anthropic did not return clarifying questions");
-      }
-
-      const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return {
-        questions: parsed.questions || [],
-        issueType,
-        reasoning: parsed.reasoning || "",
-      };
+    const output = response.outputText ?? extractText(response.message);
+    if (!output) {
+      throw new Error("Anthropic did not return clarifying questions");
     }
 
-    // Refactor not enabled - throw error
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in response");
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      questions: parsed.questions || [],
+      issueType,
+      reasoning: parsed.reasoning || "",
+    };
   } catch (error) {
     console.error("[Troubleshooting Assistant] Error generating questions:", error);
 

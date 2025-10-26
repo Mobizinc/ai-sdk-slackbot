@@ -1,10 +1,12 @@
-import type { CoreMessage } from "./instrumented-ai";
+import type { ChatMessage } from "./agent/types";
 import type {
   AssistantThreadStartedEvent,
   GenericMessageEvent,
 } from "./slack-event-types";
-import { client, getThread, updateStatusUtil } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
 import { generateResponse } from "./generate-response";
+
+const slackMessaging = getSlackMessagingService();
 
 export async function assistantThreadMessage(
   event: AssistantThreadStartedEvent,
@@ -13,15 +15,15 @@ export async function assistantThreadMessage(
   console.log(`Thread started: ${channel_id} ${thread_ts}`);
   console.log(JSON.stringify(event));
 
-  await client.chat.postMessage({
+  await slackMessaging.postMessage({
     channel: channel_id,
-    thread_ts: thread_ts,
+    threadTs: thread_ts,
     text: "Hello, I'm an AI assistant built with the AI SDK by Vercel!",
   });
   try {
-    await client.assistant.threads.setSuggestedPrompts({
-      channel_id: channel_id,
-      thread_ts: thread_ts,
+    await slackMessaging.setAssistantSuggestedPrompts({
+      channelId: channel_id,
+      threadTs: thread_ts,
       prompts: [
         {
           title: "Get the weather",
@@ -76,7 +78,7 @@ export async function handleNewAssistantMessage(
   try {
     await updateStatus("is thinking...");
 
-    let messages: CoreMessage[];
+    let messages: ChatMessage[];
 
     try {
       messages = await getThread(channel, thread_ts, botUserId);
@@ -120,29 +122,20 @@ export async function handleNewAssistantMessage(
       threadTs: thread_ts,
     });
 
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: channel,
-      thread_ts: thread_ts,
+      threadTs: thread_ts,
       text: result,
-      unfurl_links: false,
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: result,
-          },
-        },
-      ],
+      unfurlLinks: false,
     });
   } catch (error) {
     console.error("Error generating assistant response", error);
     const errorMessage =
       (error instanceof Error ? error.message : "Unexpected error")
         .slice(0, 180);
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: channel,
-      thread_ts: thread_ts,
+      threadTs: thread_ts,
       text:
         "Sorry, I ran into a problem fetching that answer. Please try asking again in a moment. (" +
         errorMessage +

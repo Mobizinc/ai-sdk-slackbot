@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
-import type { CoreMessage } from "../../../lib/instrumented-ai";
+import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
 vi.mock("../../../lib/services/current-issues-service");
@@ -13,7 +13,7 @@ describe("Current Issues Tool", () => {
   let mockCurrentIssuesService: any;
   let tools: any;
 
-  const createMockMessages = (): CoreMessage[] => [
+  const createMockMessages = (): ChatMessage[] => [
     { role: "user", content: "What issues are affecting us?" },
   ];
 

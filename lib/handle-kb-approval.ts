@@ -3,8 +3,12 @@
  * Manages emoji reactions for KB article approval workflow
  */
 
-import { client } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
+import { getSlackClient } from "./slack/client";
 import type { KBArticle } from "./services/kb-generator";
+
+const slackMessaging = getSlackMessagingService();
+const client = getSlackClient();
 
 interface PendingKBApproval {
   caseNumber: string;

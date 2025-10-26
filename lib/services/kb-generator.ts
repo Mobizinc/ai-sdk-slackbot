@@ -8,7 +8,6 @@ import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
 import { config } from "../config";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 export interface KBArticle {
@@ -158,7 +157,6 @@ export class KBGenerator {
     caseDetails: any,
     similarKBs: any[]
   ): Promise<KBArticle> {
-    const flags = getFeatureFlags();
     const conversationSummary = context.messages
       .map((m) => `${m.user}: ${m.text}`)
       .join("\n");
@@ -199,12 +197,7 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
       (context as any).channelPurpose
     );
 
-    if (flags.refactorEnabled) {
-      return await this.generateWithAnthropic(enhancedPrompt, conversationSummary);
-    }
-
-    // Refactor not enabled - throw error (fallback to createFallbackArticle in catch)
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    return await this.generateWithAnthropic(enhancedPrompt, conversationSummary);
   }
 
   private async generateWithAnthropic(

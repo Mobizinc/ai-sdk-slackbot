@@ -5,7 +5,6 @@
 
 import { z } from "zod";
 import type { CaseContext } from "../context-manager";
-import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
 
 export type QualityDecision = "high_quality" | "needs_input" | "insufficient";
@@ -75,8 +74,6 @@ export async function assessCaseQuality(
   context: CaseContext,
   caseDetails: any | null
 ): Promise<QualityAssessment> {
-  const flags = getFeatureFlags();
-  // Build comprehensive context for analysis
   const conversationSummary = context.messages
     .map((msg) => `${msg.user}: ${msg.text}`)
     .join("\n");
@@ -93,43 +90,44 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
   try {
     console.log("[Quality Analyzer] Assessing case quality...");
 
-    if (flags.refactorEnabled) {
-      const chatService = AnthropicChatService.getInstance();
-      const response = await chatService.send({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
-          },
-          {
-            role: "user",
-            content: `**Case Information:**\n${caseInfoText}\n\n**Conversation History:**\n${conversationSummary}\n\nAnalyze this case using the criteria provided and call the tool with your findings.`,
-          },
-        ],
-        tools: [
-          {
-            name: "report_quality",
-            description:
-              "Return your quality assessment for the case as structured data. You must call this exactly once.",
-            inputSchema: QUALITY_ASSESSMENT_JSON_SCHEMA,
-          },
-        ],
-        maxSteps: 3,
-      });
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
+        },
+        {
+          role: "user",
+          content: `**Case Information:**
+${caseInfoText}
 
-      if (response.toolCalls.length === 0) {
-        throw new Error("Anthropic did not return a tool call for quality assessment");
-      }
+**Conversation History:**
+${conversationSummary}
 
-      const firstCall = response.toolCalls[0];
-      const parsed = QualityAssessmentSchema.parse(firstCall.input) as QualityAssessmentPayload;
+Analyze this case using the criteria provided and call the tool with your findings.`,
+        },
+      ],
+      tools: [
+        {
+          name: "report_quality",
+          description:
+            "Return your quality assessment for the case as structured data. You must call this exactly once.",
+          inputSchema: QUALITY_ASSESSMENT_JSON_SCHEMA,
+        },
+      ],
+      maxSteps: 3,
+    });
 
-      return buildAssessment(parsed);
+    if (response.toolCalls.length === 0) {
+      throw new Error("Anthropic did not return a tool call for quality assessment");
     }
 
-    // Refactor not enabled - throw error
-    throw new Error("AnthropicChatService not available - refactor flag disabled");
+    const firstCall = response.toolCalls[0];
+    const parsed = QualityAssessmentSchema.parse(firstCall.input) as QualityAssessmentPayload;
+
+    return buildAssessment(parsed);
   } catch (error) {
     console.error("[Quality Analyzer] Error assessing quality:", error);
 
@@ -146,7 +144,6 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
     };
   }
 }
-
 function buildAssessment(parsed: QualityAssessmentPayload): QualityAssessment {
   let decision: QualityDecision;
   if (parsed.score >= 80) {

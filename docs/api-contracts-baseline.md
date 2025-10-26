@@ -157,29 +157,6 @@ export function extractCaseNumbers(text: string): string[]
 
 ---
 
-## `lib/config/feature-flags.ts` (NEW)
-
-### Exports
-
-```typescript
-export interface FeatureFlags {
-  refactorEnabled: boolean;
-  refactorPassiveEnabled: boolean;
-}
-
-export function getFeatureFlags(): FeatureFlags
-
-export function __resetFeatureFlags(): void  // Test helper
-export function __setFeatureFlags(overrides: Partial<FeatureFlags>): void  // Test helper
-```
-
-**Description**: Feature flag configuration for gradual rollout
-
-**Environment Variables**:
-- `REFACTOR_ENABLED`: Enable refactored agent orchestrator (default: false)
-- `REFACTOR_PASSIVE_ENABLED`: Enable refactored passive flow (default: false)
-
----
 
 ## Backwards Compatibility Requirements
 

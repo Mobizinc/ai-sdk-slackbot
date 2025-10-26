@@ -370,6 +370,20 @@ export const CONFIG_DEFINITIONS = {
     group: "llm",
     description: "Default model name for the Anthropic provider.",
   },
+  anthropicPromptCachingEnabled: {
+    envVar: "ANTHROPIC_PROMPT_CACHING_ENABLED",
+    type: "boolean",
+    default: true,
+    group: "llm",
+    description: "Enable Anthropic prompt caching for 90% cost reduction on cached tokens.",
+  },
+  anthropicCachingStrategy: {
+    envVar: "ANTHROPIC_CACHING_STRATEGY",
+    type: "string",
+    default: "system-only",
+    group: "llm",
+    description: "Caching strategy: 'system-only', 'system-and-tools', or 'aggressive'.",
+  },
   langsmithApiKey: {
     envVar: "LANGSMITH_API_KEY",
     type: "string",
