@@ -1,18 +1,25 @@
 /**
  * Passive message handler for detecting case numbers in Slack channels.
  * Monitors all messages (without @mentions) and tracks case-related conversations.
+ *
+ * This file now supports feature flag control for gradual rollout of the refactored implementation.
+ * Set REFACTOR_PASSIVE_ENABLED=true to use the new modular architecture.
  */
 
 import type { GenericMessageEvent } from "./slack-event-types";
+import { getFeatureFlags } from "./config/feature-flags";
+
+// Lazy imports for refactored modules (only loaded when feature flag is enabled)
+let refactoredModule: typeof import("./passive") | null = null;
+
+// Original implementation imports
 import { client } from "./slack-utils";
 import { getContextManager, type CaseContext } from "./context-manager";
 import { serviceNowClient } from "./tools/servicenow";
 import { getKBGenerator } from "./services/kb-generator";
 import { getKBApprovalManager } from "./handle-kb-approval";
 import { getChannelInfo } from "./services/channel-info";
-import { getLoadingIndicator } from "./utils/loading-indicator";
 import { getKBStateMachine, KBState } from "./services/kb-state-machine";
-import { ErrorHandler } from "./utils/error-handler";
 import { getCaseQualityAnalyzer, type QualityAssessment } from "./services/case-quality-analyzer";
 import {
   generateGatheringQuestions,
@@ -32,39 +39,30 @@ import type {
 } from "./tools/servicenow";
 
 /**
- * Case Detection Debouncer
- * Prevents duplicate "watching case" messages when the same case is mentioned multiple times rapidly
+ * Main entry point - uses feature flag to determine implementation
  */
-class CaseDetectionDebouncer {
-  private pending = new Map<string, number>(); // caseNumber:threadTs -> timestamp
-  private readonly DEBOUNCE_MS = 5000; // 5 seconds
+export async function handlePassiveMessage(
+  event: GenericMessageEvent,
+  botUserId: string
+): Promise<void> {
+  const flags = getFeatureFlags();
 
-  /**
-   * Check if we should process this case detection or skip due to debouncing
-   */
-  shouldProcess(caseNumber: string, threadTs: string): boolean {
-    const key = `${caseNumber}:${threadTs}`;
-    const now = Date.now();
-    const lastProcessed = this.pending.get(key);
-
-    if (lastProcessed && (now - lastProcessed) < this.DEBOUNCE_MS) {
-      return false; // Too soon - skip
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
     }
-
-    // Mark as processed
-    this.pending.set(key, now);
-
-    // Cleanup old entries after debounce period
-    setTimeout(() => this.pending.delete(key), this.DEBOUNCE_MS);
-
-    return true;
+    return refactoredModule.handlePassiveMessage(event, botUserId);
   }
+
+  // Use original implementation
+  return handlePassiveMessageOriginal(event, botUserId);
 }
 
-// Global debouncer instance
-const caseDebouncer = new CaseDetectionDebouncer();
-
-export async function handlePassiveMessage(
+/**
+ * Original implementation (preserved for backward compatibility)
+ */
+async function handlePassiveMessageOriginal(
   event: GenericMessageEvent,
   botUserId: string
 ): Promise<void> {
@@ -112,12 +110,6 @@ async function processCaseDetection(
   const contextManager = getContextManager();
   const threadTs = event.thread_ts || event.ts;
   const channelId = event.channel;
-
-  // Check debouncer first to prevent rapid duplicate processing
-  if (!caseDebouncer.shouldProcess(caseNumber, threadTs)) {
-    console.log(`[Passive Monitor] Skipping ${caseNumber} in thread ${threadTs} - debouncing (too soon since last detection)`);
-    return;
-  }
 
   // Add message to context
   contextManager.addMessage(caseNumber, channelId, threadTs, {
@@ -194,8 +186,7 @@ async function processCaseDetection(
     await client.chat.postMessage({
       channel: channelId,
       thread_ts: event.ts, // Always reply in thread to keep channels clean
-      blocks: intelligentMessage.blocks,
-      text: intelligentMessage.text,
+      text: intelligentMessage,
       unfurl_links: false,
     });
 
@@ -376,6 +367,28 @@ export async function notifyResolution(
   channelId: string,
   threadTs: string
 ): Promise<void> {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
+    }
+    return refactoredModule.notifyResolution(caseNumber, channelId, threadTs);
+  }
+
+  // Use original implementation
+  return notifyResolutionOriginal(caseNumber, channelId, threadTs);
+}
+
+/**
+ * Original notifyResolution implementation
+ */
+async function notifyResolutionOriginal(
+  caseNumber: string,
+  channelId: string,
+  threadTs: string
+): Promise<void> {
   console.log(`[KB Generation] Starting multi-stage process for ${caseNumber}`);
 
   const contextManager = getContextManager();
@@ -487,21 +500,12 @@ export async function notifyResolution(
     console.error(`[KB Generation] ERROR for ${caseNumber}:`, error);
     console.error(`[KB Generation] Stack trace:`, error instanceof Error ? error.stack : "No stack trace");
 
-    // Use error handler for contextual error message
-    const errorResult = ErrorHandler.handle(error, {
-      operation: "KB generation",
-      caseNumber,
-    });
-
-    // Post contextual error message with recovery steps
+    // Fallback: simple notification
     try {
-      const errorBlocks = ErrorHandler.formatForSlack(errorResult);
-
       await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
-        text: ErrorHandler.getSimpleMessage(errorResult),
-        blocks: errorBlocks,
+        text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error during KB generation: ${error instanceof Error ? error.message : "Unknown error"}_`,
         unfurl_links: false,
       });
     } catch (slackError) {
@@ -526,25 +530,8 @@ async function generateAndPostKB(
 ): Promise<void> {
   console.log(`[KB Generation] Generating KB article for ${caseNumber}...`);
 
-  const loadingIndicator = getLoadingIndicator();
-  let loadingTs: string | undefined;
-
-  try {
-    // Post loading indicator
-    loadingTs = await loadingIndicator.postLoadingMessage(
-      channelId,
-      threadTs,
-      "kb_generation"
-    );
-
-    const kbGenerator = getKBGenerator();
-    const result = await kbGenerator.generateArticle(context, caseDetails);
-
-    // Update loading indicator to success
-    await loadingIndicator.updateToSuccess(
-      loadingTs,
-      `KB article generated with ${result.confidence}% confidence`
-    );
+  const kbGenerator = getKBGenerator();
+  const result = await kbGenerator.generateArticle(context, caseDetails);
 
   if (result.isDuplicate) {
     // Similar KB exists - notify and skip
@@ -577,21 +564,9 @@ async function generateAndPostKB(
     message
   );
 
-    const stateMachine = getKBStateMachine();
-    stateMachine.setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
-    console.log(`[KB Generation] Posted KB for approval: ${caseNumber}`);
-  } catch (error) {
-    // Update loading indicator to error state
-    if (loadingTs) {
-      await loadingIndicator.updateToError(
-        loadingTs,
-        `Failed to generate KB article: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
-
-    // Re-throw error to maintain existing error handling
-    throw error;
-  }
+  const stateMachine = getKBStateMachine();
+  stateMachine.setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
+  console.log(`[KB Generation] Posted KB for approval: ${caseNumber}`);
 }
 
 /**
@@ -644,6 +619,24 @@ async function buildKBApprovalMessage(
  * Check for and handle timed-out KB gathering sessions
  */
 export async function cleanupTimedOutGathering(): Promise<void> {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      refactoredModule = await import("./passive");
+    }
+    return refactoredModule.cleanupTimedOutGathering();
+  }
+
+  // Use original implementation
+  return cleanupTimedOutGatheringOriginal();
+}
+
+/**
+ * Original cleanupTimedOutGathering implementation
+ */
+async function cleanupTimedOutGatheringOriginal(): Promise<void> {
   const stateMachine = getKBStateMachine();
 
   // Get all contexts in GATHERING state
@@ -683,6 +676,19 @@ export async function cleanupTimedOutGathering(): Promise<void> {
  * Extract case numbers from text (exported for testing)
  */
 export function extractCaseNumbers(text: string): string[] {
+  const flags = getFeatureFlags();
+
+  if (flags.refactorPassiveEnabled) {
+    // Use refactored implementation
+    if (!refactoredModule) {
+      // For synchronous function, we need to use the detector directly
+      const { extractCaseNumbers: extract } = require("./passive/detectors/case-number-extractor");
+      return extract(text);
+    }
+    return refactoredModule.extractCaseNumbers(text);
+  }
+
+  // Use original implementation
   const contextManager = getContextManager();
   return contextManager.extractCaseNumbers(text);
 }

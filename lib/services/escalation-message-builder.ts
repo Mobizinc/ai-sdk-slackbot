@@ -9,7 +9,7 @@
  * - Mentions assigned engineer if configured
  */
 
-import { generateObject } from "../instrumented-ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";

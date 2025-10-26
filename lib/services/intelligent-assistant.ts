@@ -3,29 +3,13 @@
  * Inspired by mobiz-intelligence-analytics case intelligence system.
  */
 
-import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
-import { modelProvider } from "../model-provider";
 import { config } from "../config";
-// Slack Block Kit types
-type KnownBlock = any;
-import {
-  MessageEmojis,
-  createHeaderBlock,
-  createSectionBlock,
-  createFieldsBlock,
-  createDivider,
-  createContextBlock,
-  createActionsBlock,
-  createOverflowMenu,
-  getPriorityEmoji,
-  getPriorityLabel,
-  truncateText,
-  getServiceNowCaseUrl,
-} from "../utils/message-styling";
+import { getFeatureFlags } from "../config/feature-flags";
+import { AnthropicChatService } from "./anthropic-chat";
 
 /**
  * Check if a case is in an active state that warrants intelligent assistance.
@@ -73,19 +57,35 @@ const CaseGuidanceSchema = z.object({
   nextSteps: z.array(z.string().max(100)).min(1).max(3),
 }) as z.ZodTypeAny;
 
-const createTool = tool as unknown as (options: any) => any;
-
-const guidanceTool = createTool({
-  description:
-    "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
-  inputSchema: CaseGuidanceSchema as z.ZodTypeAny,
-  execute: async (payload: CaseGuidancePayload) => payload,
-});
+const CASE_GUIDANCE_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    similarCases: {
+      type: "array",
+      items: { type: "string", maxLength: 120 },
+      minItems: 1,
+      maxItems: 3,
+    },
+    suggestions: {
+      type: "array",
+      items: { type: "string", maxLength: 100 },
+      minItems: 1,
+      maxItems: 4,
+    },
+    nextSteps: {
+      type: "array",
+      items: { type: "string", maxLength: 100 },
+      minItems: 1,
+      maxItems: 3,
+    },
+  },
+  required: ["similarCases", "suggestions", "nextSteps"],
+  additionalProperties: false,
+};
 
 /**
  * Generate intelligent assistance message when a case is first detected.
  * Searches for similar cases and synthesizes actionable guidance.
- * Returns Block Kit blocks for rich formatting and a fallback text message.
  */
 export async function buildIntelligentAssistance(
   caseNumber: string,
@@ -94,51 +94,33 @@ export async function buildIntelligentAssistance(
   channelName?: string,
   channelTopic?: string,
   channelPurpose?: string
-): Promise<{ blocks: KnownBlock[]; text: string }> {
-  const blocks: KnownBlock[] = [];
+): Promise<string> {
+  let message = `👋 I see you're working on *${caseNumber}*`;
 
-  // Header
-  blocks.push(createHeaderBlock(`${MessageEmojis.GREETING} Case Detected`));
-
-  // Case identification section
-  let caseIdentification = `Working on *${caseNumber}*`;
   if (channelName) {
-    caseIdentification += ` in #${channelName}`;
+    message += ` in #${channelName}`;
   }
-  blocks.push(createSectionBlock(caseIdentification));
 
-  // Add case details as fields if available
+  // Add basic case info
   if (caseDetails) {
-    const fields: Array<{ label: string; value: string }> = [];
+    const status = caseDetails.state || "Unknown";
+    const priority = caseDetails.priority ? `P${caseDetails.priority}` : "";
+    const description = caseDetails.short_description || "";
 
-    if (caseDetails.state) {
-      fields.push({
-        label: "Status",
-        value: caseDetails.state,
-      });
-    }
-
-    if (caseDetails.priority) {
-      fields.push({
-        label: "Priority",
-        value: getPriorityLabel(caseDetails.priority),
-      });
-    }
-
-    if (fields.length > 0) {
-      blocks.push(createFieldsBlock(fields));
-    }
-
-    // Add short description if available
-    if (caseDetails.short_description) {
-      const truncated = truncateText(caseDetails.short_description, 150);
-      blocks.push(createSectionBlock(`*Issue:* ${truncated}`));
+    message += `\n\n`;
+    message += `*Status:* ${status}`;
+    if (priority) message += ` | *Priority:* ${priority}`;
+    if (description) {
+      const truncated =
+        description.length > 100
+          ? description.substring(0, 100) + "..."
+          : description;
+      message += `\n*Issue:* ${truncated}`;
     }
   }
 
   // Search for similar cases and generate guidance
   const problemDescription = caseDetails?.description || caseDetails?.short_description || "";
-  let guidance: CaseGuidance | null = null;
 
   if (!searchService) {
     console.warn(`[Intelligent Assistant] Azure Search not configured - skipping similarity search for ${caseNumber}`);
@@ -150,7 +132,7 @@ export async function buildIntelligentAssistance(
     try {
       console.log(`[Intelligent Assistant] Searching for similar cases to ${caseNumber}: "${problemDescription.substring(0, 100)}${problemDescription.length > 100 ? '...' : ''}"`);
 
-      guidance = await generateProactiveGuidance(
+      const guidance = await generateProactiveGuidance(
         caseDetails,
         searchService,
         channelName,
@@ -160,6 +142,7 @@ export async function buildIntelligentAssistance(
 
       if (guidance) {
         console.log(`[Intelligent Assistant] Generated guidance for ${caseNumber}`);
+        message += `\n\n${guidance}`;
       } else {
         console.log(`[Intelligent Assistant] No guidance generated for ${caseNumber} (no similar cases or description too short)`);
       }
@@ -175,57 +158,9 @@ export async function buildIntelligentAssistance(
     }
   }
 
-  // Add guidance sections if available
-  if (guidance) {
-    blocks.push(createDivider());
+  message += `\n\n_I'll track this conversation for knowledge base generation._ 📝`;
 
-    // Similar cases section
-    if (guidance.similarCases && guidance.similarCases.length > 0) {
-      const casesText = `*${MessageEmojis.SEARCH} Similar Cases Found:*\n${guidance.similarCases.map(c => `• ${c}`).join('\n')}`;
-      blocks.push(createSectionBlock(casesText));
-    }
-
-    // Suggestions section
-    if (guidance.suggestions && guidance.suggestions.length > 0) {
-      const suggestionsText = `*${MessageEmojis.LIGHTBULB} Suggestions:*\n${guidance.suggestions.map(s => `• ${s}`).join('\n')}`;
-      blocks.push(createSectionBlock(suggestionsText));
-    }
-
-    // Next steps section
-    if (guidance.nextSteps && guidance.nextSteps.length > 0) {
-      const nextStepsText = `*${MessageEmojis.DOCUMENT} Next Steps:*\n${guidance.nextSteps.map(n => `• ${n}`).join('\n')}`;
-      blocks.push(createSectionBlock(nextStepsText));
-    }
-  }
-
-  // Add action buttons if we have case sys_id
-  if (caseDetails?.sys_id) {
-    const buttons = [
-      {
-        text: "View in ServiceNow",
-        actionId: "view_case_servicenow",
-        url: getServiceNowCaseUrl(caseDetails.sys_id),
-      },
-      {
-        text: "Mark as Resolved",
-        actionId: "quick_resolve_case",
-        value: `resolve:${caseNumber}`,
-        style: "primary" as const,
-      },
-    ];
-
-    blocks.push(createActionsBlock(buttons));
-  }
-
-  // Footer context
-  blocks.push(
-    createContextBlock(`${MessageEmojis.DOCUMENT} I'll track this conversation for knowledge base generation`)
-  );
-
-  // Fallback text for notifications/mobile
-  const fallbackText = `${MessageEmojis.GREETING} I see you're working on ${caseNumber}${channelName ? ` in #${channelName}` : ''}. I'll track this conversation for knowledge base generation. ${MessageEmojis.DOCUMENT}`;
-
-  return { blocks, text: fallbackText };
+  return message;
 }
 
 /**
@@ -237,7 +172,7 @@ async function generateProactiveGuidance(
   channelName?: string,
   channelTopic?: string,
   channelPurpose?: string
-): Promise<CaseGuidance | null> {
+): Promise<string | null> {
   const problemDescription = caseDetails.description || caseDetails.short_description || "";
 
   if (
@@ -291,7 +226,8 @@ async function synthesizeGuidance(
   channelName?: string,
   channelTopic?: string,
   channelPurpose?: string
-): Promise<CaseGuidance> {
+): Promise<string> {
+  const flags = getFeatureFlags();
   const currentProblem = currentCase.description || currentCase.short_description || "";
 
   const similarCasesContext = similarCases
@@ -316,48 +252,87 @@ When ready, call the \`draft_case_guidance\` tool EXACTLY ONCE with:
 
 Prioritise actionable insights only.`;
 
+  const businessContextService = getBusinessContextService();
+  const enhancedPrompt = await businessContextService.enhancePromptWithContext(
+    basePrompt,
+    channelName,
+    channelTopic,
+    channelPurpose
+  );
+
   try {
-    // Enhance prompt with business context
-    const businessContextService = getBusinessContextService();
-    const enhancedPrompt = await businessContextService.enhancePromptWithContext(
-      basePrompt,
-      channelName,
-      channelTopic,
-      channelPurpose
-    );
+    if (flags.refactorEnabled) {
+      const chatService = AnthropicChatService.getInstance();
+      const response = await chatService.send({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
+          },
+          {
+            role: "user",
+            content: enhancedPrompt,
+          },
+        ],
+        tools: [
+          {
+            name: "draft_case_guidance",
+            description:
+              "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
+            inputSchema: CASE_GUIDANCE_JSON_SCHEMA,
+          },
+        ],
+        maxSteps: 3,
+      });
 
-    const result = await generateText({
-      model: modelProvider.languageModel("intelligent-assistant"),
-      system:
-        "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
-      prompt: enhancedPrompt,
-      tools: {
-        draft_case_guidance: guidanceTool,
-      },
-      toolChoice: { type: "tool", toolName: "draft_case_guidance" },
-    });
+      if (response.toolCalls.length > 0) {
+        const structured = CaseGuidanceSchema.parse(response.toolCalls[0].input) as CaseGuidancePayload;
+        return formatGuidanceMessage(structured);
+      }
 
-    const toolResult = result.toolResults[0];
+      if (response.outputText) {
+        try {
+          const structured = CaseGuidanceSchema.parse(
+            JSON.parse(response.outputText),
+          ) as CaseGuidancePayload;
+          return formatGuidanceMessage(structured);
+        } catch (parseError) {
+          console.warn(
+            "[Intelligent Assistant] Failed to parse Anthropic text output:",
+            parseError,
+          );
+        }
+      }
 
-    if (!toolResult || toolResult.type !== "tool-result") {
-      throw new Error("Structured guidance not returned");
+      throw new Error("Structured guidance not returned from Anthropic");
     }
 
-    const structured = CaseGuidanceSchema.parse(toolResult.output) as CaseGuidancePayload;
-
-    return structured;
+    // Refactor not enabled - throw error
+    throw new Error("AnthropicChatService not available - refactor flag disabled");
   } catch (error) {
     console.error("[Intelligent Assistant] Error synthesizing guidance:", error);
 
     // Fallback: simple list of similar cases
-    const fallbackGuidance: CaseGuidance = {
-      similarCases: similarCases
-        .slice(0, 3)
-        .map((c) => `${c.case_number} - ${c.content.substring(0, 80)}...`),
-      suggestions: ["Check similar case resolutions above for guidance"],
-      nextSteps: ["Review similar cases", "Contact the assigned group if needed"],
-    };
+    const fallback = `*Similar Cases Found:*\n${similarCases
+      .map((c) => `• ${c.case_number} - ${c.content.substring(0, 80)}...`)
+      .join("\n")}`;
 
-    return fallbackGuidance;
+    return fallback;
   }
+}
+
+function formatGuidanceMessage(guidance: CaseGuidance): string {
+  let message = "*Similar Cases Found:*";
+  message += "\n" + guidance.similarCases.map((item) => `• ${item}`).join("\n");
+
+  if (guidance.suggestions.length > 0) {
+    message += "\n\n*Suggestions:*\n" + guidance.suggestions.map((item) => `• ${item}`).join("\n");
+  }
+
+  if (guidance.nextSteps.length > 0) {
+    message += "\n\n*Next Steps:*\n" + guidance.nextSteps.map((item) => `• ${item}`).join("\n");
+  }
+
+  return message;
 }

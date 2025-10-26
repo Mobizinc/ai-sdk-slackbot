@@ -50,15 +50,12 @@ async function testCatalogRedirect() {
       process.exit(1);
     }
 
-    // Extract company ID from account field (ServiceNow uses 'account' for customer company)
-    const companyId = caseData.account;
-
     console.log('Case Details:');
     console.log('─────────────────────────────────────────────────────');
     console.log(`Number:             ${caseData.number}`);
     console.log(`Short Description:  ${caseData.short_description}`);
-    console.log(`Company:            ${caseData.company_name || '(not found)'}`);
-    console.log(`Company ID:         ${companyId || '(not found)'}`);
+    console.log(`Company:            ${caseData.company_name}`);
+    console.log(`Company ID:         ${caseData.company}`);
     console.log(`Submitted By:       ${caseData.submitted_by}`);
     console.log(`Category:           ${caseData.category}`);
     console.log(`State:              ${caseData.state}`);
@@ -77,10 +74,10 @@ async function testCatalogRedirect() {
     console.log('');
 
     const repo = getClientSettingsRepository();
-    const clientId = companyId;
+    const clientId = caseData.company;
 
     if (!clientId) {
-      console.error('❌ No company ID found in case (checked both company and account fields)');
+      console.error('❌ No company ID found in case');
       process.exit(1);
     }
 

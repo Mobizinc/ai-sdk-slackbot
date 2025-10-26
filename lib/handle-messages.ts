@@ -1,4 +1,4 @@
-import type { CoreMessage } from "ai";
+import type { CoreMessage } from "./instrumented-ai";
 import type {
   AssistantThreadStartedEvent,
   GenericMessageEvent,

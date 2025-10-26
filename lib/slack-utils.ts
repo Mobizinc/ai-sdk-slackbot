@@ -1,21 +1,10 @@
 import { WebClient } from '@slack/web-api';
-import { CoreMessage } from 'ai';
-import crypto from 'crypto';
+import type { CoreMessage } from './instrumented-ai'
+import crypto from 'crypto'
 
-import { config } from './config';
+const signingSecret = process.env.SLACK_SIGNING_SECRET!
 
-const signingSecret = config.slackSigningSecret;
-const botToken = config.slackBotToken;
-
-if (!signingSecret) {
-  throw new Error('Slack signing secret is not configured.');
-}
-
-if (!botToken) {
-  throw new Error('Slack bot token is not configured.');
-}
-
-export const client = new WebClient(botToken);
+export const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 // See https://api.slack.com/authentication/verifying-requests-from-slack
 export async function isValidSlackRequest({

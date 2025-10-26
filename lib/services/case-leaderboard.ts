@@ -1,4 +1,3 @@
-import { config } from "../config";
 import { ConnectionPool } from "mssql";
 
 import { client } from "../slack-utils";
@@ -39,12 +38,11 @@ interface SqlActiveRow {
 }
 
 function parseConnectionUrl(rawUrl?: string) {
-  const configuredUrl = config.azureSqlDatabaseUrl || rawUrl;
-  if (!configuredUrl) {
-    throw new Error("Azure SQL connection string is not configured");
+  if (!rawUrl) {
+    throw new Error("AZURE_SQL_DATABASE_URL environment variable is not set");
   }
 
-  const normalized = configuredUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
+  const normalized = rawUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
   const parsed = new URL(normalized);
 
   return {
@@ -61,8 +59,8 @@ function parseConnectionUrl(rawUrl?: string) {
 }
 
 async function withSqlPool<T>(callback: (pool: ConnectionPool) => Promise<T>): Promise<T> {
-  const connectionConfig = parseConnectionUrl();
-  const pool = new ConnectionPool(connectionConfig as any);
+  const config = parseConnectionUrl(process.env.AZURE_SQL_DATABASE_URL);
+  const pool = new ConnectionPool(config as any);
   await pool.connect();
 
   try {

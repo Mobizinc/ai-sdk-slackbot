@@ -23,8 +23,7 @@ afterEach(() => {
 
 describe("selectLanguageModel", () => {
   it("uses Anthropic model when API key is available", async () => {
-    // Set ANTHROPIC_API_KEY so module detects Anthropic as available
-    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+    // Keep ANTHROPIC_API_KEY from environment
     const { selectLanguageModel } = await loadModule();
     const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
 
