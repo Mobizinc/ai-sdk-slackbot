@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
     const signingKeys = getSigningKeys();
 
-    return Response.json({
+    return new Response(JSON.stringify({
       queue_config: {
         async_triage_enabled: enableAsyncTriage,
         qstash_enabled: isQStashEnabled(),
@@ -97,16 +97,37 @@ export async function GET(request: Request) {
         age_minutes: Math.round((Date.now() - r.createdAt.getTime()) / 60000),
       })),
       timestamp: new Date().toISOString(),
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
     });
 
   } catch (error) {
     console.error('[Queue Stats] Error fetching statistics:', error);
-    return Response.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       },
-      { status: 500 }
-    );
+    });
   }
+}
+
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
