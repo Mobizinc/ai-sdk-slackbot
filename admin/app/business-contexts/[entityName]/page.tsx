@@ -251,11 +251,18 @@ export default function EntityDetailPage() {
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Documentation:</p>
                       <div className="space-y-1">
-                        {ci.documentation.map((doc, j) => (
-                          <a key={j} href={doc} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 hover:underline truncate">
-                            {doc}
-                          </a>
-                        ))}
+                        {ci.documentation.map((doc, j) => {
+                          const isUrl = doc.startsWith('http://') || doc.startsWith('https://')
+                          return isUrl ? (
+                            <a key={j} href={doc} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-600 hover:underline truncate">
+                              {doc}
+                            </a>
+                          ) : (
+                            <p key={j} className="text-xs text-gray-700 truncate">
+                              {doc}
+                            </p>
+                          )
+                        })}
                       </div>
                     </div>
                   )}
