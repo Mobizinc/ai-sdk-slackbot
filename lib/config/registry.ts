@@ -409,7 +409,7 @@ export const CONFIG_DEFINITIONS = {
   langsmithTracingEnabled: {
     envVar: "LANGSMITH_TRACING",
     type: "boolean",
-    default: true, // ✨ Default to true - enables tracing when API key is present
+    default: true, // Default to true - actual enablement depends on API key presence (checked at runtime)
     group: "telemetry",
     description: "Enable LangSmith tracing for LLM providers. Defaults to true if LANGSMITH_API_KEY is set.",
   },
