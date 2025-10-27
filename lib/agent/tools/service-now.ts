@@ -238,14 +238,19 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           if (!sysId && number) {
             const caseRecord = await serviceNowClient.getCase(number, snContext);
-            sysId = caseRecord?.sys_id ?? null;
-
-            if (!sysId) {
+            if (!caseRecord) {
               return {
                 entries: [],
-                message: `Case ${number} was not found in ServiceNow or does not have a sys_id accessible to the assistant.`,
+                message: `Case ${number} was not found in ServiceNow.`,
               };
             }
+            if (!caseRecord.sys_id) {
+              return {
+                entries: [],
+                message: `Case ${number} exists but sys_id is not accessible.`,
+              };
+            }
+            sysId = caseRecord.sys_id;
           }
 
           updateStatus?.(`is fetching journal entries for ${number ?? caseSysId}...`);
