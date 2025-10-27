@@ -366,10 +366,16 @@ export class SlackMessagingService {
     prompts: Array<{ title: string; message: string }>;
   }): Promise<void> {
     try {
+      // Slack API requires at least one prompt
+      if (!params.prompts || params.prompts.length === 0) {
+        console.warn('[Slack Messaging] Cannot set suggested prompts: empty array');
+        return;
+      }
+
       await this.client.assistant.threads.setSuggestedPrompts({
         channel_id: params.channelId,
         thread_ts: params.threadTs,
-        prompts: params.prompts,
+        prompts: params.prompts as [{ title: string; message: string }, ...{ title: string; message: string }[]],
       });
     } catch (error: any) {
       if (error.data?.error === 'missing_scope') {

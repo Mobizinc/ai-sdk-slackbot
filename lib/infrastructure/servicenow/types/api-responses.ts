@@ -176,6 +176,7 @@ export interface ChoiceRecord {
   inactive?: string | boolean;
   element?: string;
   name?: string;
+  dependent_value?: string;
 }
 
 /**
