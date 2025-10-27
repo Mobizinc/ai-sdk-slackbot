@@ -33,7 +33,7 @@ export interface AgentToolFactoryParams {
  * Helper to create tools with proper typing
  * Uses Anthropic-native createTool() with type casting for flexibility
  */
-export const createTool = anthropicCreateTool as unknown as (options: any) => any;
+export const createTool = anthropicCreateTool;
 
 /**
  * Shared Azure Search service instance
