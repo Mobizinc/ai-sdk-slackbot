@@ -22,9 +22,7 @@ import { getEscalationChannel } from "../config/escalation-channels";
 import { getEscalationRepository } from "../db/repositories/escalation-repository";
 import { buildEscalationMessage, buildFallbackEscalationMessage } from "./escalation-message-builder";
 import { calculateBusinessIntelligenceScore } from "./business-intelligence";
-import { getSlackClient } from "../slack/client";
-
-const client = getSlackClient();
+import { getSlackMessagingService } from "./slack-messaging";
 import type { CaseClassificationResult } from "../schemas/servicenow-webhook";
 import type { NewCaseEscalation } from "../db/schema";
 
@@ -59,6 +57,7 @@ export interface EscalationDecision {
 
 export class EscalationService {
   private repository = getEscalationRepository();
+  private slackMessaging = getSlackMessagingService();
 
   /**
    * Main entry point: Check if case needs escalation and handle it
@@ -136,15 +135,15 @@ export class EscalationService {
 
     // Step 5: Post to Slack with interactive buttons
     try {
-      const result = await client.chat.postMessage({
+      const result = await this.slackMessaging.postMessage({
         channel,
         blocks: message,
         text: `⚠️ Non-BAU Case Detected: ${context.caseNumber} - ${decision.reason}`,
-        unfurl_links: false,
+        unfurlLinks: false,
       });
 
       if (!result.ok || !result.ts) {
-        throw new Error(`Slack API error: ${result.error || "unknown"}`);
+        throw new Error('Failed to post escalation message to Slack');
       }
 
       console.log(

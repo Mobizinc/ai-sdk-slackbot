@@ -49,6 +49,7 @@ export interface CaseRecord {
   state: ServiceNowField;
   category: ServiceNowField;
   subcategory: ServiceNowField;
+  company: ServiceNowField;
   opened_at: string;
   assignment_group: ServiceNowField;
   assigned_to: ServiceNowField;
@@ -175,4 +176,13 @@ export interface ChoiceRecord {
   inactive?: string | boolean;
   element?: string;
   name?: string;
+}
+
+/**
+ * Customer account record from ServiceNow API
+ */
+export interface CustomerAccountRecord {
+  sys_id: string;
+  number: ServiceNowField;
+  name: ServiceNowField;
 }

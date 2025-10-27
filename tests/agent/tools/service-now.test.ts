@@ -292,12 +292,15 @@ describe("ServiceNow Tool", () => {
         ciName: "server01",
       });
 
-      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith({
-        ciName: "server01",
-        ipAddress: undefined,
-        ciSysId: undefined,
-        limit: 10,
-      });
+      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
+        {
+          name: "server01",
+          ipAddress: undefined,
+          sysId: undefined,
+          limit: 10,
+        },
+        expect.any(Object)
+      );
       expect(result).toEqual({
         configuration_items: mockCIs,
         total_found: 1,
@@ -316,12 +319,15 @@ describe("ServiceNow Tool", () => {
         limit: 5,
       });
 
-      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith({
-        ciName: undefined,
-        ipAddress: "10.0.0.2",
-        ciSysId: undefined,
-        limit: 5,
-      });
+      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
+        {
+          name: undefined,
+          ipAddress: "10.0.0.2",
+          sysId: undefined,
+          limit: 5,
+        },
+        expect.any(Object)
+      );
       expect(result).toEqual({
         configuration_items: mockCIs,
         total_found: 1,

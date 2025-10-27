@@ -9,6 +9,7 @@ import { serviceNowClient } from "../../tools/servicenow";
 import { getContextManager } from "../../context-manager";
 import { getKBGenerator } from "../../services/kb-generator";
 import { createTool, type AgentToolFactoryParams } from "./shared";
+import { createServiceNowContext } from "../../infrastructure/servicenow-context";
 
 export type GenerateKBArticleInput = {
   caseNumber: string;
@@ -26,7 +27,7 @@ const generateKbArticleInputSchema = z.object({
 });
 
 export function createKnowledgeBaseTool(params: AgentToolFactoryParams) {
-  const { updateStatus } = params;
+  const { updateStatus, options } = params;
 
   return createTool({
     description:
@@ -55,8 +56,11 @@ export function createKnowledgeBaseTool(params: AgentToolFactoryParams) {
           };
         }
 
+        // Create ServiceNow context for deterministic feature flag routing
+        const snContext = createServiceNowContext(undefined, options?.channelId);
+
         const caseDetails = serviceNowClient.isConfigured()
-          ? await serviceNowClient.getCase(caseNumber).catch(() => null)
+          ? await serviceNowClient.getCase(caseNumber, snContext).catch(() => null)
           : null;
 
         const kbGenerator = getKBGenerator();

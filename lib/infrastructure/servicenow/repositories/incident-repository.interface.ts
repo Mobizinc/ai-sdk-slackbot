@@ -66,4 +66,15 @@ export interface IncidentRepository {
    * Resolve an incident
    */
   resolve(sysId: string, resolutionCode?: string, resolutionNotes?: string): Promise<Incident>;
+
+  /**
+   * Search for resolved incidents with specific criteria
+   * Used by cron job to find incidents eligible for closure
+   */
+  findResolved(options: {
+    limit?: number;
+    olderThanMinutes?: number;
+    requireParentCase?: boolean;
+    requireEmptyCloseCode?: boolean;
+  }): Promise<Incident[]>;
 }

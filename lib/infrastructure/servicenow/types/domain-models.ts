@@ -25,6 +25,17 @@ export interface Case {
   submittedBy?: string;
   contact?: string;
   account?: string;
+  company?: string;
+  url: string;
+}
+
+/**
+ * Customer account entity (multi-tenant context)
+ */
+export interface CustomerAccount {
+  sysId: string;
+  number: string;
+  name: string;
   url: string;
 }
 
@@ -134,6 +145,7 @@ export interface Choice {
   value: string;
   sequence?: number;
   inactive?: boolean;
+  dependentValue?: string;
 }
 
 /**
@@ -173,8 +185,58 @@ export interface CreateIncidentInput {
   description?: string;
   caller?: string;
   category?: string;
+  subcategory?: string;
+  urgency?: string;
   priority?: string;
   assignmentGroup?: string;
+  assignedTo?: string;
+  // Company/Account context (prevents orphaned incidents)
+  company?: string;
+  account?: string;
+  businessService?: string;
+  location?: string;
+  // Contact information
+  contact?: string;
+  contactType?: string;
+  openedBy?: string;
+  // Technical context
+  cmdbCi?: string;
+  // Multi-tenancy / Domain separation
+  sysDomain?: string;
+  sysDomainPath?: string;
+  // Major incident flag
+  isMajorIncident?: boolean;
+}
+
+/**
+ * Input for creating a problem from a case
+ */
+export interface CreateProblemInput {
+  shortDescription: string;
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  urgency?: string;
+  priority?: string;
+  caller?: string;
+  assignmentGroup?: string;
+  assignedTo?: string;
+  firstReportedBy?: string;
+  // Company/Account context
+  company?: string;
+  account?: string;
+  businessService?: string;
+  location?: string;
+  // Contact information
+  contact?: string;
+  contactType?: string;
+  openedBy?: string;
+  // Technical context
+  cmdbCi?: string;
+  // Multi-tenancy / Domain separation
+  sysDomain?: string;
+  sysDomainPath?: string;
+  caseNumber?: string;
 }
 
 /**
@@ -183,13 +245,21 @@ export interface CreateIncidentInput {
 export interface CaseSearchCriteria {
   number?: string;
   shortDescription?: string;
-  account?: string;
+  query?: string; // Full-text search across description fields
+  account?: string; // Account sys_id
+  accountName?: string; // Account display name (requires lookup)
+  companyName?: string; // Company display name (requires lookup)
   caller?: string;
   state?: string;
   priority?: string;
   category?: string;
+  assignmentGroup?: string; // Assignment group display name
+  assignedTo?: string; // Assigned user display name
   openedAfter?: Date;
   openedBefore?: Date;
+  activeOnly?: boolean; // Filter by active status
+  sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
+  sortOrder?: 'asc' | 'desc';
   limit?: number;
 }
 
@@ -201,5 +271,8 @@ export interface CISearchCriteria {
   ipAddress?: string;
   fqdn?: string;
   className?: string;
+  sysId?: string;
+  ownerGroup?: string;
+  environment?: string;
   limit?: number;
 }

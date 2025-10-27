@@ -2,10 +2,8 @@ import type { BusinessContextCmdbIdentifier } from "./db/schema";
 import { getBusinessContextRepository } from "./db/repositories/business-context-repository";
 import { getBusinessContextService } from "./services/business-context-service";
 import { getSlackMessagingService } from "./services/slack-messaging";
-import { getSlackClient } from "./slack/client";
 
 const slackMessaging = getSlackMessagingService();
-const client = getSlackClient();
 
 export type ContextUpdateAction =
   | {
@@ -107,10 +105,10 @@ export class ContextUpdateManager {
     const headerText = `*Context Update Review* — ${proposal.entityName}`;
     const postText = `${headerText}\n${stewardText}\n${summaryBlock}`;
 
-    const result = await client.chat.postMessage({
+    const result = await slackMessaging.postMessage({
       channel: proposal.stewardChannelId,
       text: postText,
-      unfurl_links: false,
+      unfurlLinks: false,
       blocks: [
         {
           type: "section",
@@ -219,7 +217,7 @@ export class ContextUpdateManager {
         }
       }
 
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: pending.approvalChannelId,
         ts: pending.approvalMessageTs,
         text: `✅ Context update applied for ${proposal.entityName}`,
@@ -242,9 +240,9 @@ export class ContextUpdateManager {
       });
 
       if (proposal.sourceThreadTs) {
-        await client.chat.postMessage({
+        await slackMessaging.postMessage({
           channel: proposal.sourceChannelId,
-          thread_ts: proposal.sourceThreadTs,
+          threadTs: proposal.sourceThreadTs,
           text: `✅ Context update approved by <@${userId}> — ${proposal.entityName} will be updated.`,
         });
       }
@@ -253,9 +251,9 @@ export class ContextUpdateManager {
       await service.refreshContext(proposal.entityName);
     } catch (error) {
       console.error("[ContextUpdateManager] Failed to apply context update", error);
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: pending.approvalChannelId,
-        thread_ts: pending.approvalMessageTs,
+        threadTs: pending.approvalMessageTs,
         text: `❌ Error applying context update for ${proposal.entityName}: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
@@ -266,7 +264,7 @@ export class ContextUpdateManager {
   private async rejectUpdate(pending: PendingContextUpdate, userId: string): Promise<void> {
     const { proposal } = pending;
 
-    await client.chat.update({
+    await slackMessaging.updateMessage({
       channel: pending.approvalChannelId,
       ts: pending.approvalMessageTs,
       text: `❌ Context update rejected for ${proposal.entityName}`,
@@ -289,9 +287,9 @@ export class ContextUpdateManager {
     });
 
     if (proposal.sourceThreadTs) {
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: proposal.sourceChannelId,
-        thread_ts: proposal.sourceThreadTs,
+        threadTs: proposal.sourceThreadTs,
         text: `❌ Context update was rejected by <@${userId}>. No changes were made.`,
       });
     }

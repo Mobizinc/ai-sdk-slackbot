@@ -3,9 +3,9 @@
  * Provides visual feedback for long-running operations in Slack
  */
 
-import { getSlackClient } from "../slack/client";
+import { getSlackMessagingService } from "../services/slack-messaging";
 
-const client = getSlackClient();
+const slackMessaging = getSlackMessagingService();
 
 export type OperationType =
   | "kb_generation"
@@ -45,12 +45,12 @@ export class LoadingIndicator {
     const blocks = this.buildLoadingBlocks(operation);
 
     try {
-      const result = await client.chat.postMessage({
+      const result = await slackMessaging.postMessage({
         channel,
-        thread_ts: threadTs,
+        threadTs: threadTs,
         text: loadingText,
         blocks,
-        unfurl_links: false,
+        unfurlLinks: false,
       });
 
       if (!result.ts) {
@@ -94,7 +94,7 @@ export class LoadingIndicator {
     const blocks = this.buildSuccessBlocks(indicator.operation, result, elapsedSeconds);
 
     try {
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: indicator.channel,
         ts: messageTs,
         text: successText,
@@ -128,7 +128,7 @@ export class LoadingIndicator {
     const blocks = this.buildErrorBlocks(indicator.operation, error, elapsedSeconds);
 
     try {
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: indicator.channel,
         ts: messageTs,
         text: errorText,
@@ -152,7 +152,7 @@ export class LoadingIndicator {
     }
 
     try {
-      await client.chat.delete({
+      await slackMessaging.deleteMessage({
         channel: indicator.channel,
         ts: messageTs,
       });

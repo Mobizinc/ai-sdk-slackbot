@@ -42,6 +42,7 @@ import { getCmdbReconciliationService } from "./cmdb-reconciliation";
 import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
 import { config } from "../config";
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
+import { createSystemContext } from "../infrastructure/servicenow-context";
 
 export interface CaseTriageOptions {
   /**
@@ -144,6 +145,9 @@ export class CaseTriageService {
     options: CaseTriageOptions = {}
   ): Promise<CaseTriageResult> {
     const startTime = Date.now();
+
+    // Create ServiceNow context for system operation (deterministic routing)
+    const snContext = createSystemContext('servicenow-webhook');
 
     // Default options (matching original behavior)
     const {
@@ -275,11 +279,14 @@ export class CaseTriageService {
         try {
           const { serviceNowClient } = await import("../tools/servicenow");
           const applicationsStart = Date.now();
-          const companyApplications = await serviceNowClient.getApplicationServicesForCompany({
-            companySysId: webhook.company,
-            parentServiceOffering: "Application Administration",
-            limit: 100
-          });
+          const companyApplications = await serviceNowClient.getApplicationServicesForCompany(
+            {
+              companySysId: webhook.company,
+              parentServiceOffering: "Application Administration",
+              limit: 100
+            },
+            snContext,
+          );
           const applicationsTime = Date.now() - applicationsStart;
 
           if (companyApplications.length > 0) {
@@ -376,7 +383,7 @@ export class CaseTriageService {
       if (writeToServiceNow) {
         try {
           const { serviceNowClient } = await import("../tools/servicenow");
-          await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNoteContent);
+          await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNoteContent, true, snContext);
           servicenowUpdated = true;
           console.log(`[Case Triage] Work note written to ServiceNow for ${webhook.case_number}`);
         } catch (error) {
@@ -475,7 +482,8 @@ export class CaseTriageService {
                   `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
                 );
                 const serviceOffering = await serviceNowClient.getServiceOffering(
-                  classificationResult.service_offering
+                  classificationResult.service_offering,
+                  snContext,
                 );
                 if (serviceOffering) {
                   businessServiceSysId = serviceOffering.sys_id;
@@ -494,34 +502,37 @@ export class CaseTriageService {
             }
 
             // Create Incident record with full company/context information
-            const incidentResult = await serviceNowClient.createIncidentFromCase({
-              caseSysId: webhook.sys_id,
-              caseNumber: webhook.case_number,
-              category: incidentCategory,
-              subcategory: incidentSubcategory,
-              shortDescription: webhook.short_description,
-              description: webhook.description,
-              urgency: webhook.urgency,
-              priority: webhook.priority,
-              callerId: webhook.caller_id,
-              assignmentGroup: webhook.assignment_group,
-              assignedTo: webhook.assigned_to,
-              isMajorIncident: suggestion.is_major_incident,
-              // Company/Account context (prevents orphaned incidents)
-              company: webhook.company,
-              account: webhook.account || webhook.account_id,
-              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
-              location: webhook.location,
-              // Contact information
-              contact: webhook.contact,
-              contactType: webhook.contact_type,
-              openedBy: webhook.opened_by,
-              // Technical context
-              cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
-              // Multi-tenancy / Domain separation
-              sysDomain: webhook.sys_domain,
-              sysDomainPath: webhook.sys_domain_path,
-            });
+            const incidentResult = await serviceNowClient.createIncidentFromCase(
+              {
+                caseSysId: webhook.sys_id,
+                caseNumber: webhook.case_number,
+                category: incidentCategory,
+                subcategory: incidentSubcategory,
+                shortDescription: webhook.short_description,
+                description: webhook.description,
+                urgency: webhook.urgency,
+                priority: webhook.priority,
+                callerId: webhook.caller_id,
+                assignmentGroup: webhook.assignment_group,
+                assignedTo: webhook.assigned_to,
+                isMajorIncident: suggestion.is_major_incident,
+                // Company/Account context (prevents orphaned incidents)
+                company: webhook.company,
+                account: webhook.account || webhook.account_id,
+                businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
+                location: webhook.location,
+                // Contact information
+                contact: webhook.contact,
+                contactType: webhook.contact_type,
+                openedBy: webhook.opened_by,
+                // Technical context
+                cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
+                // Multi-tenancy / Domain separation
+                sysDomain: webhook.sys_domain,
+                sysDomainPath: webhook.sys_domain_path,
+              },
+              snContext,
+            );
 
             incidentCreated = true;
             incidentNumber = incidentResult.incident_number;
@@ -532,7 +543,7 @@ export class CaseTriageService {
             // This makes the incident appear in "Related Records > Incident" tab
             await serviceNowClient.updateCase(webhook.sys_id, {
               incident: incidentSysId,
-            });
+            }, snContext);
 
             // Add work note to parent Case
             const workNote =
@@ -544,7 +555,7 @@ export class CaseTriageService {
               `${suggestion.is_major_incident ? "⚠️ MAJOR INCIDENT - Immediate escalation required\n\n" : ""}` +
               `Link: ${incidentUrl}`;
 
-            await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
+            await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote, true, snContext);
 
             console.log(
               `[Case Triage] Created ${suggestion.is_major_incident ? 'MAJOR ' : ''}` +
@@ -577,7 +588,8 @@ export class CaseTriageService {
                   `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
                 );
                 const serviceOffering = await serviceNowClient.getServiceOffering(
-                  classificationResult.service_offering
+                  classificationResult.service_offering,
+                  snContext,
                 );
                 if (serviceOffering) {
                   businessServiceSysId = serviceOffering.sys_id;
@@ -596,34 +608,37 @@ export class CaseTriageService {
             }
 
             // Create Problem record with full company/context information
-            const problemResult = await serviceNowClient.createProblemFromCase({
-              caseSysId: webhook.sys_id,
-              caseNumber: webhook.case_number,
-              category: problemCategory,
-              subcategory: problemSubcategory,
-              shortDescription: webhook.short_description,
-              description: webhook.description,
-              urgency: webhook.urgency,
-              priority: webhook.priority,
-              callerId: webhook.caller_id,
-              assignmentGroup: webhook.assignment_group,
-              assignedTo: webhook.assigned_to,
-              firstReportedBy: webhook.sys_id, // Reference to the Case that first reported this problem
-              // Company/Account context (prevents orphaned problems)
-              company: webhook.company,
-              account: webhook.account || webhook.account_id,
-              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
-              location: webhook.location,
-              // Contact information
-              contact: webhook.contact,
-              contactType: webhook.contact_type,
-              openedBy: webhook.opened_by,
-              // Technical context
+            const problemResult = await serviceNowClient.createProblemFromCase(
+              {
+                caseSysId: webhook.sys_id,
+                caseNumber: webhook.case_number,
+                category: problemCategory,
+                subcategory: problemSubcategory,
+                shortDescription: webhook.short_description,
+                description: webhook.description,
+                urgency: webhook.urgency,
+                priority: webhook.priority,
+                callerId: webhook.caller_id,
+                assignmentGroup: webhook.assignment_group,
+                assignedTo: webhook.assigned_to,
+                firstReportedBy: webhook.sys_id, // Reference to the Case that first reported this problem
+                // Company/Account context (prevents orphaned problems)
+                company: webhook.company,
+                account: webhook.account || webhook.account_id,
+                businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
+                location: webhook.location,
+                // Contact information
+                contact: webhook.contact,
+                contactType: webhook.contact_type,
+                openedBy: webhook.opened_by,
+                // Technical context
               cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
               // Multi-tenancy / Domain separation
               sysDomain: webhook.sys_domain,
               sysDomainPath: webhook.sys_domain_path,
-            });
+              },
+              snContext,
+            );
 
             problemCreated = true;
             problemNumber = problemResult.problem_number;
@@ -634,7 +649,7 @@ export class CaseTriageService {
             // This makes the problem appear in "Related Records > Problem" tab
             await serviceNowClient.updateCase(webhook.sys_id, {
               problem: problemSysId
-            });
+            }, snContext);
 
             // Add work note to parent Case
             const workNote =
@@ -645,7 +660,7 @@ export class CaseTriageService {
               `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}\n\n` +
               `Link: ${problemUrl}`;
 
-            await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
+            await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote, true, snContext);
 
             console.log(
               `[Case Triage] Created Problem ${problemNumber} from Case ${webhook.case_number}`

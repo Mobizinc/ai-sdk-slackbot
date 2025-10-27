@@ -19,12 +19,14 @@ export interface PostMessageOptions {
   text: string;
   threadTs?: string;
   unfurlLinks?: boolean;
+  blocks?: any[]; // Slack Block Kit blocks
 }
 
 export interface UpdateMessageOptions {
   channel: string;
   ts: string;
-  text: string;
+  text?: string;
+  blocks?: any[]; // Slack Block Kit blocks
 }
 
 export interface MessageResult {
@@ -50,6 +52,7 @@ export class SlackMessagingService {
         text: options.text,
         thread_ts: options.threadTs,
         unfurl_links: options.unfurlLinks ?? false,
+        blocks: options.blocks,
       });
 
       return {
@@ -85,11 +88,15 @@ export class SlackMessagingService {
    */
   async updateMessage(options: UpdateMessageOptions): Promise<void> {
     try {
-      await this.client.chat.update({
+      const updateParams: any = {
         channel: options.channel,
         ts: options.ts,
         text: options.text,
-      });
+      };
+      if (options.blocks) {
+        updateParams.blocks = options.blocks;
+      }
+      await this.client.chat.update(updateParams);
     } catch (error) {
       console.error('[Slack Messaging] Failed to update message:', error);
       throw error;

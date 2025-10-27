@@ -58,8 +58,11 @@ interface FeatureFlagConfig {
  * Load feature flag configuration from environment variables
  */
 function loadFeatureFlagConfig(): FeatureFlagConfig {
+  // DEFAULT TO 100% - New repository pattern enabled by default
+  // Set FEATURE_SERVICENOW_REPOSITORIES_PCT=0 to use legacy, or
+  // Set FEATURE_SERVICENOW_REPOSITORIES_FORCE_DISABLE=true for emergency rollback
   const serviceNowRepositoriesPct = parseInt(
-    process.env.FEATURE_SERVICENOW_REPOSITORIES_PCT || "0",
+    process.env.FEATURE_SERVICENOW_REPOSITORIES_PCT || "100",
     10,
   );
 

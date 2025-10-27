@@ -10,6 +10,7 @@ import {
   getAppSettingValue,
   setAppSetting,
 } from "../../lib/db/repositories/app-settings-repository";
+import { createSystemContext } from "../../lib/infrastructure/servicenow-context";
 
 const SETTING_KEY = "sn:last_voice_worknote_sync_at";
 const DEFAULT_LOOKBACK_MINUTES = parseInt(
@@ -86,7 +87,10 @@ async function runSync(): Promise<Response> {
     const now = new Date();
     const startTime = await determineStartTime();
 
-    const notes = await serviceNowClient.getVoiceWorkNotesSince({ since: startTime });
+    // Create ServiceNow context for cron job (deterministic routing)
+    const snContext = createSystemContext('cron-sync-voice-worknotes');
+
+    const notes = await serviceNowClient.getVoiceWorkNotesSince({ since: startTime }, snContext);
 
     if (!notes.length) {
       await setAppSetting(SETTING_KEY, now.toISOString());
@@ -125,7 +129,7 @@ async function runSync(): Promise<Response> {
         maxTimestamp = workNoteTime;
       }
 
-      const caseRecord = await serviceNowClient.getCaseBySysId(note.element_id);
+      const caseRecord = await serviceNowClient.getCaseBySysId(note.element_id, snContext);
       if (!caseRecord) {
         continue;
       }
@@ -182,16 +186,19 @@ async function runSync(): Promise<Response> {
         }
 
         // Create interaction record in ServiceNow
-        const result = await serviceNowClient.createPhoneInteraction({
-          caseSysId: metadata.caseSysId,
-          caseNumber: metadata.caseNumber,
-          channel: 'phone',
-          direction: metadata.direction,
-          phoneNumber: metadata.phoneNumber,
-          sessionId: metadata.sessionId,
-          startTime: metadata.startTime,
-          endTime: metadata.endTime,
-        });
+        const result = await serviceNowClient.createPhoneInteraction(
+          {
+            caseSysId: metadata.caseSysId,
+            caseNumber: metadata.caseNumber,
+            channel: 'phone',
+            direction: metadata.direction,
+            phoneNumber: metadata.phoneNumber,
+            sessionId: metadata.sessionId,
+            startTime: metadata.startTime,
+            endTime: metadata.endTime,
+          },
+          snContext,
+        );
 
         // Update local record with ServiceNow IDs
         await updateCallInteractionServiceNowIds(

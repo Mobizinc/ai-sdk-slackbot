@@ -214,12 +214,15 @@ describe("CaseTriageService", () => {
       expect(mockServiceNowClient.createIncidentFromCase).toHaveBeenCalledWith(
         expect.objectContaining({
           isMajorIncident: false,
-        })
+        }),
+        expect.any(Object)
       );
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         "sys_id_123",
-        expect.stringContaining("INCIDENT CREATED")
+        expect.stringContaining("INCIDENT CREATED"),
+        true,
+        expect.any(Object)
       );
     });
 
@@ -274,7 +277,9 @@ describe("CaseTriageService", () => {
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         "sys_id_123",
-        expect.stringContaining("PROBLEM CREATED")
+        expect.stringContaining("PROBLEM CREATED"),
+        true,
+        expect.any(Object)
       );
     });
 
@@ -414,7 +419,8 @@ describe("CaseTriageService", () => {
         expect.objectContaining({
           category: "Email", // Fallback to case category
           subcategory: "Server", // Fallback to case subcategory
-        })
+        }),
+        expect.any(Object)
       );
     });
   });

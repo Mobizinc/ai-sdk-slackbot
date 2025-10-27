@@ -15,6 +15,7 @@ import type {
   Task,
   JournalEntry,
   Choice,
+  CustomerAccount,
 } from "../types/domain-models";
 import type {
   CaseRecord,
@@ -26,6 +27,7 @@ import type {
   TaskRecord,
   JournalEntryRecord,
   ChoiceRecord,
+  CustomerAccountRecord,
 } from "../types/api-responses";
 
 /**
@@ -114,6 +116,7 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     submittedBy: extractDisplayValue(record.submitted_by),
     contact: extractSysId(record.contact),
     account: extractSysId(record.account),
+    company: extractSysId(record.company),
     url: buildRecordUrl(instanceUrl, "sn_customerservice_case", record.sys_id),
   };
 }
@@ -239,5 +242,18 @@ export function mapChoice(record: ChoiceRecord): Choice {
     value: record.value,
     sequence: record.sequence ? parseInt(record.sequence) : undefined,
     inactive: typeof record.inactive === "boolean" ? record.inactive : record.inactive === "true",
+    dependentValue: record.dependent_value,
+  };
+}
+
+/**
+ * Map CustomerAccountRecord to CustomerAccount domain model
+ */
+export function mapCustomerAccount(record: CustomerAccountRecord, instanceUrl: string): CustomerAccount {
+  return {
+    sysId: record.sys_id,
+    number: extractDisplayValue(record.number),
+    name: extractDisplayValue(record.name),
+    url: buildRecordUrl(instanceUrl, "customer_account", record.sys_id),
   };
 }

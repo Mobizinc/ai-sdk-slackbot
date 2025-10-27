@@ -2,6 +2,7 @@ import { getContextManager } from "../context-manager";
 import { getChannelInfo } from "./channel-info";
 import { getBusinessContextService } from "./business-context-service";
 import { serviceNowClient, type ServiceNowCaseSummary } from "../tools/servicenow";
+import { createServiceNowContext } from "../infrastructure/servicenow-context";
 
 export interface SlackThreadIssueSummary {
   caseNumber: string;
@@ -61,11 +62,17 @@ export class CurrentIssuesService {
     let serviceNowCases: ServiceNowCaseSummary[] | undefined;
     if (clientName && serviceNowConfigured) {
       try {
-        serviceNowCases = await serviceNowClient.searchCustomerCases({
-          accountName: clientName,
-          activeOnly: true,
-          limit: 5,
-        });
+        // Create ServiceNow context for this search (use channelId for deterministic routing)
+        const snContext = createServiceNowContext(undefined, channelId);
+
+        serviceNowCases = await serviceNowClient.searchCustomerCases(
+          {
+            accountName: clientName,
+            activeOnly: true,
+            limit: 5,
+          },
+          snContext,
+        );
       } catch (error) {
         console.warn(`[CurrentIssuesService] Failed to load ServiceNow cases for ${clientName}:`, error);
       }

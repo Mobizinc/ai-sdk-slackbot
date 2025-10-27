@@ -98,42 +98,91 @@ export class ServiceNowCaseRepository implements CaseRepository {
   async search(criteria: CaseSearchCriteria): Promise<Case[]> {
     const queryParts: string[] = [];
 
+    // Sort configuration (must be first in ServiceNow query)
+    const sortField = criteria.sortBy || 'opened_at';
+    const sortDirection = criteria.sortOrder === 'asc' ? '' : 'DESC';
+    queryParts.push(`ORDERBY${sortDirection}${sortField}`);
+
+    // Filter conditions
     if (criteria.number) {
       queryParts.push(`number=${criteria.number}`);
     }
+
     if (criteria.shortDescription) {
       queryParts.push(`short_descriptionLIKE${criteria.shortDescription}`);
     }
+
+    if (criteria.query) {
+      // Full-text search across short_description and description
+      queryParts.push(`short_descriptionLIKE${criteria.query}^ORdescriptionLIKE${criteria.query}`);
+    }
+
     if (criteria.account) {
+      // Account by sys_id
       queryParts.push(`account=${criteria.account}`);
     }
+
+    if (criteria.accountName) {
+      // Account by display name (searches account.name reference field)
+      queryParts.push(`account.nameLIKE${criteria.accountName}`);
+    }
+
+    if (criteria.companyName) {
+      // Company by display name (searches company.name reference field)
+      queryParts.push(`company.nameLIKE${criteria.companyName}`);
+    }
+
     if (criteria.caller) {
       queryParts.push(`caller_id=${criteria.caller}`);
     }
+
     if (criteria.state) {
       queryParts.push(`state=${criteria.state}`);
     }
+
     if (criteria.priority) {
       queryParts.push(`priority=${criteria.priority}`);
     }
+
     if (criteria.category) {
       queryParts.push(`category=${criteria.category}`);
     }
+
+    if (criteria.assignmentGroup) {
+      // Assignment group by display name
+      queryParts.push(`assignment_group.nameLIKE${criteria.assignmentGroup}`);
+    }
+
+    if (criteria.assignedTo) {
+      // Assigned user by display name
+      queryParts.push(`assigned_to.nameLIKE${criteria.assignedTo}`);
+    }
+
     if (criteria.openedAfter) {
       queryParts.push(`opened_at>=${this.formatDate(criteria.openedAfter)}`);
     }
+
     if (criteria.openedBefore) {
       queryParts.push(`opened_at<=${this.formatDate(criteria.openedBefore)}`);
+    }
+
+    // Active/closed filter
+    if (criteria.activeOnly !== undefined) {
+      queryParts.push(`active=${criteria.activeOnly ? 'true' : 'false'}`);
+    }
+
+    // If no filters specified (only sort parameter), default to active cases only
+    if (queryParts.length === 1 && queryParts[0].startsWith('ORDERBY')) {
+      queryParts.push('active=true');
     }
 
     const query = queryParts.join("^");
     const response = await this.httpClient.get<CaseRecord>(
       `/api/now/table/${this.caseTable}`,
       {
-        sysparm_query: query || undefined,
+        sysparm_query: query,
         sysparm_limit: criteria.limit ?? 100,
         sysparm_display_value: "all",
-        sysparm_order_by: "^ORDERBYDESCopened_at",
       },
     );
 
@@ -215,7 +264,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
   }
 
   /**
-   * Get work notes for a case
+   * Get work notes for a case (simplified format)
    */
   async getWorkNotes(sysId: string): Promise<Array<{ value: string; createdOn: Date; createdBy: string }>> {
     const response = await this.httpClient.get<any>(
@@ -232,6 +281,54 @@ export class ServiceNowCaseRepository implements CaseRepository {
       value: record.value || "",
       createdOn: new Date(record.sys_created_on),
       createdBy: typeof record.sys_created_by === "object" ? record.sys_created_by.display_value : record.sys_created_by,
+    }));
+  }
+
+  /**
+   * Get journal entries for a case (full ServiceNow format)
+   */
+  async getJournalEntries(
+    sysId: string,
+    options?: { limit?: number; journalName?: string },
+  ): Promise<Array<{
+    sysId: string;
+    element: string;
+    elementId: string;
+    name?: string;
+    createdOn: string;
+    createdBy: string;
+    value?: string;
+  }>> {
+    const queryParts = [`element_id=${sysId}`];
+
+    // Filter by journal name if provided (e.g., "x_mobit_serv_case_service_case")
+    if (options?.journalName) {
+      queryParts.push(`name=${options.journalName}`);
+    }
+
+    const query = `${queryParts.join("^")}^ORDERBYDESCsys_created_on`;
+
+    const response = await this.httpClient.get<any>(
+      `/api/now/table/${this.caseJournalTable}`,
+      {
+        sysparm_query: query,
+        sysparm_limit: options?.limit ?? 20,
+        sysparm_fields: "sys_id,element,element_id,name,sys_created_on,sys_created_by,value",
+        sysparm_display_value: "all",
+      },
+    );
+
+    const records = Array.isArray(response.result) ? response.result : [response.result];
+    return records.map((record: any) => ({
+      sysId: record.sys_id || "",
+      element: record.element || "",
+      elementId: record.element_id || "",
+      name: typeof record.name === "object" ? record.name.display_value : record.name,
+      createdOn: record.sys_created_on || "",
+      createdBy: typeof record.sys_created_by === "object"
+        ? record.sys_created_by.display_value
+        : (record.sys_created_by || ""),
+      value: record.value,
     }));
   }
 
@@ -270,14 +367,42 @@ export class ServiceNowCaseRepository implements CaseRepository {
   async createIncidentFromCase(caseSysId: string, input: CreateIncidentInput): Promise<Incident> {
     const payload: Record<string, any> = {
       short_description: input.shortDescription,
+      description: input.description || input.shortDescription,
       parent: caseSysId,
+      urgency: input.urgency || "3", // Default to medium urgency
+      priority: input.priority || "3", // Default to medium priority
     };
 
-    if (input.description) payload.description = input.description;
+    // Basic fields
     if (input.caller) payload.caller_id = input.caller;
     if (input.category) payload.category = input.category;
-    if (input.priority) payload.priority = input.priority;
+    if (input.subcategory) payload.subcategory = input.subcategory;
     if (input.assignmentGroup) payload.assignment_group = input.assignmentGroup;
+    if (input.assignedTo) payload.assigned_to = input.assignedTo;
+
+    // Company/Account context (prevents orphaned incidents)
+    if (input.company) payload.company = input.company;
+    if (input.account) payload.account = input.account;
+    if (input.businessService) payload.business_service = input.businessService;
+    if (input.location) payload.location = input.location;
+
+    // Contact information
+    if (input.contact) payload.contact = input.contact;
+    if (input.contactType) payload.contact_type = input.contactType;
+    if (input.openedBy) payload.opened_by = input.openedBy;
+
+    // Technical context
+    if (input.cmdbCi) payload.cmdb_ci = input.cmdbCi;
+
+    // Multi-tenancy / Domain separation
+    if (input.sysDomain) payload.sys_domain = input.sysDomain;
+    if (input.sysDomainPath) payload.sys_domain_path = input.sysDomainPath;
+
+    // Major incident handling
+    if (input.isMajorIncident) {
+      payload.severity = "1"; // SEV-1 for major incidents
+      payload.impact = "1"; // High impact
+    }
 
     const response = await this.httpClient.post<IncidentRecord>(
       `/api/now/table/${this.incidentTable}`,

@@ -202,6 +202,151 @@ describe("ServiceNow Adapter - Feature Flag Routing", () => {
         expect.any(Object),
       );
     });
+
+    it("should use CMDB repository for searchConfigurationItems on NEW path", async () => {
+      process.env.FEATURE_SERVICENOW_REPOSITORIES_FORCE_ENABLE = "true";
+      featureFlags.refresh();
+
+      const mockCmdbRepository = {
+        search: vi.fn().mockResolvedValue([
+          {
+            sysId: "ci123",
+            name: "Server 01",
+            className: "cmdb_ci_server",
+            fqdn: "server01.example.com",
+            hostName: "server01",
+            ipAddresses: ["10.0.0.1"],
+            ownerGroup: "IT",
+            supportGroup: "Ops",
+            location: "HQ",
+            environment: "production",
+            status: "installed",
+            description: "Prod server",
+            url: "https://example.service-now.com/nav_to.do?uri=cmdb_ci.do?sys_id=ci123",
+          },
+        ]),
+      };
+
+      vi.spyOn(repositoryModule, "getCmdbRepository").mockReturnValue(mockCmdbRepository as any);
+
+      const result = await serviceNowClient.searchConfigurationItems(
+        { name: "server01" },
+        { userId: "U123" },
+      );
+
+      expect(mockCmdbRepository.search).toHaveBeenCalledWith({
+        name: "server01",
+        ipAddress: undefined,
+        sysId: undefined,
+        limit: 5,
+      });
+      expect(result).toEqual([
+        expect.objectContaining({
+          name: "Server 01",
+          ip_addresses: ["10.0.0.1"],
+        }),
+      ]);
+    });
+
+    it("should use CustomerAccount repository on NEW path", async () => {
+      process.env.FEATURE_SERVICENOW_REPOSITORIES_FORCE_ENABLE = "true";
+      featureFlags.refresh();
+
+      const mockAccountRepository = {
+        findByNumber: vi.fn().mockResolvedValue({
+          sysId: "acct123",
+          number: "ACCT001",
+          name: "Acme Corp",
+          url: "https://example.service-now.com/nav_to.do?uri=customer_account.do?sys_id=acct123",
+        }),
+      };
+
+      vi.spyOn(repositoryModule, "getCustomerAccountRepository").mockReturnValue(
+        mockAccountRepository as any,
+      );
+
+      const account = await serviceNowClient.getCustomerAccount("ACCT001", { userId: "U123" });
+
+      expect(mockAccountRepository.findByNumber).toHaveBeenCalledWith("ACCT001");
+      expect(account).toEqual({
+        sys_id: "acct123",
+        number: "ACCT001",
+        name: "Acme Corp",
+        url: "https://example.service-now.com/nav_to.do?uri=customer_account.do?sys_id=acct123",
+      });
+    });
+
+    it("should use Choice repository on NEW path", async () => {
+      process.env.FEATURE_SERVICENOW_REPOSITORIES_FORCE_ENABLE = "true";
+      featureFlags.refresh();
+
+      const mockChoiceRepository = {
+        list: vi.fn().mockResolvedValue([
+          { label: "High", value: "1", sequence: 1, inactive: false },
+        ]),
+      };
+
+      vi.spyOn(repositoryModule, "getChoiceRepository").mockReturnValue(
+        mockChoiceRepository as any,
+      );
+
+      const choices = await serviceNowClient.getChoiceList({
+        table: "sn_customerservice_case",
+        element: "priority",
+      }, { userId: "U123" });
+
+      expect(mockChoiceRepository.list).toHaveBeenCalledWith({
+        table: "sn_customerservice_case",
+        element: "priority",
+        includeInactive: false,
+      });
+      expect(choices).toEqual([
+        {
+          label: "High",
+          value: "1",
+          sequence: 1,
+          inactive: false,
+          dependent_value: undefined,
+        },
+      ]);
+    });
+
+    it("should use Problem repository on NEW path", async () => {
+      process.env.FEATURE_SERVICENOW_REPOSITORIES_FORCE_ENABLE = "true";
+      featureFlags.refresh();
+
+      const mockProblemRepository = {
+        createFromCase: vi.fn().mockResolvedValue({
+          sysId: "prb123",
+          number: "PRB001",
+          shortDescription: "Problem created",
+          url: "https://example.service-now.com/nav_to.do?uri=problem.do?sys_id=prb123",
+        }),
+      };
+
+      vi.spyOn(repositoryModule, "getProblemRepository").mockReturnValue(
+        mockProblemRepository as any,
+      );
+
+      const result = await serviceNowClient.createProblemFromCase({
+        caseSysId: "case123",
+        caseNumber: "CASE001",
+        shortDescription: "Example",
+      }, { userId: "U123" });
+
+      expect(mockProblemRepository.createFromCase).toHaveBeenCalledWith(
+        "case123",
+        expect.objectContaining({
+          shortDescription: "Example",
+          caseNumber: "CASE001",
+        }),
+      );
+      expect(result).toEqual({
+        problem_number: "PRB001",
+        problem_sys_id: "prb123",
+        problem_url: "https://example.service-now.com/nav_to.do?uri=problem.do?sys_id=prb123",
+      });
+    });
   });
 
   describe("Error Handling & Fallback", () => {

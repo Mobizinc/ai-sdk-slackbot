@@ -4,11 +4,9 @@
  */
 
 import { getSlackMessagingService } from "./services/slack-messaging";
-import { getSlackClient } from "./slack/client";
 import type { KBArticle } from "./services/kb-generator";
 
 const slackMessaging = getSlackMessagingService();
-const client = getSlackClient();
 
 interface PendingKBApproval {
   caseNumber: string;
@@ -36,12 +34,12 @@ export class KBApprovalManager {
     const blocks = this.buildApprovalBlocks(caseNumber, article);
 
     // Post the KB article to Slack with interactive buttons
-    const result = await client.chat.postMessage({
+    const result = await slackMessaging.postMessage({
       channel: channelId,
-      thread_ts: threadTs,
+      threadTs: threadTs,
       text: messageText, // Fallback text for notifications
       blocks,
-      unfurl_links: false,
+      unfurlLinks: false,
     });
 
     if (!result.ts) {
@@ -304,7 +302,7 @@ export class KBApprovalManager {
   ): Promise<void> {
     try {
       // Update the message to show approved status
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: approval.channelId,
         ts: approval.messageTs,
         text: `✅ *KB Article Approved* by <@${userId}>`,
@@ -330,9 +328,9 @@ export class KBApprovalManager {
       });
 
       // Post confirmation in thread
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `✅ Knowledge base article for ${approval.caseNumber} has been approved!\n\n` +
           `_Next step: This article can be added to ServiceNow knowledge base._\n\n` +
           `*Article Summary:*\n${approval.article.title}`,
@@ -344,9 +342,9 @@ export class KBApprovalManager {
     } catch (error) {
       console.error("Error handling KB approval:", error);
 
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `❌ Error processing approval: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     }
@@ -361,7 +359,7 @@ export class KBApprovalManager {
   ): Promise<void> {
     try {
       // Update the message to show rejected status
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: approval.channelId,
         ts: approval.messageTs,
         text: `❌ *KB Article Rejected* by <@${userId}>`,
@@ -377,9 +375,9 @@ export class KBApprovalManager {
       });
 
       // Post confirmation in thread
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `❌ Knowledge base article for ${approval.caseNumber} was rejected.\n\n` +
           `_The article draft will not be created._`,
       });

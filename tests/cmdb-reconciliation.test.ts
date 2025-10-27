@@ -255,10 +255,13 @@ describe("CmdbReconciliationService", () => {
       const result = await service.reconcileEntities(input);
 
       expect(mockBusinessContextService.searchContextsByEntity).toHaveBeenCalledWith("L drive");
-      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith({
-        name: "\\fileserver01\\legal-docs",
-        limit: 5,
-      });
+      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
+        {
+          name: "\\fileserver01\\legal-docs",
+          limit: 5,
+        },
+        expect.any(Object)
+      );
       expect(result.matched).toBe(1);
     });
 
@@ -416,7 +419,9 @@ describe("CmdbReconciliationService", () => {
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         "sys_id_123",
-        expect.stringContaining("Linked Configuration Item")
+        expect.stringContaining("Linked Configuration Item"),
+        true,
+        expect.any(Object)
       );
       expect(mockRepository.updateWithMatch).toHaveBeenCalledWith(1, {
         cmdbSysId: "ci_sys_id_123",

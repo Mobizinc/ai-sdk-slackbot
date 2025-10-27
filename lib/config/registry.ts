@@ -409,9 +409,9 @@ export const CONFIG_DEFINITIONS = {
   langsmithTracingEnabled: {
     envVar: "LANGSMITH_TRACING",
     type: "boolean",
-    default: false,
+    default: true, // ✨ Default to true - enables tracing when API key is present
     group: "telemetry",
-    description: "Enable LangSmith tracing for LLM providers.",
+    description: "Enable LangSmith tracing for LLM providers. Defaults to true if LANGSMITH_API_KEY is set.",
   },
   azureSearchEndpoint: {
     envVar: "AZURE_SEARCH_ENDPOINT",

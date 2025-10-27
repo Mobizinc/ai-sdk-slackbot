@@ -1,4 +1,5 @@
 import { serviceNowClient } from "../../lib/tools/servicenow";
+import { createSystemContext } from "../../lib/infrastructure/servicenow-context";
 
 type JsonBody =
   | {
@@ -46,13 +47,19 @@ async function runAutoClose(): Promise<Response> {
   const olderThan = Math.max(DEFAULT_OLDER_THAN_MINUTES, 1);
   const closeCode = DEFAULT_CLOSE_CODE;
 
+  // Create ServiceNow context for cron job (deterministic routing)
+  const snContext = createSystemContext('cron-close-resolved-incidents');
+
   try {
-    const incidents = await serviceNowClient.getResolvedIncidents({
-      limit,
-      olderThanMinutes: olderThan,
-      requireParentCase: true,
-      requireEmptyCloseCode: true,
-    });
+    const incidents = await serviceNowClient.getResolvedIncidents(
+      {
+        limit,
+        olderThanMinutes: olderThan,
+        requireParentCase: true,
+        requireEmptyCloseCode: true,
+      },
+      snContext,
+    );
 
     if (incidents.length === 0) {
       return jsonResponse({
@@ -78,14 +85,18 @@ async function runAutoClose(): Promise<Response> {
           "If follow-up is required, reopen the incident and notify the service desk.",
         ].join("\n");
 
-        await serviceNowClient.addIncidentWorkNote(incident.sys_id, workNote);
+        await serviceNowClient.addIncidentWorkNote(incident.sys_id, workNote, snContext);
 
         const closeNotes = `Incident automatically closed after remaining in Resolved state for at least ${olderThan} minutes.`;
 
-        await serviceNowClient.closeIncident(incident.sys_id, {
-          closeCode,
-          closeNotes,
-        });
+        await serviceNowClient.closeIncident(
+          incident.sys_id,
+          {
+            closeCode,
+            closeNotes,
+          },
+          snContext,
+        );
 
         closed += 1;
         console.log(

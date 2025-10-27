@@ -8,6 +8,7 @@ import { z } from "zod";
 import { serviceNowClient } from "../../tools/servicenow";
 import { getCaseTriageService } from "../../services/case-triage";
 import { createTool, type AgentToolFactoryParams } from "./shared";
+import { createServiceNowContext } from "../../infrastructure/servicenow-context";
 
 export type TriageCaseInput = {
   caseNumber: string;
@@ -20,7 +21,7 @@ const triageCaseInputSchema = z.object({
 });
 
 export function createTriageTool(params: AgentToolFactoryParams) {
-  const { updateStatus } = params;
+  const { updateStatus, options } = params;
 
   return createTool({
     description:
@@ -42,7 +43,10 @@ export function createTriageTool(params: AgentToolFactoryParams) {
           };
         }
 
-        const caseDetails = await serviceNowClient.getCase(caseNumber);
+        // Create ServiceNow context for deterministic feature flag routing
+        const snContext = createServiceNowContext(undefined, options?.channelId);
+
+        const caseDetails = await serviceNowClient.getCase(caseNumber, snContext);
 
         if (!caseDetails) {
           return {

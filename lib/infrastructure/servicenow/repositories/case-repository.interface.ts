@@ -55,9 +55,27 @@ export interface CaseRepository {
   addComment(sysId: string, comment: string): Promise<void>;
 
   /**
-   * Get work notes for a case
+   * Get work notes for a case (simplified format)
    */
   getWorkNotes(sysId: string): Promise<Array<{ value: string; createdOn: Date; createdBy: string }>>;
+
+  /**
+   * Get journal entries for a case (full ServiceNow format)
+   * @param sysId - Case sys_id
+   * @param options - Optional limit and journal name filter
+   */
+  getJournalEntries(
+    sysId: string,
+    options?: { limit?: number; journalName?: string },
+  ): Promise<Array<{
+    sysId: string;
+    element: string;
+    elementId: string;
+    name?: string;
+    createdOn: string;
+    createdBy: string;
+    value?: string;
+  }>>;
 
   /**
    * Close a case

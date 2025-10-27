@@ -128,7 +128,9 @@ describe("CatalogRedirectHandler", () => {
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         input.caseSysId,
-        expect.stringContaining("Employee Onboarding Request")
+        expect.stringContaining("Employee Onboarding Request"),
+        true, // workNotes = true (internal)
+        expect.any(Object) // context
       );
 
       expect(mockServiceNowClient.updateCase).toHaveBeenCalledWith(
@@ -137,7 +139,8 @@ describe("CatalogRedirectHandler", () => {
           state: "Resolved",
           close_code: "Incorrectly Submitted",
           close_notes: expect.stringContaining("HR request must be submitted via catalog"),
-        }
+        },
+        expect.any(Object) // context
       );
 
       expect(mockSettingsRepository.logRedirect).toHaveBeenCalledWith(
@@ -351,12 +354,18 @@ describe("CatalogRedirectHandler", () => {
       expect(result.redirected).toBe(true);
       expect(result.catalogItems).toEqual(mockCatalogItems);
 
-      expect(mockServiceNowClient.getCatalogItemByName).toHaveBeenCalledWith("HR - Account Modification Request");
-      expect(mockServiceNowClient.getCatalogItems).toHaveBeenCalledWith({
-        keywords: ["account modification", "HR", "employee"],
-        active: true,
-        limit: 3,
-      });
+      expect(mockServiceNowClient.getCatalogItemByName).toHaveBeenCalledWith(
+        "HR - Account Modification Request",
+        expect.any(Object) // context
+      );
+      expect(mockServiceNowClient.getCatalogItems).toHaveBeenCalledWith(
+        {
+          keywords: ["account modification", "HR", "employee"],
+          active: true,
+          limit: 3,
+        },
+        expect.any(Object) // context
+      );
     });
   });
 

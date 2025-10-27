@@ -44,11 +44,25 @@ export function getAnthropicClient(): Anthropic {
 }
 
 function shouldWrapWithLangSmith(): boolean {
-  const tracingEnabled =
-    config.langsmithTracingEnabled ||
-    (process.env.LANGSMITH_TRACING ?? '').toLowerCase() === 'true';
   const hasApiKey = !!(config.langsmithApiKey || process.env.LANGSMITH_API_KEY?.trim());
-  return tracingEnabled && hasApiKey;
+
+  // Default to enabled if API key is present
+  // Set LANGSMITH_TRACING=false to explicitly disable
+  const tracingEnabled =
+    config.langsmithTracingEnabled !== false &&
+    (process.env.LANGSMITH_TRACING ?? 'true').toLowerCase() !== 'false';
+
+  const shouldWrap = tracingEnabled && hasApiKey;
+
+  if (hasApiKey && !tracingEnabled) {
+    console.log('[LangSmith] API key present but tracing disabled (LANGSMITH_TRACING=false)');
+  } else if (!hasApiKey && tracingEnabled) {
+    console.warn('[LangSmith] Tracing enabled but LANGSMITH_API_KEY not set - tracing disabled');
+  } else if (!shouldWrap) {
+    console.log('[LangSmith] Tracing disabled (no API key or explicitly disabled)');
+  }
+
+  return shouldWrap;
 }
 
 function wrapAnthropicWithLangSmith(client: Anthropic): Anthropic {

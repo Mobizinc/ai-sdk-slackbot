@@ -1,5 +1,5 @@
 import { WebClient } from '@slack/web-api';
-import config from '../config';
+import { config } from '../config';
 
 let slackClient: WebClient | null = null;
 

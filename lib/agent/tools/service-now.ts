@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { serviceNowClient } from "../../tools/servicenow";
 import { createTool, type AgentToolFactoryParams } from "./shared";
+import { createServiceNowContext } from "../../infrastructure/servicenow-context";
 
 export type ServiceNowToolInput = {
   action:
@@ -127,7 +128,7 @@ const serviceNowInputSchema = z
   .describe("ServiceNow action parameters");
 
 export function createServiceNowTool(params: AgentToolFactoryParams) {
-  const { updateStatus } = params;
+  const { updateStatus, options } = params;
 
   return createTool({
     description:
@@ -163,6 +164,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
         };
       }
 
+      // Create ServiceNow context for deterministic feature flag routing
+      const snContext = createServiceNowContext(undefined, options?.channelId);
+
       try {
         if (action === "getIncident") {
           if (!number) {
@@ -173,12 +177,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is looking up incident ${number} in ServiceNow...`);
 
-          const incident = await serviceNowClient.getIncident(number);
+          const incident = await serviceNowClient.getIncident(number, snContext);
           if (!incident) {
             console.log(`[ServiceNow] Incident ${number} not found, trying case table...`);
             updateStatus?.(`is looking up ${number} in case table...`);
 
-            const caseRecord = await serviceNowClient.getCase(number);
+            const caseRecord = await serviceNowClient.getCase(number, snContext);
             if (caseRecord) {
               console.log(`[ServiceNow] Found ${number} in case table (fallback from incident)`);
               return { case: caseRecord };
@@ -202,13 +206,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is looking up case ${number} in ServiceNow...`);
 
-          const caseRecord = await serviceNowClient.getCase(number);
+          const caseRecord = await serviceNowClient.getCase(number, snContext);
 
           if (!caseRecord) {
             console.log(`[ServiceNow] Case ${number} not found, trying incident table...`);
             updateStatus?.(`is looking up ${number} in incident table...`);
 
-            const incident = await serviceNowClient.getIncident(number);
+            const incident = await serviceNowClient.getIncident(number, snContext);
             if (incident) {
               console.log(`[ServiceNow] Found ${number} in incident table (fallback from case)`);
               return { incident };
@@ -233,7 +237,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           let sysId = caseSysId ?? null;
 
           if (!sysId && number) {
-            const caseRecord = await serviceNowClient.getCase(number);
+            const caseRecord = await serviceNowClient.getCase(number, snContext);
             sysId = caseRecord?.sys_id ?? null;
 
             if (!sysId) {
@@ -246,9 +250,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is fetching journal entries for ${number ?? caseSysId}...`);
 
-          const journal = await serviceNowClient.getCaseJournal(sysId!, {
-            limit: limit ?? 20,
-          });
+          const journal = await serviceNowClient.getCaseJournal(
+            sysId!,
+            { limit: limit ?? 20 },
+            snContext,
+          );
 
           return {
             entries: journal,
@@ -265,10 +271,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is searching knowledge base for ${query}...`);
 
-          const articles = await serviceNowClient.searchKnowledge({
-            query,
-            limit: limit ?? 10,
-          });
+          const articles = await serviceNowClient.searchKnowledge(
+            {
+              query,
+              limit: limit ?? 10,
+            },
+            snContext,
+          );
 
           return {
             articles,
@@ -285,12 +294,15 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is searching configuration items...`);
 
-          const results = await serviceNowClient.searchConfigurationItems({
-            name: ciName,
-            ipAddress,
-            sysId: ciSysId,
-            limit: limit ?? 10,
-          });
+          const results = await serviceNowClient.searchConfigurationItems(
+            {
+              name: ciName,
+              ipAddress,
+              sysId: ciSysId,
+              limit: limit ?? 10,
+            },
+            snContext,
+          );
 
           return {
             configuration_items: results,
@@ -319,7 +331,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             sortOrder,
           };
 
-          const results = await serviceNowClient.searchCustomerCases(filters);
+          const results = await serviceNowClient.searchCustomerCases(filters, snContext);
 
           return {
             cases: results,

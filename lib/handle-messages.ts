@@ -74,14 +74,14 @@ export async function handleNewAssistantMessage(
     return;
 
   const { thread_ts, channel } = event;
-  const updateStatus = updateStatusUtil(channel, thread_ts);
+  const updateStatus = slackMessaging.createStatusUpdater(channel, thread_ts);
   try {
     await updateStatus("is thinking...");
 
     let messages: ChatMessage[];
 
     try {
-      messages = await getThread(channel, thread_ts, botUserId);
+      messages = await slackMessaging.getThread(channel, thread_ts, botUserId);
     } catch (threadError) {
       const slackError =
         typeof threadError === "object" && threadError !== null
