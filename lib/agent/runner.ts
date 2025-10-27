@@ -127,7 +127,7 @@ async function executeTool(
 
 function flattenContent(content: CoreMessage["content"]): string {
   // In the refactored architecture, content is always a string
-  return String(content ?? "");
+  return content;
 }
 
 function extractText(message: any): string | undefined {
