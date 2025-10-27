@@ -1,7 +1,7 @@
 # Phase 4 – Anthropic-Native Runtime (Complete)
 
 ## Current Status
-- Anthropic Messages is the only runtime path. Legacy files (`lib/legacy-generate-response.ts`, `lib/instrumented-ai.ts`) and rollout flags have been removed.
+- Anthropic Messages is the only runtime path. Legacy files (`lib/legacy-generate-response.ts`, `lib/instrumented-ai.ts`) and rollout flags have been removed as part of this PR. If any feature flags remain for zero-risk deployment, they are limited to non-runtime code and will be removed in a follow-up phase.
 - All orchestration code (agent + passive flows) now resides under `lib/agent/*` and `lib/passive/*` and executes unconditionally.
 - Shared services (`kb-generator`, `case-quality-analyzer`, `intelligent-assistant`, `interactive-kb-assistant`, `troubleshooting-assistant`, `case-classifier`, `case-resolution-summary`, escalation message builder) call `AnthropicChatService` directly.
 - AI SDK packages (`ai`, `@ai-sdk/openai`, `@ai-sdk/gateway`) have been deleted from the dependency tree. `lib/model-provider.ts` now exposes only Anthropic metadata.
