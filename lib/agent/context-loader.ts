@@ -121,7 +121,10 @@ function extractCaseNumbersFromMessages(
 
 function normalizeContent(content: CoreMessage["content"]): string {
   // In the refactored architecture, content is always a string
-  return String(content);
+  if (typeof content !== "string") {
+    throw new TypeError("normalizeContent expected a string, but received: " + typeof content);
+  }
+  return content;
 }
 
 function resolveCompanyName(metadata: Record<string, unknown>): string | undefined {
