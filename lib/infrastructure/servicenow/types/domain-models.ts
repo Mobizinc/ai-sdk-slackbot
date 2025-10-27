@@ -24,7 +24,9 @@ export interface Case {
   callerId?: string;
   submittedBy?: string;
   contact?: string;
+  contactName?: string;
   account?: string;
+  accountName?: string;
   company?: string;
   url: string;
 }

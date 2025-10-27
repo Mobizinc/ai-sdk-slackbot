@@ -28,6 +28,7 @@ export function createCurrentIssuesTool(params: AgentToolFactoryParams) {
   const { options } = params;
 
   return createTool({
+    name: "fetch_current_issues",
     description:
       "Check ServiceNow and Slack for live issues affecting this customer.",
     inputSchema: fetchCurrentIssuesInputSchema,

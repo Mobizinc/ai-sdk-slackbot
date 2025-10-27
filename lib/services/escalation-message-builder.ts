@@ -213,6 +213,13 @@ function buildSlackBlocks(
     });
   }
 
+  if (context.contactName) {
+    businessContextFields.push({
+      type: "mrkdwn",
+      text: `*Contact:*\n${context.contactName}`,
+    });
+  }
+
   if (context.assignedTo && config.escalationNotifyAssignedEngineer) {
     businessContextFields.push({
       type: "mrkdwn",

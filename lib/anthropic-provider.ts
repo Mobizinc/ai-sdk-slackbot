@@ -46,11 +46,11 @@ export function getAnthropicClient(): Anthropic {
 function shouldWrapWithLangSmith(): boolean {
   const hasApiKey = !!(config.langsmithApiKey || process.env.LANGSMITH_API_KEY?.trim());
 
-  // Default to enabled if API key is present
-  // Set LANGSMITH_TRACING=false to explicitly disable
-  const tracingEnabled =
-    config.langsmithTracingEnabled !== false &&
-    (process.env.LANGSMITH_TRACING ?? 'true').toLowerCase() !== 'false';
+  // Tracing is enabled by default when an API key is present
+  // Both config flag and env var must allow tracing (neither can be explicitly false)
+  const configAllowsTracing = config.langsmithTracingEnabled !== false;
+  const envAllowsTracing = (process.env.LANGSMITH_TRACING ?? 'true').toLowerCase() === 'true';
+  const tracingEnabled = configAllowsTracing && envAllowsTracing;
 
   const shouldWrap = tracingEnabled && hasApiKey;
 

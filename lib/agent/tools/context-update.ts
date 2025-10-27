@@ -68,6 +68,7 @@ export function createContextUpdateTool(params: AgentToolFactoryParams) {
   const { caseNumbers } = params;
 
   return createTool({
+    name: "propose_context_update",
     description:
       "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
     inputSchema: proposeContextUpdateInputSchema,

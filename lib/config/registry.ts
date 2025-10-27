@@ -40,6 +40,13 @@ export const CONFIG_DEFINITIONS = {
     group: "assistant",
     description: "Number of similar cases to surface for assistants.",
   },
+  agentMaxToolIterations: {
+    envVar: "AGENT_MAX_TOOL_ITERATIONS",
+    type: "number",
+    default: 6,
+    group: "assistant",
+    description: "Maximum number of tool execution iterations allowed in agent runner.",
+  },
   kbSimilarCasesTopK: {
     envVar: "KB_SIMILAR_CASES_TOP_K",
     type: "number",
@@ -411,7 +418,7 @@ export const CONFIG_DEFINITIONS = {
     type: "boolean",
     default: true, // Default to true - actual enablement depends on API key presence (checked at runtime)
     group: "telemetry",
-    description: "Enable LangSmith tracing for LLM providers. Defaults to true if LANGSMITH_API_KEY is set.",
+    description: "Enable LangSmith tracing for LLM providers. Defaults to true, but tracing requires BOTH this flag to be true AND a valid LANGSMITH_API_KEY to be set. Set to false to explicitly disable tracing even when API key is present.",
   },
   azureSearchEndpoint: {
     envVar: "AZURE_SEARCH_ENDPOINT",

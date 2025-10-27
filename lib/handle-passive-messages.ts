@@ -1,5 +1,10 @@
 import type { GenericMessageEvent } from "./slack-event-types";
-import { handlePassiveMessage as handlePassiveMessageRefactored } from "./passive";
+import {
+  handlePassiveMessage as handlePassiveMessageRefactored,
+  cleanupTimedOutGathering,
+  extractCaseNumbers,
+  notifyResolution,
+} from "./passive";
 
 /**
  * Backward-compatible entry point for passive message handling.
@@ -12,4 +17,4 @@ export async function handlePassiveMessage(
   return handlePassiveMessageRefactored(event, botUserId);
 }
 
-export { cleanupTimedOutGathering, extractCaseNumbers, notifyResolution } from "./passive";
+export { cleanupTimedOutGathering, extractCaseNumbers, notifyResolution };

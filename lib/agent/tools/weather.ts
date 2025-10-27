@@ -23,6 +23,7 @@ export function createWeatherTool(params: AgentToolFactoryParams) {
   const { updateStatus } = params;
 
   return createTool({
+    name: "get_weather",
     description: "Get the current weather at a location",
     inputSchema: weatherInputSchema,
     execute: async ({ latitude, longitude, city }: WeatherToolInput) => {

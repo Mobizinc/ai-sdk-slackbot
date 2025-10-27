@@ -33,6 +33,7 @@ export function createSearchTool(params: AgentToolFactoryParams) {
   const { updateStatus } = params;
 
   return createTool({
+    name: "search_similar_cases",
     description:
       "Search Azure AI Search for similar cases. Use when the user is investigating a case or wants historical incidents.",
     inputSchema: searchSimilarCasesInputSchema,

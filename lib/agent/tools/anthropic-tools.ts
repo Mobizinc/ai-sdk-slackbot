@@ -35,6 +35,7 @@ export interface AnthropicToolDefinition {
  * Options for creating an Anthropic tool
  */
 export interface CreateToolOptions<TInput = any, TOutput = any> {
+  name: string;
   description: string;
   inputSchema: Record<string, unknown> | any;
   execute: (input: TInput) => Promise<TOutput>;
@@ -46,11 +47,12 @@ export interface CreateToolOptions<TInput = any, TOutput = any> {
  * Replacement for AI SDK's `tool()` function. Returns a tool definition
  * that can be used with AnthropicChatService.
  *
- * @param options - Tool configuration including description, schema, and executor
+ * @param options - Tool configuration including name, description, schema, and executor
  * @returns Tool definition compatible with Anthropic Messages API
  *
  * @example
  * const weatherTool = createTool({
+ *   name: "get_weather",
  *   description: "Get weather for a location",
  *   inputSchema: z.object({ city: z.string() }),
  *   execute: async ({ city }) => {
@@ -61,14 +63,8 @@ export interface CreateToolOptions<TInput = any, TOutput = any> {
 export function createTool<TInput = any, TOutput = any>(
   options: CreateToolOptions<TInput, TOutput>
 ): AnthropicToolDefinition {
-  // Extract name from schema if available, otherwise use generic name
-  const schemaName =
-    (options.inputSchema as any)?.shape?._def?.typeName ||
-    (options.inputSchema as any)?.$schema ||
-    'tool';
-
   return {
-    name: schemaName,
+    name: options.name,
     description: options.description,
     inputSchema: options.inputSchema,
     execute: options.execute,

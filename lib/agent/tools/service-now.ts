@@ -131,6 +131,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
   const { updateStatus, options } = params;
 
   return createTool({
+    name: "servicenow_action",
     description:
       "Read data from ServiceNow (incidents, cases, case search with filters, knowledge base, recent journal entries, and configuration items). " +
       "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
@@ -238,19 +239,21 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           if (!sysId && number) {
             const caseRecord = await serviceNowClient.getCase(number, snContext);
+
             if (!caseRecord) {
               return {
                 entries: [],
                 message: `Case ${number} was not found in ServiceNow.`,
               };
             }
-            if (!caseRecord.sys_id) {
+
+            sysId = caseRecord.sys_id ?? null;
+            if (!sysId) {
               return {
                 entries: [],
-                message: `Case ${number} exists but sys_id is not accessible.`,
+                message: `Unable to access sys_id for case ${number}.`,
               };
             }
-            sysId = caseRecord.sys_id;
           }
 
           updateStatus?.(`is fetching journal entries for ${number ?? caseSysId}...`);

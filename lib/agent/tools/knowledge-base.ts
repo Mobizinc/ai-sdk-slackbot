@@ -30,6 +30,7 @@ export function createKnowledgeBaseTool(params: AgentToolFactoryParams) {
   const { updateStatus, options } = params;
 
   return createTool({
+    name: "generate_kb_article",
     description:
       "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
     inputSchema: generateKbArticleInputSchema,

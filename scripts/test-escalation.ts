@@ -27,6 +27,7 @@ const testCase: EscalationContext = {
   assignedTo: "U12345678", // Slack user ID
   assignmentGroup: "Professional Services",
   companyName: "Your Organization",
+  contactName: "John Doe",
   caseData: {
     short_description: "OnePacs multi-location installation with specialized integration requirements",
     description: "Customer needs OnePacs installed at multiple locations with custom integration to their existing PACS system. This requires professional services engagement and project management.",

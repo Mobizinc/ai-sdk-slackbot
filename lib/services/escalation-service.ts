@@ -41,6 +41,7 @@ export interface EscalationContext {
   assignedTo?: string;
   assignmentGroup?: string;
   companyName?: string;
+  contactName?: string;
 }
 
 export interface EscalationDecision {

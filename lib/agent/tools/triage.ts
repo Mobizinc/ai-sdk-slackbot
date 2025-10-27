@@ -24,6 +24,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
   const { updateStatus, options } = params;
 
   return createTool({
+    name: "triage_case",
     description:
       "Triage and classify a ServiceNow case. Use this when a user explicitly asks to triage, classify, or analyze a case. This performs AI-powered classification including category/subcategory recommendations, technical entity extraction, similar case analysis, and KB article suggestions. Returns comprehensive classification results including confidence scores and immediate next steps.",
     inputSchema: triageCaseInputSchema,

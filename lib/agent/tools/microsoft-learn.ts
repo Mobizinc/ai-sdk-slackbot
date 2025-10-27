@@ -30,6 +30,7 @@ export function createMicrosoftLearnTool(params: AgentToolFactoryParams) {
   const { updateStatus } = params;
 
   return createTool({
+    name: "search_microsoft_learn",
     description:
       "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provide the query terms (including error codes/messages) and the tool will return curated Microsoft Learn articles with summaries and links.",
     inputSchema: microsoftLearnSearchInputSchema,

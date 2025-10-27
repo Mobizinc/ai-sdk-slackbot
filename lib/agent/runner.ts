@@ -2,6 +2,7 @@ import type { CoreMessage, UpdateStatusFn, GenerateResponseOptions } from "./typ
 import type { ChatMessage, ToolDefinition, ExecuteToolResult } from "../services/anthropic-chat";
 import { AnthropicChatService } from "../services/anthropic-chat";
 import { getToolRegistry } from "./tool-registry";
+import { config } from "../config";
 
 export interface RunnerParams {
   messages: CoreMessage[];
@@ -36,7 +37,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
   const toolDefinitions = buildToolDefinitions(availableTools);
   const conversation: ChatMessage[] = params.messages.map(toChatMessage);
 
-  const maxSteps = 6;
+  const maxSteps = config.agentMaxToolIterations;
   const toolResults: ExecuteToolResult[] = [];
 
   for (let step = 0; step < maxSteps; step += 1) {
@@ -126,8 +127,8 @@ async function executeTool(
 }
 
 function flattenContent(content: CoreMessage["content"]): string {
-  // In the refactored architecture, content is always a string
-  return content;
+  // Converts content to string, handling potential null/undefined values defensively
+  return String(content ?? "");
 }
 
 function extractText(message: any): string | undefined {

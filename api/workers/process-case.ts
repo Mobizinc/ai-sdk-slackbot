@@ -18,14 +18,15 @@ import {
 } from '../../lib/schemas/servicenow-webhook';
 import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
+import { config } from '../../lib/config';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
 const classificationRepository = getCaseClassificationRepository();
 
 // Configuration
-const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE === 'true';
-const IDEMPOTENCY_WINDOW_MINUTES = parseInt(process.env.IDEMPOTENCY_WINDOW_MINUTES || '10', 10);
+const ENABLE_ASYNC_TRIAGE = config.enableAsyncTriage;
+const IDEMPOTENCY_WINDOW_MINUTES = config.idempotencyWindowMinutes;
 
 /**
  * Process case triage (async worker)

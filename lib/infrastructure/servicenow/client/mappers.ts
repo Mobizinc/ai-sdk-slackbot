@@ -115,7 +115,9 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     callerId: extractDisplayValue(record.caller_id),
     submittedBy: extractDisplayValue(record.submitted_by),
     contact: extractSysId(record.contact),
+    contactName: extractDisplayValue(record.contact),
     account: extractSysId(record.account),
+    accountName: extractDisplayValue(record.account),
     company: extractSysId(record.company),
     url: buildRecordUrl(instanceUrl, "sn_customerservice_case", record.sys_id),
   };

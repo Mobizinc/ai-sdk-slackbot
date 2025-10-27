@@ -59,9 +59,11 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     metadata.companyName = companyName;
     try {
       const businessContext = await businessContextService.getContextForCompany(companyName);
-      metadata.businessContext = businessContext; // Set null if not found, or the context object if found
+      // Explicitly set businessContext: will be null if not found, or the context object if found
+      metadata.businessContext = businessContext ?? null;
     } catch (error) {
-      // On error, don't set businessContext (remains undefined)
+      // On error, explicitly set to null
+      metadata.businessContext = null;
       console.warn("[Context Loader] Failed to load business context:", error);
     }
   }
@@ -120,11 +122,8 @@ function extractCaseNumbersFromMessages(
 }
 
 function normalizeContent(content: CoreMessage["content"]): string {
-  // In the refactored architecture, content is always a string
-  if (typeof content !== "string") {
-    throw new TypeError("normalizeContent expected a string, but received: " + typeof content);
-  }
-  return content;
+  // Converts content to string, handling any type defensively
+  return String(content);
 }
 
 function resolveCompanyName(metadata: Record<string, unknown>): string | undefined {

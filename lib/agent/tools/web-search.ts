@@ -27,6 +27,7 @@ export function createWebSearchTool(params: AgentToolFactoryParams) {
   const { updateStatus } = params;
 
   return createTool({
+    name: "search_web",
     description: "Use this to search the web for information",
     inputSchema: searchWebInputSchema,
     execute: async ({ query, specificDomain }: SearchWebToolInput) => {
