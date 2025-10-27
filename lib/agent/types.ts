@@ -20,6 +20,6 @@ export interface LegacyExecutorDeps {
 export type { ChatMessage };
 
 /**
- * @deprecated Use ChatMessage instead
+ * @deprecated Use ChatMessage instead. Will be removed in v2.0. Update all imports from CoreMessage to ChatMessage.
  */
 export type CoreMessage = ChatMessage;
