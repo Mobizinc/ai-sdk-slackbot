@@ -36,7 +36,7 @@ export interface AnthropicToolDefinition {
  */
 export interface CreateToolOptions<TInput = any, TOutput = any> {
   description: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: Record<string, unknown> | any;
   execute: (input: TInput) => Promise<TOutput>;
 }
 

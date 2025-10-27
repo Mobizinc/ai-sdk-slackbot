@@ -91,18 +91,18 @@ export class AnthropicChatService {
 
     const toolCalls = (
       result.content.filter(
-        (block): block is ToolUseBlock => block.type === "tool_use",
+        (block: Anthropic.Messages.ContentBlock): block is ToolUseBlock => block.type === "tool_use",
       )
     );
 
     const textBlocks = result.content.filter(
-      (block): block is Anthropic.Messages.TextBlock => block.type === "text",
+      (block: Anthropic.Messages.ContentBlock): block is Anthropic.Messages.TextBlock => block.type === "text",
     );
 
     return {
       message: result,
       toolCalls,
-      outputText: textBlocks.map((block) => block.text).join("\n\n") || undefined,
+      outputText: textBlocks.map((block: Anthropic.Messages.TextBlock) => block.text).join("\n\n") || undefined,
       usage: result.usage,
     };
   }
