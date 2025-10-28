@@ -114,6 +114,17 @@ class AgentOrchestrator {
 
           await formatSpan?.end({ messageLength: formattedMessage.length });
 
+          // Check if Block Kit data should be attached (stored in options by runner)
+          const blockKitData = (options as any)?._blockKitData;
+          if (blockKitData) {
+            // Return extended response with Block Kit data
+            // Handler will detect this and use Block Kit formatting
+            return JSON.stringify({
+              text: formattedMessage,
+              _blockKitData: blockKitData,
+            });
+          }
+
           return formattedMessage;
         } catch (error) {
           console.error("[Agent] Refactored orchestrator failed:", error);

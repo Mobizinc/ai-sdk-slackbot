@@ -42,6 +42,9 @@ export async function runAgent(params: RunnerParams): Promise<string> {
 
       const maxSteps = config.agentMaxToolIterations;
 
+      // Track Block Kit data from tool results
+      let blockKitData: any = null;
+
       for (let step = 0; step < maxSteps; step += 1) {
         // Create a child span for each LLM call
         const llmSpan = await createChildSpan({
@@ -127,6 +130,12 @@ export async function runAgent(params: RunnerParams): Promise<string> {
             throw new Error("[Agent] Anthropic response did not include text output.");
           }
           params.updateStatus?.("complete");
+
+          // Store Block Kit data in options for orchestrator to retrieve
+          if (blockKitData && params.options) {
+            (params.options as any)._blockKitData = blockKitData;
+          }
+
           return text.trim();
         }
 
@@ -166,6 +175,15 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         const currentToolResults = await Promise.all(
           toolCalls.map(toolCall => executeToolWithTrace(toolCall, availableTools))
         );
+
+        // Extract Block Kit data from tool results if present
+        for (const result of currentToolResults) {
+          if (result.output && typeof result.output === 'object' && (result.output as any)._blockKitData) {
+            blockKitData = (result.output as any)._blockKitData;
+            console.log('[Agent] Block Kit data detected from tool result');
+            break; // Use first Block Kit data found
+          }
+        }
 
         // CRITICAL: Append tool_result blocks to conversation as user message
         // This satisfies Anthropic 0.67+ requirement that tool_result blocks

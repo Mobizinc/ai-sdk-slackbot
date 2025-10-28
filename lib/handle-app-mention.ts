@@ -22,11 +22,12 @@ const updateStatusUtil = async (
   if (!initialMessage || !initialMessage.ts)
     throw new Error("Failed to post initial message");
 
-  const updateMessage = async (status: string) => {
+  const updateMessage = async (status: string, blocks?: any[]) => {
     await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
       text: status,
+      blocks,
     });
   };
   return updateMessage;
@@ -193,7 +194,30 @@ export async function handleNewAppMention(
     );
   }
 
-  await updateMessage(result);
+  // Check if result contains Block Kit data (JSON-encoded response)
+  try {
+    const parsed = JSON.parse(result);
+    if (parsed._blockKitData) {
+      console.log('[Handler] Block Kit data detected, formatting with Block Kit');
+
+      const { formatCaseAsBlockKit, generateCaseFallbackText } = await import("./formatters/servicenow-block-kit");
+
+      const blocks = formatCaseAsBlockKit(parsed._blockKitData.caseData, {
+        includeJournal: true,
+        journalEntries: parsed._blockKitData.journalEntries,
+        maxJournalEntries: 3,
+      });
+
+      const fallbackText = generateCaseFallbackText(parsed._blockKitData.caseData);
+
+      await updateMessage(fallbackText, blocks);
+    } else {
+      await updateMessage(parsed.text || result);
+    }
+  } catch {
+    // Not JSON or no Block Kit data - use as plain text
+    await updateMessage(result);
+  }
 
   // After responding, check for case numbers and trigger intelligent workflow
   const contextManager = getContextManager();
