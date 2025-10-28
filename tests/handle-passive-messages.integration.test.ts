@@ -11,15 +11,30 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  handlePassiveMessage,
-  notifyResolution,
-  extractCaseNumbers,
-  cleanupTimedOutGathering,
-} from "../lib/handle-passive-messages";
-import type { GenericMessageEvent } from "@slack/bolt";
+import type { GenericMessageEvent } from "../lib/slack-event-types";
 
-// Mock dependencies
+// Mock dependencies FIRST before any imports that use them
+const slackMessagingServiceMock = {
+  postMessage: vi.fn().mockResolvedValue({ ok: true }),
+  postToThread: vi.fn().mockResolvedValue({ ok: true }),
+  updateMessage: vi.fn().mockResolvedValue({ ok: true }),
+  getThread: vi.fn().mockResolvedValue([]),
+  createStatusUpdater: vi.fn(() => vi.fn()),
+};
+
+const contextManagerMock = {
+  getContextSync: vi.fn().mockReturnValue(undefined),
+  getContext: vi.fn().mockResolvedValue(undefined),
+  addMessage: vi.fn(),
+  createContext: vi.fn(),
+  extractCaseNumbers: vi.fn().mockReturnValue([]),
+  shouldAskForMoreInfo: vi.fn().mockReturnValue(false),
+  isKBGatheringInProgress: vi.fn().mockReturnValue(false),
+  hasEnoughQuality: vi.fn().mockReturnValue(false),
+  removeStaleContexts: vi.fn(),
+};
+
+// Set up mocks before importing the modules under test
 vi.mock("@slack/web-api", () => ({
   WebClient: vi.fn().mockImplementation(() => ({
     chat: {
@@ -39,28 +54,6 @@ vi.mock("../lib/services/servicenow", () => ({
   }),
 }));
 
-const contextManagerMock = {
-  getContextSync: vi.fn().mockReturnValue(undefined),
-  getContext: vi.fn().mockResolvedValue(undefined),
-  addMessage: vi.fn(),
-  createContext: vi.fn(),
-  extractCaseNumbers: vi.fn().mockReturnValue([]),
-  shouldAskForMoreInfo: vi.fn().mockReturnValue(false),
-  isKBGatheringInProgress: vi.fn().mockReturnValue(false),
-  hasEnoughQuality: vi.fn().mockReturnValue(false),
-  removeStaleContexts: vi.fn(),
-};
-
-const slackMessagingServiceMock = {
-  postMessage: vi.fn().mockResolvedValue({ ok: true }),
-  postToThread: vi.fn().mockResolvedValue({ ok: true }),
-  updateMessage: vi.fn().mockResolvedValue({ ok: true }),
-  getThread: vi.fn().mockResolvedValue([]),
-  createStatusUpdater: vi.fn(() => vi.fn()),
-};
-
-// Ensure mocks cover both TS path and compiled JS path resolution
-// Vitest resolves relative imports before normalising, so pre-resolve the module id
 vi.mock("../lib/services/slack-messaging", () => ({
   getSlackMessagingService: () => slackMessagingServiceMock,
   __resetSlackMessagingService: vi.fn(),
@@ -70,6 +63,91 @@ vi.mock("../../services/slack-messaging", () => ({
   getSlackMessagingService: () => slackMessagingServiceMock,
   __resetSlackMessagingService: vi.fn(),
 }));
+
+vi.mock("../lib/context-manager", () => ({
+  getContextManager: () => contextManagerMock,
+}));
+
+vi.mock("../lib/services/case-data", () => ({
+  getCaseDataService: vi.fn().mockReturnValue({
+    getCaseByNumber: vi.fn().mockResolvedValue(null),
+    getCaseJournal: vi.fn().mockResolvedValue([]),
+  }),
+}));
+
+// Mock modules that call getSlackMessagingService() at top level
+vi.mock("../lib/handle-kb-approval", () => ({
+  handleKBApproval: vi.fn(),
+  createPendingKBApproval: vi.fn(),
+  processKBApprovalReaction: vi.fn(),
+}));
+
+vi.mock("../lib/context-update-manager", () => ({
+  handleContextUpdate: vi.fn(),
+}));
+
+vi.mock("../lib/handle-messages", () => ({
+  handleDirectMessage: vi.fn(),
+}));
+
+vi.mock("../lib/handle-app-mention", () => ({
+  handleAppMention: vi.fn(),
+}));
+
+vi.mock("../lib/workflows/stale-ticket-workflow", () => ({
+  checkStaleTickets: vi.fn(),
+}));
+
+vi.mock("../lib/utils/loading-indicator", () => ({
+  showLoading: vi.fn(),
+  hideLoading: vi.fn(),
+}));
+
+vi.mock("../lib/services/channel-info", () => ({
+  getChannelInfo: vi.fn(),
+  getChannelName: vi.fn(),
+  getChannelTopic: vi.fn(),
+  getPotentialCustomer: vi.fn(),
+}));
+
+vi.mock("../lib/passive/actions/post-assistance", () => ({
+  PostAssistanceAction: vi.fn().mockImplementation(() => ({
+    execute: vi.fn(),
+  })),
+  getPostAssistanceAction: vi.fn().mockReturnValue({
+    execute: vi.fn(),
+  }),
+  __resetPostAssistanceAction: vi.fn(),
+  __setPostAssistanceAction: vi.fn(),
+}));
+
+vi.mock("../lib/passive/actions/add-to-context", () => {
+  const mockAddToContextAction = {
+    addMessageFromEvent: vi.fn(),
+    getContext: vi.fn(),
+    addMessageToCase: vi.fn(),
+    updateChannelInfo: vi.fn(),
+    markAssistancePosted: vi.fn(),
+    markResolutionNotified: vi.fn(),
+    resetResolutionFlag: vi.fn(),
+    findContextsForThread: vi.fn(),
+  };
+  
+  return {
+    AddToContextAction: vi.fn().mockImplementation(() => mockAddToContextAction),
+    getAddToContextAction: vi.fn().mockReturnValue(mockAddToContextAction),
+    __resetAddToContextAction: vi.fn(),
+    __setAddToContextAction: vi.fn(),
+  };
+});
+
+// Now import the modules under test
+import {
+  handlePassiveMessage,
+  notifyResolution,
+  extractCaseNumbers,
+  cleanupTimedOutGathering,
+} from "../lib/handle-passive-messages";
 
 describe("handle-passive-messages - Integration Tests", () => {
   const BOT_USER_ID = "U123BOT";
