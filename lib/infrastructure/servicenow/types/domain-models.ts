@@ -19,9 +19,13 @@ export interface Case {
   subcategory?: string;
   openedAt?: Date;
   assignmentGroup?: string;
+  assignmentGroupSysId?: string;
   assignedTo?: string;
+  assignedToSysId?: string;
   openedBy?: string;
+  openedBySysId?: string;
   callerId?: string;
+  callerIdSysId?: string;
   submittedBy?: string;
   contact?: string;
   contactName?: string;

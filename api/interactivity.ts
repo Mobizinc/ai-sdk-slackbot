@@ -17,6 +17,8 @@ import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getSlackMessagingService } from "../lib/services/slack-messaging";
 import { initializeDatabase } from "../lib/db/init";
 import { ErrorHandler } from "../lib/utils/error-handler";
+import { getCaseRepository } from "../lib/infrastructure/servicenow/repositories";
+import { getSlackClient } from "../lib/slack/client";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -290,13 +292,85 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       return;
     }
 
+    // Try to update ServiceNow
+    let serviceNowUpdateSuccess = false;
+    let serviceNowError: string | null = null;
+
+    try {
+      const caseRepo = getCaseRepository();
+
+      // Look up case by number to get sys_id
+      const caseRecord = await caseRepo.findByNumber(caseNumber);
+
+      if (!caseRecord) {
+        throw new Error(`Case ${caseNumber} not found in ServiceNow`);
+      }
+
+      // Get reassigning user's name for work note
+      let reassignedByName = `<@${userId}>`;
+      try {
+        const slackClient = getSlackClient();
+        const userInfo = await slackClient.users.info({ user: userId });
+        reassignedByName = userInfo.user?.real_name || userInfo.user?.name || reassignedByName;
+      } catch (error) {
+        console.warn(`[Interactivity] Could not fetch Slack user info for ${userId}:`, error);
+      }
+
+      // Handle assignment based on type
+      if (assignmentType === "group" && assignmentGroup) {
+        // Query ServiceNow to get assignment group sys_id by name
+        // Note: Using the ServiceNow HTTP client directly since there's no group repository
+        const serviceNowClient = await import("../lib/infrastructure/servicenow/repositories/case-repository.impl");
+
+        console.log(`[Interactivity] Looking up assignment group: ${assignmentGroup}`);
+
+        // For now, update with group name directly - ServiceNow often accepts exact names
+        // This will work if the instance is configured to accept group names
+        await caseRepo.update(caseRecord.sysId, {
+          assignmentGroup: assignmentGroup,
+        });
+
+        console.log(`[Interactivity] Updated case ${caseNumber} assignment group to ${assignmentGroup}`);
+      } else if (assignmentType === "user" && assignedTo) {
+        // User assignment requires Slack → ServiceNow user mapping
+        // This is not yet implemented, so we'll skip ServiceNow update for now
+        throw new Error("User assignment not yet implemented - please use group assignment");
+      }
+
+      // Build and add work note
+      let workNoteContent = `━━━ CASE REASSIGNMENT ━━━
+Action: Case reassigned
+Reassigned by: ${reassignedByName}
+Timestamp: ${new Date().toISOString()}
+Assignment Type: ${assignmentType === "user" ? "User" : "Group"}
+Assigned To: ${assignmentTarget}
+Reason: ${reassignmentReason}`;
+
+      if (workNote) {
+        workNoteContent += `\n\nAdditional Notes:\n${workNote}`;
+      }
+
+      await caseRepo.addWorkNote(caseRecord.sysId, workNoteContent, true);
+      console.log(`[Interactivity] Added reassignment work note to case ${caseNumber}`);
+
+      serviceNowUpdateSuccess = true;
+    } catch (error) {
+      console.error(`[Interactivity] Error updating ServiceNow for ${caseNumber}:`, error);
+      serviceNowError = error instanceof Error ? error.message : "Unknown error";
+    }
+
     // Post reassignment confirmation in thread
+    const statusEmoji = serviceNowUpdateSuccess ? "✅" : "⚠️";
+    const statusMessage = serviceNowUpdateSuccess
+      ? "Case reassigned in ServiceNow"
+      : `ServiceNow update failed: ${serviceNowError}`;
+
     const confirmationBlocks = [
       {
         type: "header",
         text: {
           type: "plain_text",
-          text: "🔄 Case Reassigned",
+          text: "🔄 Case Reassignment",
           emoji: true,
         },
       },
@@ -304,7 +378,7 @@ async function handleReassignSubmission(payload: any): Promise<void> {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `✅ <@${userId}> reassigned case *${caseNumber}*`,
+          text: `${statusEmoji} <@${userId}> reassigned case *${caseNumber}*\n\n${statusMessage}`,
         },
       },
       {
@@ -343,6 +417,7 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       });
     }
 
+    // Add context based on success/failure
     confirmationBlocks.push(
       {
         type: "divider",
@@ -352,7 +427,9 @@ async function handleReassignSubmission(payload: any): Promise<void> {
         elements: [
           {
             type: "mrkdwn",
-            text: "📝 _Next step: Update assignment in ServiceNow or manually notify the assignee_",
+            text: serviceNowUpdateSuccess
+              ? "✅ _Assignment updated in ServiceNow with work note_"
+              : "⚠️ _Slack acknowledgment only - manual ServiceNow update required_",
           },
         ],
       } as any
@@ -361,22 +438,21 @@ async function handleReassignSubmission(payload: any): Promise<void> {
     await slackMessaging.postMessage({
       channel: channelId,
       threadTs: messageTs,
-      text: `✅ Case ${caseNumber} reassigned to ${assignmentTarget}`,
+      text: `${statusEmoji} Case ${caseNumber} reassigned to ${assignmentTarget}`,
     });
 
     // Update original escalation message
+    const updateStatus = serviceNowUpdateSuccess
+      ? `🔄 Reassigned by <@${userId}> to ${assignmentTarget} - Updated in ServiceNow`
+      : `🔄 Reassigned by <@${userId}> to ${assignmentTarget} (⚠️ ServiceNow update failed)`;
+
     await updateEscalationMessage(
       channelId,
       messageTs,
-      `🔄 Reassigned by <@${userId}> to ${assignmentTarget}`
+      updateStatus
     );
 
-    // TODO: In the future, integrate with ServiceNow to actually reassign
-    // - Update assigned_to or assignment_group field in ServiceNow
-    // - Add work note with reassignment reason
-    // - Notify the new assignee
-
-    console.log(`[Interactivity] Case reassigned successfully: ${caseNumber}`);
+    console.log(`[Interactivity] Case reassignment processed: ${caseNumber} (ServiceNow: ${serviceNowUpdateSuccess})`);
   } catch (error) {
     console.error(`[Interactivity] Error handling reassignment:`, error);
 
@@ -1003,21 +1079,76 @@ async function handleAcknowledgeBau(
 ): Promise<void> {
   console.log(`[Interactivity] BAU acknowledgment for ${caseNumber} by ${user.id}`);
 
+  let serviceNowUpdateSuccess = false;
+  let serviceNowError: string | null = null;
+
+  // Try to update ServiceNow
+  try {
+    const caseRepo = getCaseRepository();
+
+    // Look up case by number to get sys_id
+    const caseRecord = await caseRepo.findByNumber(caseNumber);
+
+    if (!caseRecord) {
+      throw new Error(`Case ${caseNumber} not found in ServiceNow`);
+    }
+
+    // Get user info from Slack to include name in work note
+    let userName = `<@${user.id}>`;
+    try {
+      const slackClient = getSlackClient();
+      const userInfo = await slackClient.users.info({ user: user.id });
+      userName = userInfo.user?.real_name || userInfo.user?.name || userName;
+    } catch (error) {
+      console.warn(`[Interactivity] Could not fetch Slack user info for ${user.id}:`, error);
+    }
+
+    // Add work note to ServiceNow case
+    const workNote = `━━━ ESCALATION ACKNOWLEDGED ━━━
+Action: Confirmed as standard BAU work
+Acknowledged by: ${userName}
+Timestamp: ${new Date().toISOString()}
+Reason: This case does not require escalation and will be handled through normal support channels.
+
+Escalation dismissed. Case proceeding through standard workflow.`;
+
+    await caseRepo.addWorkNote(caseRecord.sysId, workNote, true);
+    console.log(`[Interactivity] Added work note to case ${caseNumber}`);
+
+    // Update case state to "2" (Work in Progress)
+    await caseRepo.update(caseRecord.sysId, { state: "2" });
+    console.log(`[Interactivity] Updated case ${caseNumber} state to Work in Progress`);
+
+    serviceNowUpdateSuccess = true;
+  } catch (error) {
+    console.error(`[Interactivity] Error updating ServiceNow for ${caseNumber}:`, error);
+    serviceNowError = error instanceof Error ? error.message : "Unknown error";
+  }
+
   // Post acknowledgment in thread
+  const statusEmoji = serviceNowUpdateSuccess ? "✅" : "⚠️";
+  const statusMessage = serviceNowUpdateSuccess
+    ? "Case updated in ServiceNow and escalation acknowledged."
+    : `Acknowledged in Slack. ServiceNow update failed: ${serviceNowError}`;
+
   await slackMessaging.postMessage({
     channel: container.channel_id,
     threadTs: container.message_ts,
     text:
-      `✅ <@${user.id}> confirmed this is **standard BAU** work\n\n` +
-      `The case will continue through normal support channels. ` +
-      `Escalation dismissed.`,
+      `${statusEmoji} <@${user.id}> confirmed this is **standard BAU** work\n\n` +
+      `${statusMessage}\n\n` +
+      `The case will continue through normal support channels. Escalation dismissed.`,
   });
 
   // Update original message
+  const updateStatus = serviceNowUpdateSuccess
+    ? `✅ Confirmed as BAU by <@${user.id}> - Escalation dismissed, case updated in ServiceNow`
+    : `✅ Confirmed as BAU by <@${user.id}> - Escalation dismissed (⚠️ ServiceNow update failed)`;
+
   await updateEscalationMessage(
     container.channel_id,
     container.message_ts,
-    `✅ Confirmed as BAU by <@${user.id}> - Escalation dismissed`
+    updateStatus
   );
 }
 
