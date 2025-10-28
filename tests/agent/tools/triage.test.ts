@@ -104,7 +104,10 @@ describe("Case Triage Tool", () => {
         caseNumber: "SCS0001234",
       });
 
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234");
+      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith(
+        "SCS0001234",
+        expect.any(Object),
+      );
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         "is triaging case SCS0001234..."
       );

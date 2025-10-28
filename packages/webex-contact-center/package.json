@@ -1,0 +1,16 @@
+{
+  "name": "@internal/webex-contact-center",
+  "version": "0.1.0",
+  "description": "Webex Contact Center API client utilities",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js",
+      "types": "./index.d.ts"
+    }
+  },
+  "license": "MIT"
+}

@@ -8,7 +8,10 @@
  */
 
 import { config } from "dotenv";
-import { getCapturesByTaskIds, downloadRecording } from "../lib/services/webex-contact-center";
+import {
+  getCapturesByTaskIds,
+  downloadRecording,
+} from "../lib/services/webex-contact-center";
 
 // Load environment variables
 config({ path: ".env.local" });
@@ -63,7 +66,7 @@ async function main() {
 
   try {
     const startTime = Date.now();
-    const captures = await getCapturesByTaskIds(testTaskIds, 3600); // 1 hour URL expiration
+    const captures = await getCapturesByTaskIds(testTaskIds, 3600);
     const queryTime = Date.now() - startTime;
 
     console.log(`✅ Captures API responded in ${queryTime}ms`);
@@ -119,31 +122,23 @@ async function main() {
       console.log(`   Output file: ${outputPath}`);
       console.log();
 
-      try {
-        const downloadStart = Date.now();
-        const fileSize = await downloadRecording(firstCapture.filepath, outputPath);
-        const downloadTime = Date.now() - downloadStart;
+      const downloadStart = Date.now();
+      const fileSize = await downloadRecording(firstCapture.filepath, outputPath);
+      const downloadTime = Date.now() - downloadStart;
 
-        console.log(`✅ Download successful!`);
-        console.log(`   File size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
-        console.log(`   Download time: ${(downloadTime / 1000).toFixed(2)}s`);
-        console.log(`   Speed: ${((fileSize / 1024 / 1024) / (downloadTime / 1000)).toFixed(2)} MB/s`);
-        console.log(`   File saved to: ${outputPath}`);
-        console.log();
+      console.log(`✅ Download successful!`);
+      console.log(`   File size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`   Download time: ${(downloadTime / 1000).toFixed(2)}s`);
+      console.log(`   Speed: ${((fileSize / 1024 / 1024) / (downloadTime / 1000)).toFixed(2)} MB/s`);
+      console.log(`   File saved to: ${outputPath}`);
+      console.log();
 
-        // Verify file exists
-        const fs = await import("fs/promises");
-        const stats = await fs.stat(outputPath);
-        console.log(`✅ File verification:`);
-        console.log(`   Exists: ${stats.isFile()}`);
-        console.log(`   Size matches: ${stats.size === fileSize}`);
-        console.log();
-
-      } catch (error) {
-        console.error("❌ Download failed:");
-        console.error(`   ${error instanceof Error ? error.message : String(error)}`);
-        console.log();
-      }
+      const fs = await import("fs/promises");
+      const stats = await fs.stat(outputPath);
+      console.log(`✅ File verification:`);
+      console.log(`   Exists: ${stats.isFile()}`);
+      console.log(`   Size matches: ${stats.size === fileSize}`);
+      console.log();
     }
 
     // Summary

@@ -1,62 +1,46 @@
+import { createWriteStream } from "node:fs";
+import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import type { NewCallInteraction } from "../db/schema";
+import {
+  createWebexClient,
+  type WebexContactCenterClient,
+  type WebexVoiceInteraction,
+  type WebexCapture,
+  WebexContactCenterError,
+  type DownloadRecordingOptions as BaseDownloadOptions,
+} from "../../packages/webex-contact-center";
 
-const DEFAULT_WEBEX_BASE_URL = "https://webexapis.com/v1";
 const DEFAULT_PAGE_SIZE = 100;
+const DEFAULT_URL_EXPIRATION_SECONDS = 3600;
 
-// Lazy getters for environment variables to support dotenv loading
-// These functions read from process.env at runtime instead of module load time
+// Lazy environment readers
 const getWebexClientId = () => process.env.WEBEX_CC_CLIENT_ID;
 const getWebexClientSecret = () => process.env.WEBEX_CC_CLIENT_SECRET;
 const getWebexRefreshToken = () => process.env.WEBEX_CC_REFRESH_TOKEN;
 const getWebexAccessToken = () => process.env.WEBEX_CC_ACCESS_TOKEN;
-const getWebexBaseUrl = () => (process.env.WEBEX_CC_BASE_URL || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
+const getWebexBaseUrl = () =>
+  (process.env.WEBEX_CC_BASE_URL || "https://webexapis.com/v1").replace(/\/$/, "");
 const getWebexOrgId = () => process.env.WEBEX_CC_ORG_ID;
-const getWebexInteractionPath = () => process.env.WEBEX_CC_INTERACTION_PATH || "contactCenter/interactionHistory";
-
-// Legacy constants for backward compatibility (deprecated - use getters)
-const WEBEX_CLIENT_ID = getWebexClientId();
-const WEBEX_CLIENT_SECRET = getWebexClientSecret();
-const WEBEX_REFRESH_TOKEN = getWebexRefreshToken();
-const WEBEX_ACCESS_TOKEN = getWebexAccessToken();
-const WEBEX_BASE_URL = getWebexBaseUrl();
-const WEBEX_ORG_ID = getWebexOrgId();
-const WEBEX_INTERACTION_PATH = getWebexInteractionPath();
-
-type WebexInteractionRecord = {
-  sessionId: string;
-  contactId?: string;
-  mediaType?: string;
-  direction?: string;
-  ani?: string;
-  dnis?: string;
-  startTime?: string;
-  endTime?: string;
-  queueName?: string;
-  wrapUpCode?: string;
-  participants?: Array<{
-    role?: string;
-    id?: string;
-    name?: string;
-  }>;
-  attributes?: Record<string, unknown>;
-  recording?: {
-    id?: string;
-  };
-  [key: string]: unknown;
+const getWebexInteractionPath = () =>
+  process.env.WEBEX_CC_INTERACTION_PATH || "contactCenter/interactionHistory";
+const getWebexCapturePath = () =>
+  process.env.WEBEX_CC_CAPTURE_PATH || "contactCenter/captureManagement/captures";
+const getWebexCaptureChunkSize = () => {
+  const raw = process.env.WEBEX_CC_CAPTURE_CHUNK_SIZE;
+  if (!raw) return undefined;
+  const parsed = Number(raw);
+  return Number.isNaN(parsed) ? undefined : parsed;
 };
 
-type WebexInteractionResponse = {
-  items?: WebexInteractionRecord[];
-  links?: {
-    next?: string;
-  };
-};
+let clientSingleton: WebexContactCenterClient | null = null;
 
-class WebexContactCenterError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "WebexContactCenterError";
-  }
+function getLogger() {
+  return {
+    info: (message: string) => console.log(message),
+    warn: (message: string) => console.warn(message),
+    error: (message: string) => console.error(message),
+  };
 }
 
 async function exchangeRefreshToken(): Promise<string> {
@@ -104,70 +88,47 @@ async function exchangeRefreshToken(): Promise<string> {
 }
 
 async function getAccessToken(): Promise<string> {
-  const accessToken = getWebexAccessToken();
-  if (accessToken) {
-    return accessToken;
-  }
-
+  const direct = getWebexAccessToken();
+  if (direct) return direct;
   return exchangeRefreshToken();
 }
 
-function extractCaseNumber(record: WebexInteractionRecord): string | undefined {
-  const attributes = record.attributes || {};
-  const possibleKeys = [
-    "caseNumber",
-    "CaseNumber",
-    "CASE_NUMBER",
-    "case_number",
-    "servicenow_case",
-  ];
-
-  for (const key of possibleKeys) {
-    const value = attributes[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
+function getClient(): WebexContactCenterClient {
+  if (!clientSingleton) {
+    clientSingleton = createWebexClient({
+      baseUrl: getWebexBaseUrl(),
+      orgId: getWebexOrgId(),
+      interactionPath: getWebexInteractionPath(),
+      capturePath: getWebexCapturePath(),
+      maxCaptureChunkSize: getWebexCaptureChunkSize(),
+      getAccessToken,
+      logger: getLogger(),
+    });
   }
-
-  return undefined;
+  return clientSingleton;
 }
 
-function pickAgentParticipant(record: WebexInteractionRecord) {
-  const participants = record.participants || [];
-  const agent =
-    participants.find((p) => p.role?.toLowerCase() === "agent") ||
-    participants.find((p) => p.role?.toLowerCase() === "user");
-  return agent ?? null;
-}
-
-function toNewCallInteraction(record: WebexInteractionRecord): NewCallInteraction | null {
-  if (!record.sessionId) {
-    return null;
-  }
-
-  const agent = pickAgentParticipant(record);
-  const startTime = record.startTime ? new Date(record.startTime) : undefined;
-  const endTime = record.endTime ? new Date(record.endTime) : undefined;
-  const durationSeconds =
-    startTime && endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : undefined;
+function toNewCallInteraction(record: WebexVoiceInteraction): NewCallInteraction {
+  const startTime = record.startTime;
+  const endTime = record.endTime;
 
   return {
     sessionId: record.sessionId,
     contactId: record.contactId,
-    caseNumber: extractCaseNumber(record),
+    caseNumber: record.caseNumber,
     direction: record.direction,
     ani: record.ani,
     dnis: record.dnis,
-    agentId: agent?.id,
-    agentName: agent?.name,
+    agentId: record.agentId,
+    agentName: record.agentName,
     queueName: record.queueName,
     startTime,
     endTime,
-    durationSeconds,
+    durationSeconds: record.durationSeconds,
     wrapUpCode: record.wrapUpCode,
-    recordingId: record.recording?.id,
+    recordingId: record.recordingId,
     transcriptStatus: "pending",
-    rawPayload: record as Record<string, unknown>,
+    rawPayload: record.rawPayload,
     syncedAt: new Date(),
   };
 }
@@ -186,68 +147,68 @@ export interface FetchInteractionsResult {
 export async function fetchVoiceInteractions(
   params: FetchInteractionsParams,
 ): Promise<FetchInteractionsResult> {
-  const accessToken = await getAccessToken();
+  const client = getClient();
+  const result = await client.fetchVoiceInteractions({
+    startTime: params.startTime,
+    endTime: params.endTime,
+    pageSize: params.pageSize ?? DEFAULT_PAGE_SIZE,
+  });
 
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE;
-  const interactions: NewCallInteraction[] = [];
-  let latestEndTime: Date | null = null;
-  let nextUrl: string | null = buildInitialUrl(params, pageSize);
-
-  while (nextUrl) {
-    console.log(`[Webex API] GET ${nextUrl}`);
-
-    const res = await fetch(nextUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`[Webex API] Response: ${res.status} ${res.statusText}`);
-      throw new WebexContactCenterError(
-        `Failed to retrieve Webex interactions: ${res.status} ${text}`,
-      );
-    }
-
-    console.log(`[Webex API] Response: ${res.status} ${res.statusText}`);
-
-    const payload = (await res.json()) as WebexInteractionResponse;
-    const items = payload.items ?? [];
-
-    for (const item of items) {
-      const mapped = toNewCallInteraction(item);
-      if (!mapped) continue;
-
-      interactions.push(mapped);
-
-      if (mapped.endTime) {
-        if (!latestEndTime || mapped.endTime > latestEndTime) {
-          latestEndTime = mapped.endTime;
-        }
-      }
-    }
-
-    nextUrl = payload.links?.next ?? null;
-  }
-
-  return { interactions, latestEndTime };
+  return {
+    interactions: result.interactions.map(toNewCallInteraction),
+    latestEndTime: result.latestEndTime,
+  };
 }
 
-function buildInitialUrl(params: FetchInteractionsParams, pageSize: number): string {
-  const baseUrl = getWebexBaseUrl();
-  const interactionPath = getWebexInteractionPath();
-  const orgId = getWebexOrgId();
+export type { WebexCapture } from "../../packages/webex-contact-center";
 
-  const url = new URL(`${baseUrl}/${interactionPath}`);
-  url.searchParams.set("mediaType", "telephony");
-  url.searchParams.set("startTime", params.startTime.toISOString());
-  url.searchParams.set("endTime", params.endTime.toISOString());
-  url.searchParams.set("pageSize", String(pageSize));
-  if (orgId) {
-    url.searchParams.set("orgId", orgId);
+export async function getCapturesByTaskIds(
+  taskIds: string[],
+  urlExpirationSeconds = DEFAULT_URL_EXPIRATION_SECONDS,
+): Promise<WebexCapture[]> {
+  const client = getClient();
+  return client.getCapturesByTaskIds(taskIds, urlExpirationSeconds);
+}
+
+export interface RecordingDownloadOptions extends BaseDownloadOptions {
+  /**
+   * Progress callback invoked with the cumulative bytes written and optional total size.
+   */
+  onProgress?: (downloadedBytes: number, totalBytes?: number) => void;
+}
+
+export async function downloadRecording(
+  url: string,
+  destinationPath: string,
+  options: RecordingDownloadOptions = {},
+): Promise<number> {
+  const client = getClient();
+  const { response, contentLength } = await client.downloadRecording(url, options);
+
+  if (!response.body) {
+    throw new WebexContactCenterError("Recording download response did not include a body stream");
   }
 
-  return url.toString();
+  const totalBytes = contentLength;
+  let downloadedBytes = 0;
+
+  const progress = new Transform({
+    transform(chunk, _encoding, callback) {
+      downloadedBytes += chunk.length;
+      options.onProgress?.(downloadedBytes, totalBytes);
+      callback(null, chunk);
+    },
+  });
+
+  const readable = Readable.fromWeb(response.body as unknown as ReadableStream<Uint8Array>);
+  const outputStream = createWriteStream(destinationPath);
+
+  await pipeline(readable, progress, outputStream);
+  return downloadedBytes;
 }
+
+export const __private = {
+  resetClient() {
+    clientSingleton = null;
+  },
+};
