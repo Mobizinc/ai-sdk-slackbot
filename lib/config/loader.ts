@@ -32,7 +32,7 @@ export function getConfigValue<K extends ConfigKey>(key: K): ConfigValueMap[K] {
 }
 
 function createInitialConfig(): ConfigValueMap {
-  const initial: Partial<ConfigValueMap> = {};
+  const initial = {} as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
     const definition = CONFIG_DEFINITIONS[key];
     const envRaw = definition.envVar ? process.env[definition.envVar] : undefined;

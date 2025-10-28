@@ -23,6 +23,7 @@ import {
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
+import { withLangSmithTrace } from '../lib/observability';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -110,13 +111,7 @@ function sanitizePayload(payload: string): string {
   // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
   let sanitized = fixInvalidEscapeSequences(payload);
 
-  // Step 2: Escape literal newlines, carriage returns, and tabs that are not already escaped
-  sanitized = sanitized
-    .replace(/(?<!\\)\n/g, '\\n')
-    .replace(/(?<!\\)\r/g, '\\r')
-    .replace(/(?<!\\)\t/g, '\\t');
-
-  // Step 3: Remove other problematic control characters and unicode separators
+  // Also remove DEL character (0x7F) and unicode line/paragraph separators
   return sanitized
     .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/[\u2028\u2029]/g, '');
@@ -245,7 +240,7 @@ function parseWebhookPayload(rawPayload: string): unknown {
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
-async function postImpl(request: Request) {
+const postImpl = withLangSmithTrace(async (request: Request) => {
   const startTime = Date.now();
 
   try {
@@ -417,7 +412,15 @@ async function postImpl(request: Request) {
       { status: 500 }
     );
   }
-}
+}, {
+  name: "servicenow_webhook_handler",
+  runType: "chain",
+  tags: {
+    component: "api",
+    operation: "webhook",
+    service: "servicenow",
+  },
+});
 
 export const POST = postImpl;
 

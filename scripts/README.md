@@ -22,7 +22,7 @@ This interactive script will guide you through:
 
 ## Azure Tenant Onboarding
 
-Complete guide: `operations/onboarding/AZURE_TENANT_ONBOARDING.md`
+Complete guide: `docs/AZURE_TENANT_ONBOARDING.md`
 
 ### Quick Start: Onboard a New Tenant
 
@@ -355,7 +355,7 @@ npx tsx scripts/discover-infrastructure.ts --channel altus-support --days 90
 - `ci-records/` - Directory for manually created CIs (not in git)
 
 **Documentation:**
-- `operations/cmdb/CMDB_PILOT_ALTUS.md` - Complete 4-phase pilot plan
+- `docs/CMDB_PILOT_ALTUS.md` - Complete 4-phase pilot plan
 
 ---
 
@@ -444,4 +444,4 @@ After Phase 1 completion:
 4. **Scale Up** - Document 10-15 more CIs
 5. **Automate** - Move to Phase 3 (AI-assisted drafting)
 
-See `operations/cmdb/CMDB_PILOT_ALTUS.md` for complete roadmap.
+See `docs/CMDB_PILOT_ALTUS.md` for complete roadmap.

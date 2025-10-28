@@ -3,10 +3,9 @@
  * and gather missing information for KB article creation.
  */
 
-import { generateText } from "../instrumented-ai";
 import type { QualityAssessment } from "./case-quality-analyzer";
 import type { CaseContext } from "../context-manager";
-import { modelProvider } from "../model-provider";
+import { AnthropicChatService } from "./anthropic-chat";
 
 export interface GatheringQuestions {
   questions: string[];
@@ -73,16 +72,30 @@ Example:
   try {
     console.log("[KB Assistant] Generating gathering questions...");
 
-    const generationConfig = {
-      model: modelProvider.languageModel("kb-assistant"),
-      prompt,
-    };
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a friendly knowledge management assistant helping to create a KB article. Respond with concise JSON answers only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
-    const { text } = await generateText(generationConfig);
+    const output = response.outputText ?? extractText(response.message);
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!output) {
+      throw new Error("Anthropic did not return gathering questions");
+    }
+
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error("No JSON found in questions response");
+      throw new Error("No JSON found in Anthropic response");
     }
 
     const result = JSON.parse(jsonMatch[0]) as GatheringQuestions;
@@ -114,6 +127,17 @@ Example:
       context: "This will help create a helpful KB article for the team",
     };
   }
+}
+
+function extractText(message: any): string | undefined {
+  if (!message?.content) return undefined;
+  const blocks = Array.isArray(message.content) ? message.content : [message.content];
+  const text = blocks
+    .filter((block: any) => block?.type === "text")
+    .map((block: any) => block.text ?? "")
+    .join("\n")
+    .trim();
+  return text || undefined;
 }
 
 /**

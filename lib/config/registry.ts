@@ -40,6 +40,13 @@ export const CONFIG_DEFINITIONS = {
     group: "assistant",
     description: "Number of similar cases to surface for assistants.",
   },
+  agentMaxToolIterations: {
+    envVar: "AGENT_MAX_TOOL_ITERATIONS",
+    type: "number",
+    default: 6,
+    group: "assistant",
+    description: "Maximum number of tool execution iterations allowed in agent runner.",
+  },
   kbSimilarCasesTopK: {
     envVar: "KB_SIMILAR_CASES_TOP_K",
     type: "number",
@@ -370,6 +377,20 @@ export const CONFIG_DEFINITIONS = {
     group: "llm",
     description: "Default model name for the Anthropic provider.",
   },
+  anthropicPromptCachingEnabled: {
+    envVar: "ANTHROPIC_PROMPT_CACHING_ENABLED",
+    type: "boolean",
+    default: true,
+    group: "llm",
+    description: "Enable Anthropic prompt caching for 90% cost reduction on cached tokens.",
+  },
+  anthropicCachingStrategy: {
+    envVar: "ANTHROPIC_CACHING_STRATEGY",
+    type: "string",
+    default: "system-only",
+    group: "llm",
+    description: "Caching strategy: 'system-only', 'system-and-tools', or 'aggressive'.",
+  },
   langsmithApiKey: {
     envVar: "LANGSMITH_API_KEY",
     type: "string",
@@ -395,9 +416,9 @@ export const CONFIG_DEFINITIONS = {
   langsmithTracingEnabled: {
     envVar: "LANGSMITH_TRACING",
     type: "boolean",
-    default: false,
+    default: true, // Default to true - actual enablement depends on API key presence (checked at runtime)
     group: "telemetry",
-    description: "Enable LangSmith tracing for LLM providers.",
+    description: "Enable LangSmith tracing for LLM providers. Defaults to true, but tracing requires BOTH this flag to be true AND a valid LANGSMITH_API_KEY to be set. Set to false to explicitly disable tracing even when API key is present.",
   },
   azureSearchEndpoint: {
     envVar: "AZURE_SEARCH_ENDPOINT",
@@ -816,6 +837,27 @@ export const CONFIG_DEFINITIONS = {
     default: 60,
     group: "integrations",
     description: "Minutes lookback when syncing voice worknotes.",
+  },
+  enableMultimodalToolResults: {
+    envVar: "ENABLE_MULTIMODAL_TOOL_RESULTS",
+    type: "boolean",
+    default: false,
+    group: "assistant",
+    description: "Enable image and document content blocks in tool results. Significantly increases token usage.",
+  },
+  maxImageAttachmentsPerTool: {
+    envVar: "MAX_IMAGE_ATTACHMENTS_PER_TOOL",
+    type: "number",
+    default: 3,
+    group: "assistant",
+    description: "Maximum number of image attachments to include per tool call.",
+  },
+  maxImageSizeBytes: {
+    envVar: "MAX_IMAGE_SIZE_BYTES",
+    type: "number",
+    default: 5242880,
+    group: "assistant",
+    description: "Maximum size of individual images to process in bytes (default: 5MB).",
   },
 } as const satisfies Record<string, ConfigDefinition>;
 

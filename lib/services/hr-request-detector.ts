@@ -1,4 +1,3 @@
-import { config } from "../config";
 /**
  * HR Request Detector Service
  * Detects HR-related requests that should be submitted via catalog items
@@ -114,18 +113,6 @@ const DEFAULT_CATALOG_MAPPINGS: CatalogItemMapping[] = [
       'provision user',
       'user provisioning',
       'grant access',
-      // Email-related keywords (added for cases like SCS0049613)
-      'email setup',
-      'email account',
-      'company email',
-      'email addresses',
-      'mailbox',
-      'outlook account',
-      'exchange account',
-      'mail setup',
-      'email creation',
-      'create email',
-      'new email',
     ],
     catalogItemNames: [
       'HR - New Account Request',
@@ -360,8 +347,8 @@ let hrRequestDetector: HRRequestDetector | null = null;
 
 export function getHRRequestDetector(): HRRequestDetector {
   if (!hrRequestDetector) {
-    const runtimeConfig = config.hrRequestDetectorConfig || process.env.HR_REQUEST_DETECTOR_CONFIG;
-    hrRequestDetector = HRRequestDetector.fromConfig(runtimeConfig);
+    const config = process.env.HR_REQUEST_DETECTOR_CONFIG;
+    hrRequestDetector = HRRequestDetector.fromConfig(config);
   }
   return hrRequestDetector;
 }

@@ -28,8 +28,6 @@ vi.mock("../lib/tools/servicenow", () => ({
     createProblemFromCase: vi.fn(),
     getServiceOffering: vi.fn(),
     getApplicationServicesForCompany: vi.fn(),
-    getIncidentByParentCase: vi.fn(),
-    getProblemByParentCase: vi.fn(),
   },
 }));
 
@@ -151,7 +149,7 @@ describe("CaseTriageService", () => {
       priority: "1",
       urgency: "High",
       state: "New",
-      assignment_group: "Incident and Case Management",
+      assignment_group: "IT Support",
       assignment_group_sys_id: "group_123",
       company: "company_456",
       account_id: "Acme Corp",
@@ -197,7 +195,6 @@ describe("CaseTriageService", () => {
         isStale: false,
       });
       mockClassifier.classifyCaseEnhanced.mockResolvedValue(classificationResult);
-      mockServiceNowClient.getIncidentByParentCase.mockResolvedValue(null);
       mockServiceNowClient.addCaseWorkNote.mockResolvedValue(undefined);
       mockServiceNowClient.createIncidentFromCase.mockResolvedValue(incidentResult);
       mockServiceNowClient.updateCase.mockResolvedValue(undefined);
@@ -217,12 +214,15 @@ describe("CaseTriageService", () => {
       expect(mockServiceNowClient.createIncidentFromCase).toHaveBeenCalledWith(
         expect.objectContaining({
           isMajorIncident: false,
-        })
+        }),
+        expect.any(Object)
       );
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         "sys_id_123",
-        expect.stringContaining("INCIDENT CREATED")
+        expect.stringContaining("INCIDENT CREATED"),
+        true,
+        expect.any(Object)
       );
     });
 
@@ -258,7 +258,6 @@ describe("CaseTriageService", () => {
         isStale: false,
       });
       mockClassifier.classifyCaseEnhanced.mockResolvedValue(classificationResult);
-      mockServiceNowClient.getProblemByParentCase.mockResolvedValue(null);
       mockServiceNowClient.addCaseWorkNote.mockResolvedValue(undefined);
       mockServiceNowClient.createProblemFromCase.mockResolvedValue(problemResult);
       mockServiceNowClient.updateCase.mockResolvedValue(undefined);
@@ -278,7 +277,9 @@ describe("CaseTriageService", () => {
 
       expect(mockServiceNowClient.addCaseWorkNote).toHaveBeenCalledWith(
         "sys_id_123",
-        expect.stringContaining("PROBLEM CREATED")
+        expect.stringContaining("PROBLEM CREATED"),
+        true,
+        expect.any(Object)
       );
     });
 
@@ -401,7 +402,6 @@ describe("CaseTriageService", () => {
         isStale: false,
       });
       mockClassifier.classifyCaseEnhanced.mockResolvedValue(classificationResult);
-      mockServiceNowClient.getIncidentByParentCase.mockResolvedValue(null);
       mockServiceNowClient.addCaseWorkNote.mockResolvedValue(undefined);
       mockServiceNowClient.createIncidentFromCase.mockResolvedValue(incidentResult);
       mockServiceNowClient.updateCase.mockResolvedValue(undefined);
@@ -419,7 +419,8 @@ describe("CaseTriageService", () => {
         expect.objectContaining({
           category: "Email", // Fallback to case category
           subcategory: "Server", // Fallback to case subcategory
-        })
+        }),
+        expect.any(Object)
       );
     });
   });
@@ -508,20 +509,8 @@ describe("CaseTriageService", () => {
     });
 
     it("should not perform catalog redirect when incident created", async () => {
-      // Arrange - create a custom webhook for this test with correct assignment group
-      const incidentWebhook: ServiceNowCaseWebhook = {
-        ...mockWebhook,
-        case_number: "CASE003",
-        sys_id: "sys_id_789",
-        assignment_group: "Incident and Case Management",
-        category: "Network",
-        subcategory: "Outage",
-        short_description: "Network outage detected",
-        description: "Critical network outage",
-      };
-
+      // Arrange
       const classificationResult = createClassificationResult({
-        case_number: "CASE003",
         category: "Network",
         subcategory: "Outage",
         reasoning: "Network outage",
@@ -551,7 +540,6 @@ describe("CaseTriageService", () => {
         isStale: false,
       });
       mockClassifier.classifyCaseEnhanced.mockResolvedValue(classificationResult);
-      mockServiceNowClient.getIncidentByParentCase.mockResolvedValue(null);
       mockServiceNowClient.createIncidentFromCase.mockResolvedValue(incidentResult);
       mockServiceNowClient.updateCase.mockResolvedValue(undefined);
       mockServiceNowClient.addCaseWorkNote.mockResolvedValue(undefined);
@@ -559,7 +547,7 @@ describe("CaseTriageService", () => {
       mockRepository.storeDiscoveredEntities.mockResolvedValue(0);
 
       // Act
-      const result = await triageService.triageCase(incidentWebhook, {
+      const result = await triageService.triageCase(mockWebhook, {
         writeToServiceNow: true,
         enableCatalogRedirect: true,
       });

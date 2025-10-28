@@ -9,12 +9,26 @@
  * - Mentions assigned engineer if configured
  */
 
-import { generateObject } from "../instrumented-ai";
 import { z } from "zod";
-import { modelProvider } from "../model-provider";
 import { config } from "../config";
 import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
+import { AnthropicChatService } from "./anthropic-chat";
 import type { EscalationContext, EscalationDecision } from "./escalation-service";
+import {
+  createHeaderBlock,
+  createSectionBlock,
+  createFieldsBlock,
+  createDivider,
+  createContextBlock,
+  createButton,
+  sanitizeMrkdwn,
+  sanitizePlainText,
+  getUrgencyIndicator,
+  validateBlockCount,
+  validateFieldsArray,
+  MessageEmojis,
+  type KnownBlock,
+} from "../utils/message-styling";
 
 /**
  * Schema for LLM-generated escalation content
@@ -40,44 +54,85 @@ export async function buildEscalationMessage(
   const prompt = buildEscalationPrompt(context, decision);
 
   try {
-    // Wrap LLM call with timeout
-    const result = await withTimeout(
-      generateObject({
-        model: modelProvider.languageModel("chat-model"),
-        schema: EscalationContentSchema as any, // Type assertion to avoid deep instantiation error
-        prompt: prompt,
+    const chatService = AnthropicChatService.getInstance();
+    const response = await withTimeout(
+      chatService.send({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a service desk escalation analyst. Respond with concise JSON by calling the `draft_escalation_content` tool exactly once.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        tools: [
+          {
+            name: "draft_escalation_content",
+            description:
+              "Generate escalation summary and clarifying questions. Call exactly once with structured output.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                summary: { type: "string" },
+                questions: {
+                  type: "array",
+                  items: { type: "string" },
+                  minItems: 2,
+                  maxItems: 4,
+                },
+              },
+              required: ["summary", "questions"],
+              additionalProperties: false,
+            },
+          },
+        ],
+        maxSteps: 3,
       }),
       config.llmEscalationTimeoutMs,
-      // Fallback to template-based message on timeout
-      async () => {
-        console.warn(
-          `[Escalation Message Builder] LLM timeout (${config.llmEscalationTimeoutMs}ms) - using fallback template`
-        );
-        const fallbackBlocks = buildFallbackEscalationMessage(context, decision);
-        return {
-          object: getFallbackContent(context),
-          usage: { totalTokens: 0, promptTokens: 0, completionTokens: 0 },
-        } as any;
-      }
     );
 
-    const content = result.object as { summary: string; questions: string[] };
+    let content: { summary: string; questions: string[] } | null = null;
+
+    if (response.toolCalls.length > 0) {
+      const firstCall = response.toolCalls[0];
+      content = EscalationContentSchema.parse(firstCall.input);
+    } else if (response.outputText) {
+      try {
+        const parsed = JSON.parse(response.outputText);
+        content = EscalationContentSchema.parse(parsed);
+      } catch (parseError) {
+        console.warn(
+          "[Escalation Message Builder] Failed to parse Anthropic text output:",
+          parseError,
+        );
+      }
+    }
+
+    if (!content) {
+      throw new Error("Structured escalation content not returned from Anthropic");
+    }
+
     const blocks = buildSlackBlocks(context, decision, content);
 
+    const usage =
+      (response.usage?.input_tokens ?? 0) + (response.usage?.output_tokens ?? 0);
+
     console.log(
-      `[Escalation Message Builder] Generated LLM message (${result.usage.totalTokens} tokens)`
+      `[Escalation Message Builder] Generated LLM message (${usage} tokens)`
     );
 
     return {
       blocks,
-      tokenUsage: result.usage.totalTokens,
+      tokenUsage: usage,
     };
   } catch (error) {
     if (isTimeoutError(error)) {
       console.error(
         `[Escalation Message Builder] LLM timeout after ${error.timeoutMs}ms - using fallback`
       );
-      // Return fallback template
       const fallbackBlocks = buildFallbackEscalationMessage(context, decision);
       return {
         blocks: fallbackBlocks,
@@ -90,9 +145,6 @@ export async function buildEscalationMessage(
   }
 }
 
-/**
- * Build prompt for LLM to generate escalation content
- */
 function buildEscalationPrompt(
   context: EscalationContext,
   decision: EscalationDecision
@@ -153,208 +205,151 @@ function buildSlackBlocks(
   context: EscalationContext,
   decision: EscalationDecision,
   content?: { summary: string; questions: string[] }
-): any[] {
-  const blocks: any[] = [];
+): KnownBlock[] {
+  const blocks: KnownBlock[] = [];
 
-  // Header
-  blocks.push({
-    type: "header",
-    text: {
-      type: "plain_text",
-      text: `⚠️ Non-BAU Case Detected: ${context.caseNumber}`,
-      emoji: true,
-    },
-  });
+  // Header - sanitize case number to prevent injection
+  const sanitizedCaseNumber = sanitizePlainText(context.caseNumber, 100);
+  blocks.push(
+    createHeaderBlock(`${MessageEmojis.WARNING} Non-BAU Case Detected: ${sanitizedCaseNumber}`)
+  );
 
   // Business Context Section
-  const businessContextFields: any[] = [];
+  const businessContextFields: Array<{ label: string; value: string }> = [];
 
   if (context.companyName) {
     businessContextFields.push({
-      type: "mrkdwn",
-      text: `*Client:*\n${context.companyName}`,
+      label: "Client",
+      value: sanitizeMrkdwn(context.companyName),
+    });
+  }
+
+  if (context.contactName) {
+    businessContextFields.push({
+      label: "Contact",
+      value: sanitizeMrkdwn(context.contactName),
     });
   }
 
   if (context.assignedTo && config.escalationNotifyAssignedEngineer) {
     businessContextFields.push({
-      type: "mrkdwn",
-      text: `*Assigned:*\n<@${context.assignedTo}>`,
+      label: "Assigned",
+      value: `<@${context.assignedTo}>`, // Slack user mentions are safe
     });
   } else if (context.assignmentGroup) {
     businessContextFields.push({
-      type: "mrkdwn",
-      text: `*Group:*\n${context.assignmentGroup}`,
+      label: "Group",
+      value: sanitizeMrkdwn(context.assignmentGroup),
     });
   }
 
   if (businessContextFields.length > 0) {
+    // Validate fields don't exceed limit
+    validateFieldsArray(businessContextFields);
+
     blocks.push(
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "*━━━ BUSINESS CONTEXT ━━━*",
-        },
-      },
-      {
-        type: "section",
-        fields: businessContextFields,
-      }
+      createSectionBlock("*━━━ BUSINESS CONTEXT ━━━*"),
+      createFieldsBlock(businessContextFields)
     );
   }
 
   // AI Analysis Section
-  const categoryText = context.classification.category || "Unknown";
+  const categoryText = sanitizeMrkdwn(context.classification.category || "Unknown");
   const subcategoryText = context.classification.subcategory
-    ? ` > ${context.classification.subcategory}`
+    ? ` > ${sanitizeMrkdwn(context.classification.subcategory)}`
     : "";
   const confidence = Math.round((context.classification.confidence_score || 0) * 100);
-  const urgencyIcon = getUrgencyIcon(context.caseData.urgency || context.classification.urgency_level);
+  const urgencyIcon = getUrgencyIndicator(
+    context.caseData.urgency || context.classification.urgency_level
+  );
 
-  let analysisText = `*Category:* ${categoryText}${subcategoryText} | ${urgencyIcon} ${context.caseData.urgency || context.classification.urgency_level || "Unknown"} | ${confidence}% confidence\n\n`;
+  let analysisText = `*Category:* ${categoryText}${subcategoryText} | ${urgencyIcon} | ${confidence}% confidence\n\n`;
 
   if (content?.summary) {
-    analysisText += `${content.summary}`;
+    // Sanitize LLM-generated summary
+    analysisText += sanitizeMrkdwn(content.summary);
   } else {
-    // Fallback: Use business intelligence reasons
+    // Fallback: Use business intelligence reasons (sanitize ServiceNow data)
     const bi = context.classification.business_intelligence;
     if (bi?.project_scope_reason) {
-      analysisText += bi.project_scope_reason;
+      analysisText += sanitizeMrkdwn(bi.project_scope_reason);
     } else if (bi?.executive_visibility_reason) {
-      analysisText += bi.executive_visibility_reason;
+      analysisText += sanitizeMrkdwn(bi.executive_visibility_reason);
     } else {
       analysisText += `This case requires attention beyond standard BAU support (BI Score: ${decision.biScore}/100)`;
     }
   }
 
   blocks.push(
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "*━━━ AI ANALYSIS ━━━*",
-      },
-    },
-    {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: analysisText,
-      },
-    }
+    createSectionBlock("*━━━ AI ANALYSIS ━━━*"),
+    createSectionBlock(analysisText)
   );
 
   // Recommended Actions Section (Questions)
   if (content?.questions && content.questions.length > 0) {
+    // Sanitize LLM-generated questions
     const questionsText = content.questions
-      .map((q) => `❓ ${q}`)
+      .map((q) => `${MessageEmojis.QUESTION} ${sanitizeMrkdwn(q)}`)
       .join("\n");
 
     blocks.push(
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "*━━━ RECOMMENDED ACTIONS ━━━*",
-        },
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: questionsText,
-        },
-      }
+      createSectionBlock("*━━━ RECOMMENDED ACTIONS ━━━*"),
+      createSectionBlock(questionsText)
     );
   } else if (context.classification.immediate_next_steps) {
-    // Fallback: Use immediate_next_steps from classification
+    // Fallback: Use immediate_next_steps from classification (sanitize)
     const stepsText = context.classification.immediate_next_steps
       .slice(0, 3)
-      .map((step: string) => `• ${step}`)
+      .map((step: string) => `• ${sanitizeMrkdwn(step)}`)
       .join("\n");
 
     blocks.push(
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "*━━━ RECOMMENDED ACTIONS ━━━*",
-        },
-      },
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: stepsText,
-        },
-      }
+      createSectionBlock("*━━━ RECOMMENDED ACTIONS ━━━*"),
+      createSectionBlock(stepsText)
     );
   }
 
   // Interactive Action Buttons
   blocks.push({
     type: "actions",
+    block_id: "escalation_actions_primary",
     elements: [
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Create Project",
-          emoji: true,
-        },
+      createButton({
+        text: "Create Project",
+        actionId: "escalation_button_create_project",
+        value: `create_project:${sanitizedCaseNumber}`,
         style: "primary",
-        value: `create_project:${context.caseNumber}`,
-        action_id: "escalation_create_project",
-      },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Acknowledge as BAU",
-          emoji: true,
-        },
-        value: `acknowledge_bau:${context.caseNumber}`,
-        action_id: "escalation_acknowledge_bau",
-      },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Reassign",
-          emoji: true,
-        },
-        value: `reassign:${context.caseNumber}`,
-        action_id: "escalation_reassign",
-      },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "View in ServiceNow",
-          emoji: true,
-        },
+      }),
+      createButton({
+        text: "Acknowledge as BAU",
+        actionId: "escalation_button_acknowledge_bau",
+        value: `acknowledge_bau:${sanitizedCaseNumber}`,
+      }),
+      createButton({
+        text: "Reassign",
+        actionId: "escalation_button_reassign",
+        value: `reassign:${sanitizedCaseNumber}`,
+      }),
+      createButton({
+        text: "View in ServiceNow",
+        actionId: "escalation_button_view_servicenow",
         url: getServiceNowUrl(context.caseSysId),
-        action_id: "escalation_view_servicenow",
-      },
+      }),
     ],
   });
 
   // Divider
-  blocks.push({
-    type: "divider",
-  });
+  blocks.push(createDivider());
 
   // Footer with metadata
-  blocks.push({
-    type: "context",
-    elements: [
-      {
-        type: "mrkdwn",
-        text: `🤖 Escalation triggered by AI triage | Case: ${context.caseNumber} | BI Score: ${decision.biScore}/100`,
-      },
-    ],
-  });
+  blocks.push(
+    createContextBlock(
+      `${MessageEmojis.PROCESSING} Escalation triggered by AI triage | Case: ${sanitizedCaseNumber} | BI Score: ${decision.biScore}/100`
+    )
+  );
+
+  // Validate block count before returning
+  validateBlockCount(blocks, 'message');
 
   return blocks;
 }
@@ -433,22 +428,6 @@ function getFallbackContent(context: EscalationContext): { summary: string; ques
     summary: getFallbackSummary(context, { shouldEscalate: true, biScore: 0, triggerFlags: {} }),
     questions: getFallbackQuestions(context),
   };
-}
-
-/**
- * Get urgency icon emoji
- */
-function getUrgencyIcon(urgency?: string): string {
-  if (!urgency) return "🟡";
-
-  const urgencyLower = urgency.toLowerCase();
-  if (urgencyLower.includes("high") || urgencyLower === "1") {
-    return "🔴";
-  }
-  if (urgencyLower.includes("medium") || urgencyLower === "2") {
-    return "🟡";
-  }
-  return "🟢";
 }
 
 /**

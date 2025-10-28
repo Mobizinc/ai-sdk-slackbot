@@ -13,16 +13,16 @@
 
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
 import { isQStashEnabled, getSigningKeys } from '../../lib/queue/qstash-client';
-import { config as appConfig } from '../../lib/config';
 /**
  * Get queue statistics
  */
 export async function GET(request: Request) {
   try {
     const repository = getCaseClassificationRepository();
-    const enableAsyncTriage = appConfig.enableAsyncTriage;
+    const enableAsyncTriage = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
+    // Get auth header for admin access
     const authHeader = request.headers.get('authorization');
-    const adminKey = appConfig.adminApiKey;
+    const adminKey = process.env.ADMIN_API_KEY;
 
     // Simple API key auth (optional - remove if not needed)
     if (adminKey && authHeader !== `Bearer ${adminKey}`) {
@@ -60,12 +60,12 @@ export async function GET(request: Request) {
 
     const signingKeys = getSigningKeys();
 
-    return new Response(JSON.stringify({
+    return Response.json({
       queue_config: {
         async_triage_enabled: enableAsyncTriage,
         qstash_enabled: isQStashEnabled(),
         qstash_configured: !!(signingKeys.current && signingKeys.next),
-        worker_url: appConfig.vercelUrl || 'localhost:3000',
+        worker_url: process.env.VERCEL_URL || 'localhost:3000', // Auto-detected
       },
       stats_7d: {
         total_classifications: stats7d.totalClassifications,
@@ -97,37 +97,16 @@ export async function GET(request: Request) {
         age_minutes: Math.round((Date.now() - r.createdAt.getTime()) / 60000),
       })),
       timestamp: new Date().toISOString(),
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
     });
 
   } catch (error) {
     console.error('[Queue Stats] Error fetching statistics:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+    return Response.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
       },
-    });
+      { status: 500 }
+    );
   }
-}
-
-export async function OPTIONS(): Promise<Response> {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
 }

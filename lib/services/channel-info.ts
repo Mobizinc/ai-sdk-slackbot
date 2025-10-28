@@ -3,7 +3,9 @@
  * Used to provide contextual hints (not authoritative data) for case tracking.
  */
 
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "./slack-messaging";
+
+const slackMessaging = getSlackMessagingService();
 
 interface ChannelInfo {
   channelId: string;
@@ -66,9 +68,7 @@ export async function getChannelInfo(
   }
 
   try {
-    const result = await client.conversations.info({
-      channel: channelId,
-    });
+    const result = await slackMessaging.getConversationInfo(channelId);
 
     if (!result.channel) {
       console.warn(`No channel info found for ${channelId}`);

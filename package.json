@@ -32,8 +32,6 @@
     "pnpm": ">=8.15.0"
   },
   "dependencies": {
-    "@ai-sdk/gateway": "^1.0.15",
-    "@ai-sdk/openai": "^2.0.42",
     "@anthropic-ai/sdk": "^0.38.0",
     "@azure/search-documents": "^12.1.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
@@ -41,13 +39,13 @@
     "@slack/web-api": "^7.9.3",
     "@upstash/qstash": "^2.8.4",
     "@vercel/functions": "^2.0.0",
-    "ai": "^5.0.26",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "exa-js": "^1.4.10",
     "langsmith": "^0.3.74",
     "mssql": "^11.0.0",
     "openai": "^6.2.0",
+    "sharp": "^0.34.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -3,6 +3,15 @@
  * Provides contextual error messages and recovery guidance for Slack notifications
  */
 
+import {
+  createHeaderBlock,
+  createSectionBlock,
+  createDivider,
+  createContextBlock,
+  MessageEmojis,
+  type KnownBlock,
+} from "./message-styling";
+
 export enum ErrorCategory {
   NETWORK = "network",
   TIMEOUT = "timeout",
@@ -362,63 +371,42 @@ export class ErrorHandler {
    * Format error for Slack Block Kit display
    */
   static formatForSlack(result: ErrorHandlerResult): any[] {
-    const blocks: any[] = [];
+    const blocks: KnownBlock[] = [];
 
-    // Error header
+    // Error header with consistent emoji constants
     const severityEmoji = {
-      low: "ℹ️",
-      medium: "⚠️",
-      high: "🚨",
-      critical: "🔴",
+      low: MessageEmojis.INFO,
+      medium: MessageEmojis.WARNING,
+      high: MessageEmojis.INCIDENT,
+      critical: MessageEmojis.HIGH_PRIORITY,
     }[result.severity];
 
-    blocks.push({
-      type: "header",
-      text: {
-        type: "plain_text",
-        text: `${severityEmoji} Error`,
-        emoji: true,
-      },
-    });
+    blocks.push(
+      createHeaderBlock(`${severityEmoji} Error`)
+    );
 
     // User-friendly message
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: result.userMessage,
-      },
-    });
+    blocks.push(
+      createSectionBlock(result.userMessage)
+    );
 
     // Divider
-    blocks.push({
-      type: "divider",
-    });
+    blocks.push(createDivider());
 
     // Recovery steps
     const recoveryText =
       "**What you can do:**\n" +
       result.recoverySteps.map((step, i) => `${i + 1}. ${step}`).join("\n");
 
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: recoveryText,
-      },
-    });
+    blocks.push(
+      createSectionBlock(recoveryText)
+    );
 
     // Retryable indicator
     if (result.retryable) {
-      blocks.push({
-        type: "context",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: "🔄 _This operation can be retried_",
-          },
-        ],
-      });
+      blocks.push(
+        createContextBlock(`${MessageEmojis.REFRESH} _This operation can be retried_`)
+      );
     }
 
     return blocks;
@@ -433,7 +421,7 @@ export class ErrorHandler {
     message += result.recoverySteps.map((step, i) => `${i + 1}. ${step}`).join("\n");
 
     if (result.retryable) {
-      message += "\n\n🔄 _This operation can be retried_";
+      message += `\n\n${MessageEmojis.REFRESH} _This operation can be retried_`;
     }
 
     return message;

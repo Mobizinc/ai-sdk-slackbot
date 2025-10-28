@@ -1,38 +1,32 @@
 /**
- * Simple Gateway test - bypass all the complex bot logic
+ * Simple Anthropic chat test using the new runner pipeline.
  */
 
-import { createGateway } from "@ai-sdk/gateway";
-import { generateText } from "../lib/instrumented-ai";
+import type { CoreMessage } from "../lib/agent/types";
+import { runAgent } from "../lib/agent/runner";
+import { __setToolRegistry } from "../lib/agent/tool-registry";
 
-async function testSimpleGateway() {
-  console.log("Testing Gateway directly...\n");
+async function testSimpleAnthropic() {
+  console.log("Testing Anthropic chat...\n");
 
-  // Read API key from Vercel env or .env.local
-  const apiKey = process.env.AI_GATEWAY_API_KEY || "vck_7iT66tXm9Lxvfcz2dA01qhRTYyvpTqQi7X2N";
+  const messages: CoreMessage[] = [
+    { role: "system", content: "You are a concise assistant. Answer in one sentence." },
+    { role: "user", content: "What is 2+2?" },
+  ];
 
-  console.log(`API Key: ${apiKey.substring(0, 15)}...`);
-
-  const gateway = createGateway({
-    apiKey: apiKey,
-  });
-
-  const model = gateway("zai/glm-4.6");
-
-  console.log("Calling GLM-4.6 with simple prompt...\n");
+  // Ensure we use the default tool registry (no custom tools needed here)
+  __setToolRegistry(null);
 
   try {
-    const result = await generateText({
-      model,
-      prompt: "What is 2+2? Answer in one sentence.",
+    const response = await runAgent({
+      messages,
     });
 
     console.log("✅ SUCCESS!");
-    console.log(`Response: ${result.text}`);
-    console.log(`Usage:`, result.usage);
+    console.log(response);
   } catch (error) {
     console.error("❌ ERROR:", error);
   }
 }
 
-testSimpleGateway();
+testSimpleAnthropic();

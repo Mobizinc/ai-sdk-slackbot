@@ -3,7 +3,14 @@
  * Provides visual feedback for long-running operations in Slack
  */
 
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "../services/slack-messaging";
+import {
+  createSectionBlock,
+  MessageEmojis,
+  type KnownBlock,
+} from "./message-styling";
+
+const slackMessaging = getSlackMessagingService();
 
 export type OperationType =
   | "kb_generation"
@@ -43,12 +50,12 @@ export class LoadingIndicator {
     const blocks = this.buildLoadingBlocks(operation);
 
     try {
-      const result = await client.chat.postMessage({
+      const result = await slackMessaging.postMessage({
         channel,
-        thread_ts: threadTs,
+        threadTs: threadTs,
         text: loadingText,
         blocks,
-        unfurl_links: false,
+        unfurlLinks: false,
       });
 
       if (!result.ts) {
@@ -92,7 +99,7 @@ export class LoadingIndicator {
     const blocks = this.buildSuccessBlocks(indicator.operation, result, elapsedSeconds);
 
     try {
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: indicator.channel,
         ts: messageTs,
         text: successText,
@@ -126,7 +133,7 @@ export class LoadingIndicator {
     const blocks = this.buildErrorBlocks(indicator.operation, error, elapsedSeconds);
 
     try {
-      await client.chat.update({
+      await slackMessaging.updateMessage({
         channel: indicator.channel,
         ts: messageTs,
         text: errorText,
@@ -150,7 +157,7 @@ export class LoadingIndicator {
     }
 
     try {
-      await client.chat.delete({
+      await slackMessaging.deleteMessage({
         channel: indicator.channel,
         ts: messageTs,
       });
@@ -201,11 +208,10 @@ export class LoadingIndicator {
     operation: OperationType,
     result: string | undefined,
     elapsedSeconds: string
-  ): any[] {
-    const emoji = "✅";
+  ): KnownBlock[] {
     const description = this.getOperationDescription(operation);
 
-    let text = `${emoji} *${description} Complete*\n\n`;
+    let text = `${MessageEmojis.SUCCESS} *${description} Complete*\n\n`;
 
     if (result) {
       text += `${result}\n\n`;
@@ -214,13 +220,7 @@ export class LoadingIndicator {
     text += `_Completed in ${elapsedSeconds}s_`;
 
     return [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text,
-        },
-      },
+      createSectionBlock(text)
     ];
   }
 
@@ -231,39 +231,32 @@ export class LoadingIndicator {
     operation: OperationType,
     error: string,
     elapsedSeconds: string
-  ): any[] {
-    const emoji = "❌";
+  ): KnownBlock[] {
     const description = this.getOperationDescription(operation);
 
     const text =
-      `${emoji} *${description} Failed*\n\n` +
+      `${MessageEmojis.ERROR} *${description} Failed*\n\n` +
       `${error}\n\n` +
       `_Failed after ${elapsedSeconds}s_`;
 
     return [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text,
-        },
-      },
+      createSectionBlock(text)
     ];
   }
 
   /**
-   * Get operation emoji
+   * Get operation emoji using consistent constants
    */
   private getOperationEmoji(operation: OperationType): string {
     const emojis: Record<OperationType, string> = {
-      kb_generation: "🤖",
-      classification: "🔍",
-      escalation: "⚡",
-      analysis: "🧠",
-      processing: "⏳",
+      kb_generation: MessageEmojis.PROCESSING,
+      classification: MessageEmojis.SEARCH,
+      escalation: MessageEmojis.LIGHTNING,
+      analysis: MessageEmojis.BRAIN,
+      processing: MessageEmojis.PROCESSING,
     };
 
-    return emojis[operation] || "⏳";
+    return emojis[operation] || MessageEmojis.PROCESSING;
   }
 
   /**

@@ -1,8 +1,9 @@
-import { config } from "../config";
 import { ConnectionPool } from "mssql";
 
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "./slack-messaging";
 import { getAllowedMobizDomains, isMobizEmail } from "./mobiz-filter";
+
+const slackMessaging = getSlackMessagingService();
 
 const DEFAULT_LOOKBACK_DAYS = 7;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";
@@ -39,12 +40,11 @@ interface SqlActiveRow {
 }
 
 function parseConnectionUrl(rawUrl?: string) {
-  const configuredUrl = config.azureSqlDatabaseUrl || rawUrl;
-  if (!configuredUrl) {
-    throw new Error("Azure SQL connection string is not configured");
+  if (!rawUrl) {
+    throw new Error("AZURE_SQL_DATABASE_URL environment variable is not set");
   }
 
-  const normalized = configuredUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
+  const normalized = rawUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
   const parsed = new URL(normalized);
 
   return {
@@ -61,8 +61,8 @@ function parseConnectionUrl(rawUrl?: string) {
 }
 
 async function withSqlPool<T>(callback: (pool: ConnectionPool) => Promise<T>): Promise<T> {
-  const connectionConfig = parseConnectionUrl();
-  const pool = new ConnectionPool(connectionConfig as any);
+  const config = parseConnectionUrl(process.env.AZURE_SQL_DATABASE_URL);
+  const pool = new ConnectionPool(config as any);
   await pool.connect();
 
   try {
@@ -312,11 +312,11 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
 
   if (chart) {
     try {
-      await client.files.uploadV2({
-        channel_id: options.channelId,
+      await slackMessaging.uploadFile({
+        channelId: options.channelId,
         filename: "mobiz-case-leaderboard.png",
         title: "Mobiz Service Desk Leaderboard",
-        initial_comment: message,
+        initialComment: message,
         file: chart.buffer,
       });
     } catch (error) {
@@ -325,7 +325,7 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
       const apiError = slackError?.data?.error ?? slackError?.message;
       if (String(apiError ?? "") === "missing_scope") {
         console.warn("files.uploadV2 missing scope; sending link instead");
-        await client.chat.postMessage({
+        await slackMessaging.postMessage({
           channel: options.channelId,
           text: `${message}\nChart: ${chart.shareUrl}`,
         });
@@ -334,7 +334,7 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
       }
     }
   } else {
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: options.channelId,
       text: message,
     });
