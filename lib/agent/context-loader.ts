@@ -122,7 +122,8 @@ function extractCaseNumbersFromMessages(
 }
 
 function normalizeContent(content: CoreMessage["content"]): string {
-  // Converts content to string, handling any type defensively
+  // CoreMessage content can be string | undefined based on ChatMessage type
+  // String() handles undefined gracefully, converting to empty string
   return String(content);
 }
 

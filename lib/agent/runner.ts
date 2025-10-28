@@ -304,7 +304,8 @@ async function executeToolWithTrace(
 }
 
 function flattenContent(content: CoreMessage["content"]): string {
-  // Converts content to string, handling potential null/undefined values defensively
+  // CoreMessage content can be string | undefined based on ChatMessage type
+  // Handle defensively for backward compatibility
   return String(content ?? "");
 }
 
