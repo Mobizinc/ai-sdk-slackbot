@@ -58,11 +58,51 @@ export function extractSysId(field: ServiceNowField | undefined | null): string 
 /**
  * Parse ServiceNow date string to Date object
  */
-export function parseServiceNowDate(dateString: string | undefined | null): Date | undefined {
-  if (!dateString) return undefined;
+export function parseServiceNowDate(
+  field: ServiceNowField | string | number | undefined | null,
+): Date | undefined {
+  if (field === undefined || field === null) {
+    return undefined;
+  }
+
+  let raw: string;
+
+  if (typeof field === "string" || typeof field === "number") {
+    raw = String(field);
+  } else if (typeof field === "object") {
+    const value = "value" in field ? field.value : undefined;
+    const displayValue = "display_value" in field ? field.display_value : undefined;
+    raw = String(value ?? displayValue ?? "");
+  } else {
+    raw = String(field);
+  }
+
+  if (!raw || raw === "null" || raw === "undefined") {
+    return undefined;
+  }
+
   try {
-    return new Date(dateString);
-  } catch {
+    const parsed = new Date(raw);
+
+    // Check if date is valid
+    if (Number.isNaN(parsed.getTime())) {
+      console.warn(`[ServiceNow Mapper] Invalid date string:`, { raw });
+      return undefined;
+    }
+
+    // Additional validation: check if date is reasonable (not year 0000 or far future)
+    const year = parsed.getFullYear();
+    if (year < 1900 || year > 2100) {
+      console.warn(`[ServiceNow Mapper] Date out of reasonable range:`, { raw, year });
+      return undefined;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error(`[ServiceNow Mapper] Date parsing error:`, {
+      raw,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return undefined;
   }
 }

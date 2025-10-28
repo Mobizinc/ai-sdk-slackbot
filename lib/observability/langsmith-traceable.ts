@@ -104,22 +104,44 @@ export function withLangSmithTrace<Args extends any[], Return>(
       inputs: { args: sanitizeForTracing(args) },
     });
 
-    await runTree.postRun();
+    try {
+      await runTree.postRun();
+    } catch (postError) {
+      // Log but don't fail - tracing errors should not break functionality
+      console.warn('[LangSmith] Failed to post run (continuing without trace):', {
+        name,
+        error: postError instanceof Error ? postError.message : String(postError),
+      });
+      // Continue execution without tracing
+      return fn(...args);
+    }
 
     return withRunTree(runTree, async () => {
       try {
         const result = await fn(...args);
         const sanitizedResult = sanitizeForTracing(result);
-        if (sanitizedResult === undefined) {
-          await runTree.end();
-        } else {
-          await runTree.end({ result: sanitizedResult });
+        try {
+          if (sanitizedResult === undefined) {
+            await runTree.end();
+          } else {
+            await runTree.end({ result: sanitizedResult });
+          }
+        } catch (endError) {
+          // Log but don't fail - trace end errors should not affect result
+          console.warn('[LangSmith] Failed to end trace (result still returned):', {
+            name,
+            error: endError instanceof Error ? endError.message : String(endError),
+          });
         }
         return result;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-        await runTree.end(undefined, errorMessage);
+        try {
+          await runTree.end(undefined, errorMessage);
+        } catch (endError) {
+          console.warn('[LangSmith] Failed to end trace with error:', endError);
+        }
         throw error;
       }
     });
@@ -189,7 +211,16 @@ export async function createChildSpan(
       metadata: createTraceMetadata(resolvedMetadata),
     });
 
-    await runTree.postRun();
+    try {
+      await runTree.postRun();
+    } catch (postError) {
+      // Log but don't fail - tracing errors should not break functionality
+      console.warn('[LangSmith] Failed to post run (continuing without trace):', {
+        name,
+        error: postError instanceof Error ? postError.message : String(postError),
+      });
+      return null;
+    }
 
     return runTree;
   } catch (error) {

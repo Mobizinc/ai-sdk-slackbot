@@ -423,6 +423,18 @@ export class ServiceNowClient {
    * Convert new Case domain model to legacy ServiceNowCaseResult format
    */
   private toDomainModelToLegacyFormat(case_: Case): ServiceNowCaseResult {
+    // Safely convert dates to ISO strings with error handling
+    let openedAtIso: string | undefined;
+    try {
+      openedAtIso = case_.openedAt?.toISOString();
+    } catch (error) {
+      console.warn(`[ServiceNow] Invalid opened_at date for case ${case_.number}`, {
+        openedAt: case_.openedAt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      openedAtIso = undefined;
+    }
+
     return {
       sys_id: case_.sysId,
       number: case_.number,
@@ -432,7 +444,7 @@ export class ServiceNowClient {
       state: case_.state,
       category: case_.category,
       subcategory: case_.subcategory,
-      opened_at: case_.openedAt?.toISOString(),
+      opened_at: openedAtIso,
       assignment_group: case_.assignmentGroup,
       assigned_to: case_.assignedTo,
       opened_by: case_.openedBy,
