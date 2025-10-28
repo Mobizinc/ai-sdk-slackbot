@@ -27,7 +27,12 @@ export interface ChatMessage {
 export interface ToolDefinition {
   name: string;
   description: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: {
+    type: string;
+    properties?: Record<string, unknown>;
+    required?: string[];
+    [key: string]: unknown;
+  };
 }
 
 /**
@@ -185,12 +190,20 @@ export class AnthropicChatService {
       });
     }
 
-    const tools = request.tools?.map((tool) => ({
-      name: tool.name,
-      description: tool.description,
-      input_schema: tool.inputSchema,
-      type: "custom" as const,
-    }));
+    const tools = request.tools?.map((tool) => {
+      // Ensure input_schema has required JSON Schema properties
+      // Default to 'object' if type is missing (for backward compatibility)
+      const inputSchema = tool.inputSchema.type
+        ? tool.inputSchema
+        : { ...tool.inputSchema, type: "object" };
+
+      return {
+        name: tool.name,
+        description: tool.description,
+        input_schema: inputSchema,
+        type: "custom" as const,
+      };
+    });
 
     const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => {
       // If contentBlocks provided, use multimodal content (images, documents, text)
