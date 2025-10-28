@@ -113,17 +113,30 @@ async function request<T>(
     ...(await buildAuthHeaders()),
   } as Record<string, string>;
 
-  const response = await fetch(`${serviceNowConfig.instanceUrl}${path}`, {
+  const url = `${serviceNowConfig.instanceUrl}${path}`;
+  const method = (init.method || "GET").toUpperCase();
+
+  // Log the HTTP request
+  console.log(`[ServiceNow HTTP] ${method} ${url}`);
+  const startTime = Date.now();
+
+  const response = await fetch(url, {
     ...init,
     headers,
   });
 
+  const duration = Date.now() - startTime;
+
   if (!response.ok) {
+    console.error(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
     const body = await response.text();
     throw new Error(
       `ServiceNow request failed with status ${response.status}: ${body.slice(0, 500)}`,
     );
   }
+
+  // Log successful response
+  console.log(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
 
   return (await response.json()) as T;
 }

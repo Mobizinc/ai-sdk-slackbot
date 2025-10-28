@@ -294,6 +294,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
         };
       }
 
+      // Log tool invocation with action and key parameters
+      const logParams: Record<string, any> = { action };
+      if (number) logParams.number = number;
+      if (caseSysId) logParams.caseSysId = caseSysId;
+      if (query) logParams.query = query;
+      if (ciName) logParams.ciName = ciName;
+      if (ipAddress) logParams.ipAddress = ipAddress;
+      if (companyName) logParams.companyName = companyName;
+      if (includeAttachments) logParams.includeAttachments = includeAttachments;
+
+      console.log(`[ServiceNow Tool] Invoking action with parameters:`, logParams);
+
       // Create ServiceNow context for deterministic feature flag routing
       const snContext = createServiceNowContext(undefined, options?.channelId);
 

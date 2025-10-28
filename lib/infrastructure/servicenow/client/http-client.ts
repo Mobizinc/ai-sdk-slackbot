@@ -184,6 +184,11 @@ export class ServiceNowHttpClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    // Log the HTTP request
+    const method = (options.method || "GET").toUpperCase();
+    console.log(`[ServiceNow HTTP] ${method} ${url}`);
+    const startTime = Date.now();
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -193,11 +198,17 @@ export class ServiceNowHttpClient {
 
       clearTimeout(timeoutId);
 
+      const duration = Date.now() - startTime;
+
       // Handle non-OK responses
       if (!response.ok) {
+        console.error(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
         const body = await response.text();
         throw parseServiceNowError(response, url, body);
       }
+
+      // Log successful response
+      console.log(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
 
       // Parse and return JSON response
       const data = (await response.json()) as T;
