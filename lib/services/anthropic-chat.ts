@@ -20,7 +20,7 @@ import { config } from "../config";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool";
-  content: string;
+  content: string | Array<any>; // Support both text and content blocks (tool_use, text, etc.)
   toolUseId?: string;
 }
 
@@ -158,14 +158,23 @@ export class AnthropicChatService {
 
     for (const message of request.messages) {
       if (message.role === "system") {
-        systemSegments.push(message.content);
+        // System messages must always be strings
+        const systemContent = typeof message.content === "string"
+          ? message.content
+          : JSON.stringify(message.content);
+        systemSegments.push(systemContent);
         continue;
       }
 
       if (message.role === "assistant") {
+        // Support both string content and content blocks (for tool_use preservation)
+        const content = typeof message.content === "string"
+          ? [{ type: "text", text: message.content }]
+          : message.content;
+
         conversation.push({
           role: "assistant",
-          content: [{ type: "text", text: message.content }],
+          content,
         });
         continue;
       }
@@ -184,9 +193,14 @@ export class AnthropicChatService {
         continue;
       }
 
+      // Support both string content and content blocks (for tool_result preservation)
+      const userContent = typeof message.content === "string"
+        ? [{ type: "text", text: message.content }]
+        : message.content;
+
       conversation.push({
         role: "user",
-        content: [{ type: "text", text: message.content }],
+        content: userContent,
       });
     }
 

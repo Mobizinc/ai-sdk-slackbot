@@ -41,7 +41,6 @@ export async function runAgent(params: RunnerParams): Promise<string> {
       const conversation: ChatMessage[] = params.messages.map(toChatMessage);
 
       const maxSteps = config.agentMaxToolIterations;
-      const toolResults: ExecuteToolResult[] = [];
 
       for (let step = 0; step < maxSteps; step += 1) {
         // Create a child span for each LLM call
@@ -64,7 +63,9 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         let response = await chatService.send({
           messages: conversation,
           tools: toolDefinitions,
-          toolResults: toolResults.splice(0),
+          // toolResults are now appended directly to conversation (see line 206-209)
+          // to preserve proper message ordering for Anthropic 0.67+
+          toolResults: [],
         });
 
         // Handle max_tokens truncation during tool use
@@ -129,6 +130,14 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           return text.trim();
         }
 
+        // CRITICAL: Append the assistant's response with actual content blocks
+        // This preserves tool_use blocks that Anthropic 0.67+ requires
+        // to match with subsequent tool_result blocks
+        conversation.push({
+          role: "assistant",
+          content: response.message.content, // Preserve actual blocks (tool_use, text, etc.)
+        });
+
         params.updateStatus?.("calling-tool");
 
         // Create a child span for tool execution batch
@@ -158,13 +167,45 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           toolCalls.map(toolCall => executeToolWithTrace(toolCall, availableTools))
         );
 
-        // Accumulate tool results for next LLM call
-        // The AnthropicChatService will format these as a single user message
-        // with multiple tool_result blocks (Anthropic best practice for parallel tools)
-        toolResults.push(...currentToolResults);
+        // CRITICAL: Append tool_result blocks to conversation as user message
+        // This satisfies Anthropic 0.67+ requirement that tool_result blocks
+        // follow their corresponding tool_use blocks in the conversation
+        const toolResultBlocks = currentToolResults.map(result => {
+          // Convert ExecuteToolResult to tool_result content block
+          let content: string;
+          if (typeof result.output === "string") {
+            content = result.output;
+          } else if (result.output === undefined || result.output === null) {
+            content = "";
+          } else {
+            try {
+              content = JSON.stringify(result.output);
+            } catch (error) {
+              console.warn("[Agent] Failed to stringify tool output:", error);
+              content = "";
+            }
+          }
+
+          const block: any = {
+            type: "tool_result",
+            tool_use_id: result.toolUseId,
+            content,
+          };
+
+          if (result.isError) {
+            block.is_error = true;
+          }
+
+          return block;
+        });
+
+        conversation.push({
+          role: "user",
+          content: toolResultBlocks,
+        });
 
         await toolBatchSpan?.end({
-          toolResultsCount: toolResults.length,
+          toolResultsCount: currentToolResults.length,
         });
       }
 
