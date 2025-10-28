@@ -200,7 +200,7 @@ export async function downloadRecording(
     },
   });
 
-  const readable = Readable.fromWeb(response.body as unknown as ReadableStream<Uint8Array>);
+  const readable = Readable.fromWeb(response.body as any);
   const outputStream = createWriteStream(destinationPath);
 
   await pipeline(readable, progress, outputStream);

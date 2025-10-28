@@ -458,7 +458,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               };
             }
 
-            sysId = caseRecord.sys_id ?? null;
+            // Extract sys_id - may be object {display_value, value} or string
+            const extractedSysId = typeof caseRecord.sys_id === "object" && caseRecord.sys_id
+              ? (caseRecord.sys_id.value || caseRecord.sys_id.display_value)
+              : caseRecord.sys_id;
+
+            sysId = extractedSysId ?? null;
             if (!sysId) {
               return {
                 entries: [],
@@ -476,8 +481,38 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             snContext,
           );
 
+          // Format journal entries for Claude to display as "Latest Activity"
+          // Match production format: "Oct 5, 14:23 – jsmith: [action]"
+          const formattedEntries = journal
+            .slice(0, 3) // Show latest 3 entries max
+            .map((entry: any) => {
+              try {
+                const date = new Date(entry.sys_created_on);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const user = entry.sys_created_by || 'unknown';
+                // Handle value as string or object
+                const valueStr = typeof entry.value === 'string'
+                  ? entry.value
+                  : (entry.value?.value || entry.value?.display_value || '(no content)');
+                const content = String(valueStr).substring(0, 150); // Truncate long entries
+                return `• ${dateStr}, ${timeStr} – ${user}: ${content}`;
+              } catch (error) {
+                // Fallback for invalid dates
+                const user = entry.sys_created_by || 'unknown';
+                const valueStr = typeof entry.value === 'string'
+                  ? entry.value
+                  : (entry.value?.value || entry.value?.display_value || '(no content)');
+                const content = String(valueStr).substring(0, 150);
+                return `• ${user}: ${content}`;
+              }
+            })
+            .join('\n');
+
           return {
-            entries: journal,
+            summary: `Retrieved ${journal.length} journal ${journal.length === 1 ? 'entry' : 'entries'}`,
+            latest_activity: formattedEntries || 'No journal entries found',
+            entries: journal, // Keep structured data for potential future use
             total: journal.length,
           };
         }

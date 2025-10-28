@@ -93,6 +93,15 @@ export function withLangSmithTrace<Args extends any[], Return>(
       parentRun = undefined;
     }
 
+    // The LangSmith SDK expects parent runs to have a valid dotted_order.
+    // When the context isn't fully initialized (e.g., early in the request lifecycle),
+    // getCurrentRunTree may return a run without dotted_order populated, which causes
+    // the API to reject the child run. In that case, treat it as a root run instead of
+    // attempting to attach to the incomplete parent.
+    if (parentRun && parentRun.dotted_order == null) {
+      parentRun = undefined;
+    }
+
     // Create run tree for this invocation
     const runTree = new RunTree({
       name,
@@ -102,6 +111,7 @@ export function withLangSmithTrace<Args extends any[], Return>(
       metadata: createTraceMetadata(resolvedMetadata),
       tags: Object.values(createTraceTags(resolvedTags)),
       inputs: { args: sanitizeForTracing(args) },
+      start_time: Date.now(),
     });
 
     try {
@@ -190,6 +200,9 @@ export async function createChildSpan(
   try {
     // Get the current run tree from AsyncLocalStorage
     const parentRun = getCurrentRunTree();
+    const normalizedParent = parentRun && parentRun.dotted_order != null
+      ? parentRun
+      : undefined;
 
     // Resolve metadata if it's a function
     const resolvedMetadata = typeof metadata === 'function'
@@ -206,9 +219,10 @@ export async function createChildSpan(
       name,
       run_type: runType,
       project_name: projectName || getLangSmithProject(),
-      parent_run: parentRun || undefined,
+      parent_run: normalizedParent,
       tags: Object.values(createTraceTags(resolvedTags)),
       metadata: createTraceMetadata(resolvedMetadata),
+      start_time: Date.now(),
     });
 
     try {

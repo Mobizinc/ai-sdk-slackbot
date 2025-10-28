@@ -15,7 +15,7 @@ import type {
   Incident,
 } from "../types/domain-models";
 import type { CaseRecord, IncidentRecord, ServiceNowTableResponse } from "../types/api-responses";
-import { mapCase, mapIncident } from "../client/mappers";
+import { mapCase, mapIncident, parseServiceNowDate, extractDisplayValue } from "../client/mappers";
 import { ServiceNowNotFoundError } from "../errors";
 
 /**
@@ -298,7 +298,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
     const records = Array.isArray(response.result) ? response.result : [response.result];
     return records.map((record: any) => ({
       value: record.value || "",
-      createdOn: new Date(record.sys_created_on),
+      createdOn: parseServiceNowDate(record.sys_created_on) ?? new Date(),
       createdBy: typeof record.sys_created_by === "object" ? record.sys_created_by.display_value : record.sys_created_by,
     }));
   }
@@ -341,9 +341,9 @@ export class ServiceNowCaseRepository implements CaseRepository {
     return records.map((record: any) => ({
       sysId: record.sys_id || "",
       element: record.element || "",
-      elementId: record.element_id || "",
+      elementId: extractDisplayValue(record.element_id) || "",
       name: typeof record.name === "object" ? record.name.display_value : record.name,
-      createdOn: record.sys_created_on || "",
+      createdOn: parseServiceNowDate(record.sys_created_on)?.toISOString() || "",
       createdBy: typeof record.sys_created_by === "object"
         ? record.sys_created_by.display_value
         : (record.sys_created_by || ""),
