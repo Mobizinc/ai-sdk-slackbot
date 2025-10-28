@@ -2,6 +2,8 @@ import { beforeAll, afterAll, afterEach, vi } from "vitest";
 import { setupServer } from "msw/node";
 
 // Set environment variables at module load time (before other imports)
+process.env.NODE_ENV = "test";
+process.env.VITEST = "true";
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "test-openai-key";
 process.env.SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "xoxb-test-token";
 process.env.SLACK_SIGNING_SECRET =

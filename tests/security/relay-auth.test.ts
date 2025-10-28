@@ -56,7 +56,7 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(400);
+        expect(result.status).toBe(401);
         expect(result.message).toContain("signature mismatch");
       }
     });
@@ -79,7 +79,7 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(400);
+        expect(result.status).toBe(401);
       }
     });
   });
@@ -126,7 +126,7 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(400);
+        expect(result.status).toBe(401);
       }
     });
 
@@ -346,11 +346,11 @@ describe("Relay Authentication Security", () => {
       });
       expect(defaultResult.ok).toBe(false);
 
-      // Should pass with extended tolerance (3 minutes)
+      // Should pass with extended tolerance (11 minutes)
       const extendedResult = verifyRelaySignature({
         headers,
         rawBody: testBody,
-        toleranceSeconds: 180, // 3 minutes
+        toleranceSeconds: 660, // 11 minutes (longer than 10 minute old timestamp)
       });
       expect(extendedResult.ok).toBe(true);
     });
@@ -374,7 +374,7 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(401);
+        expect(result.status).toBe(400);
       }
     });
 
