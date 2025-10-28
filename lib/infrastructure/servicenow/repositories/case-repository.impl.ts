@@ -137,7 +137,17 @@ export class ServiceNowCaseRepository implements CaseRepository {
     }
 
     if (criteria.state) {
-      queryParts.push(`state=${criteria.state}`);
+      const states = criteria.state
+        .split(",")
+        .map((state) => state.trim())
+        .filter(Boolean);
+
+      if (states.length === 1) {
+        queryParts.push(`state=${states[0]}`);
+      } else if (states.length > 1) {
+        const stateQuery = states.map((state) => `state=${state}`).join("^OR");
+        queryParts.push(`(${stateQuery})`);
+      }
     }
 
     if (criteria.priority) {
@@ -166,6 +176,14 @@ export class ServiceNowCaseRepository implements CaseRepository {
       queryParts.push(`opened_at<=${this.formatDate(criteria.openedBefore)}`);
     }
 
+    if (criteria.updatedAfter) {
+      queryParts.push(`sys_updated_on>=${this.formatDate(criteria.updatedAfter)}`);
+    }
+
+    if (criteria.updatedBefore) {
+      queryParts.push(`sys_updated_on<=${this.formatDate(criteria.updatedBefore)}`);
+    }
+
     // Active/closed filter
     if (criteria.activeOnly !== undefined) {
       queryParts.push(`active=${criteria.activeOnly ? 'true' : 'false'}`);
@@ -182,6 +200,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
       {
         sysparm_query: query,
         sysparm_limit: criteria.limit ?? 100,
+        sysparm_offset: criteria.offset ?? 0,
         sysparm_display_value: "all",
       },
     );

@@ -277,10 +277,13 @@ export interface CaseSearchCriteria {
   assignedTo?: string; // Assigned user display name
   openedAfter?: Date;
   openedBefore?: Date;
+  updatedAfter?: Date;
+  updatedBefore?: Date;
   activeOnly?: boolean; // Filter by active status
   sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
+  offset?: number;
 }
 
 /**

@@ -19,6 +19,7 @@ export interface CaseSearchFilters {
   openedAfter?: string;
   openedBefore?: string;
   updatedBefore?: string; // NEW: For stale case detection
+  updatedAfter?: string;
   activeOnly?: boolean;
   sortBy?: CaseSearchCriteria["sortBy"];
   sortOrder?: CaseSearchCriteria["sortOrder"];
@@ -56,8 +57,8 @@ export class CaseSearchService {
    * Search cases with metadata (preferred for new code)
    */
   async searchWithMetadata(filters: CaseSearchFilters = {}): Promise<CaseSearchResult> {
-    const limit = Math.min(filters.limit || 10, 50); // Default 10, max 50
-    const offset = filters.offset || 0;
+    const limit = Math.min(filters.limit ?? 25, 50); // Default 25, max 50
+    const offset = filters.offset ?? 0;
 
     const criteria: CaseSearchCriteria = {
       accountName: filters.accountName,
@@ -69,23 +70,21 @@ export class CaseSearchService {
       state: filters.state,
       openedAfter: parseDate(filters.openedAfter),
       openedBefore: parseDate(filters.openedBefore),
+      updatedAfter: parseDate(filters.updatedAfter),
+      updatedBefore: parseDate(filters.updatedBefore),
       activeOnly: filters.activeOnly,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
       limit,
+      offset,
     };
-
-    // Add updatedBefore if provided (for stale detection)
-    if (filters.updatedBefore) {
-      (criteria as any).updatedBefore = parseDate(filters.updatedBefore);
-    }
 
     try {
       const cases = await this.caseRepository.search(criteria);
 
       // Calculate metadata
-      const totalFound = cases.length; // Limited by maxResults
-      const hasMore = cases.length >= limit; // Might have more if we hit limit
+      const totalFound = offset + cases.length;
+      const hasMore = cases.length >= limit;
       const nextOffset = hasMore ? offset + limit : undefined;
 
       return {
@@ -121,8 +120,8 @@ export class CaseSearchService {
     const updatedBefore = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
 
     const result = await this.searchWithMetadata({
+      activeOnly: true,
       updatedBefore: updatedBefore.toISOString(),
-      state: "Open,In Progress,Pending", // Only active cases
       sortBy: "updated_on",
       sortOrder: "asc", // Oldest updates first
       limit,
@@ -136,7 +135,7 @@ export class CaseSearchService {
    */
   async findOldestCases(limit: number = 10): Promise<Case[]> {
     const result = await this.searchWithMetadata({
-      state: "Open,In Progress,Pending",
+      activeOnly: true,
       sortBy: "opened_at",
       sortOrder: "asc", // Oldest first
       limit,
@@ -161,6 +160,7 @@ export class CaseSearchService {
     if (filters.openedAfter) parts.push(`Opened after: ${parseDate(filters.openedAfter)?.toLocaleDateString()}`);
     if (filters.openedBefore) parts.push(`Opened before: ${parseDate(filters.openedBefore)?.toLocaleDateString()}`);
     if (filters.updatedBefore) parts.push(`Updated before: ${parseDate(filters.updatedBefore)?.toLocaleDateString()}`);
+    if (filters.updatedAfter) parts.push(`Updated after: ${parseDate(filters.updatedAfter)?.toLocaleDateString()}`);
 
     return parts.length > 0 ? parts.join(" | ") : "No filters applied";
   }

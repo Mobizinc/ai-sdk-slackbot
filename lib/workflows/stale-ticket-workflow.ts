@@ -39,12 +39,19 @@ export class StaleTicketWorkflow {
     thresholdDays?: number;
   }): Promise<{ text: string; blocks: KnownBlock[] }> {
     const threshold = options.thresholdDays ?? 7;
-    const staleCases = await this.fetchStaleCases({
-      ...options.filters,
-      activeOnly: options.filters?.activeOnly ?? true,
-    }, threshold);
-
-    const display = this.buildBlocks(staleCases, threshold);
+    const searchResult = await this.fetchStaleCases(
+      {
+        ...options.filters,
+        activeOnly: options.filters?.activeOnly ?? true,
+      },
+      threshold,
+    );
+    const filterSummary = caseSearchService.buildFilterSummary(searchResult.appliedFilters);
+    const display = this.buildBlocks(
+      searchResult.staleCases,
+      threshold,
+      filterSummary !== "No filters applied" ? filterSummary : undefined,
+    );
 
     const message = await slackMessaging.postMessage({
       channel: options.channelId,
@@ -61,8 +68,8 @@ export class StaleTicketWorkflow {
           channelId: options.channelId,
           messageTs: message.ts,
           thresholdDays: threshold,
-          filters: options.filters,
-          staleCases,
+          filters: searchResult.appliedFilters,
+          staleCases: searchResult.staleCases,
         },
         { expiresInHours: 4 },
       );
@@ -80,14 +87,17 @@ export class StaleTicketWorkflow {
 
     const filters = state.payload.filters ?? {};
     const refreshed = await this.fetchStaleCases(filters, thresholdDays);
-    const display = this.buildBlocks(refreshed, thresholdDays);
+    const filterSummary = caseSearchService.buildFilterSummary(refreshed.appliedFilters);
+    const display = this.buildBlocks(
+      refreshed.staleCases,
+      thresholdDays,
+      filterSummary !== "No filters applied" ? filterSummary : undefined,
+    );
 
     await stateManager.updatePayload<'stale_ticket_workflow'>(channelId, messageTs, {
-      channelId,
-      messageTs,
       thresholdDays,
-      filters,
-      staleCases: refreshed,
+      filters: refreshed.appliedFilters,
+      staleCases: refreshed.staleCases,
     });
 
     await slackMessaging.updateMessage({
@@ -134,29 +144,52 @@ export class StaleTicketWorkflow {
     });
   }
 
-  private async fetchStaleCases(filters: CaseSearchFilters, thresholdDays: number): Promise<StaleCaseSummary[]> {
-    const cases = await caseSearchService.search({
+  private async fetchStaleCases(
+    filters: CaseSearchFilters,
+    thresholdDays: number,
+  ): Promise<{ staleCases: StaleCaseSummary[]; appliedFilters: CaseSearchFilters }> {
+    const thresholdDate = new Date(Date.now() - thresholdDays * 24 * 60 * 60 * 1000);
+    const effectiveFilters: CaseSearchFilters = {
       ...filters,
+      updatedBefore: filters.updatedBefore ?? thresholdDate.toISOString(),
+      sortBy: filters.sortBy ?? "updated_on",
+      sortOrder: filters.sortOrder ?? "asc",
       limit: filters.limit ?? 100,
-    });
+    };
 
-    return findStaleCases(cases, thresholdDays);
+    const searchResult = await caseSearchService.searchWithMetadata(effectiveFilters);
+    const staleCases = findStaleCases(searchResult.cases, thresholdDays);
+
+    return {
+      staleCases,
+      appliedFilters: searchResult.appliedFilters,
+    };
   }
 
-  private buildBlocks(data: StaleCaseSummary[], thresholdDays: number): { text: string; blocks: KnownBlock[] } {
+  private buildBlocks(
+    data: StaleCaseSummary[],
+    thresholdDays: number,
+    filterSummary?: string,
+  ): { text: string; blocks: KnownBlock[] } {
     const baseBlocks: KnownBlock[] = [
       createSectionBlock(`*Stale Cases (≥ ${thresholdDays} day(s) without updates)*`),
       createDivider(),
     ];
 
     if (data.length === 0) {
+      const blocks: KnownBlock[] = [
+        ...baseBlocks,
+        createSectionBlock("_No stale tickets detected with the current filters._"),
+        this.buildThresholdActions(thresholdDays),
+      ];
+
+      if (filterSummary) {
+        blocks.push(createContextBlock(`Filters: ${filterSummary}`));
+      }
+
       return {
         text: `No stale cases found for ${thresholdDays} day(s) threshold.`,
-        blocks: [
-          ...baseBlocks,
-          createSectionBlock("_No stale tickets detected with the current filters._"),
-          this.buildThresholdActions(thresholdDays),
-        ],
+        blocks,
       };
     }
 
@@ -179,6 +212,10 @@ export class StaleTicketWorkflow {
         "Use the buttons above to adjust the stale threshold. High priority items are flagged with ⚠️",
       ),
     ];
+
+    if (filterSummary) {
+      blocks.push(createContextBlock(`Filters: ${filterSummary}`));
+    }
 
     return {
       text: `Found ${data.length} stale case(s) for threshold ${thresholdDays} day(s).`,

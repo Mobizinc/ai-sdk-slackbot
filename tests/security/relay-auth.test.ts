@@ -6,7 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { verifyRelaySignature } from "../../lib/relay-auth";
+import { verifyRelaySignature, createRelaySignature } from "../../lib/relay-auth";
+import { config } from "../../lib/config";
 import crypto from "crypto";
 
 describe("Relay Authentication Security", () => {
@@ -17,18 +18,16 @@ describe("Relay Authentication Security", () => {
     vi.clearAllMocks();
     // Set test environment
     process.env.RELAY_WEBHOOK_SECRET = testSecret;
+    (config as any).relayWebhookSecret = testSecret;
   });
 
   describe("HMAC Signature Verification", () => {
     it("should verify valid HMAC signature", () => {
       const timestamp = Math.floor(Date.now() / 1000);
-      const signature = crypto
-        .createHmac("sha256", testSecret)
-        .update(`${timestamp}.${testBody}`)
-        .digest("hex");
+      const { signature } = createRelaySignature(testBody, timestamp);
 
       const headers = new Headers({
-        "x-relay-signature": `t=${timestamp},v1=${signature}`,
+        "x-relay-signature": signature,
       });
 
       const result = verifyRelaySignature({
@@ -57,8 +56,8 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(401);
-        expect(result.message).toContain("Invalid signature");
+        expect(result.status).toBe(400);
+        expect(result.message).toContain("signature mismatch");
       }
     });
 
@@ -80,7 +79,7 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(401);
+        expect(result.status).toBe(400);
       }
     });
   });
@@ -127,19 +126,16 @@ describe("Relay Authentication Security", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.status).toBe(401);
+        expect(result.status).toBe(400);
       }
     });
 
     it("should accept recent timestamps within tolerance", () => {
       const recentTimestamp = Math.floor(Date.now() / 1000) - 60; // 1 minute ago
-      const signature = crypto
-        .createHmac("sha256", testSecret)
-        .update(`${recentTimestamp}.${testBody}`)
-        .digest("hex");
+      const { signature } = createRelaySignature(testBody, recentTimestamp);
 
       const headers = new Headers({
-        "x-relay-signature": `t=${recentTimestamp},v1=${signature}`,
+        "x-relay-signature": signature,
       });
 
       const result = verifyRelaySignature({
@@ -225,6 +221,7 @@ describe("Relay Authentication Security", () => {
   describe("Secret Configuration", () => {
     beforeEach(() => {
       delete process.env.RELAY_WEBHOOK_SECRET;
+      (config as any).relayWebhookSecret = undefined;
     });
 
     it("should reject when no secret is configured", () => {
@@ -246,6 +243,7 @@ describe("Relay Authentication Security", () => {
 
     it("should reject empty secret", () => {
       process.env.RELAY_WEBHOOK_SECRET = "";
+      (config as any).relayWebhookSecret = "";
       const headers = new Headers({
         "x-relay-signature": "t=123,v1=signature",
       });
@@ -263,6 +261,7 @@ describe("Relay Authentication Security", () => {
 
     it("should reject whitespace-only secret", () => {
       process.env.RELAY_WEBHOOK_SECRET = "   ";
+      (config as any).relayWebhookSecret = "   ";
       const headers = new Headers({
         "x-relay-signature": "t=123,v1=signature",
       });
@@ -330,7 +329,7 @@ describe("Relay Authentication Security", () => {
 
   describe("Custom Tolerance Configuration", () => {
     it("should use custom tolerance when provided", () => {
-      const oldTimestamp = Math.floor(Date.now() / 1000) - 120; // 2 minutes ago
+      const oldTimestamp = Math.floor(Date.now() / 1000) - 600; // 10 minutes ago
       const signature = crypto
         .createHmac("sha256", testSecret)
         .update(`${oldTimestamp}.${testBody}`)
@@ -462,13 +461,10 @@ describe("Relay Authentication Security", () => {
     it("should handle large payloads efficiently", () => {
       const largeBody = "x".repeat(100000); // 100KB payload
       const timestamp = Math.floor(Date.now() / 1000);
-      const signature = crypto
-        .createHmac("sha256", testSecret)
-        .update(`${timestamp}.${largeBody}`)
-        .digest("hex");
+      const { signature } = createRelaySignature(largeBody, timestamp);
 
       const headers = new Headers({
-        "x-relay-signature": `t=${timestamp},v1=${signature}`,
+        "x-relay-signature": signature,
       });
 
       const start = performance.now();

@@ -10,6 +10,7 @@
 
 import { anthropic, anthropicModel } from '../lib/model-provider';
 import { config } from '../lib/config';
+import { withLangSmithTrace, isTracingEnabled } from '../lib/observability';
 
 async function testLangSmithTracing() {
   console.log('🧪 Testing LangSmith Tracing Integration\n');
@@ -19,6 +20,7 @@ async function testLangSmithTracing() {
   console.log(`  LANGSMITH_API_KEY: ${config.langsmithApiKey ? '✅ SET' : '❌ NOT SET'}`);
   console.log(`  LANGSMITH_PROJECT: ${config.langsmithProject || 'default'}`);
   console.log(`  LANGSMITH_TRACING: ${config.langsmithTracingEnabled ?? 'true (default)'}`);
+  console.log(`  Tracing Enabled: ${isTracingEnabled() ? '✅ YES' : '❌ NO'}`);
   console.log(`  Anthropic Model: ${anthropicModel}`);
   console.log();
 
@@ -32,20 +34,37 @@ async function testLangSmithTracing() {
   }
 
   try {
-    console.log('📡 Making test Anthropic API call...');
+    console.log('📡 Making test Anthropic API call with tracing wrapper...');
 
     const startTime = Date.now();
 
-    const response = await anthropic.messages.create({
-      model: anthropicModel,
-      max_tokens: 150,
-      messages: [
-        {
-          role: 'user',
-          content: 'Respond with "LangSmith tracing is working!" and explain what you are.',
+    // Wrap the API call in a trace to create a parent span
+    const response = await withLangSmithTrace(
+      async () => {
+        return anthropic.messages.create({
+          model: anthropicModel,
+          max_tokens: 150,
+          messages: [
+            {
+              role: 'user',
+              content: 'Respond with "LangSmith tracing is working!" and explain what you are.',
+            },
+          ],
+        });
+      },
+      {
+        name: 'test_anthropic_call',
+        runType: 'llm',
+        metadata: {
+          model: anthropicModel,
+          testMode: true,
         },
-      ],
-    });
+        tags: {
+          component: 'test',
+          operation: 'smoke_test',
+        },
+      }
+    )();
 
     const duration = Date.now() - startTime;
 
