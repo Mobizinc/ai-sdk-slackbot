@@ -1376,7 +1376,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (offering.parent) {
-      if (typeof offering.parent === 'object') {
+      if (typeof offering.parent === 'object' && offering.parent !== null && !Array.isArray(offering.parent)) {
         parentSysId = offering.parent.value || undefined;
         parentName = offering.parent.display_value || undefined;
       } else if (typeof offering.parent === 'string') {
@@ -1390,9 +1390,9 @@ export class ServiceNowClient {
     if (offering.description) {
       if (typeof offering.description === 'string') {
         description = offering.description || undefined;
-      } else if (typeof offering.description === 'object' && offering.description.display_value) {
+      } else if (typeof offering.description === 'object' && offering.description !== null && !Array.isArray(offering.description) && offering.description.display_value) {
         description = offering.description.display_value || undefined;
-      } else if (typeof offering.description === 'object' && offering.description.value) {
+      } else if (typeof offering.description === 'object' && offering.description !== null && !Array.isArray(offering.description) && offering.description.value) {
         description = offering.description.value || undefined;
       }
     }
@@ -1431,7 +1431,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (service.parent) {
-      if (typeof service.parent === 'object') {
+      if (typeof service.parent === 'object' && service.parent !== null && !Array.isArray(service.parent)) {
         parentSysId = service.parent.value || undefined;
         parentName = service.parent.display_value || undefined;
       } else if (typeof service.parent === 'string') {
@@ -1445,9 +1445,9 @@ export class ServiceNowClient {
     if (service.description) {
       if (typeof service.description === 'string') {
         description = service.description || undefined;
-      } else if (typeof service.description === 'object' && service.description.display_value) {
+      } else if (typeof service.description === 'object' && service.description !== null && !Array.isArray(service.description) && service.description.display_value) {
         description = service.description.display_value || undefined;
-      } else if (typeof service.description === 'object' && service.description.value) {
+      } else if (typeof service.description === 'object' && service.description !== null && !Array.isArray(service.description) && service.description.value) {
         description = service.description.value || undefined;
       }
     }
@@ -1504,7 +1504,7 @@ export class ServiceNowClient {
         // Extract parent name
         let parentName: string | undefined;
         if (service.parent) {
-          if (typeof service.parent === 'object' && service.parent.display_value) {
+          if (typeof service.parent === 'object' && service.parent !== null && !Array.isArray(service.parent) && service.parent.display_value) {
             parentName = service.parent.display_value;
           } else if (typeof service.parent === 'string') {
             parentName = service.parent;
