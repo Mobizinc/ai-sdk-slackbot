@@ -367,7 +367,8 @@ export class BusinessContextService {
     basePrompt: string,
     companyName?: string,
     channelTopic?: string,
-    channelPurpose?: string
+    channelPurpose?: string,
+    similarCases?: any[]
   ): Promise<string> {
     const contextLines: string[] = [];
 
@@ -453,6 +454,35 @@ export class BusinessContextService {
       } else {
         console.log(`⚠️  [Business Context] No context found for company "${companyName}"`);
       }
+    }
+
+    // Add similar cases section if available
+    // This helps Claude understand context and extract case numbers
+    if (similarCases && similarCases.length > 0) {
+      contextLines.push("--- SIMILAR CASES FOUND ---");
+      contextLines.push("The following similar historical cases may be relevant to this conversation:");
+      contextLines.push("");
+
+      for (const sc of similarCases.slice(0, 3)) {
+        const similarity = Math.round(((sc.score || sc.similarity_score || 0) as number) * 100);
+        const caseNum = sc.case_number || sc.number || "Unknown";
+
+        contextLines.push(`• Case ${caseNum} (${similarity}% similar)`);
+
+        const description = sc.short_description || sc.description || sc.content || "";
+        if (description) {
+          const trimmed = description.substring(0, 150);
+          contextLines.push(`  ${trimmed}${trimmed.length >= 150 ? '...' : ''}`);
+        }
+
+        if (sc.category) {
+          contextLines.push(`  Category: ${sc.category}`);
+        }
+      }
+
+      contextLines.push("");
+      contextLines.push("Note: These are reference cases. If the user mentions a case number, use the servicenow_action tool to retrieve full details.");
+      contextLines.push("");
     }
 
     const contextSection = contextLines.join("\n");

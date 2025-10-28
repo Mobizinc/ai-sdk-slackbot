@@ -57,7 +57,7 @@ const serviceNowInputSchema = z
     number: z
       .string()
       .optional()
-      .describe("Incident or case number to look up."),
+      .describe("REQUIRED for getIncident and getCase actions. The incident or case number to look up (e.g., INC0012345, SCS1234567, CS0098765, or just the numeric portion like 49764). Extract this from the user's message - they often provide it as part of their request."),
     caseSysId: z
       .string()
       .optional()
@@ -244,7 +244,24 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "servicenow_action",
     description:
-      "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, and configuration items (CMDB). This tool supports multiple actions: 'getIncident' and 'getCase' for fetching specific tickets by number, 'getCaseJournal' for retrieving comment history, 'searchKnowledge' for finding KB articles, 'searchConfigurationItem' for CMDB lookups, and 'searchCases' for advanced case filtering. Use 'searchCases' when you need to find cases by customer name, priority level, assignment group, date ranges, keywords in descriptions, or state. The search action supports up to 50 results with sorting and filtering options. Use specific 'get' actions only when you have an exact case or incident number. When includeAttachments is true, the tool returns case/incident details along with image content blocks containing screenshots and diagrams attached to the ticket. This is useful for visual troubleshooting of UI errors, error screenshots, system diagrams, or monitoring dashboards. Note: Including attachments significantly increases token usage (3000-10000 tokens per case depending on number and size of images). Only enable when visual analysis is critical. Returns structured data including case details, journal entries, KB article content, CI information, and optionally image attachments. This tool requires ServiceNow credentials to be configured and should be your primary source for customer support ticket data.",
+      "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, and configuration items (CMDB).\n\n" +
+      "**IMPORTANT: Parameter Extraction Rules**\n" +
+      "- For 'getIncident' or 'getCase' actions, the 'number' parameter is REQUIRED and MUST be extracted from the user's message\n" +
+      "- Case numbers appear in formats like: INC0012345, SCS1234567, CS0098765, or just numeric portions like '49764'\n" +
+      "- Examples of extraction:\n" +
+      "  • 'details for 49764' → number: '49764'\n" +
+      "  • 'show me SCS1234567' → number: 'SCS1234567'\n" +
+      "  • 'case CS0012345 status' → number: 'CS0012345'\n\n" +
+      "**Actions:**\n" +
+      "- 'getIncident' / 'getCase': Fetch specific ticket BY NUMBER (number parameter REQUIRED)\n" +
+      "- 'getCaseJournal': Get comment history (requires caseSysId)\n" +
+      "- 'searchKnowledge': Find KB articles (requires query)\n" +
+      "- 'searchConfigurationItem': CMDB lookup (requires ciName, ipAddress, or ciSysId)\n" +
+      "- 'searchCases': Advanced filtering when you DON'T have an exact number (use filters: companyName, priority, state, assignmentGroup, etc.)\n\n" +
+      "**When to Use Each:**\n" +
+      "- Use getCase/getIncident ONLY when user provides a specific case number\n" +
+      "- Use searchCases when filtering by customer, status, or other criteria without a specific number\n\n" +
+      "**Attachments:** When includeAttachments=true, returns visual content (screenshots, diagrams). Useful for troubleshooting UI errors or viewing monitoring dashboards. Increases token usage 3000-10000 per case. Only enable when visual analysis is critical.",
     inputSchema: serviceNowInputSchema,
     execute: async ({
       action,

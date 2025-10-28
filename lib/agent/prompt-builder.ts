@@ -35,6 +35,7 @@ export async function buildPrompt(input: PromptBuilderInput): Promise<PromptBuil
     companyName,
     (context.metadata.caseContext as any)?.channelTopic,
     (context.metadata.caseContext as any)?.channelPurpose,
+    (context.metadata.similarCases as any[]) ?? [],
   );
 
   return {
