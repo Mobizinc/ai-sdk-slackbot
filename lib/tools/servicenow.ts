@@ -20,6 +20,13 @@ function normalize(value?: string | null): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+/**
+ * Type guard to check if a value is a plain object (not null, not an array)
+ */
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 const serviceNowConfig: ServiceNowConfig = {
   instanceUrl: normalize(appConfig.servicenowInstanceUrl || appConfig.servicenowUrl),
   username: normalize(appConfig.servicenowUsername),
@@ -1376,7 +1383,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (offering.parent) {
-      if (typeof offering.parent === 'object' && offering.parent !== null && !Array.isArray(offering.parent)) {
+      if (isPlainObject(offering.parent)) {
         parentSysId = offering.parent.value || undefined;
         parentName = offering.parent.display_value || undefined;
       } else if (typeof offering.parent === 'string') {
@@ -1390,9 +1397,9 @@ export class ServiceNowClient {
     if (offering.description) {
       if (typeof offering.description === 'string') {
         description = offering.description || undefined;
-      } else if (typeof offering.description === 'object' && offering.description !== null && !Array.isArray(offering.description) && offering.description.display_value) {
+      } else if (isPlainObject(offering.description) && offering.description.display_value) {
         description = offering.description.display_value || undefined;
-      } else if (typeof offering.description === 'object' && offering.description !== null && !Array.isArray(offering.description) && offering.description.value) {
+      } else if (isPlainObject(offering.description) && offering.description.value) {
         description = offering.description.value || undefined;
       }
     }
@@ -1431,7 +1438,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (service.parent) {
-      if (typeof service.parent === 'object' && service.parent !== null && !Array.isArray(service.parent)) {
+      if (isPlainObject(service.parent)) {
         parentSysId = service.parent.value || undefined;
         parentName = service.parent.display_value || undefined;
       } else if (typeof service.parent === 'string') {
@@ -1445,9 +1452,9 @@ export class ServiceNowClient {
     if (service.description) {
       if (typeof service.description === 'string') {
         description = service.description || undefined;
-      } else if (typeof service.description === 'object' && service.description !== null && !Array.isArray(service.description) && service.description.display_value) {
+      } else if (isPlainObject(service.description) && service.description.display_value) {
         description = service.description.display_value || undefined;
-      } else if (typeof service.description === 'object' && service.description !== null && !Array.isArray(service.description) && service.description.value) {
+      } else if (isPlainObject(service.description) && service.description.value) {
         description = service.description.value || undefined;
       }
     }
@@ -1504,7 +1511,7 @@ export class ServiceNowClient {
         // Extract parent name
         let parentName: string | undefined;
         if (service.parent) {
-          if (typeof service.parent === 'object' && service.parent !== null && !Array.isArray(service.parent) && service.parent.display_value) {
+          if (isPlainObject(service.parent) && service.parent.display_value) {
             parentName = service.parent.display_value;
           } else if (typeof service.parent === 'string') {
             parentName = service.parent;
