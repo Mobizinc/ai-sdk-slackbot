@@ -189,7 +189,7 @@ export class AnthropicChatService {
       name: tool.name,
       description: tool.description,
       input_schema: tool.inputSchema,
-      type: "tool" as const,
+      type: "custom" as const,
     }));
 
     const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => {
