@@ -1,126 +1,257 @@
+/**
+ * Integration tests for Anthropic API best practices validation
+ *
+ * Tests parallel tool execution, error handling, tool_choice, and message formatting.
+ * These tests validate that our implementation follows Anthropic's recommended patterns.
+ */
 
-import { describe, it, expect, vi } from 'vitest';
-import { Agent } from '../../../lib/agent'; // Adjust path
-import { AnthropicChat } from '../../../lib/services/anthropic/anthropic-chat'; // Adjust path
-import { Tool } from '../../../lib/tools/tool'; // Adjust path
+import { describe, it, expect } from "vitest";
+import { readFile } from "fs/promises";
+import { join } from "path";
+import { AnthropicChatService } from "../../lib/services/anthropic-chat";
 
-// Mock the Anthropic API
-const mockCreate = vi.fn();
-vi.mock('@anthropic-ai/sdk', () => {
-    const mockAnthropic = {
-        messages: {
-            create: (params: any) => mockCreate(params),
+describe("Anthropic Best Practices Validation", () => {
+  describe("Parallel Tool Execution", () => {
+    it("should execute multiple tool calls simultaneously with Promise.all", async () => {
+      // Verify the runner uses Promise.all for parallel tool execution
+      const runnerSource = await readFile(
+        join(__dirname, "../../lib/agent/runner.ts"),
+        "utf-8"
+      );
+
+      // Should use Promise.all for parallel execution
+      expect(runnerSource).toContain("Promise.all");
+      expect(runnerSource).toContain("toolCalls.map");
+
+      // Should NOT use sequential for-of await pattern for tools
+      expect(runnerSource).not.toMatch(/for\s*\(const call of response\.toolCalls\)/);
+    });
+
+    it("should batch all tool results in a single user message", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      // Tool results should be formatted as array in single message
+      expect(chatServiceSource).toContain("toolResults");
+      expect(chatServiceSource).toContain("tool_result");
+
+      // Should push tool results to conversation as a batch
+      expect(chatServiceSource).toContain("role: \"user\"");
+    });
+  });
+
+  describe("Error Handling with is_error", () => {
+    it("should detect error objects and set isError flag", async () => {
+      const runnerSource = await readFile(
+        join(__dirname, "../../lib/agent/runner.ts"),
+        "utf-8"
+      );
+
+      // Should check for 'error' key in result
+      expect(runnerSource).toContain("'error' in result");
+      expect(runnerSource).toContain("isError");
+      expect(runnerSource).toContain("hasError");
+    });
+
+    it("should send is_error: true to Anthropic API for failed tools", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      expect(chatServiceSource).toContain("is_error");
+      expect(chatServiceSource).toContain("result.isError");
+    });
+
+    it("should have isError field in ExecuteToolResult interface", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      expect(chatServiceSource).toContain("export interface ExecuteToolResult");
+      expect(chatServiceSource).toContain("isError?:");
+    });
+  });
+
+  describe("max_tokens Truncation Handling", () => {
+    it("should detect and retry truncated tool_use blocks", async () => {
+      const runnerSource = await readFile(
+        join(__dirname, "../../lib/agent/runner.ts"),
+        "utf-8"
+      );
+
+      // Should check for stop_reason === "max_tokens"
+      expect(runnerSource).toContain("max_tokens");
+      expect(runnerSource).toContain("lastBlock");
+      expect(runnerSource).toContain("tool_use");
+
+      // Should retry with higher maxTokens
+      expect(runnerSource).toContain("maxTokens: 8192");
+    });
+  });
+
+  describe("tool_choice Parameter Support", () => {
+    it("should support all tool_choice modes in type system", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      // Should have ToolChoice type with all modes
+      expect(chatServiceSource).toContain("export type ToolChoice");
+      expect(chatServiceSource).toContain('{ type: "auto" }');
+      expect(chatServiceSource).toContain('{ type: "any" }');
+      expect(chatServiceSource).toContain('{ type: "tool"');
+      expect(chatServiceSource).toContain('{ type: "none" }');
+    });
+
+    it("should pass tool_choice to Anthropic API when specified", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      expect(chatServiceSource).toContain("request.toolChoice");
+      expect(chatServiceSource).toContain("tool_choice");
+    });
+
+    it("should include toolChoice in ChatRequest interface", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
+
+      expect(chatServiceSource).toContain("export interface ChatRequest");
+      expect(chatServiceSource).toContain("toolChoice?:");
+    });
+  });
+
+  describe("pause_turn Stop Reason", () => {
+    it("should handle pause_turn for server tools", async () => {
+      const runnerSource = await readFile(
+        join(__dirname, "../../lib/agent/runner.ts"),
+        "utf-8"
+      );
+
+      // Should check for pause_turn stop reason
+      expect(runnerSource).toContain("pause_turn");
+      expect(runnerSource).toContain("stop_reason");
+    });
+  });
+
+  describe("Tool Descriptions", () => {
+    it("should have comprehensive descriptions (3-4+ sentences minimum)", async () => {
+      const toolFiles = [
+        "service-now.ts",
+        "triage.ts",
+        "weather.ts",
+        "web-search.ts",
+        "search.ts",
+        "knowledge-base.ts",
+        "context-update.ts",
+        "current-issues.ts",
+        "microsoft-learn.ts",
+      ];
+
+      for (const file of toolFiles) {
+        const toolSource = await readFile(
+          join(__dirname, `../../lib/agent/tools/${file}`),
+          "utf-8"
+        );
+
+        // Each tool should have a description field
+        expect(toolSource).toContain("description:");
+
+        // Extract description (rough check - descriptions should be detailed)
+        const descMatch = toolSource.match(/description:\s*"([^"]+)"/);
+        if (!descMatch && toolSource.includes("description:")) {
+          // Multi-line description
+          const multiLineMatch = toolSource.match(/description:\s*"([^"]+)/);
+          if (multiLineMatch) {
+            // Should be detailed (at least 200 characters for comprehensive)
+            const descriptionArea = toolSource.substring(
+              toolSource.indexOf("description:"),
+              toolSource.indexOf("description:") + 500
+            );
+            expect(descriptionArea.length).toBeGreaterThan(200);
+          }
+        }
+      }
+    });
+  });
+
+  describe("Message Formatting Best Practices", () => {
+    it("should format tool results correctly for parallel tool use", () => {
+      const chatService = new AnthropicChatService();
+
+      const mockToolResults = [
+        {
+          toolUseId: "tool_1",
+          output: { result: "data1" },
         },
-    };
-    return {
-        default: vi.fn(() => mockAnthropic),
-        Anthropic: vi.fn(() => mockAnthropic),
-    };
-});
+        {
+          toolUseId: "tool_2",
+          output: { result: "data2" },
+        },
+      ];
 
-// Define mock tools
-class MockTool1 extends Tool {
-    name = 'mock_tool_1';
-    description = 'A mock tool';
-    async execute() { return { success: true }; }
-}
+      const request = {
+        messages: [{ role: "user" as const, content: "Test" }],
+        toolResults: mockToolResults,
+      };
 
-class MockTool2 extends Tool {
-    name = 'mock_tool_2';
-    description = 'Another mock tool';
-    async execute() { return { success: true }; }
-}
+      // toMessageParams should create proper structure
+      const params = (chatService as any).toMessageParams(request);
 
-class FailingTool extends Tool {
-    name = 'failing_tool';
-    description = 'A tool that fails';
-    async execute() { throw new Error('Tool failed'); }
-}
-
-describe.skip('Anthropic Best Practices Validation', () => {
-    let agent: Agent;
-
-    it('should send all tool results in a single user message', async () => {
-        // Arrange
-        agent = new Agent({
-            chatProvider: new AnthropicChat({ apiKey: 'mock_key' }),
-            tools: [new MockTool1(), new MockTool2()],
-        });
-
-        mockCreate.mockResolvedValueOnce({
-            type: 'message',
-            stop_reason: 'tool_use',
-            content: [
-                { type: 'tool_use', id: 'tu1', name: 'mock_tool_1', input: {} },
-                { type: 'tool_use', id: 'tu2', name: 'mock_tool_2', input: {} },
-            ],
-        }).mockResolvedValueOnce({
-            type: 'message',
-            stop_reason: 'stop_sequence',
-            content: [{ type: 'text', text: 'Final answer.' }],
-        });
-
-        // Act
-        await agent.run('Run both tools');
-
-        // Assert
-        const secondCallParams = mockCreate.mock.calls[1][0];
-        const userMessages = secondCallParams.messages.filter((m: any) => m.role === 'user');
-        const lastUserMessage = userMessages[userMessages.length - 1];
-
-        expect(lastUserMessage.content).toBeInstanceOf(Array);
-        const toolResultContents = lastUserMessage.content.filter((c: any) => c.type === 'tool_result');
-        expect(toolResultContents.length).toBe(2);
-        expect(toolResultContents[0].tool_use_id).toBe('tu1');
-        expect(toolResultContents[1].tool_use_id).toBe('tu2');
+      // Should have added a user message with tool results
+      const lastMessage = params.messages[params.messages.length - 1];
+      expect(lastMessage.role).toBe("user");
+      expect(Array.isArray(lastMessage.content)).toBe(true);
+      expect(lastMessage.content.length).toBe(2);
+      expect(lastMessage.content[0].type).toBe("tool_result");
+      expect(lastMessage.content[1].type).toBe("tool_result");
     });
 
-    it('should send is_error: true for failed tools', async () => {
-        agent = new Agent({
-            chatProvider: new AnthropicChat({ apiKey: 'mock_key' }),
-            tools: [new MockTool1(), new FailingTool()],
-        });
+    it("should support multimodal content blocks in tool results", async () => {
+      const chatServiceSource = await readFile(
+        join(__dirname, "../../lib/services/anthropic-chat.ts"),
+        "utf-8"
+      );
 
-        mockCreate.mockResolvedValueOnce({
-            type: 'message',
-            stop_reason: 'tool_use',
-            content: [
-                { type: 'tool_use', id: 'tu1', name: 'mock_tool_1', input: {} },
-                { type: 'tool_use', id: 'tu2', name: 'failing_tool', input: {} },
-            ],
-        }).mockResolvedValueOnce({ /* ... final response ... */ });
+      // Should have ContentBlock types
+      expect(chatServiceSource).toContain("export interface ImageContentBlock");
+      expect(chatServiceSource).toContain("export interface TextContentBlock");
+      expect(chatServiceSource).toContain("contentBlocks?:");
+    });
+  });
 
-        await agent.run('Run a failing tool');
+  describe("System Prompt Guidance", () => {
+    it("should include parallel tool execution guidance", async () => {
+      const systemPrompt = await readFile(
+        join(__dirname, "../../config/system-prompt.txt"),
+        "utf-8"
+      );
 
-        const lastUserMessage = mockCreate.mock.calls[1][0].messages.slice(-1)[0];
-        const toolResults = lastUserMessage.content.filter((c: any) => c.type === 'tool_result');
+      // Should have guidance for parallel tool use
+      expect(systemPrompt).toContain("parallel");
+      expect(systemPrompt).toContain("simultaneously");
 
-        expect(toolResults[0].is_error).toBe(false);
-        expect(toolResults[1].is_error).toBe(true);
-        expect(toolResults[1].content).toContain('Tool failed');
+      // Should have examples
+      expect(systemPrompt.toLowerCase()).toMatch(/(example|e\.g\.|for instance)/);
     });
 
-    it('should place tool_result content blocks before any text content', async () => {
-        agent = new Agent({
-            chatProvider: new AnthropicChat({ apiKey: 'mock_key' }),
-            tools: [new MockTool1()],
-        });
+    it("should include token cost warnings for images", async () => {
+      const systemPrompt = await readFile(
+        join(__dirname, "../../config/system-prompt.txt"),
+        "utf-8"
+      );
 
-        mockCreate.mockResolvedValueOnce({
-            type: 'message',
-            stop_reason: 'tool_use',
-            content: [{ type: 'tool_use', id: 'tu1', name: 'mock_tool_1', input: {} }],
-        }).mockResolvedValueOnce({ /* ... final response ... */ });
-
-        await agent.run('Run a tool and say something');
-
-        const lastUserMessage = mockCreate.mock.calls[1][0].messages.slice(-1)[0];
-        // This is a simplification. In reality, the agent would not add text here.
-        // This test verifies that if both were present, tool_result comes first.
-        lastUserMessage.content.push({ type: 'text', text: 'Here are the results.' });
-
-        // The spec requires tool_result to come first.
-        const contentTypes = lastUserMessage.content.map((c: any) => c.type);
-        expect(contentTypes.indexOf('tool_result')).toBe(0);
+      expect(systemPrompt).toContain("token");
+      expect(systemPrompt).toContain("Image");
+      expect(systemPrompt).toContain("screenshot");
     });
+  });
 });

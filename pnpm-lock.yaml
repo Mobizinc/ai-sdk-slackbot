@@ -47,6 +47,9 @@ importers:
       openai:
         specifier: ^6.2.0
         version: 6.2.0(zod@3.25.76)
+      sharp:
+        specifier: ^0.34.4
+        version: 0.34.4
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -4795,8 +4798,7 @@ snapshots:
 
   '@humanwhocodes/object-schema@2.0.3': {}
 
-  '@img/colour@1.0.0':
-    optional: true
+  '@img/colour@1.0.0': {}
 
   '@img/sharp-darwin-arm64@0.34.4':
     optionalDependencies:
@@ -6095,8 +6097,7 @@ snapshots:
 
   dequal@2.0.3: {}
 
-  detect-libc@2.1.2:
-    optional: true
+  detect-libc@2.1.2: {}
 
   detect-node-es@1.1.0: {}
 
@@ -7951,7 +7952,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.4
       '@img/sharp-win32-ia32': 0.34.4
       '@img/sharp-win32-x64': 0.34.4
-    optional: true
 
   shebang-command@2.0.0:
     dependencies:

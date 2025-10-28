@@ -55,10 +55,13 @@ const filtersSchema = z.object({
   state: z.string().optional(),
   openedAfter: z.string().optional(),
   openedBefore: z.string().optional(),
+  updatedAfter: z.string().optional(),
+  updatedBefore: z.string().optional(),
   activeOnly: z.boolean().optional(),
   sortBy: z.enum(["opened_at", "priority", "updated_on", "state"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
   limit: z.number().min(1).max(100).optional(),
+  offset: z.number().min(0).optional(),
 });
 
 const caseAggregationInputSchema = z.object({
@@ -281,10 +284,11 @@ export function createCaseAggregationTool(params: AgentToolFactoryParams) {
 
       updateStatus?.("is gathering case metrics...");
 
-      const cases = await caseSearchService.search({
+      const searchResult = await caseSearchService.searchWithMetadata({
         ...filters,
         limit: filters.limit ?? Math.max(limit ?? 50, 50),
       });
+      const cases = searchResult.cases;
 
       let result:
         | AssigneeAggregation[]
@@ -319,9 +323,25 @@ export function createCaseAggregationTool(params: AgentToolFactoryParams) {
         staleDays,
       });
 
+      const filterSummary = caseSearchService.buildFilterSummary(searchResult.appliedFilters);
+      if (filterSummary !== "No filters applied") {
+        display.blocks.push(createContextBlock(`Filters: ${filterSummary}`));
+      }
+
+      if (searchResult.hasMore) {
+        display.blocks.push(
+          createContextBlock("Only the first page of results is shown. Refine filters or page for more.")
+        );
+      }
+
       return {
         result,
         display,
+        metadata: {
+          totalFound: searchResult.totalFound,
+          hasMore: searchResult.hasMore,
+          nextOffset: searchResult.nextOffset,
+        },
       };
     },
   });

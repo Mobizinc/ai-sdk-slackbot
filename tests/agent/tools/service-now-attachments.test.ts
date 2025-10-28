@@ -1,159 +1,304 @@
+/**
+ * Unit tests for ServiceNow tool attachment handling
+ */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ServiceNowTool } from '../../../lib/tools/servicenow'; // Adjust path as needed
-import { IServiceNowClient } from '../../../lib/services/servicenow/client'; // Adjust path as needed
-import { optimizeBatch } from '../../../lib/utils/image-processing'; // Adjust path as needed
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { createServiceNowTool } from "../../../lib/agent/tools/service-now";
+import { serviceNowClient } from "../../../lib/tools/servicenow";
+import { config } from "../../../lib/config";
 
 // Mock dependencies
-vi.mock('../../../lib/utils/image-processing');
-
-const mockServiceNowClient: IServiceNowClient = {
-    getAttachments: vi.fn(),
-    downloadAttachment: vi.fn(),
+vi.mock("../../../lib/tools/servicenow", () => ({
+  serviceNowClient: {
+    isConfigured: vi.fn(),
     getCase: vi.fn(),
     getIncident: vi.fn(),
-    // Add other methods if the tool calls them
-};
+    getAttachments: vi.fn(),
+    downloadAttachment: vi.fn(),
+  },
+}));
 
-describe('ServiceNow Tool Attachment Logic', () => {
-    let servicenowTool: ServiceNowTool;
+vi.mock("../../../lib/config", () => ({
+  config: {
+    enableMultimodalToolResults: false,
+    maxImageAttachmentsPerTool: 3,
+    maxImageSizeBytes: 5 * 1024 * 1024,
+  },
+}));
 
-    beforeEach(() => {
-        servicenowTool = new ServiceNowTool();
-        servicenowTool.serviceNowClient = mockServiceNowClient;
-        servicenowTool.multimodalEnabled = true; // Default to enabled
+vi.mock("../../../lib/utils/image-processing", () => ({
+  optimizeImageForClaude: vi.fn().mockResolvedValue({
+    data: "optimized_base64_data",
+    media_type: "image/jpeg",
+    size_bytes: 50000,
+    was_optimized: true,
+    original_size_bytes: 150000,
+  }),
+  isSupportedImageFormat: vi.fn().mockReturnValue(true),
+}));
 
-        vi.clearAllMocks();
+vi.mock("../../../lib/infrastructure/servicenow-context", () => ({
+  createServiceNowContext: vi.fn().mockReturnValue({}),
+}));
+
+describe("ServiceNow Tool - Attachment Handling", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(serviceNowClient.isConfigured).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("getCase with includeAttachments", () => {
+    it("should fetch case without attachments by default", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Test case",
+        description: "Test description",
+      };
+
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
+
+      const result = await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        // includeAttachments not specified - should default to false
+      });
+
+      expect(result).toEqual({ case: mockCase });
+      expect(serviceNowClient.getAttachments).not.toHaveBeenCalled();
+      expect(result._attachmentBlocks).toBeUndefined();
     });
 
-    describe('processAttachments', () => {
-        it('should return empty when feature is disabled', async () => {
-            servicenowTool.multimodalEnabled = false;
-            const attachments = await servicenowTool.processAttachments('case_table', 'sys_id_123', true);
-            expect(attachments).toEqual([]);
-            expect(mockServiceNowClient.getAttachments).not.toHaveBeenCalled();
-        });
+    it("should NOT fetch attachments when feature flag is disabled", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Test case",
+      };
 
-        it('should return empty when includeAttachments is false', async () => {
-            const attachments = await servicenowTool.processAttachments('case_table', 'sys_id_123', false);
-            expect(attachments).toEqual([]);
-            expect(mockServiceNowClient.getAttachments).not.toHaveBeenCalled();
-        });
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+      (config as any).enableMultimodalToolResults = false;
 
-        it('should fetch, optimize, and format images', async () => {
-            const mockAttachments = [
-                { sys_id: 'att1', file_name: 'a.jpg', content_type: 'image/jpeg' },
-                { sys_id: 'att2', file_name: 'b.png', content_type: 'image/png' },
-            ];
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-            (mockServiceNowClient.downloadAttachment as vi.Mock)
-                .mockResolvedValueOnce(Buffer.from('jpeg_data'))
-                .mockResolvedValueOnce(Buffer.from('png_data'));
-            (optimizeBatch as vi.Mock).mockResolvedValue([
-                { success: true, result: { base64Image: 'base64_jpeg', mediaType: 'image/jpeg' } },
-                { success: true, result: { base64Image: 'base64_png', mediaType: 'image/png' } },
-            ]);
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
 
-            const processed = await servicenowTool.processAttachments('incident', 'inc_456', true);
+      const result = await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        includeAttachments: true, // Requested but feature disabled
+      });
 
-            expect(processed.length).toBe(2);
-            expect(processed[0].type).toBe('image');
-            expect((processed[0] as any).source.data).toBe('base64_jpeg');
-            expect(mockServiceNowClient.getAttachments).toHaveBeenCalledWith('incident', 'inc_456');
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledTimes(2);
-            expect(optimizeBatch).toHaveBeenCalledTimes(1);
-        });
-
-        it('should respect maxAttachments limit', async () => {
-            const mockAttachments = Array(5).fill(0).map((_, i) => ({
-                sys_id: `att${i}`,
-                file_name: `img${i}.jpg`,
-                content_type: 'image/jpeg'
-            }));
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-
-            await servicenowTool.processAttachments('problem', 'prb_789', true, { maxAttachments: 3 });
-
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledTimes(3);
-        });
-
-        it('should filter by attachmentTypes', async () => {
-            const mockAttachments = [
-                { sys_id: 'att1', file_name: 'a.jpg', content_type: 'image/jpeg' },
-                { sys_id: 'att2', file_name: 'b.pdf', content_type: 'application/pdf' },
-                { sys_id: 'att3', file_name: 'c.png', content_type: 'image/png' },
-            ];
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-
-            await servicenowTool.processAttachments('change_request', 'chg_111', true, { attachmentTypes: ['image/jpeg'] });
-
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledTimes(1);
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledWith(mockAttachments[0]);
-        });
-
-        it('should skip unsupported formats', async () => {
-            const mockAttachments = [
-                { sys_id: 'att1', file_name: 'a.jpg', content_type: 'image/jpeg' },
-                { sys_id: 'att2', file_name: 'b.txt', content_type: 'text/plain' },
-            ];
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-
-            await servicenowTool.processAttachments('sc_req_item', 'ritm_222', true);
-
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledTimes(1);
-            expect(mockServiceNowClient.downloadAttachment).toHaveBeenCalledWith(mockAttachments[0]);
-        });
-
-        it('should handle download errors gracefully', async () => {
-            const mockAttachments = [{ sys_id: 'att1', file_name: 'a.jpg', content_type: 'image/jpeg' }];
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-            (mockServiceNowClien t.downloadAttachment as vi.Mock).mockRejectedValue(new Error('Download failed'));
-
-            const processed = await servicenowTool.processAttachments('incident', 'inc_333', true);
-
-            expect(processed.length).toBe(0);
-            // Should not throw
-        });
-
-        it('should handle optimization errors', async () => {
-            const mockAttachments = [{ sys_id: 'att1', file_name: 'a.jpg', content_type: 'image/jpeg' }];
-            (mockServiceNowClient.getAttachments as vi.Mock).mockResolvedValue(mockAttachments);
-            (mockServiceNowClient.downloadAttachment as vi.Mock).mockResolvedValue(Buffer.from('some_data'));
-            (optimizeBatch as vi.Mock).mockResolvedValue([{ success: false, error: new Error('Opti failed') }]);
-
-            const processed = await servicenowTool.processAttachments('incident', 'inc_444', true);
-
-            expect(processed.length).toBe(0);
-        });
+      expect(result).toEqual({ case: mockCase });
+      expect(serviceNowClient.getAttachments).not.toHaveBeenCalled();
     });
 
-    describe('getCase and getIncident with attachments', () => {
-        it('should return _attachmentBlocks when getCase is called with includeAttachments', async () => {
-            const mockCase = { number: 'CASE001', short_description: 'Test case' };
-            (mockServiceNowClient.getCase as vi.Mock).mockResolvedValue(mockCase);
-            vi.spyOn(servicenowTool, 'processAttachments').mockResolvedValue([
-                { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: 'img_data' } }
-            ]);
+    it("should fetch and return attachments when enabled", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Test case with screenshot",
+      };
 
-            const result = await servicenowTool.getCase({ sys_id: 'case_sys_id', includeAttachments: true });
+      const mockAttachments = [
+        {
+          sys_id: "attach_1",
+          file_name: "error-screenshot.png",
+          content_type: "image/png",
+          size_bytes: 150000,
+          download_url: "https://instance.service-now.com/...",
+        },
+      ];
 
-            expect(result).toHaveProperty('_attachmentBlocks');
-            expect(result._attachmentBlocks).toHaveLength(1);
-            expect(servicenowTool.processAttachments).toHaveBeenCalledWith('sn_customerservice_case', 'case_sys_id', true, undefined);
-        });
+      const mockImageBuffer = Buffer.from("fake image data");
 
-        it('should return _attachmentBlocks when getIncident is called with includeAttachments', async () => {
-            const mockIncident = { number: 'INC001', short_description: 'Test incident' };
-            (mockServiceNowClient.getIncident as vi.Mock).mockResolvedValue(mockIncident);
-            vi.spyOn(servicenowTool, 'processAttachments').mockResolvedValue([
-                { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'img_data_2' } }
-            ]);
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+      vi.mocked(serviceNowClient.getAttachments).mockResolvedValue(mockAttachments);
+      vi.mocked(serviceNowClient.downloadAttachment).mockResolvedValue(mockImageBuffer);
+      (config as any).enableMultimodalToolResults = true;
 
-            const result = await servicenowTool.getIncident({ sys_id: 'inc_sys_id', includeAttachments: true });
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
 
-            expect(result).toHaveProperty('_attachmentBlocks');
-            expect(result._attachmentBlocks).toHaveLength(1);
-            expect(servicenowTool.processAttachments).toHaveBeenCalledWith('incident', 'inc_sys_id', true, undefined);
-        });
+      const result = await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        includeAttachments: true,
+      });
+
+      expect(serviceNowClient.getCase).toHaveBeenCalledWith("SCS0001234", expect.anything());
+      expect(serviceNowClient.getAttachments).toHaveBeenCalledWith(
+        "sn_customerservice_case",
+        "case_123",
+        3 // default limit
+      );
+      expect(serviceNowClient.downloadAttachment).toHaveBeenCalledWith("attach_1");
+
+      expect(result.case).toEqual(mockCase);
+      expect(result._attachmentBlocks).toBeDefined();
+      expect(result._attachmentBlocks).toHaveLength(1);
+      expect(result._attachmentBlocks[0].type).toBe("image");
+      expect(result._attachmentCount).toBe(1);
     });
+
+    it("should respect maxAttachments parameter", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Case with many screenshots",
+      };
+
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+      vi.mocked(serviceNowClient.getAttachments).mockResolvedValue([]);
+      (config as any).enableMultimodalToolResults = true;
+
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
+
+      await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        includeAttachments: true,
+        maxAttachments: 5,
+      });
+
+      // Should request up to 5, but config caps at 3
+      expect(serviceNowClient.getAttachments).toHaveBeenCalledWith(
+        "sn_customerservice_case",
+        "case_123",
+        3 // Capped by config.maxImageAttachmentsPerTool
+      );
+    });
+
+    it("should handle cases with no attachments gracefully", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Case without attachments",
+      };
+
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+      vi.mocked(serviceNowClient.getAttachments).mockResolvedValue([]);
+      (config as any).enableMultimodalToolResults = true;
+
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
+
+      const result = await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        includeAttachments: true,
+      });
+
+      expect(result).toEqual({ case: mockCase });
+      expect(result._attachmentBlocks).toBeUndefined();
+    });
+
+    it("should handle attachment fetch errors gracefully", async () => {
+      const mockCase = {
+        sys_id: "case_123",
+        number: "SCS0001234",
+        short_description: "Case",
+      };
+
+      vi.mocked(serviceNowClient.getCase).mockResolvedValue(mockCase as any);
+      vi.mocked(serviceNowClient.getAttachments).mockRejectedValue(new Error("API error"));
+      (config as any).enableMultimodalToolResults = true;
+
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
+
+      // Should not throw, should return case without attachments
+      const result = await tool.execute({
+        action: "getCase",
+        number: "SCS0001234",
+        includeAttachments: true,
+      });
+
+      expect(result.case).toEqual(mockCase);
+      // Attachment processing failed, so no blocks
+      expect(result._attachmentBlocks).toBeUndefined();
+    });
+  });
+
+  describe("getIncident with includeAttachments", () => {
+    it("should fetch incident with attachments when enabled", async () => {
+      const mockIncident = {
+        sys_id: "inc_123",
+        number: "INC0001234",
+        short_description: "Test incident",
+        state: "In Progress",
+        url: "https://...",
+      };
+
+      const mockAttachments = [
+        {
+          sys_id: "attach_1",
+          file_name: "error.png",
+          content_type: "image/png",
+          size_bytes: 80000,
+          download_url: "https://...",
+        },
+      ];
+
+      const mockImageBuffer = Buffer.from("image data");
+
+      vi.mocked(serviceNowClient.getIncident).mockResolvedValue(mockIncident as any);
+      vi.mocked(serviceNowClient.getAttachments).mockResolvedValue(mockAttachments);
+      vi.mocked(serviceNowClient.downloadAttachment).mockResolvedValue(mockImageBuffer);
+      (config as any).enableMultimodalToolResults = true;
+
+      const tool = createServiceNowTool({
+        caseNumbers: [],
+        messages: [],
+        updateStatus: vi.fn(),
+        options: {},
+      });
+
+      const result = await tool.execute({
+        action: "getIncident",
+        number: "INC0001234",
+        includeAttachments: true,
+      });
+
+      expect(serviceNowClient.getAttachments).toHaveBeenCalledWith(
+        "incident",
+        "inc_123",
+        3
+      );
+      expect(result.incident).toEqual(mockIncident);
+      expect(result._attachmentBlocks).toBeDefined();
+      expect(result._attachmentCount).toBe(1);
+    });
+  });
 });
