@@ -1297,7 +1297,7 @@ export function sanitizeMrkdwn(text: string): string {
     'textarea', 'button', 'link', 'meta', 'style', 'html', 'head', 'body'
   ];
 
-  let sanitized = text;
+  let sanitized = typeof text === "string" ? text : text == null ? "" : String(text);
 
   // Remove dangerous HTML tags but keep their content
   DANGEROUS_TAGS.forEach(tag => {

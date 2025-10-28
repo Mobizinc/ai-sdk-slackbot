@@ -12,7 +12,7 @@ import { createServiceNowContext } from "../../infrastructure/servicenow-context
 import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
 import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
-import { normalizeCaseId, findMatchingCaseNumber, extractDigits } from "../../utils/case-number-normalizer";
+import { normalizeCaseId, findMatchingCaseNumber } from "../../utils/case-number-normalizer";
 
 export type ServiceNowToolInput = {
   action:
@@ -445,14 +445,16 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           }
 
           let sysId = caseSysId ?? null;
+          let normalizedJournalNumber: string | null = null;
 
           if (!sysId && number) {
-            const caseRecord = await serviceNowClient.getCase(number, snContext);
+            normalizedJournalNumber = normalizeNumber(number, false);
+            const caseRecord = await serviceNowClient.getCase(normalizedJournalNumber, snContext);
 
             if (!caseRecord) {
               return {
                 entries: [],
-                message: `Case ${number} was not found in ServiceNow.`,
+                message: `Case ${normalizedJournalNumber} was not found in ServiceNow.`,
               };
             }
 
@@ -460,12 +462,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             if (!sysId) {
               return {
                 entries: [],
-                message: `Unable to access sys_id for case ${number}.`,
+                message: `Unable to access sys_id for case ${normalizedJournalNumber}.`,
               };
             }
           }
 
-          updateStatus?.(`is fetching journal entries for ${number ?? caseSysId}...`);
+          const journalReference = normalizedJournalNumber ?? number ?? caseSysId;
+          updateStatus?.(`is fetching journal entries for ${journalReference}...`);
 
           const journal = await serviceNowClient.getCaseJournal(
             sysId!,

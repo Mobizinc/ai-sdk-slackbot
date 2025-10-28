@@ -32,7 +32,7 @@ describe("ServiceNow Tool", () => {
     mockServiceNowClient.getCaseJournal = vi.fn();
     mockServiceNowClient.searchKnowledge = vi.fn();
     mockServiceNowClient.searchConfigurationItems = vi.fn();
-    mockServiceNowClient.searchCases = vi.fn();
+    mockServiceNowClient.searchCustomerCases = vi.fn();
 
     // Create tools with empty caseNumbers to avoid normalization conflicts
     // Individual tests will override with specific caseNumbers when testing normalization
@@ -282,6 +282,30 @@ describe("ServiceNow Tool", () => {
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0099999");
       expect(result).toEqual({ incident: mockIncident });
     });
+
+    it("should normalize when number parameter is provided as numeric type", async () => {
+      const mockCase = {
+        number: "SCS0046363",
+        sys_id: "abc123",
+        short_description: "Numeric payload case",
+      };
+      mockServiceNowClient.getCase.mockResolvedValue(mockCase);
+
+      const toolsWithCase = createLegacyAgentTools({
+        messages: createMockMessages(),
+        caseNumbers: ["SCS0046363"],
+        updateStatus: mockUpdateStatus,
+        options: { channelId: "C123456" },
+      });
+
+      await toolsWithCase.serviceNow.execute({
+        action: "getCase",
+        number: 46363 as any, // Simulate LLM sending numeric payload
+      });
+
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0046363");
+    });
   });
 
   describe("ServiceNow Tool - getCaseJournal Action", () => {
@@ -298,9 +322,11 @@ describe("ServiceNow Tool", () => {
         limit: 10,
       });
 
-      expect(mockServiceNowClient.getCaseJournal).toHaveBeenCalledWith("abc123", {
-        limit: 10,
-      });
+      expect(mockServiceNowClient.getCaseJournal).toHaveBeenCalledWith(
+        "abc123",
+        { limit: 10 },
+        expect.any(Object),
+      );
       expect(result).toEqual({
         entries: mockJournal,
         total: 2,
@@ -321,9 +347,11 @@ describe("ServiceNow Tool", () => {
       // Check first argument only (second is snContext for getCase)
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0002345"); // Normalized
-      expect(mockServiceNowClient.getCaseJournal).toHaveBeenCalledWith("abc123", {
-        limit: 20,
-      });
+      expect(mockServiceNowClient.getCaseJournal).toHaveBeenCalledWith(
+        "abc123",
+        { limit: 20 },
+        expect.any(Object),
+      );
       expect(result).toEqual({
         entries: mockJournal,
         total: 1,
@@ -370,8 +398,8 @@ describe("ServiceNow Tool", () => {
       });
 
       expect(mockServiceNowClient.searchKnowledge).toHaveBeenCalledWith(
-        "password reset",
-        { limit: 5 }
+        { query: "password reset", limit: 5 },
+        expect.any(Object),
       );
       expect(result).toEqual({
         articles: mockArticles,
@@ -387,9 +415,10 @@ describe("ServiceNow Tool", () => {
         query: "test",
       });
 
-      expect(mockServiceNowClient.searchKnowledge).toHaveBeenCalledWith("test", {
-        limit: 10,
-      });
+      expect(mockServiceNowClient.searchKnowledge).toHaveBeenCalledWith(
+        { query: "test", limit: 10 },
+        expect.any(Object),
+      );
     });
 
     it("should throw error when query is missing", async () => {
@@ -474,7 +503,7 @@ describe("ServiceNow Tool", () => {
         { number: "SCS0001", short_description: "Test case 1", priority: "2" },
         { number: "SCS0002", short_description: "Test case 2", priority: "3" },
       ];
-      mockServiceNowClient.searchCases.mockResolvedValue(mockCases);
+      mockServiceNowClient.searchCustomerCases.mockResolvedValue(mockCases);
 
       const result = await tools.serviceNow.execute({
         action: "searchCases",
@@ -484,23 +513,26 @@ describe("ServiceNow Tool", () => {
         limit: 10,
       });
 
-      expect(mockServiceNowClient.searchCases).toHaveBeenCalledWith({
-        query: undefined,
-        limit: 10,
-        ciName: undefined,
-        ipAddress: undefined,
-        accountName: undefined,
-        companyName: "Acme Corp",
-        priority: "2",
-        state: "Open",
-        assignmentGroup: undefined,
-        assignedTo: undefined,
-        openedAfter: undefined,
-        openedBefore: undefined,
-        activeOnly: undefined,
-        sortBy: undefined,
-        sortOrder: undefined,
-      });
+      expect(mockServiceNowClient.searchCustomerCases).toHaveBeenCalledWith(
+        {
+          query: undefined,
+          limit: 10,
+          ciName: undefined,
+          ipAddress: undefined,
+          accountName: undefined,
+          companyName: "Acme Corp",
+          priority: "2",
+          state: "Open",
+          assignmentGroup: undefined,
+          assignedTo: undefined,
+          openedAfter: undefined,
+          openedBefore: undefined,
+          activeOnly: undefined,
+          sortBy: undefined,
+          sortOrder: undefined,
+        },
+        expect.any(Object),
+      );
       expect(result).toEqual({
         cases: mockCases,
         total_found: 2,
@@ -513,7 +545,7 @@ describe("ServiceNow Tool", () => {
     });
 
     it("should update status with company name when provided", async () => {
-      mockServiceNowClient.searchCases.mockResolvedValue([]);
+      mockServiceNowClient.searchCustomerCases.mockResolvedValue([]);
 
       await tools.serviceNow.execute({
         action: "searchCases",
@@ -526,7 +558,7 @@ describe("ServiceNow Tool", () => {
     });
 
     it("should update status without company name when not provided", async () => {
-      mockServiceNowClient.searchCases.mockResolvedValue([]);
+      mockServiceNowClient.searchCustomerCases.mockResolvedValue([]);
 
       await tools.serviceNow.execute({
         action: "searchCases",
