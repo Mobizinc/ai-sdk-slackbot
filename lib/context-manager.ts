@@ -6,6 +6,7 @@
 
 import type { CaseContextRepository } from "./db/repositories/case-context-repository";
 import { getCaseContextRepository } from "./db/repositories/case-context-repository";
+import { extractCaseNumbers as detectCaseNumbers } from "./passive/detectors/case-number-extractor";
 
 export interface CaseMessage {
   user: string;
@@ -48,10 +49,7 @@ export class ContextManager {
    * Extract case numbers from message text using regex
    */
   extractCaseNumbers(text: string): string[] {
-    // Pattern: 3 uppercase letters followed by 7 digits (e.g., SCS0048402)
-    const pattern = /\b[A-Z]{3}\d{7}\b/g;
-    const matches = text.match(pattern);
-    return matches ? [...new Set(matches)] : []; // Remove duplicates
+    return detectCaseNumbers(text);
   }
 
   /**

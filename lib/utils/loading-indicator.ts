@@ -4,6 +4,11 @@
  */
 
 import { getSlackMessagingService } from "../services/slack-messaging";
+import {
+  createSectionBlock,
+  MessageEmojis,
+  type KnownBlock,
+} from "./message-styling";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -203,11 +208,10 @@ export class LoadingIndicator {
     operation: OperationType,
     result: string | undefined,
     elapsedSeconds: string
-  ): any[] {
-    const emoji = "✅";
+  ): KnownBlock[] {
     const description = this.getOperationDescription(operation);
 
-    let text = `${emoji} *${description} Complete*\n\n`;
+    let text = `${MessageEmojis.SUCCESS} *${description} Complete*\n\n`;
 
     if (result) {
       text += `${result}\n\n`;
@@ -216,13 +220,7 @@ export class LoadingIndicator {
     text += `_Completed in ${elapsedSeconds}s_`;
 
     return [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text,
-        },
-      },
+      createSectionBlock(text)
     ];
   }
 
@@ -233,39 +231,32 @@ export class LoadingIndicator {
     operation: OperationType,
     error: string,
     elapsedSeconds: string
-  ): any[] {
-    const emoji = "❌";
+  ): KnownBlock[] {
     const description = this.getOperationDescription(operation);
 
     const text =
-      `${emoji} *${description} Failed*\n\n` +
+      `${MessageEmojis.ERROR} *${description} Failed*\n\n` +
       `${error}\n\n` +
       `_Failed after ${elapsedSeconds}s_`;
 
     return [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text,
-        },
-      },
+      createSectionBlock(text)
     ];
   }
 
   /**
-   * Get operation emoji
+   * Get operation emoji using consistent constants
    */
   private getOperationEmoji(operation: OperationType): string {
     const emojis: Record<OperationType, string> = {
-      kb_generation: "🤖",
-      classification: "🔍",
-      escalation: "⚡",
-      analysis: "🧠",
-      processing: "⏳",
+      kb_generation: MessageEmojis.PROCESSING,
+      classification: MessageEmojis.SEARCH,
+      escalation: MessageEmojis.LIGHTNING,
+      analysis: MessageEmojis.BRAIN,
+      processing: MessageEmojis.PROCESSING,
     };
 
-    return emojis[operation] || "⏳";
+    return emojis[operation] || MessageEmojis.PROCESSING;
   }
 
   /**

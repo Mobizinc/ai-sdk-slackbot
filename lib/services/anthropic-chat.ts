@@ -30,10 +30,46 @@ export interface ToolDefinition {
   inputSchema: Record<string, unknown>;
 }
 
+/**
+ * Content block types for multimodal tool results
+ */
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentBlock {
+  type: "image";
+  source: {
+    type: "base64";
+    media_type: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+    data: string; // base64 encoded image data
+  };
+}
+
+export interface DocumentContentBlock {
+  type: "document";
+  source: {
+    type: "text";
+    media_type: string;
+    data: string;
+  };
+}
+
+export type ContentBlock = TextContentBlock | ImageContentBlock | DocumentContentBlock;
+
 export interface ExecuteToolResult {
   toolUseId: string;
   output: unknown;
+  isError?: boolean; // Indicates if the tool execution resulted in an error
+  contentBlocks?: ContentBlock[]; // Multimodal content blocks (images, documents, text)
 }
+
+export type ToolChoice =
+  | { type: "auto" }
+  | { type: "any" }
+  | { type: "tool"; name: string }
+  | { type: "none" };
 
 export interface ChatRequest {
   messages: ChatMessage[];
@@ -42,6 +78,8 @@ export interface ChatRequest {
   maxSteps?: number;
   model?: string;
   temperature?: number;
+  maxTokens?: number;
+  toolChoice?: ToolChoice;
 }
 
 export interface ChatResponse {
@@ -155,6 +193,24 @@ export class AnthropicChatService {
     }));
 
     const toolResults = request.toolResults?.map<ToolResultBlockParam>((result) => {
+      // If contentBlocks provided, use multimodal content (images, documents, text)
+      // This allows tools to return rich content like screenshots and diagrams
+      if (result.contentBlocks && result.contentBlocks.length > 0) {
+        const toolResultBlock: ToolResultBlockParam = {
+          type: "tool_result",
+          tool_use_id: result.toolUseId,
+          content: result.contentBlocks as any, // Anthropic SDK accepts content block arrays
+        };
+
+        // Add is_error field if the tool execution resulted in an error
+        if (result.isError) {
+          (toolResultBlock as any).is_error = true;
+        }
+
+        return toolResultBlock;
+      }
+
+      // Fallback to legacy string/JSON output for backward compatibility
       let content: string;
       if (typeof result.output === "string") {
         content = result.output;
@@ -169,11 +225,19 @@ export class AnthropicChatService {
         }
       }
 
-      return {
+      const toolResultBlock: ToolResultBlockParam = {
         type: "tool_result",
         tool_use_id: result.toolUseId,
         content,
       };
+
+      // Add is_error field if the tool execution resulted in an error
+      // This follows Anthropic best practice for error handling
+      if (result.isError) {
+        (toolResultBlock as any).is_error = true;
+      }
+
+      return toolResultBlock;
     });
 
     // Apply prompt caching if enabled
@@ -206,7 +270,7 @@ export class AnthropicChatService {
       model,
       messages: conversation,
       temperature: request.temperature ?? 0.0,
-      max_tokens: 4096,
+      max_tokens: request.maxTokens ?? 4096,
       system: systemPrompt,
     };
 
@@ -223,6 +287,12 @@ export class AnthropicChatService {
       });
 
       (params as any).tools = toolsWithCaching;
+
+      // Add tool_choice parameter if specified
+      // Allows control over whether Claude uses tools: auto (default), any, specific tool, or none
+      if (request.toolChoice) {
+        (params as any).tool_choice = request.toolChoice;
+      }
     }
 
     if (toolResults && toolResults.length > 0) {

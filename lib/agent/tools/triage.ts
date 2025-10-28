@@ -9,15 +9,23 @@ import { serviceNowClient } from "../../tools/servicenow";
 import { getCaseTriageService } from "../../services/case-triage";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 import { createServiceNowContext } from "../../infrastructure/servicenow-context";
+import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
+import type { ContentBlock } from "../../services/anthropic-chat";
+import { config } from "../../config";
 
 export type TriageCaseInput = {
   caseNumber: string;
+  includeScreenshots?: boolean;
 };
 
 const triageCaseInputSchema = z.object({
   caseNumber: z
     .string()
     .describe("The ServiceNow case number to triage and classify (e.g., 'SCS0001234', 'CS0048851')"),
+  includeScreenshots: z
+    .boolean()
+    .optional()
+    .describe("Include screenshots/attachments for visual analysis during triage. Increases token usage (3000-10000 tokens) but provides richer context for UI errors, error screenshots, and system state analysis. Only use when visual information is critical for classification."),
 });
 
 export function createTriageTool(params: AgentToolFactoryParams) {
@@ -26,9 +34,9 @@ export function createTriageTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "triage_case",
     description:
-      "Triage and classify a ServiceNow case. Use this when a user explicitly asks to triage, classify, or analyze a case. This performs AI-powered classification including category/subcategory recommendations, technical entity extraction, similar case analysis, and KB article suggestions. Returns comprehensive classification results including confidence scores and immediate next steps.",
+      "Performs comprehensive AI-powered triage and classification analysis of a ServiceNow case to help determine priority, category, assignment, and resolution strategy. This tool fetches full case details from ServiceNow and applies machine learning to recommend: appropriate category and subcategory classifications with confidence scores, urgency/priority levels, optimal assignment group routing, extracted technical entities (systems, technologies, error codes), similar historical cases for pattern recognition, and relevant KB articles for faster resolution. Use this tool when a user explicitly asks to 'triage', 'classify', 'analyze', or 'categorize' a specific case number. Set includeScreenshots to true to fetch and analyze image attachments (error screenshots, UI issues, system state) alongside the case description. Visual analysis can significantly improve classification accuracy for UI/UX issues, error messages captured in screenshots, and system monitoring alerts. WARNING: Screenshots increase token consumption by 3000-10000 tokens per case depending on attachment count and size. The tool returns structured classification results with confidence percentages, similar case matches ranked by relevance, actionable next steps, potential KB article references, and optionally the case's screenshot attachments for visual context. This is a read-only analytical tool that does not modify the case in ServiceNow - it only provides triage recommendations. Requires ServiceNow integration to be configured and a valid case number.",
     inputSchema: triageCaseInputSchema,
-    execute: async ({ caseNumber }: TriageCaseInput) => {
+    execute: async ({ caseNumber, includeScreenshots }: TriageCaseInput) => {
       try {
         updateStatus?.(`is triaging case ${caseNumber}...`);
 
@@ -88,7 +96,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
         const classification = triageResult.classification;
         const confidencePercent = Math.round((classification.confidence_score || 0) * 100);
 
-        return {
+        const result = {
           success: true,
           case_number: triageResult.caseNumber,
           classification: {
@@ -119,6 +127,62 @@ export function createTriageTool(params: AgentToolFactoryParams) {
           record_type_suggestion: triageResult.recordTypeSuggestion,
           message: `Case ${triageResult.caseNumber} triaged successfully. Suggested category: ${classification.category}${classification.subcategory ? ` > ${classification.subcategory}` : ''} (${confidencePercent}% confidence).`,
         };
+
+        // Handle screenshots if requested
+        if (includeScreenshots && config.enableMultimodalToolResults) {
+          try {
+            updateStatus?.(`is fetching screenshots for ${caseNumber}...`);
+
+            const attachments = await serviceNowClient.getAttachments(
+              "sn_customerservice_case",
+              caseDetails.sys_id,
+              config.maxImageAttachmentsPerTool
+            );
+
+            const imageAttachments = attachments.filter(a =>
+              isSupportedImageFormat(a.content_type)
+            );
+
+            if (imageAttachments.length > 0) {
+              const imageBlocks: ContentBlock[] = [];
+
+              for (const attachment of imageAttachments.slice(0, 3)) {
+                try {
+                  const imageBuffer = await serviceNowClient.downloadAttachment(attachment.sys_id);
+                  const optimized = await optimizeImageForClaude(
+                    imageBuffer,
+                    attachment.content_type,
+                    config.maxImageSizeBytes
+                  );
+
+                  imageBlocks.push({
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: optimized.media_type,
+                      data: optimized.data,
+                    },
+                  });
+                } catch (error) {
+                  console.error(`[Triage] Failed to process ${attachment.file_name}:`, error);
+                }
+              }
+
+              if (imageBlocks.length > 0) {
+                return {
+                  ...result,
+                  _attachmentBlocks: imageBlocks,
+                  _attachmentCount: imageBlocks.length,
+                };
+              }
+            }
+          } catch (error) {
+            console.error("[Triage] Failed to fetch screenshots:", error);
+            // Continue without screenshots, don't fail triage
+          }
+        }
+
+        return result;
       } catch (error) {
         console.error("[Triage Case Tool] Error:", error);
         return {

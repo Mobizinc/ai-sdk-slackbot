@@ -18,6 +18,8 @@ export interface Case {
   category?: string;
   subcategory?: string;
   openedAt?: Date;
+  updatedOn?: Date; // Mapped from sys_updated_on for stale detection and sorting
+  ageDays?: number; // Calculated field: days since opened (for display)
   assignmentGroup?: string;
   assignmentGroupSysId?: string;
   assignedTo?: string;

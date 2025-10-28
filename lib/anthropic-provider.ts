@@ -1,6 +1,12 @@
 /**
  * Anthropic API Provider
  * Direct Anthropic SDK client with prompt caching support
+ *
+ * LangSmith Tracing Integration:
+ * - wrapSDK automatically integrates with AsyncLocalStorage context from traceable wrappers
+ * - When called within a traced function (e.g., withLangSmithTrace), Anthropic calls
+ *   will appear as child spans in the trace hierarchy
+ * - The wrapper respects existing trace context and does NOT create orphaned root traces
  */
 
 import Anthropic from '@anthropic-ai/sdk';

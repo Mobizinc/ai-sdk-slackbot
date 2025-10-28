@@ -32,7 +32,7 @@ export function createKnowledgeBaseTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "generate_kb_article",
     description:
-      "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
+      "INTERNAL ONLY: Generates a knowledge base article from a resolved case using the conversation context and case details from ServiceNow. This tool requires that the case has been discussed in a tracked Slack thread to capture the problem-solving context. It analyzes the conversation history, extracts the issue description and resolution steps, checks for duplicate KB articles using similarity search, and returns a structured KB article with confidence scoring (0-100%). Use this tool ONLY when the user explicitly commands 'generate KB for [case number]' or similar direct requests. Do NOT proactively mention or suggest KB generation in your responses - this happens automatically for resolved cases through other workflows. Returns either the generated article with confidence score and similar KBs, or a duplicate detection result if similar articles already exist. This tool requires both ServiceNow and conversation context to be available.",
     inputSchema: generateKbArticleInputSchema,
     execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
       try {

@@ -18,6 +18,69 @@ const CASE_PATTERNS = [
 ];
 
 /**
+ * Additional keyword-based patterns to catch shorthand references such as
+ * "case 49764" or "incident 167980".
+ *
+ * Each entry defines:
+ * - regex: pattern to capture the numeric portion
+ * - prefix: canonical prefix to prepend when normalizing
+ */
+const KEYWORD_PATTERNS: Array<{
+  regex: RegExp;
+  prefix: "SCS" | "INC";
+}> = [
+  // Phrases like "case 49764" or "case number 49764"
+  {
+    regex: /\b(?:case|ticket)\s*(?:#|number|no\.?)?\s+(\d{5,7})\b/gi,
+    prefix: "SCS",
+  },
+  // Phrases like "SCS 49764" or "SCS-49764"
+  {
+    regex: /\bSCS[\s#-]+(\d{5,7})\b/gi,
+    prefix: "SCS",
+  },
+  // Phrases like "incident 167980" or "incident number 167980"
+  {
+    regex: /\b(?:incident|inc)\s*(?:#|number|no\.?)?\s+(\d{5,7})\b/gi,
+    prefix: "INC",
+  },
+  // Phrases like "INC 167980" or "INC-167980"
+  {
+    regex: /\bINC[\s#-]+(\d{5,7})\b/gi,
+    prefix: "INC",
+  },
+];
+
+/**
+ * Normalize a numeric portion to a canonical ServiceNow identifier.
+ *
+ * @param prefix - Identifier prefix (e.g., SCS, INC)
+ * @param digits - Numeric portion captured from text
+ * @param totalDigits - Total digits required for the identifier (default 7)
+ */
+function normalizeIdentifier(
+  prefix: "SCS" | "INC",
+  digits: string,
+  totalDigits = 7,
+): string {
+  const numeric = digits.replace(/\D/g, "");
+
+  if (!numeric) {
+    return "";
+  }
+
+  let normalized = numeric;
+
+  if (numeric.length > totalDigits) {
+    normalized = numeric.slice(-totalDigits);
+  } else if (numeric.length < totalDigits) {
+    normalized = numeric.padStart(totalDigits, "0");
+  }
+
+  return `${prefix}${normalized}`;
+}
+
+/**
  * Extract ServiceNow case numbers from text
  *
  * @param text - The message text to search
@@ -37,6 +100,25 @@ export function extractCaseNumbers(text: string): string[] {
       if (match[1]) {
         // Normalize to uppercase
         caseNumbers.add(match[1].toUpperCase());
+      }
+    }
+  }
+
+  // Apply keyword-based patterns to capture shorthand references (e.g., "case 49764")
+  for (const { regex, prefix } of KEYWORD_PATTERNS) {
+    regex.lastIndex = 0;
+    const matches = text.matchAll(regex);
+    for (const match of matches) {
+      const rawMatch = match[0].toUpperCase();
+
+      // Skip matches that already follow canonical formats (e.g., SCS0001234)
+      if (/^(SCS|INC|CASE|RITM)\d{5,}$/.test(rawMatch)) {
+        continue;
+      }
+
+      const normalized = normalizeIdentifier(prefix, match[1]);
+      if (normalized) {
+        caseNumbers.add(normalized.toUpperCase());
       }
     }
   }
@@ -80,6 +162,31 @@ export function extractCaseNumbersWithPositions(text: string): Array<{
       if (match[1]) {
         results.push({
           caseNumber: match[1].toUpperCase(),
+          startIndex: match.index,
+          endIndex: match.index + match[0].length,
+        });
+      }
+    }
+  }
+
+  // Include keyword-based matches with normalized identifiers
+  for (const { regex, prefix } of KEYWORD_PATTERNS) {
+    regex.lastIndex = 0;
+
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match[1]) {
+        const rawMatch = match[0].toUpperCase();
+
+        if (/^(SCS|INC|CASE|RITM)\d{5,}$/.test(rawMatch)) {
+          continue;
+        }
+
+        const normalized = normalizeIdentifier(prefix, match[1]);
+        if (!normalized) continue;
+
+        results.push({
+          caseNumber: normalized.toUpperCase(),
           startIndex: match.index,
           endIndex: match.index + match[0].length,
         });

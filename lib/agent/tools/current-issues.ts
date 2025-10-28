@@ -30,7 +30,7 @@ export function createCurrentIssuesTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "fetch_current_issues",
     description:
-      "Check ServiceNow and Slack for live issues affecting this customer.",
+      "Retrieves real-time information about active issues and ongoing incidents currently affecting a specific customer or channel by querying both ServiceNow open cases and recent Slack thread discussions. This tool cross-references the Slack channel (identified by channel ID or name hint) with ServiceNow cases to provide a comprehensive view of all live problems impacting that customer. It returns a list of open ServiceNow cases with their status, priority, and descriptions, along with active Slack threads discussing current issues. Use this tool when users ask 'what issues are we having?', 'are there any ongoing problems?', 'current status', or similar queries about live operational issues. The tool helps provide situational awareness and prevents duplicate case creation by surfacing existing known issues. Requires a Slack channel ID (automatically provided in most contexts) and ServiceNow integration to be configured. Returns structured data including case numbers, priorities, short descriptions, and Slack thread references for ongoing discussions.",
     inputSchema: fetchCurrentIssuesInputSchema,
     execute: async ({ channelId, channelNameHint }: FetchCurrentIssuesInput) => {
       const effectiveChannelId = channelId ?? options?.channelId;

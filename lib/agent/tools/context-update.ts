@@ -70,7 +70,7 @@ export function createContextUpdateTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "propose_context_update",
     description:
-      "Draft a context/CMDB update for steward approval. Only use when the conversation reveals durable infrastructure facts that are missing from business_contexts or ServiceNow.",
+      "Proposes updates to business context data or CMDB (Configuration Management Database) records for steward approval when new infrastructure information is discovered during case resolution. This tool captures durable facts about clients, vendors, platforms, or infrastructure that are missing from the existing business_contexts knowledge base or ServiceNow CMDB. It requires an entity name (company/system), a summary of what needs updating, and a CMDB identifier payload containing configuration details like CI names, sys_ids, IP addresses, descriptions, owner groups, or documentation links. Use this tool ONLY when you discover persistent infrastructure facts during conversations that should be preserved for future reference - not for temporary information or case-specific details. The proposal includes a confidence level (LOW/MEDIUM/HIGH) and gets queued for human steward review before being applied. If the entity doesn't exist, you can specify its type (CLIENT/VENDOR/PLATFORM) to trigger creation. This tool helps maintain accurate system documentation and prevents knowledge loss after cases are closed.",
     inputSchema: proposeContextUpdateInputSchema,
     execute: async ({
       entityName,

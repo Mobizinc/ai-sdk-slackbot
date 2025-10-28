@@ -9,6 +9,7 @@ import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { config } from "../config";
 import { AnthropicChatService } from "./anthropic-chat";
+import { MessageEmojis } from "../utils/message-styling";
 
 /**
  * Check if a case is in an active state that warrants intelligent assistance.
@@ -94,7 +95,7 @@ export async function buildIntelligentAssistance(
   channelTopic?: string,
   channelPurpose?: string
 ): Promise<string> {
-  let message = `👋 I see you're working on *${caseNumber}*`;
+  let message = `${MessageEmojis.GREETING} I see you're working on *${caseNumber}*`;
 
   if (channelName) {
     message += ` in #${channelName}`;
@@ -157,7 +158,7 @@ export async function buildIntelligentAssistance(
     }
   }
 
-  message += `\n\n_I'll track this conversation for knowledge base generation._ 📝`;
+  message += `\n\n_I'll track this conversation for knowledge base generation._ ${MessageEmojis.DOCUMENT}`;
 
   return message;
 }

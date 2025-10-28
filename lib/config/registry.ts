@@ -838,6 +838,27 @@ export const CONFIG_DEFINITIONS = {
     group: "integrations",
     description: "Minutes lookback when syncing voice worknotes.",
   },
+  enableMultimodalToolResults: {
+    envVar: "ENABLE_MULTIMODAL_TOOL_RESULTS",
+    type: "boolean",
+    default: false,
+    group: "assistant",
+    description: "Enable image and document content blocks in tool results. Significantly increases token usage.",
+  },
+  maxImageAttachmentsPerTool: {
+    envVar: "MAX_IMAGE_ATTACHMENTS_PER_TOOL",
+    type: "number",
+    default: 3,
+    group: "assistant",
+    description: "Maximum number of image attachments to include per tool call.",
+  },
+  maxImageSizeBytes: {
+    envVar: "MAX_IMAGE_SIZE_BYTES",
+    type: "number",
+    default: 5242880,
+    group: "assistant",
+    description: "Maximum size of individual images to process in bytes (default: 5MB).",
+  },
 } as const satisfies Record<string, ConfigDefinition>;
 
 type ValueType<T extends ConfigDefinition["type"]> = T extends "boolean"

@@ -20,6 +20,7 @@ import {
   buildIntelligentAssistance,
   shouldProvideAssistance,
 } from '../../services/intelligent-assistant';
+import { MessageEmojis } from '../../utils/message-styling';
 
 export interface PostAssistanceDeps {
   slackMessaging: SlackMessagingService;
@@ -100,7 +101,7 @@ export class PostAssistanceAction {
     threadTs: string,
     caseNumber: string
   ): Promise<void> {
-    const message = `👋 I see you're working on *${caseNumber}*. I'll track this conversation for knowledge base generation. 📝`;
+    const message = `${MessageEmojis.GREETING} I see you're working on *${caseNumber}*. I'll track this conversation for knowledge base generation. ${MessageEmojis.DOCUMENT}`;
 
     await this.deps.slackMessaging.postToThread({
       channel: channelId,

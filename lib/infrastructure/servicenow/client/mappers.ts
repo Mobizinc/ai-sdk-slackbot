@@ -101,6 +101,14 @@ export function buildRecordUrl(instanceUrl: string, table: string, sysId: string
  * Map CaseRecord to Case domain model
  */
 export function mapCase(record: CaseRecord, instanceUrl: string): Case {
+  const openedAt = parseServiceNowDate(record.opened_at);
+  const updatedOn = parseServiceNowDate((record as any).sys_updated_on); // Extract sys_updated_on
+
+  // Calculate age in days if openedAt is available
+  const ageDays = openedAt
+    ? Math.floor((Date.now() - openedAt.getTime()) / (1000 * 60 * 60 * 24))
+    : undefined;
+
   return {
     sysId: record.sys_id,
     number: record.number,
@@ -110,7 +118,9 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     state: extractDisplayValue(record.state),
     category: extractDisplayValue(record.category),
     subcategory: extractDisplayValue(record.subcategory),
-    openedAt: parseServiceNowDate(record.opened_at),
+    openedAt,
+    updatedOn, // NEW: Map from sys_updated_on for stale detection
+    ageDays, // NEW: Calculated field for display
     assignmentGroup: extractDisplayValue(record.assignment_group),
     assignmentGroupSysId: extractSysId(record.assignment_group),
     assignedTo: extractDisplayValue(record.assigned_to),

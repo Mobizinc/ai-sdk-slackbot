@@ -24,7 +24,7 @@ export function createWeatherTool(params: AgentToolFactoryParams) {
 
   return createTool({
     name: "get_weather",
-    description: "Get the current weather at a location",
+    description: "Fetches real-time weather data for a specific geographic location using the Open-Meteo API. This tool requires both latitude and longitude coordinates along with the city name for context. It returns current temperature in Celsius, weather conditions (via weather code), and relative humidity percentage. Use this tool when users ask about current weather, temperature, or conditions at a location. Note: This tool provides only current weather data, not historical information or extended forecasts beyond the immediate present.",
     inputSchema: weatherInputSchema,
     execute: async ({ latitude, longitude, city }: WeatherToolInput) => {
       updateStatus?.(`is getting weather for ${city}...`);

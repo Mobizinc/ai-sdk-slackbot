@@ -1,0 +1,169 @@
+/**
+ * Case Search Service
+ *
+ * Thin wrapper around the ServiceNow case repository that exposes
+ * search functionality with friendly filter names for agent tooling.
+ */
+
+import { getCaseRepository } from "../infrastructure/servicenow/repositories/factory";
+import type { Case, CaseSearchCriteria } from "../infrastructure/servicenow/types/domain-models";
+
+export interface CaseSearchFilters {
+  accountName?: string;
+  companyName?: string;
+  query?: string;
+  assignmentGroup?: string;
+  assignedTo?: string;
+  priority?: string;
+  state?: string;
+  openedAfter?: string;
+  openedBefore?: string;
+  updatedBefore?: string; // NEW: For stale case detection
+  activeOnly?: boolean;
+  sortBy?: CaseSearchCriteria["sortBy"];
+  sortOrder?: CaseSearchCriteria["sortOrder"];
+  limit?: number;
+  offset?: number; // NEW: For pagination
+}
+
+/**
+ * Search result with metadata for better UX
+ */
+export interface CaseSearchResult {
+  cases: Case[];
+  totalFound: number;
+  appliedFilters: CaseSearchFilters;
+  hasMore: boolean;
+  nextOffset?: number;
+}
+
+function parseDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    console.warn(`[CaseSearchService] Ignoring invalid date filter "${value}"`);
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export class CaseSearchService {
+  private readonly caseRepository = getCaseRepository();
+
+  /**
+   * Search cases with metadata (preferred for new code)
+   */
+  async searchWithMetadata(filters: CaseSearchFilters = {}): Promise<CaseSearchResult> {
+    const limit = Math.min(filters.limit || 10, 50); // Default 10, max 50
+    const offset = filters.offset || 0;
+
+    const criteria: CaseSearchCriteria = {
+      accountName: filters.accountName,
+      companyName: filters.companyName,
+      query: filters.query,
+      assignmentGroup: filters.assignmentGroup,
+      assignedTo: filters.assignedTo,
+      priority: filters.priority,
+      state: filters.state,
+      openedAfter: parseDate(filters.openedAfter),
+      openedBefore: parseDate(filters.openedBefore),
+      activeOnly: filters.activeOnly,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+      limit,
+    };
+
+    // Add updatedBefore if provided (for stale detection)
+    if (filters.updatedBefore) {
+      (criteria as any).updatedBefore = parseDate(filters.updatedBefore);
+    }
+
+    try {
+      const cases = await this.caseRepository.search(criteria);
+
+      // Calculate metadata
+      const totalFound = cases.length; // Limited by maxResults
+      const hasMore = cases.length >= limit; // Might have more if we hit limit
+      const nextOffset = hasMore ? offset + limit : undefined;
+
+      return {
+        cases,
+        totalFound,
+        appliedFilters: filters,
+        hasMore,
+        nextOffset,
+      };
+    } catch (error) {
+      console.error("[CaseSearchService] Failed to search cases:", error);
+      return {
+        cases: [],
+        totalFound: 0,
+        appliedFilters: filters,
+        hasMore: false,
+      };
+    }
+  }
+
+  /**
+   * Search cases (legacy method for backward compatibility)
+   */
+  async search(filters: CaseSearchFilters = {}): Promise<Case[]> {
+    const result = await this.searchWithMetadata(filters);
+    return result.cases;
+  }
+
+  /**
+   * Find stale cases (no updates in X days)
+   */
+  async findStaleCases(staleDays: number = 7, limit: number = 25): Promise<Case[]> {
+    const updatedBefore = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+
+    const result = await this.searchWithMetadata({
+      updatedBefore: updatedBefore.toISOString(),
+      state: "Open,In Progress,Pending", // Only active cases
+      sortBy: "updated_on",
+      sortOrder: "asc", // Oldest updates first
+      limit,
+    });
+
+    return result.cases;
+  }
+
+  /**
+   * Find oldest open cases
+   */
+  async findOldestCases(limit: number = 10): Promise<Case[]> {
+    const result = await this.searchWithMetadata({
+      state: "Open,In Progress,Pending",
+      sortBy: "opened_at",
+      sortOrder: "asc", // Oldest first
+      limit,
+    });
+
+    return result.cases;
+  }
+
+  /**
+   * Build human-readable summary of applied filters
+   */
+  buildFilterSummary(filters: CaseSearchFilters): string {
+    const parts: string[] = [];
+
+    if (filters.accountName) parts.push(`Customer: ${filters.accountName}`);
+    if (filters.companyName) parts.push(`Company: ${filters.companyName}`);
+    if (filters.assignmentGroup) parts.push(`Queue: ${filters.assignmentGroup}`);
+    if (filters.assignedTo) parts.push(`Assignee: ${filters.assignedTo}`);
+    if (filters.priority) parts.push(`Priority: ${filters.priority}`);
+    if (filters.state) parts.push(`State: ${filters.state}`);
+    if (filters.query) parts.push(`Keyword: "${filters.query}"`);
+    if (filters.openedAfter) parts.push(`Opened after: ${parseDate(filters.openedAfter)?.toLocaleDateString()}`);
+    if (filters.openedBefore) parts.push(`Opened before: ${parseDate(filters.openedBefore)?.toLocaleDateString()}`);
+    if (filters.updatedBefore) parts.push(`Updated before: ${parseDate(filters.updatedBefore)?.toLocaleDateString()}`);
+
+    return parts.length > 0 ? parts.join(" | ") : "No filters applied";
+  }
+}
+
+export const caseSearchService = new CaseSearchService();

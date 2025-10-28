@@ -747,3 +747,51 @@ export const caseEscalations = pgTable(
 
 export type CaseEscalation = typeof caseEscalations.$inferSelect;
 export type NewCaseEscalation = typeof caseEscalations.$inferInsert;
+
+/**
+ * Interactive States Table
+ * Stores state for interactive Slack components (modals, buttons, reactions)
+ * Enables persistence across app restarts and provides audit trail
+ *
+ * Use cases:
+ * - KB approval workflows
+ * - Context update proposals
+ * - Multi-step modal wizards
+ * - Any interactive component that needs state persistence
+ */
+export const interactiveStates = pgTable(
+  "interactive_states",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // State identification
+    type: text("type").notNull(), // 'kb_approval', 'context_update', 'modal_wizard', etc.
+    // Slack message identification
+    channelId: text("channel_id").notNull(),
+    messageTs: text("message_ts").notNull(),
+    threadTs: text("thread_ts"), // Optional thread context
+    // State data
+    payload: jsonb("payload").notNull().$type<Record<string, any>>(), // Flexible payload for different state types
+    status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected', 'completed', 'expired'
+    // Lifecycle tracking
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // Auto-cleanup after this time
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    processedBy: text("processed_by"), // Slack user_id who processed
+    // Metadata
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    errorMessage: text("error_message"),
+  },
+  (table) => ({
+    // Composite index for quick lookups
+    channelMessageIdx: uniqueIndex("idx_interactive_channel_message").on(table.channelId, table.messageTs),
+    typeIdx: index("idx_interactive_type").on(table.type),
+    statusIdx: index("idx_interactive_status").on(table.status),
+    expiresAtIdx: index("idx_interactive_expires_at").on(table.expiresAt),
+    createdAtIdx: index("idx_interactive_created_at").on(table.createdAt),
+    // Composite for finding pending states by type
+    typePendingIdx: index("idx_interactive_type_pending").on(table.type, table.status),
+  })
+);
+
+export type InteractiveState = typeof interactiveStates.$inferSelect;
+export type NewInteractiveState = typeof interactiveStates.$inferInsert;

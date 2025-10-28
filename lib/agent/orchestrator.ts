@@ -16,6 +16,7 @@ import { loadContext } from "./context-loader";
 import { buildPrompt } from "./prompt-builder";
 import { runAgent } from "./runner";
 import { formatMessage } from "./message-formatter";
+import { withLangSmithTrace, createChildSpan } from "../observability";
 
 class AgentOrchestrator {
   async run(
@@ -24,45 +25,120 @@ class AgentOrchestrator {
     options?: GenerateResponseOptions,
     deps?: LegacyExecutorDeps,
   ): Promise<string> {
-    try {
-      const context = await loadContext({
-        messages,
-        channelId: options?.channelId,
-        threadTs: options?.threadTs,
-      });
+    // Wrap the entire orchestration in a trace
+    return withLangSmithTrace(
+      async () => {
+        try {
+          // Create child span for context loading
+          const contextSpan = await createChildSpan({
+            name: "load_context",
+            runType: "chain",
+            metadata: {
+              channelId: options?.channelId,
+              threadTs: options?.threadTs,
+            },
+            tags: {
+              component: "orchestrator",
+              operation: "context_loading",
+            },
+          });
 
-      const prompt = await buildPrompt({
-        context,
-        requestTimestamp: new Date().toISOString(),
-      });
+          const context = await loadContext({
+            messages,
+            channelId: options?.channelId,
+            threadTs: options?.threadTs,
+          });
 
-      const agentMessages: ChatMessage[] = [
-        { role: "system", content: prompt.systemPrompt },
-        ...prompt.conversation,
-      ];
+          await contextSpan?.end({ contextLoaded: true });
 
-      const responseText = await runAgent({
-        messages: agentMessages,
-        updateStatus,
-        options,
-        caseNumbers: Array.isArray(context.metadata.caseNumbers)
-          ? (context.metadata.caseNumbers as string[])
-          : [],
-      });
+          // Create child span for prompt building
+          const promptSpan = await createChildSpan({
+            name: "build_prompt",
+            runType: "chain",
+            metadata: {
+              caseNumbers: Array.isArray(context.metadata.caseNumbers)
+                ? context.metadata.caseNumbers
+                : undefined,
+            },
+            tags: {
+              component: "orchestrator",
+              operation: "prompt_building",
+            },
+          });
 
-      return formatMessage({
-        text: responseText,
-        updateStatus,
-      });
-    } catch (error) {
-      console.error("[Agent] Refactored orchestrator failed:", error);
+          const prompt = await buildPrompt({
+            context,
+            requestTimestamp: new Date().toISOString(),
+          });
 
-      if (deps?.legacyExecutor) {
-        return deps.legacyExecutor(messages, updateStatus, options);
+          await promptSpan?.end({
+            systemPromptLength: prompt.systemPrompt.length,
+            conversationLength: prompt.conversation.length,
+          });
+
+          const agentMessages: ChatMessage[] = [
+            { role: "system", content: prompt.systemPrompt },
+            ...prompt.conversation,
+          ];
+
+          // Extract case numbers safely
+          let caseNumbers: string[] = [];
+          if (Array.isArray(context.metadata.caseNumbers)) {
+            caseNumbers = context.metadata.caseNumbers.filter(
+              (cn): cn is string => typeof cn === 'string'
+            );
+          }
+
+          // runAgent creates its own child spans internally
+          const responseText = await runAgent({
+            messages: agentMessages,
+            updateStatus,
+            options,
+            caseNumbers,
+          });
+
+          // Create child span for message formatting
+          const formatSpan = await createChildSpan({
+            name: "format_message",
+            runType: "chain",
+            tags: {
+              component: "orchestrator",
+              operation: "message_formatting",
+            },
+          });
+
+          const formattedMessage = await formatMessage({
+            text: responseText,
+            updateStatus,
+          });
+
+          await formatSpan?.end({ messageLength: formattedMessage.length });
+
+          return formattedMessage;
+        } catch (error) {
+          console.error("[Agent] Refactored orchestrator failed:", error);
+
+          if (deps?.legacyExecutor) {
+            return deps.legacyExecutor(messages, updateStatus, options);
+          }
+
+          throw error;
+        }
+      },
+      {
+        name: "agent_orchestrator",
+        runType: "chain",
+        metadata: {
+          channelId: options?.channelId,
+          threadTs: options?.threadTs,
+          messageCount: messages.length,
+        },
+        tags: {
+          component: "orchestrator",
+          operation: "run",
+        },
       }
-
-      throw error;
-    }
+    )();
   }
 }
 

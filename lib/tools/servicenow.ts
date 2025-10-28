@@ -2899,6 +2899,72 @@ export class ServiceNowClient {
       interaction_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=interaction.do?sys_id=${data.result.sys_id}`,
     };
   }
+
+  /**
+   * Get attachments for a ServiceNow record (case, incident, etc.)
+   * Used for multimodal tool results to include screenshots and diagrams
+   */
+  public async getAttachments(
+    tableName: string,
+    recordSysId: string,
+    limit: number = 5
+  ): Promise<Array<{
+    sys_id: string;
+    file_name: string;
+    content_type: string;
+    size_bytes: number;
+    download_url: string;
+  }>> {
+    interface AttachmentResponse {
+      result: Array<{
+        sys_id: string;
+        file_name: string;
+        content_type: string;
+        size_bytes: string;
+        download_link?: string;
+      }>;
+    }
+
+    const params = new URLSearchParams({
+      sysparm_query: `table_name=${tableName}^table_sys_id=${recordSysId}`,
+      sysparm_limit: limit.toString(),
+      sysparm_fields: "sys_id,file_name,content_type,size_bytes,download_link",
+    });
+
+    const response = await request<AttachmentResponse>(`/api/now/attachment?${params.toString()}`);
+
+    return (response.result || []).map((attachment) => ({
+      sys_id: attachment.sys_id,
+      file_name: attachment.file_name,
+      content_type: attachment.content_type,
+      size_bytes: parseInt(attachment.size_bytes, 10),
+      download_url: attachment.download_link || `${serviceNowConfig.instanceUrl}/api/now/attachment/${attachment.sys_id}/file`,
+    }));
+  }
+
+  /**
+   * Download an attachment file from ServiceNow
+   * Returns the file content as a Buffer for processing (e.g., base64 encoding for images)
+   */
+  public async downloadAttachment(sysId: string): Promise<Buffer> {
+    if (!serviceNowConfig.instanceUrl) {
+      throw new Error("ServiceNow instance URL is not configured");
+    }
+
+    const url = `${serviceNowConfig.instanceUrl}/api/now/attachment/${sysId}/file`;
+    const headers = await buildAuthHeaders();
+
+    const response = await fetch(url, {
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download attachment: ${response.status} ${response.statusText}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
 }
 
 export const serviceNowClient = new ServiceNowClient();

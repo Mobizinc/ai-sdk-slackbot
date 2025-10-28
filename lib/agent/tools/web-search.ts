@@ -28,7 +28,7 @@ export function createWebSearchTool(params: AgentToolFactoryParams) {
 
   return createTool({
     name: "search_web",
-    description: "Use this to search the web for information",
+    description: "Searches the web for real-time information using the Exa API with live web crawling capabilities. This tool accepts a search query and an optional specific domain to limit results to. It returns up to 3 relevant web pages with titles, URLs, and content snippets (max 1000 characters each). Use this tool when you need current information from the internet, real-time data, or information beyond your training cutoff date. You can optionally restrict searches to a specific domain if the user requests it. This tool should not be used for queries that can be answered from your existing knowledge or from internal ServiceNow data.",
     inputSchema: searchWebInputSchema,
     execute: async ({ query, specificDomain }: SearchWebToolInput) => {
       updateStatus?.(`is searching the web for ${query}...`);

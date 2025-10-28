@@ -122,6 +122,24 @@ describe("Case Number Extractor", () => {
 
       expect(result).toHaveLength(3);
     });
+
+    it("should normalize shorthand case references like 'case 49764'", () => {
+      const result = extractCaseNumbers("Can you check case 49764 for me?");
+
+      expect(result).toEqual(["SCS0049764"]);
+    });
+
+    it("should normalize shorthand incident references like 'incident 167980'", () => {
+      const result = extractCaseNumbers("Please review incident 167980 asap.");
+
+      expect(result).toEqual(["INC0167980"]);
+    });
+
+    it("should handle prefixed references with spaces such as 'SCS 49764'", () => {
+      const result = extractCaseNumbers("Status update on SCS 49764 please.");
+
+      expect(result).toEqual(["SCS0049764"]);
+    });
   });
 
   describe("hasCaseNumbers", () => {

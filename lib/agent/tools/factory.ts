@@ -20,6 +20,8 @@ import { createContextUpdateTool } from "./context-update";
 import { createCurrentIssuesTool } from "./current-issues";
 import { createMicrosoftLearnTool } from "./microsoft-learn";
 import { createTriageTool } from "./triage";
+import { createCaseAggregationTool } from "./case-aggregation";
+import { createCaseSearchTool } from "./case-search";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -32,6 +34,8 @@ export type { ProposeContextUpdateInput } from "./context-update";
 export type { FetchCurrentIssuesInput } from "./current-issues";
 export type { MicrosoftLearnSearchInput } from "./microsoft-learn";
 export type { TriageCaseInput } from "./triage";
+export type { CaseAggregationInput } from "./case-aggregation";
+export type { CaseSearchInput } from "./case-search";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -51,10 +55,12 @@ export function createLegacyAgentTools(params: AgentToolFactoryParams) {
     searchWeb: createWebSearchTool(params),
     serviceNow: createServiceNowTool(params),
     searchSimilarCases: createSearchTool(params),
+    searchCases: createCaseSearchTool(params), // NEW: Case search with filters
     generateKBArticle: createKnowledgeBaseTool(params),
     proposeContextUpdate: createContextUpdateTool(params),
     fetchCurrentIssues: createCurrentIssuesTool(params),
     microsoftLearnSearch: createMicrosoftLearnTool(params),
     triageCase: createTriageTool(params),
+    caseAggregation: createCaseAggregationTool(params), // NEW: Case aggregations
   };
 }

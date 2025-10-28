@@ -19,6 +19,7 @@ import {
 import { getSigningKeys, isQStashEnabled, verifyQStashSignature } from '../../lib/queue/qstash-client';
 import { getCaseClassificationRepository } from '../../lib/db/repositories/case-classification-repository';
 import { config } from '../../lib/config';
+import { withLangSmithTrace } from '../../lib/observability';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -31,7 +32,7 @@ const IDEMPOTENCY_WINDOW_MINUTES = config.idempotencyWindowMinutes;
 /**
  * Process case triage (async worker)
  */
-async function postWorkerImpl(request: Request) {
+const postWorkerImpl = withLangSmithTrace(async (request: Request) => {
   const startTime = Date.now();
 
   try {
@@ -212,7 +213,15 @@ async function postWorkerImpl(request: Request) {
       { status: 500 } // Trigger QStash retry
     );
   }
-}
+}, {
+  name: "qstash_worker_process_case",
+  runType: "chain",
+  tags: {
+    component: "worker",
+    operation: "case_processing",
+    service: "qstash",
+  },
+});
 
 export const POST = postWorkerImpl;
 

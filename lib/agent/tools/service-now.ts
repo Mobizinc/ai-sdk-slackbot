@@ -9,6 +9,9 @@ import { z } from "zod";
 import { serviceNowClient } from "../../tools/servicenow";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 import { createServiceNowContext } from "../../infrastructure/servicenow-context";
+import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
+import type { ContentBlock } from "../../services/anthropic-chat";
+import { config } from "../../config";
 
 export type ServiceNowToolInput = {
   action:
@@ -36,6 +39,9 @@ export type ServiceNowToolInput = {
   activeOnly?: boolean;
   sortBy?: "opened_at" | "priority" | "updated_on" | "state";
   sortOrder?: "asc" | "desc";
+  includeAttachments?: boolean;
+  maxAttachments?: number;
+  attachmentTypes?: string[];
 };
 
 const serviceNowInputSchema = z
@@ -124,8 +130,113 @@ const serviceNowInputSchema = z
       .enum(["asc", "desc"])
       .optional()
       .describe("Sort order: ascending or descending (default: desc)."),
+    includeAttachments: z
+      .boolean()
+      .optional()
+      .describe("Include image attachments (screenshots, diagrams) with case or incident. WARNING: Significantly increases token usage (3000-10000 tokens per case with images). Only use when visual analysis is critical for troubleshooting UI errors, screenshots, or system diagrams."),
+    maxAttachments: z
+      .number()
+      .min(1)
+      .max(5)
+      .optional()
+      .describe("Maximum number of attachments to retrieve (default: 3, max: 5). Each image adds ~1000-4000 tokens depending on size."),
+    attachmentTypes: z
+      .array(z.string())
+      .optional()
+      .describe("Filter attachments by MIME type (e.g., ['image/png', 'image/jpeg']). Defaults to all image types if not specified."),
   })
   .describe("ServiceNow action parameters");
+
+/**
+ * Helper function to fetch and process attachments from ServiceNow
+ * Returns content blocks with optimized images for Claude
+ */
+async function processAttachments(
+  tableName: string,
+  recordSysId: string,
+  includeAttachments?: boolean,
+  maxAttachments?: number,
+  attachmentTypes?: string[]
+): Promise<ContentBlock[]> {
+  // Check if multimodal is enabled and requested
+  if (!config.enableMultimodalToolResults || !includeAttachments) {
+    return [];
+  }
+
+  try {
+    const attachmentLimit = Math.min(
+      maxAttachments ?? config.maxImageAttachmentsPerTool,
+      config.maxImageAttachmentsPerTool
+    );
+
+    // Fetch attachment metadata
+    const attachments = await serviceNowClient.getAttachments(
+      tableName,
+      recordSysId,
+      attachmentLimit
+    );
+
+    if (attachments.length === 0) {
+      return [];
+    }
+
+    // Filter by type if specified, default to images only
+    const typeFilter = attachmentTypes && attachmentTypes.length > 0
+      ? attachmentTypes
+      : ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+    const filteredAttachments = attachments.filter(a =>
+      typeFilter.some(type => a.content_type.startsWith(type.split("/")[0]))
+    );
+
+    const contentBlocks: ContentBlock[] = [];
+
+    // Download and optimize images
+    for (const attachment of filteredAttachments.slice(0, attachmentLimit)) {
+      try {
+        // Skip if not a supported image format
+        if (!isSupportedImageFormat(attachment.content_type)) {
+          console.log(`[ServiceNow] Skipping unsupported format: ${attachment.content_type} (${attachment.file_name})`);
+          continue;
+        }
+
+        // Download the image
+        const imageBuffer = await serviceNowClient.downloadAttachment(attachment.sys_id);
+
+        // Optimize for Claude
+        const optimized = await optimizeImageForClaude(
+          imageBuffer,
+          attachment.content_type,
+          config.maxImageSizeBytes
+        );
+
+        contentBlocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: optimized.media_type,
+            data: optimized.data,
+          },
+        });
+
+        console.log(
+          `[ServiceNow] Processed attachment: ${attachment.file_name} (${optimized.was_optimized ? "optimized" : "original"}: ${optimized.size_bytes} bytes)`
+        );
+      } catch (error) {
+        console.error(
+          `[ServiceNow] Failed to process attachment ${attachment.file_name}:`,
+          error instanceof Error ? error.message : String(error)
+        );
+        // Continue with other attachments
+      }
+    }
+
+    return contentBlocks;
+  } catch (error) {
+    console.error("[ServiceNow] Failed to fetch attachments:", error);
+    return []; // Return empty array, don't fail the entire tool call
+  }
+}
 
 export function createServiceNowTool(params: AgentToolFactoryParams) {
   const { updateStatus, options } = params;
@@ -133,9 +244,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "servicenow_action",
     description:
-      "Read data from ServiceNow (incidents, cases, case search with filters, knowledge base, recent journal entries, and configuration items). " +
-      "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
-      "Use 'getCase' action only when you have a specific case number.",
+      "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, and configuration items (CMDB). This tool supports multiple actions: 'getIncident' and 'getCase' for fetching specific tickets by number, 'getCaseJournal' for retrieving comment history, 'searchKnowledge' for finding KB articles, 'searchConfigurationItem' for CMDB lookups, and 'searchCases' for advanced case filtering. Use 'searchCases' when you need to find cases by customer name, priority level, assignment group, date ranges, keywords in descriptions, or state. The search action supports up to 50 results with sorting and filtering options. Use specific 'get' actions only when you have an exact case or incident number. When includeAttachments is true, the tool returns case/incident details along with image content blocks containing screenshots and diagrams attached to the ticket. This is useful for visual troubleshooting of UI errors, error screenshots, system diagrams, or monitoring dashboards. Note: Including attachments significantly increases token usage (3000-10000 tokens per case depending on number and size of images). Only enable when visual analysis is critical. Returns structured data including case details, journal entries, KB article content, CI information, and optionally image attachments. This tool requires ServiceNow credentials to be configured and should be your primary source for customer support ticket data.",
     inputSchema: serviceNowInputSchema,
     execute: async ({
       action,
@@ -157,6 +266,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       activeOnly,
       sortBy,
       sortOrder,
+      includeAttachments,
+      maxAttachments,
+      attachmentTypes,
     }: ServiceNowToolInput) => {
       if (!serviceNowClient.isConfigured()) {
         return {
@@ -195,6 +307,26 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             };
           }
 
+          // Handle attachments if requested
+          if (includeAttachments) {
+            updateStatus?.(`is fetching attachments for incident ${number}...`);
+            const imageBlocks = await processAttachments(
+              "incident",
+              incident.sys_id,
+              includeAttachments,
+              maxAttachments,
+              attachmentTypes
+            );
+
+            if (imageBlocks.length > 0) {
+              return {
+                incident,
+                _attachmentBlocks: imageBlocks,
+                _attachmentCount: imageBlocks.length,
+              };
+            }
+          }
+
           return { incident };
         }
 
@@ -223,6 +355,27 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               case: null,
               message: `Case ${number} was not found in ServiceNow. This case number may be incorrect or the case may not exist in the system.`,
             };
+          }
+
+          // Handle attachments if requested
+          if (includeAttachments) {
+            updateStatus?.(`is fetching attachments for case ${number}...`);
+            const imageBlocks = await processAttachments(
+              "sn_customerservice_case",
+              caseRecord.sys_id,
+              includeAttachments,
+              maxAttachments,
+              attachmentTypes
+            );
+
+            if (imageBlocks.length > 0) {
+              // Return with special _attachments marker for runner to handle
+              return {
+                case: caseRecord,
+                _attachmentBlocks: imageBlocks,
+                _attachmentCount: imageBlocks.length,
+              };
+            }
           }
 
           return { case: caseRecord };

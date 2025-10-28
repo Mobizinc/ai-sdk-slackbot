@@ -40,6 +40,9 @@ export interface MessageResult {
  * Wraps Slack WebClient with consistent error handling and logging
  */
 export class SlackMessagingService {
+  private lastUpdateTimes = new Map<string, number>();
+  private readonly UPDATE_RATE_LIMIT_MS = 3000; // Slack enforces 3-second minimum between updates
+
   constructor(private client: WebClient) {}
 
   /**
@@ -84,22 +87,75 @@ export class SlackMessagingService {
   }
 
   /**
-   * Update an existing message
+   * Update an existing message with rate limiting and retry logic
+   *
+   * Implements:
+   * - 3-second rate limit between updates to same message
+   * - Exponential backoff retry on race conditions
+   * - Automatic waiting when rate limited
    */
   async updateMessage(options: UpdateMessageOptions): Promise<void> {
-    try {
-      const updateParams: any = {
-        channel: options.channel,
-        ts: options.ts,
-        text: options.text,
-      };
-      if (options.blocks) {
-        updateParams.blocks = options.blocks;
+    const messageKey = `${options.channel}:${options.ts}`;
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      try {
+        // Enforce 3-second rate limit
+        const lastUpdate = this.lastUpdateTimes.get(messageKey) || 0;
+        const elapsed = Date.now() - lastUpdate;
+
+        if (elapsed < this.UPDATE_RATE_LIMIT_MS) {
+          const waitTime = this.UPDATE_RATE_LIMIT_MS - elapsed;
+          console.log(
+            `[Slack Messaging] Rate limiting ${messageKey}, waiting ${waitTime}ms ` +
+            `(${elapsed}ms since last update)`
+          );
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+
+        // Update the message
+        const updateParams: any = {
+          channel: options.channel,
+          ts: options.ts,
+          text: options.text,
+        };
+
+        if (options.blocks) {
+          updateParams.blocks = options.blocks;
+        }
+
+        await this.client.chat.update(updateParams);
+
+        // Track successful update time
+        this.lastUpdateTimes.set(messageKey, Date.now());
+
+        // Success - exit retry loop
+        return;
+
+      } catch (error: any) {
+        attempt++;
+
+        // Check if it's a race condition or conflict error
+        const isRaceCondition =
+          error?.data?.error === 'edit_window_closed' ||
+          error?.data?.error === 'message_not_found' ||
+          error?.data?.error === 'conflict';
+
+        if (isRaceCondition && attempt < maxRetries) {
+          const backoffTime = 500 * Math.pow(2, attempt - 1); // Exponential backoff: 500ms, 1s, 2s
+          console.warn(
+            `[Slack Messaging] Race condition on message update (attempt ${attempt}/${maxRetries}), ` +
+            `retrying in ${backoffTime}ms...`
+          );
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          continue;
+        }
+
+        // Not a race condition or max retries reached
+        console.error(`[Slack Messaging] Failed to update message after ${attempt} attempts:`, error);
+        throw error;
       }
-      await this.client.chat.update(updateParams);
-    } catch (error) {
-      console.error('[Slack Messaging] Failed to update message:', error);
-      throw error;
     }
   }
 
@@ -308,6 +364,44 @@ export class SlackMessagingService {
       return result;
     } catch (error) {
       console.error('[Slack Messaging] Error opening view:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing modal view (for multi-step workflows)
+   */
+  async updateView(params: { viewId: string; view: any; hash?: string }): Promise<any> {
+    try {
+      const updateParams: any = {
+        view_id: params.viewId,
+        view: params.view,
+      };
+
+      if (params.hash) {
+        updateParams.hash = params.hash;
+      }
+
+      const result = await this.client.views.update(updateParams);
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error updating view:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Push a new modal view onto the stack (for sub-modals)
+   */
+  async pushView(params: { triggerId: string; view: any }): Promise<any> {
+    try {
+      const result = await this.client.views.push({
+        trigger_id: params.triggerId,
+        view: params.view,
+      });
+      return result;
+    } catch (error) {
+      console.error('[Slack Messaging] Error pushing view:', error);
       throw error;
     }
   }

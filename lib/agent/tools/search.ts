@@ -35,7 +35,7 @@ export function createSearchTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "search_similar_cases",
     description:
-      "Search Azure AI Search for similar cases. Use when the user is investigating a case or wants historical incidents.",
+      "Performs semantic search across historical support cases using Azure AI Search with vector embeddings to find tickets with similar problems or resolutions. This tool uses the case description or issue text as a query and returns up to 10 most similar past cases ranked by relevance score. Each result includes case number, similarity percentage, content preview (first 300 characters), and creation date. Use this tool when investigating a new case to find previous similar issues, identify patterns, discover proven solutions, or understand how comparable problems were resolved. You can optionally filter results by client/company ID to focus on customer-specific history. This tool requires Azure AI Search to be configured and complements ServiceNow lookups by providing semantic similarity matching rather than exact keyword search.",
     inputSchema: searchSimilarCasesInputSchema,
     execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
       const service = azureSearchService;
