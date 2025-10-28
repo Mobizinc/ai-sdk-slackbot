@@ -17,17 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation: CONTRIBUTING.md, docs/DEPLOYMENT.md
 - PR template with deployment checklists
 - Cleanup script for test data (`scripts/cleanup-test-data.ts`)
+- Runtime fallback for tool input schemas missing `type` field (defaults to "object")
 
 ### Changed
 - Branch structure: Renamed `Development` → `staging` for Vercel consistency
 - Created `dev` branch for active development
 - Updated README.md with new workflow documentation
 - `.env.local` updated with placeholders for environment-specific database URLs
+- **BREAKING**: Upgraded @anthropic-ai/sdk from 0.38.0 to 0.67.0
+- **BREAKING**: ToolDefinition interface now requires `inputSchema` to have proper JSON Schema structure with `type` field
+- Tool type format changed from `type: "tool"` to `type: "custom"` to match SDK requirements
 
 ### Fixed
 - Service Portfolio Classification now properly saves to database (was only in JSON before)
 - Database schema includes service portfolio fields in both `case_classifications` and `case_classification_results` tables
 - Fixed dual save calls in `case-classifier.ts` and `case-triage.ts` to include new fields
+- Fixed tool validation error: "tools.0: Input tag 'tool' found using 'type' does not match expected tags"
+- Fixed tool schema error: "tools.0.custom.input_schema.type: Field required"
+- Agent orchestrator and all AI services now work correctly with Anthropic SDK 0.67.0
 
 ---
 
