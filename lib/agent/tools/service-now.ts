@@ -12,6 +12,7 @@ import { createServiceNowContext } from "../../infrastructure/servicenow-context
 import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
 import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
+import { normalizeCaseId, findMatchingCaseNumber, extractDigits } from "../../utils/case-number-normalizer";
 
 export type ServiceNowToolInput = {
   action:
@@ -309,6 +310,26 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       // Create ServiceNow context for deterministic feature flag routing
       const snContext = createServiceNowContext(undefined, options?.channelId);
 
+      /**
+       * Normalize case/incident number by reconciling with params.caseNumbers
+       * or applying standard normalization rules
+       */
+      const normalizeNumber = (rawNumber: string, isIncident: boolean): string => {
+        // First, try to find matching canonical case number from context
+        const matched = findMatchingCaseNumber(rawNumber, params.caseNumbers);
+        if (matched) {
+          console.log(`[ServiceNow Tool] Matched canonical case number: "${rawNumber}" → "${matched}"`);
+          return matched;
+        }
+
+        // No match in context - normalize with appropriate prefix
+        const prefix = isIncident ? "INC" : "SCS";
+        const normalized = normalizeCaseId(prefix, rawNumber);
+
+        console.log(`[ServiceNow Tool] Normalized number: "${rawNumber}" → "${normalized}" (prefix: ${prefix})`);
+        return normalized;
+      };
+
       try {
         if (action === "getIncident") {
           if (!number) {
@@ -317,22 +338,25 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             );
           }
 
-          updateStatus?.(`is looking up incident ${number} in ServiceNow...`);
+          const normalizedNumber = normalizeNumber(number, true);
+          updateStatus?.(`is looking up incident ${normalizedNumber} in ServiceNow...`);
 
-          const incident = await serviceNowClient.getIncident(number, snContext);
+          const incident = await serviceNowClient.getIncident(normalizedNumber, snContext);
           if (!incident) {
-            console.log(`[ServiceNow] Incident ${number} not found, trying case table...`);
-            updateStatus?.(`is looking up ${number} in case table...`);
+            console.log(`[ServiceNow] Incident ${normalizedNumber} not found, trying case table...`);
+            updateStatus?.(`is looking up ${normalizedNumber} in case table...`);
 
-            const caseRecord = await serviceNowClient.getCase(number, snContext);
+            // Try normalizing as a case number for fallback
+            const normalizedCaseNumber = normalizeNumber(number, false);
+            const caseRecord = await serviceNowClient.getCase(normalizedCaseNumber, snContext);
             if (caseRecord) {
-              console.log(`[ServiceNow] Found ${number} in case table (fallback from incident)`);
+              console.log(`[ServiceNow] Found ${normalizedCaseNumber} in case table (fallback from incident)`);
               return { case: caseRecord };
             }
 
             return {
               incident: null,
-              message: `Incident ${number} was not found in ServiceNow. This case number may be incorrect or the incident may not exist in the system.`,
+              message: `Incident ${normalizedNumber} was not found in ServiceNow. This case number may be incorrect or the incident may not exist in the system.`,
             };
           }
 
@@ -366,23 +390,26 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             );
           }
 
-          updateStatus?.(`is looking up case ${number} in ServiceNow...`);
+          const normalizedNumber = normalizeNumber(number, false);
+          updateStatus?.(`is looking up case ${normalizedNumber} in ServiceNow...`);
 
-          const caseRecord = await serviceNowClient.getCase(number, snContext);
+          const caseRecord = await serviceNowClient.getCase(normalizedNumber, snContext);
 
           if (!caseRecord) {
-            console.log(`[ServiceNow] Case ${number} not found, trying incident table...`);
-            updateStatus?.(`is looking up ${number} in incident table...`);
+            console.log(`[ServiceNow] Case ${normalizedNumber} not found, trying incident table...`);
+            updateStatus?.(`is looking up ${normalizedNumber} in incident table...`);
 
-            const incident = await serviceNowClient.getIncident(number, snContext);
+            // Try normalizing as an incident number for fallback
+            const normalizedIncidentNumber = normalizeNumber(number, true);
+            const incident = await serviceNowClient.getIncident(normalizedIncidentNumber, snContext);
             if (incident) {
-              console.log(`[ServiceNow] Found ${number} in incident table (fallback from case)`);
+              console.log(`[ServiceNow] Found ${normalizedIncidentNumber} in incident table (fallback from case)`);
               return { incident };
             }
 
             return {
               case: null,
-              message: `Case ${number} was not found in ServiceNow. This case number may be incorrect or the case may not exist in the system.`,
+              message: `Case ${normalizedNumber} was not found in ServiceNow. This case number may be incorrect or the case may not exist in the system.`,
             };
           }
 

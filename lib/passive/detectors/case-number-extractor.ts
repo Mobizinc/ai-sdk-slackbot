@@ -7,6 +7,8 @@
  * This is a pure function with no side effects, making it easy to test.
  */
 
+import { normalizeCaseId } from "../../utils/case-number-normalizer";
+
 /**
  * Supported case number patterns
  */
@@ -51,34 +53,6 @@ const KEYWORD_PATTERNS: Array<{
   },
 ];
 
-/**
- * Normalize a numeric portion to a canonical ServiceNow identifier.
- *
- * @param prefix - Identifier prefix (e.g., SCS, INC)
- * @param digits - Numeric portion captured from text
- * @param totalDigits - Total digits required for the identifier (default 7)
- */
-function normalizeIdentifier(
-  prefix: "SCS" | "INC",
-  digits: string,
-  totalDigits = 7,
-): string {
-  const numeric = digits.replace(/\D/g, "");
-
-  if (!numeric) {
-    return "";
-  }
-
-  let normalized = numeric;
-
-  if (numeric.length > totalDigits) {
-    normalized = numeric.slice(-totalDigits);
-  } else if (numeric.length < totalDigits) {
-    normalized = numeric.padStart(totalDigits, "0");
-  }
-
-  return `${prefix}${normalized}`;
-}
 
 /**
  * Extract ServiceNow case numbers from text
@@ -116,7 +90,7 @@ export function extractCaseNumbers(text: string): string[] {
         continue;
       }
 
-      const normalized = normalizeIdentifier(prefix, match[1]);
+      const normalized = normalizeCaseId(prefix, match[1]);
       if (normalized) {
         caseNumbers.add(normalized.toUpperCase());
       }
@@ -182,7 +156,7 @@ export function extractCaseNumbersWithPositions(text: string): Array<{
           continue;
         }
 
-        const normalized = normalizeIdentifier(prefix, match[1]);
+        const normalized = normalizeCaseId(prefix, match[1]);
         if (!normalized) continue;
 
         results.push({

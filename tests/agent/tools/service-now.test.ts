@@ -34,10 +34,11 @@ describe("ServiceNow Tool", () => {
     mockServiceNowClient.searchConfigurationItems = vi.fn();
     mockServiceNowClient.searchCases = vi.fn();
 
-    // Create tools
+    // Create tools with empty caseNumbers to avoid normalization conflicts
+    // Individual tests will override with specific caseNumbers when testing normalization
     tools = createLegacyAgentTools({
       messages: createMockMessages(),
-      caseNumbers: ["SCS0001234"],
+      caseNumbers: [],
       updateStatus: mockUpdateStatus,
       options: { channelId: "C123456" },
     });
@@ -70,10 +71,12 @@ describe("ServiceNow Tool", () => {
 
       const result = await tools.serviceNow.execute({
         action: "getCase",
-        number: "SCS0001234",
+        number: "1234", // Bare number
       });
 
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234");
+      // Should normalize to SCS0001234 (default SCS prefix for cases)
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0001234");
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         "is looking up case SCS0001234 in ServiceNow..."
       );
@@ -82,7 +85,7 @@ describe("ServiceNow Tool", () => {
 
     it("should fallback to incident table if case not found", async () => {
       const mockIncident = {
-        number: "INC0001234",
+        number: "INC0009876",
         sys_id: "xyz789",
         short_description: "Test incident",
       };
@@ -91,11 +94,14 @@ describe("ServiceNow Tool", () => {
 
       const result = await tools.serviceNow.execute({
         action: "getCase",
-        number: "INC0001234",
+        number: "9876",  // Bare number
       });
 
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("INC0001234");
-      expect(mockServiceNowClient.getIncident).toHaveBeenCalledWith("INC0001234");
+      // Check first argument only (second is snContext)
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0009876"); // Normalized as case first
+      expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
+      expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0009876"); // Then try as incident
       expect(result).toEqual({ incident: mockIncident });
     });
 
@@ -128,7 +134,7 @@ describe("ServiceNow Tool", () => {
   describe("ServiceNow Tool - getIncident Action", () => {
     it("should retrieve an incident successfully", async () => {
       const mockIncident = {
-        number: "INC0001234",
+        number: "INC0005678",
         sys_id: "xyz789",
         short_description: "Test incident",
       };
@@ -136,16 +142,18 @@ describe("ServiceNow Tool", () => {
 
       const result = await tools.serviceNow.execute({
         action: "getIncident",
-        number: "INC0001234",
+        number: "5678", // Bare number
       });
 
-      expect(mockServiceNowClient.getIncident).toHaveBeenCalledWith("INC0001234");
+      // Should normalize to INC0005678 (default INC prefix for incidents)
+      expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
+      expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0005678");
       expect(result).toEqual({ incident: mockIncident });
     });
 
     it("should fallback to case table if incident not found", async () => {
       const mockCase = {
-        number: "SCS0001234",
+        number: "SCS0007890",
         sys_id: "abc123",
         short_description: "Test case",
       };
@@ -154,12 +162,125 @@ describe("ServiceNow Tool", () => {
 
       const result = await tools.serviceNow.execute({
         action: "getIncident",
-        number: "SCS0001234",
+        number: "7890", // Bare number
       });
 
-      expect(mockServiceNowClient.getIncident).toHaveBeenCalledWith("SCS0001234");
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234");
+      // Check first arguments only (second is snContext)
+      expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
+      expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0007890"); // Try as incident first
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0007890"); // Fallback to case
       expect(result).toEqual({ case: mockCase });
+    });
+  });
+
+  describe("ServiceNow Tool - Case Number Normalization", () => {
+    it("should normalize bare case number using params.caseNumbers", async () => {
+      // Regression test for staging bug: "give me details for 46363"
+      // params.caseNumbers contains normalized "SCS0046363" from context loader
+      // LLM sends bare "46363"
+      // Tool should match and use canonical "SCS0046363"
+      const mockCase = {
+        number: "SCS0046363",
+        sys_id: "abc123",
+        short_description: "Test case 46363",
+      };
+      mockServiceNowClient.getCase.mockResolvedValue(mockCase);
+
+      const toolsWithCase = createLegacyAgentTools({
+        messages: createMockMessages(),
+        caseNumbers: ["SCS0046363"], // Context loader found this
+        updateStatus: mockUpdateStatus,
+        options: { channelId: "C123456" },
+      });
+
+      const result = await toolsWithCase.serviceNow.execute({
+        action: "getCase",
+        number: "46363", // LLM sends bare number
+      });
+
+      // Should call with canonical normalized number from params.caseNumbers
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0046363");
+      expect(result).toEqual({ case: mockCase });
+    });
+
+    it("should normalize bare incident number using params.caseNumbers", async () => {
+      const mockIncident = {
+        number: "INC0167587",
+        sys_id: "xyz789",
+        short_description: "Test incident 167587",
+      };
+      mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
+
+      const toolsWithIncident = createLegacyAgentTools({
+        messages: createMockMessages(),
+        caseNumbers: ["INC0167587"],
+        updateStatus: mockUpdateStatus,
+        options: { channelId: "C123456" },
+      });
+
+      const result = await toolsWithIncident.serviceNow.execute({
+        action: "getIncident",
+        number: "167587", // LLM sends bare number
+      });
+
+      // Should call with canonical normalized number from params.caseNumbers
+      expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
+      expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0167587");
+      expect(result).toEqual({ incident: mockIncident });
+    });
+
+    it("should default to SCS prefix when no match in params.caseNumbers", async () => {
+      const mockCase = {
+        number: "SCS0099999",
+        sys_id: "test123",
+        short_description: "Unknown case",
+      };
+      mockServiceNowClient.getCase.mockResolvedValue(mockCase);
+
+      const toolsEmpty = createLegacyAgentTools({
+        messages: createMockMessages(),
+        caseNumbers: [], // No cases in context
+        updateStatus: mockUpdateStatus,
+        options: { channelId: "C123456" },
+      });
+
+      const result = await toolsEmpty.serviceNow.execute({
+        action: "getCase",
+        number: "99999",
+      });
+
+      // Should normalize to SCS by default
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0099999");
+      expect(result).toEqual({ case: mockCase });
+    });
+
+    it("should default to INC prefix for getIncident when no match", async () => {
+      const mockIncident = {
+        number: "INC0099999",
+        sys_id: "test123",
+        short_description: "Unknown incident",
+      };
+      mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
+
+      const toolsEmpty = createLegacyAgentTools({
+        messages: createMockMessages(),
+        caseNumbers: [],
+        updateStatus: mockUpdateStatus,
+        options: { channelId: "C123456" },
+      });
+
+      const result = await toolsEmpty.serviceNow.execute({
+        action: "getIncident",
+        number: "99999",
+      });
+
+      // Should normalize to INC by default for incidents
+      expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
+      expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0099999");
+      expect(result).toEqual({ incident: mockIncident });
     });
   });
 
@@ -187,17 +308,19 @@ describe("ServiceNow Tool", () => {
     });
 
     it("should fetch journal entries by looking up case number", async () => {
-      const mockCase = { sys_id: "abc123", number: "SCS0001234" };
+      const mockCase = { sys_id: "abc123", number: "SCS0002345" };
       const mockJournal = [{ created_at: "2024-01-01", value: "Comment" }];
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
       mockServiceNowClient.getCaseJournal.mockResolvedValue(mockJournal);
 
       const result = await tools.serviceNow.execute({
         action: "getCaseJournal",
-        number: "SCS0001234",
+        number: "2345", // Bare number
       });
 
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234");
+      // Check first argument only (second is snContext for getCase)
+      expect(mockServiceNowClient.getCase).toHaveBeenCalled();
+      expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0002345"); // Normalized
       expect(mockServiceNowClient.getCaseJournal).toHaveBeenCalledWith("abc123", {
         limit: 20,
       });
