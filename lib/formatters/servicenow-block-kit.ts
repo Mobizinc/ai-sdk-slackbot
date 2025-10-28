@@ -117,7 +117,11 @@ function formatDate(dateString?: string): string {
  * Build ServiceNow deep link URL
  */
 function buildServiceNowLink(caseNumber: string, sysId?: string): string {
-  const instanceUrl = config.serviceNow?.instanceUrl || process.env.SERVICENOW_INSTANCE_URL || process.env.SERVICENOW_URL;
+  const instanceUrl =
+    (config.servicenowInstanceUrl as string | undefined) ||
+    (config.servicenowUrl as string | undefined) ||
+    process.env.SERVICENOW_INSTANCE_URL ||
+    process.env.SERVICENOW_URL;
 
   if (!instanceUrl) {
     // Return placeholder URL if not configured (test/dev environments)
@@ -191,9 +195,9 @@ export function formatCaseAsBlockKit(
 ): any[] {
   const blocks: any[] = [];
 
-  const caseNumber = caseData.number || "Unknown";
+  const caseNumber = extractDisplayValue(caseData.number);
   const sysId = extractDisplayValue(caseData.sys_id);
-  const shortDesc = caseData.short_description || "No description";
+  const shortDesc = extractDisplayValue(caseData.short_description) || "No description";
 
   // Header section with case number
   blocks.push({

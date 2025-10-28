@@ -14,6 +14,27 @@ import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
 import { normalizeCaseId, findMatchingCaseNumber } from "../../utils/case-number-normalizer";
 
+/**
+ * Extract value from ServiceNow reference field
+ * Handles both string and {value, display_value} object formats
+ */
+function extractReference(field: unknown): string | undefined {
+  if (!field) return undefined;
+  if (typeof field === "string") return field;
+  if (typeof field === "object") {
+    const ref = field as { value?: unknown; display_value?: unknown };
+    const value = ref.value;
+    const display = ref.display_value;
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+    if (typeof display === "string" && display.trim().length > 0) {
+      return display;
+    }
+  }
+  return undefined;
+}
+
 export type ServiceNowToolInput = {
   action:
     | "getIncident"
@@ -413,6 +434,24 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             };
           }
 
+          // Automatically fetch journal entries for Block Kit "Latest Activity" section
+          let journalEntries: any[] = [];
+          try {
+            const extractedSysId = extractReference(caseRecord.sys_id);
+            if (extractedSysId) {
+              updateStatus?.(`is fetching recent activity for case ${normalizedNumber}...`);
+              journalEntries = await serviceNowClient.getCaseJournal(
+                extractedSysId,
+                { limit: 5 }, // Fetch latest 5 for Block Kit display
+                snContext,
+              );
+              console.log(`[ServiceNow Tool] Fetched ${journalEntries.length} journal entries for Block Kit`);
+            }
+          } catch (error) {
+            console.warn(`[ServiceNow Tool] Failed to fetch journal for ${normalizedNumber}:`, error);
+            // Continue without journal entries
+          }
+
           // Handle attachments if requested
           if (includeAttachments) {
             updateStatus?.(`is fetching attachments for case ${number}...`);
@@ -430,11 +469,23 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 case: caseRecord,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
+                _blockKitData: {
+                  type: "case_detail",
+                  caseData: caseRecord,
+                  journalEntries,
+                },
               };
             }
           }
 
-          return { case: caseRecord };
+          return {
+            case: caseRecord,
+            _blockKitData: {
+              type: "case_detail",
+              caseData: caseRecord,
+              journalEntries,
+            },
+          };
         }
 
         if (action === "getCaseJournal") {
@@ -458,10 +509,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               };
             }
 
-            // Extract sys_id - may be object {display_value, value} or string
-            const extractedSysId = typeof caseRecord.sys_id === "object" && caseRecord.sys_id
-              ? (caseRecord.sys_id.value || caseRecord.sys_id.display_value)
-              : caseRecord.sys_id;
+            const extractedSysId = extractReference(caseRecord.sys_id);
 
             sysId = extractedSysId ?? null;
             if (!sysId) {
@@ -491,18 +539,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                 const user = entry.sys_created_by || 'unknown';
-                // Handle value as string or object
-                const valueStr = typeof entry.value === 'string'
-                  ? entry.value
-                  : (entry.value?.value || entry.value?.display_value || '(no content)');
+                const valueStr = extractReference(entry.value) ?? '(no content)';
                 const content = String(valueStr).substring(0, 150); // Truncate long entries
                 return `• ${dateStr}, ${timeStr} – ${user}: ${content}`;
               } catch (error) {
                 // Fallback for invalid dates
                 const user = entry.sys_created_by || 'unknown';
-                const valueStr = typeof entry.value === 'string'
-                  ? entry.value
-                  : (entry.value?.value || entry.value?.display_value || '(no content)');
+                const valueStr = extractReference(entry.value) ?? '(no content)';
                 const content = String(valueStr).substring(0, 150);
                 return `• ${user}: ${content}`;
               }
