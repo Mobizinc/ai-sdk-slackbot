@@ -8,10 +8,12 @@
  */
 
 import { config } from "dotenv";
-import { fetchVoiceInteractions } from "../lib/services/webex-contact-center";
 
-// Load environment variables
+// Load environment variables FIRST - before any service imports
+// This ensures environment variables are available when modules initialize
 config({ path: ".env.local" });
+
+import { fetchVoiceInteractions } from "../lib/services/webex-contact-center";
 
 interface CallStatistics {
   totalCalls: number;

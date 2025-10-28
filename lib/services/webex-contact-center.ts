@@ -3,14 +3,24 @@ import type { NewCallInteraction } from "../db/schema";
 const DEFAULT_WEBEX_BASE_URL = "https://webexapis.com/v1";
 const DEFAULT_PAGE_SIZE = 100;
 
-const WEBEX_CLIENT_ID = process.env.WEBEX_CC_CLIENT_ID;
-const WEBEX_CLIENT_SECRET = process.env.WEBEX_CC_CLIENT_SECRET;
-const WEBEX_REFRESH_TOKEN = process.env.WEBEX_CC_REFRESH_TOKEN;
-const WEBEX_ACCESS_TOKEN = process.env.WEBEX_CC_ACCESS_TOKEN;
-const WEBEX_BASE_URL = (process.env.WEBEX_CC_BASE_URL || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
-const WEBEX_ORG_ID = process.env.WEBEX_CC_ORG_ID;
-const WEBEX_INTERACTION_PATH =
-  process.env.WEBEX_CC_INTERACTION_PATH || "contactCenter/interactionHistory";
+// Lazy getters for environment variables to support dotenv loading
+// These functions read from process.env at runtime instead of module load time
+const getWebexClientId = () => process.env.WEBEX_CC_CLIENT_ID;
+const getWebexClientSecret = () => process.env.WEBEX_CC_CLIENT_SECRET;
+const getWebexRefreshToken = () => process.env.WEBEX_CC_REFRESH_TOKEN;
+const getWebexAccessToken = () => process.env.WEBEX_CC_ACCESS_TOKEN;
+const getWebexBaseUrl = () => (process.env.WEBEX_CC_BASE_URL || DEFAULT_WEBEX_BASE_URL).replace(/\/$/, "");
+const getWebexOrgId = () => process.env.WEBEX_CC_ORG_ID;
+const getWebexInteractionPath = () => process.env.WEBEX_CC_INTERACTION_PATH || "contactCenter/interactionHistory";
+
+// Legacy constants for backward compatibility (deprecated - use getters)
+const WEBEX_CLIENT_ID = getWebexClientId();
+const WEBEX_CLIENT_SECRET = getWebexClientSecret();
+const WEBEX_REFRESH_TOKEN = getWebexRefreshToken();
+const WEBEX_ACCESS_TOKEN = getWebexAccessToken();
+const WEBEX_BASE_URL = getWebexBaseUrl();
+const WEBEX_ORG_ID = getWebexOrgId();
+const WEBEX_INTERACTION_PATH = getWebexInteractionPath();
 
 type WebexInteractionRecord = {
   sessionId: string;
@@ -50,7 +60,11 @@ class WebexContactCenterError extends Error {
 }
 
 async function exchangeRefreshToken(): Promise<string> {
-  if (!WEBEX_CLIENT_ID || !WEBEX_CLIENT_SECRET || !WEBEX_REFRESH_TOKEN) {
+  const clientId = getWebexClientId();
+  const clientSecret = getWebexClientSecret();
+  const refreshToken = getWebexRefreshToken();
+
+  if (!clientId || !clientSecret || !refreshToken) {
     throw new WebexContactCenterError(
       "WEBEX contact center refresh flow requires WEBEX_CC_CLIENT_ID, WEBEX_CC_CLIENT_SECRET, and WEBEX_CC_REFRESH_TOKEN",
     );
@@ -61,9 +75,9 @@ async function exchangeRefreshToken(): Promise<string> {
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
-    client_id: WEBEX_CLIENT_ID,
-    client_secret: WEBEX_CLIENT_SECRET,
-    refresh_token: WEBEX_REFRESH_TOKEN,
+    client_id: clientId,
+    client_secret: clientSecret,
+    refresh_token: refreshToken,
   });
 
   const response = await fetch(tokenEndpoint, {
@@ -90,8 +104,9 @@ async function exchangeRefreshToken(): Promise<string> {
 }
 
 async function getAccessToken(): Promise<string> {
-  if (WEBEX_ACCESS_TOKEN) {
-    return WEBEX_ACCESS_TOKEN;
+  const accessToken = getWebexAccessToken();
+  if (accessToken) {
+    return accessToken;
   }
 
   return exchangeRefreshToken();
@@ -179,6 +194,8 @@ export async function fetchVoiceInteractions(
   let nextUrl: string | null = buildInitialUrl(params, pageSize);
 
   while (nextUrl) {
+    console.log(`[Webex API] GET ${nextUrl}`);
+
     const res = await fetch(nextUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -188,10 +205,13 @@ export async function fetchVoiceInteractions(
 
     if (!res.ok) {
       const text = await res.text();
+      console.error(`[Webex API] Response: ${res.status} ${res.statusText}`);
       throw new WebexContactCenterError(
         `Failed to retrieve Webex interactions: ${res.status} ${text}`,
       );
     }
+
+    console.log(`[Webex API] Response: ${res.status} ${res.statusText}`);
 
     const payload = (await res.json()) as WebexInteractionResponse;
     const items = payload.items ?? [];
@@ -216,13 +236,17 @@ export async function fetchVoiceInteractions(
 }
 
 function buildInitialUrl(params: FetchInteractionsParams, pageSize: number): string {
-  const url = new URL(`${WEBEX_BASE_URL}/${WEBEX_INTERACTION_PATH}`);
+  const baseUrl = getWebexBaseUrl();
+  const interactionPath = getWebexInteractionPath();
+  const orgId = getWebexOrgId();
+
+  const url = new URL(`${baseUrl}/${interactionPath}`);
   url.searchParams.set("mediaType", "telephony");
   url.searchParams.set("startTime", params.startTime.toISOString());
   url.searchParams.set("endTime", params.endTime.toISOString());
   url.searchParams.set("pageSize", String(pageSize));
-  if (WEBEX_ORG_ID) {
-    url.searchParams.set("orgId", WEBEX_ORG_ID);
+  if (orgId) {
+    url.searchParams.set("orgId", orgId);
   }
 
   return url.toString();
