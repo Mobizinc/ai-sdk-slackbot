@@ -45,23 +45,6 @@ export type ServiceNowToolInput = {
   attachmentTypes?: string[];
 };
 
-function extractReference(field: unknown): string | undefined {
-  if (!field) return undefined;
-  if (typeof field === "string") return field;
-  if (typeof field === "object") {
-    const ref = field as { value?: unknown; display_value?: unknown };
-    const value = ref.value;
-    const display = ref.display_value;
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-    if (typeof display === "string" && display.trim().length > 0) {
-      return display;
-    }
-  }
-  return undefined;
-}
-
 const serviceNowInputSchema = z
   .object({
     action: z.enum([
@@ -475,7 +458,10 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               };
             }
 
-            const extractedSysId = extractReference(caseRecord.sys_id);
+            // Extract sys_id - may be object {display_value, value} or string
+            const extractedSysId = typeof caseRecord.sys_id === "object" && caseRecord.sys_id
+              ? (caseRecord.sys_id.value || caseRecord.sys_id.display_value)
+              : caseRecord.sys_id;
 
             sysId = extractedSysId ?? null;
             if (!sysId) {
@@ -505,13 +491,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                 const user = entry.sys_created_by || 'unknown';
-                const valueStr = extractReference(entry.value) ?? '(no content)';
+                // Handle value as string or object
+                const valueStr = typeof entry.value === 'string'
+                  ? entry.value
+                  : (entry.value?.value || entry.value?.display_value || '(no content)');
                 const content = String(valueStr).substring(0, 150); // Truncate long entries
                 return `• ${dateStr}, ${timeStr} – ${user}: ${content}`;
               } catch (error) {
                 // Fallback for invalid dates
                 const user = entry.sys_created_by || 'unknown';
-                const valueStr = extractReference(entry.value) ?? '(no content)';
+                const valueStr = typeof entry.value === 'string'
+                  ? entry.value
+                  : (entry.value?.value || entry.value?.display_value || '(no content)');
                 const content = String(valueStr).substring(0, 150);
                 return `• ${user}: ${content}`;
               }
