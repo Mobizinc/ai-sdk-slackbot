@@ -16,6 +16,7 @@ import type {
   JournalEntry,
   Choice,
   CustomerAccount,
+  AssignmentGroup,
 } from "../types/domain-models";
 import type {
   CaseRecord,
@@ -28,6 +29,7 @@ import type {
   JournalEntryRecord,
   ChoiceRecord,
   CustomerAccountRecord,
+  AssignmentGroupRecord,
 } from "../types/api-responses";
 
 /**
@@ -261,5 +263,19 @@ export function mapCustomerAccount(record: CustomerAccountRecord, instanceUrl: s
     number: extractDisplayValue(record.number),
     name: extractDisplayValue(record.name),
     url: buildRecordUrl(instanceUrl, "customer_account", record.sys_id),
+  };
+}
+
+/**
+ * Map AssignmentGroupRecord to AssignmentGroup domain model
+ */
+export function mapAssignmentGroup(record: AssignmentGroupRecord, instanceUrl: string): AssignmentGroup {
+  return {
+    sysId: record.sys_id,
+    name: extractDisplayValue(record.name),
+    description: extractDisplayValue(record.description),
+    manager: extractDisplayValue(record.manager),
+    active: typeof record.active === "string" ? record.active === "true" : Boolean(record.active),
+    url: buildRecordUrl(instanceUrl, "sys_user_group", record.sys_id),
   };
 }

@@ -13,6 +13,7 @@ import { ServiceNowCMDBRepository } from "./cmdb-repository.impl";
 import { ServiceNowCustomerAccountRepository } from "./customer-account-repository.impl";
 import { ServiceNowChoiceRepository } from "./choice-repository.impl";
 import { ServiceNowProblemRepository } from "./problem-repository.impl";
+import { ServiceNowAssignmentGroupRepository } from "./assignment-group-repository.impl";
 import type { CaseRepository } from "./case-repository.interface";
 import type { IncidentRepository } from "./incident-repository.interface";
 import type { KnowledgeRepository } from "./knowledge-repository.interface";
@@ -21,6 +22,7 @@ import type { CMDBRepository } from "./cmdb-repository.interface";
 import type { CustomerAccountRepository } from "./customer-account-repository.interface";
 import type { ChoiceRepository } from "./choice-repository.interface";
 import type { ProblemRepository } from "./problem-repository.interface";
+import type { AssignmentGroupRepository } from "./assignment-group-repository.interface";
 import { config } from "../../../config";
 
 /**
@@ -128,6 +130,13 @@ export function createProblemRepository(
   return new ServiceNowProblemRepository(client);
 }
 
+export function createAssignmentGroupRepository(
+  httpClient?: ServiceNowHttpClient,
+): AssignmentGroupRepository {
+  const client = httpClient ?? createHttpClient();
+  return new ServiceNowAssignmentGroupRepository(client);
+}
+
 /**
  * Singleton instances for production use
  * These are created lazily and cached
@@ -141,6 +150,7 @@ let cmdbRepositoryInstance: CMDBRepository | undefined;
 let customerAccountRepositoryInstance: CustomerAccountRepository | undefined;
 let choiceRepositoryInstance: ChoiceRepository | undefined;
 let problemRepositoryInstance: ProblemRepository | undefined;
+let assignmentGroupRepositoryInstance: AssignmentGroupRepository | undefined;
 
 /**
  * Get shared HTTP client instance
@@ -220,6 +230,13 @@ export function getProblemRepository(): ProblemRepository {
   return problemRepositoryInstance;
 }
 
+export function getAssignmentGroupRepository(): AssignmentGroupRepository {
+  if (!assignmentGroupRepositoryInstance) {
+    assignmentGroupRepositoryInstance = createAssignmentGroupRepository(getHttpClient());
+  }
+  return assignmentGroupRepositoryInstance;
+}
+
 /**
  * Reset singleton instances (useful for testing)
  */
@@ -233,4 +250,5 @@ export function resetRepositories(): void {
   customerAccountRepositoryInstance = undefined;
   choiceRepositoryInstance = undefined;
   problemRepositoryInstance = undefined;
+  assignmentGroupRepositoryInstance = undefined;
 }

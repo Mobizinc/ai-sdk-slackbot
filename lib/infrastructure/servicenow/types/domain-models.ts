@@ -155,6 +155,18 @@ export interface Choice {
 }
 
 /**
+ * Assignment Group entity representing a ServiceNow group
+ */
+export interface AssignmentGroup {
+  sysId: string;
+  name: string;
+  description?: string;
+  manager?: string;
+  active: boolean;
+  url: string;
+}
+
+/**
  * Input for creating a new case
  */
 export interface CreateCaseInput {

@@ -187,3 +187,15 @@ export interface CustomerAccountRecord {
   number: ServiceNowField;
   name: ServiceNowField;
 }
+
+/**
+ * Assignment Group record from ServiceNow API
+ */
+export interface AssignmentGroupRecord {
+  sys_id: string;
+  name: ServiceNowField;
+  description: ServiceNowField;
+  manager: ServiceNowField;
+  active: string | boolean;
+  type: ServiceNowField;
+}

@@ -17,7 +17,7 @@ import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getSlackMessagingService } from "../lib/services/slack-messaging";
 import { initializeDatabase } from "../lib/db/init";
 import { ErrorHandler } from "../lib/utils/error-handler";
-import { getCaseRepository } from "../lib/infrastructure/servicenow/repositories";
+import { getCaseRepository, getAssignmentGroupRepository } from "../lib/infrastructure/servicenow/repositories";
 import { getSlackClient } from "../lib/slack/client";
 
 const slackMessaging = getSlackMessagingService();
@@ -263,25 +263,41 @@ async function handleReassignSubmission(payload: any): Promise<void> {
   try {
     // Extract metadata
     const metadata = JSON.parse(payload.view.private_metadata);
-    const { caseNumber, channelId, messageTs } = metadata;
+    const { caseNumber, channelId, messageTs, usedFallback } = metadata;
     const userId = payload.user.id;
 
     // Extract form values
     const values = payload.view.state.values;
     const assignmentType = values.assignment_type.assignment_type_select.selected_option.value;
     const assignedTo = values.assigned_to.assigned_to_select.selected_user || null;
-    const assignmentGroup = values.assignment_group.assignment_group_input.value || null;
+
+    // Extract assignment group value - different field depending on fallback
+    let assignmentGroupValue: string | null = null;
+    let assignmentGroupDisplayName: string | null = null;
+    if (usedFallback) {
+      // Text input (name)
+      assignmentGroupValue = values.assignment_group.assignment_group_input.value || null;
+      assignmentGroupDisplayName = assignmentGroupValue; // Same value for display
+    } else {
+      // Select menu (sys_id from selected_option.value, name from selected_option.text.text)
+      const selectedOption = values.assignment_group.assignment_group_select?.selected_option;
+      if (selectedOption) {
+        assignmentGroupValue = selectedOption.value; // This is the sys_id
+        assignmentGroupDisplayName = selectedOption.text?.text || assignmentGroupValue;
+      }
+    }
+
     const reassignmentReason = values.reassignment_reason.reassignment_reason_input.value;
     const workNote = values.work_note.work_note_input.value || null;
 
     console.log(`[Interactivity] Reassigning ${caseNumber} (type: ${assignmentType})`);
 
-    // Determine assignment target
+    // Determine assignment target for display
     let assignmentTarget: string;
     if (assignmentType === "user" && assignedTo) {
       assignmentTarget = `<@${assignedTo}>`;
-    } else if (assignmentType === "group" && assignmentGroup) {
-      assignmentTarget = assignmentGroup;
+    } else if (assignmentType === "group" && assignmentGroupDisplayName) {
+      assignmentTarget = assignmentGroupDisplayName;
     } else {
       // Validation error
       await slackMessaging.postMessage({
@@ -317,20 +333,18 @@ async function handleReassignSubmission(payload: any): Promise<void> {
       }
 
       // Handle assignment based on type
-      if (assignmentType === "group" && assignmentGroup) {
-        // Query ServiceNow to get assignment group sys_id by name
-        // Note: Using the ServiceNow HTTP client directly since there's no group repository
-        const serviceNowClient = await import("../lib/infrastructure/servicenow/repositories/case-repository.impl");
-
-        console.log(`[Interactivity] Looking up assignment group: ${assignmentGroup}`);
-
-        // For now, update with group name directly - ServiceNow often accepts exact names
-        // This will work if the instance is configured to accept group names
+      if (assignmentType === "group" && assignmentGroupValue) {
+        // Update case with assignment group
+        // If usedFallback=true, assignmentGroupValue is a name (ServiceNow may accept it)
+        // If usedFallback=false, assignmentGroupValue is a sys_id (more reliable)
         await caseRepo.update(caseRecord.sysId, {
-          assignmentGroup: assignmentGroup,
+          assignmentGroup: assignmentGroupValue,
         });
 
-        console.log(`[Interactivity] Updated case ${caseNumber} assignment group to ${assignmentGroup}`);
+        console.log(
+          `[Interactivity] Updated case ${caseNumber} assignment group to ${assignmentGroupValue} ` +
+          `(${usedFallback ? "name-based" : "sys_id-based"})`
+        );
       } else if (assignmentType === "user" && assignedTo) {
         // User assignment requires Slack → ServiceNow user mapping
         // This is not yet implemented, so we'll skip ServiceNow update for now
@@ -344,6 +358,7 @@ Reassigned by: ${reassignedByName}
 Timestamp: ${new Date().toISOString()}
 Assignment Type: ${assignmentType === "user" ? "User" : "Group"}
 Assigned To: ${assignmentTarget}
+Method: ${usedFallback ? "Manual group name entry" : "Group selected from dropdown"}
 Reason: ${reassignmentReason}`;
 
       if (workNote) {
@@ -864,11 +879,88 @@ function buildCreateProjectModal(
 /**
  * Build modal view for case reassignment
  */
-function buildReassignModal(
+async function buildReassignModal(
   caseNumber: string,
   channelId: string,
   messageTs: string
-): any {
+): Promise<any> {
+  // Try to fetch assignment groups from ServiceNow
+  let assignmentGroups: Array<{ text: { type: string; text: string }; value: string }> = [];
+  let useFallbackTextInput = false;
+
+  try {
+    const groupRepo = getAssignmentGroupRepository();
+    const groups = await groupRepo.findAll(200); // Fetch up to 200 groups
+
+    assignmentGroups = groups.map(group => ({
+      text: {
+        type: "plain_text" as const,
+        text: group.name,
+      },
+      value: group.sysId,
+    }));
+
+    console.log(`[Interactivity] Fetched ${assignmentGroups.length} assignment groups for reassignment modal`);
+
+    if (assignmentGroups.length === 0) {
+      console.warn("[Interactivity] No assignment groups found - using text input fallback");
+      useFallbackTextInput = true;
+    }
+  } catch (error) {
+    console.error("[Interactivity] Failed to fetch assignment groups:", error);
+    useFallbackTextInput = true;
+  }
+
+  // Build assignment group input block (select or text based on fetch success)
+  const assignmentGroupBlock = useFallbackTextInput
+    ? {
+        // Fallback: Plain text input
+        type: "input" as const,
+        block_id: "assignment_group",
+        element: {
+          type: "plain_text_input" as const,
+          action_id: "assignment_group_input",
+          placeholder: {
+            type: "plain_text" as const,
+            text: "e.g., IT Support, Engineering, Customer Success",
+          },
+        },
+        label: {
+          type: "plain_text" as const,
+          text: "Assignment Group Name",
+          emoji: true,
+        },
+        optional: true,
+        hint: {
+          type: "plain_text" as const,
+          text: "⚠️ Could not load groups from ServiceNow. Enter group name manually.",
+        },
+      }
+    : {
+        // Success: Static select dropdown
+        type: "input" as const,
+        block_id: "assignment_group",
+        element: {
+          type: "static_select" as const,
+          action_id: "assignment_group_select",
+          placeholder: {
+            type: "plain_text" as const,
+            text: "Select assignment group",
+          },
+          options: assignmentGroups,
+        },
+        label: {
+          type: "plain_text" as const,
+          text: "Assignment Group",
+          emoji: true,
+        },
+        optional: true,
+        hint: {
+          type: "plain_text" as const,
+          text: "Select a group to assign this case to",
+        },
+      };
+
   return {
     type: "modal",
     callback_id: "reassign_case_modal",
@@ -876,6 +968,7 @@ function buildReassignModal(
       caseNumber,
       channelId,
       messageTs,
+      usedFallback: useFallbackTextInput,  // Track if we used fallback
     }),
     title: {
       type: "plain_text",
@@ -916,9 +1009,9 @@ function buildReassignModal(
           initial_option: {
             text: {
               type: "plain_text",
-              text: "Assign to User",
+              text: "Assign to Group",  // Change default to group
             },
-            value: "user",
+            value: "group",
           },
           options: [
             {
@@ -967,28 +1060,7 @@ function buildReassignModal(
           text: "Select this if assigning to a specific user",
         },
       },
-      {
-        type: "input",
-        block_id: "assignment_group",
-        element: {
-          type: "plain_text_input",
-          action_id: "assignment_group_input",
-          placeholder: {
-            type: "plain_text",
-            text: "e.g., IT Support, Engineering, Customer Success",
-          },
-        },
-        label: {
-          type: "plain_text",
-          text: "Assignment Group Name",
-          emoji: true,
-        },
-        optional: true,
-        hint: {
-          type: "plain_text",
-          text: "Enter this if assigning to a group",
-        },
-      },
+      assignmentGroupBlock,  // Dynamic block (select or text)
       {
         type: "input",
         block_id: "reassignment_reason",
@@ -1164,8 +1236,8 @@ async function handleReassign(
   console.log(`[Interactivity] Reassignment requested for ${caseNumber} by ${user.id}`);
 
   try {
-    // Open modal for reassignment
-    const modalView = buildReassignModal(caseNumber, container.channel_id, container.message_ts);
+    // Build modal (now async because it fetches groups)
+    const modalView = await buildReassignModal(caseNumber, container.channel_id, container.message_ts);
 
     await slackMessaging.openView({
       triggerId: payload.trigger_id,
