@@ -42,6 +42,11 @@ describe("Case Number Normalizer", () => {
       expect(normalizeCaseId("INC", "INC-167587")).toBe("INC0167587");
     });
 
+    it("should normalize when digits passed as number", () => {
+      expect(normalizeCaseId("SCS", 46363)).toBe("SCS0046363");
+      expect(normalizeCaseId("INC", 167587)).toBe("INC0167587");
+    });
+
     it("should return empty string for non-numeric input", () => {
       expect(normalizeCaseId("SCS", "abc")).toBe("");
       expect(normalizeCaseId("INC", "")).toBe("");
@@ -116,6 +121,10 @@ describe("Case Number Normalizer", () => {
       expect(findMatchingCaseNumber("46363", canonicalCases)).toBe("SCS0046363");
       expect(findMatchingCaseNumber("167587", canonicalCases)).toBe("INC0167587");
       expect(findMatchingCaseNumber("12345", canonicalCases)).toBe("CS0012345");
+    });
+
+    it("should find match when raw number provided as numeric type", () => {
+      expect(findMatchingCaseNumber(46363, canonicalCases)).toBe("SCS0046363");
     });
 
     it("should find match with partial format", () => {

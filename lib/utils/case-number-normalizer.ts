@@ -24,11 +24,13 @@
  */
 export function normalizeCaseId(
   prefix: string,
-  digits: string,
+  digits: string | number | null | undefined,
   totalDigits = 7,
 ): string {
+  const raw = digits == null ? "" : String(digits);
+
   // Strip any non-numeric characters from input
-  const numeric = digits.replace(/\D/g, "");
+  const numeric = raw.replace(/\D/g, "");
 
   if (!numeric) {
     return "";
@@ -60,7 +62,8 @@ export function normalizeCaseId(
  * extractDigits("CS46363") → "46363"
  */
 export function extractDigits(identifier: string): string {
-  const match = identifier.match(/\d+/);
+  const source = identifier == null ? "" : String(identifier);
+  const match = source.match(/\d+/);
   return match ? match[0] : "";
 }
 
@@ -77,10 +80,14 @@ export function extractDigits(identifier: string): string {
  * isServiceNowNumber("abc") → false
  */
 export function isServiceNowNumber(identifier: string): boolean {
+  if (identifier == null) {
+    return false;
+  }
+
   // Matches:
   // - Bare numbers with 5-7 digits: 46363, 167587
   // - Prefixed numbers: SCS0046363, CS46363, INC167587
-  return /^(?:SCS|CS|INC)?\d{5,7}$/i.test(identifier);
+  return /^(?:SCS|CS|INC)?\d{5,7}$/i.test(String(identifier));
 }
 
 /**
@@ -98,15 +105,17 @@ export function isServiceNowNumber(identifier: string): boolean {
  * findMatchingCaseNumber("99999", ["SCS0046363"]) → null
  */
 export function findMatchingCaseNumber(
-  rawNumber: string,
+  rawNumber: string | number | null | undefined,
   caseNumbers: string[],
 ): string | null {
   if (!rawNumber || !caseNumbers || caseNumbers.length === 0) {
     return null;
   }
 
+  const candidate = String(rawNumber);
+
   // Extract digits from raw number
-  const rawDigits = extractDigits(rawNumber);
+  const rawDigits = extractDigits(candidate);
   if (!rawDigits) {
     return null;
   }
