@@ -10,6 +10,7 @@ import { getBusinessContextService } from "./business-context-service";
 import { config } from "../config";
 import { AnthropicChatService } from "./anthropic-chat";
 import { MessageEmojis } from "../utils/message-styling";
+import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
 
 export interface KBArticle {
   title: string;
@@ -198,60 +199,93 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
       (context as any).channelPurpose
     );
 
-    return await this.generateWithAnthropic(enhancedPrompt, conversationSummary);
+    return await this.generateWithAnthropic({
+      prompt: enhancedPrompt,
+      conversationSummary,
+      context,
+      caseDetails,
+    });
   }
 
-  private async generateWithAnthropic(
-    enhancedPrompt: string,
-    conversationSummary: string,
-  ): Promise<KBArticle> {
+  private async generateWithAnthropic(params: {
+    prompt: string;
+    conversationSummary: string;
+    context: CaseContext;
+    caseDetails: any;
+  }): Promise<KBArticle> {
+    const { prompt, conversationSummary, context, caseDetails } = params;
     const chatService = AnthropicChatService.getInstance();
 
-    const response = await chatService.send({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
-        },
-        {
-          role: "user",
-          content: enhancedPrompt,
-        },
-      ],
-      tools: [
-        {
-          name: "draft_kb_article",
-          description:
-            "Return the fully structured knowledge base article as your final output. Call this exactly once.",
-          inputSchema: KB_ARTICLE_JSON_SCHEMA,
-        },
-      ],
-      maxSteps: 3,
-    });
+    try {
+      const response = await withTimeout(
+        chatService.send({
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a meticulous knowledge base author. You MUST call the `draft_kb_article` tool exactly once with your final structured article.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          tools: [
+            {
+              name: "draft_kb_article",
+              description:
+                "Return the fully structured knowledge base article as your final output. Call this exactly once.",
+              inputSchema: KB_ARTICLE_JSON_SCHEMA,
+            },
+          ],
+          maxSteps: 3,
+        }),
+        config.llmKBGenerationTimeoutMs,
+        async () => {
+          console.warn(
+            `[KB Generator] LLM timeout (${config.llmKBGenerationTimeoutMs}ms) - using fallback template`,
+          );
+          return null;
+        }
+      );
 
-    if (response.toolCalls.length > 0) {
-      const firstCall = response.toolCalls[0];
-      const parsed = KBArticleSchema.parse(firstCall.input) as KBArticlePayload;
-      return {
-        ...parsed,
-        conversationSummary: parsed.conversationSummary ?? conversationSummary,
-      };
-    }
+      if (!response) {
+        return this.createFallbackArticle(context, caseDetails);
+      }
 
-    if (response.outputText) {
-      try {
-        const parsed = KBArticleSchema.parse(JSON.parse(response.outputText)) as KBArticlePayload;
+      if (response.toolCalls.length > 0) {
+        const firstCall = response.toolCalls[0];
+        const parsed = KBArticleSchema.parse(firstCall.input) as KBArticlePayload;
         return {
           ...parsed,
           conversationSummary: parsed.conversationSummary ?? conversationSummary,
         };
-      } catch (error) {
-        console.warn("Failed to parse Anthropic text output as KB article:", error);
       }
-    }
 
-    throw new Error("Anthropic response did not include KB article tool call or parsable output.");
+      if (response.outputText) {
+        try {
+          const parsed = KBArticleSchema.parse(JSON.parse(response.outputText)) as KBArticlePayload;
+          return {
+            ...parsed,
+            conversationSummary: parsed.conversationSummary ?? conversationSummary,
+          };
+        } catch (error) {
+          console.warn("Failed to parse Anthropic text output as KB article:", error);
+        }
+      }
+
+      throw new Error("Anthropic response did not include KB article tool call or parsable output.");
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        console.error(
+          `[KB Generator] LLM timeout after ${error.timeoutMs}ms - using fallback template`,
+        );
+      } else {
+        console.error("Error generating KB with LLM:", error);
+      }
+
+      return this.createFallbackArticle(context, caseDetails);
+    }
   }
 
 

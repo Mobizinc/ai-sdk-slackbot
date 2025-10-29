@@ -77,12 +77,14 @@ export class SlackMessagingService {
     threadTs: string;
     text: string;
     unfurlLinks?: boolean;
+    blocks?: any[];
   }): Promise<MessageResult> {
     return this.postMessage({
       channel: params.channel,
       text: params.text,
       threadTs: params.threadTs,
       unfurlLinks: params.unfurlLinks ?? false,
+      blocks: params.blocks,
     });
   }
 

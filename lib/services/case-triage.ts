@@ -726,6 +726,35 @@ export class CaseTriageService {
         );
       }
 
+      // Step 16: Check for business intelligence escalation (non-BAU cases)
+      if (classificationResult.business_intelligence) {
+        try {
+          const { getEscalationService } = await import('./escalation-service');
+          const escalationService = getEscalationService();
+
+          await escalationService.checkAndEscalate({
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            classification: classificationResult,
+            caseData: {
+              short_description: webhook.short_description,
+              description: webhook.description,
+              priority: webhook.priority,
+              urgency: webhook.urgency,
+              state: webhook.state,
+            },
+            assignedTo: webhook.assigned_to,
+            assignmentGroup: webhook.assignment_group,
+            companyName: webhook.account_id, // Use account_id as company name
+          });
+
+          console.log(`[Case Triage] Escalation check completed for ${webhook.case_number}`);
+        } catch (error) {
+          console.error(`[Case Triage] Escalation failed for ${webhook.case_number}:`, error);
+          // Don't fail the entire triage - log error but continue
+        }
+      }
+
       // Log timing breakdown for performance analysis
       const storageTime = Date.now() - startTime - classificationTime - categoriesTime;
       console.log(
