@@ -5,14 +5,20 @@
  * Original: api/app/services/case_intelligence/embedding_service.py
  */
 
-import { openai } from '@ai-sdk/openai';
-import { embed } from 'ai';
+import OpenAI from "openai";
+import { config } from "../config";
 
 export class EmbeddingService {
   private model: string;
+  private client: OpenAI;
 
-  constructor(model: string = 'text-embedding-3-small') {
+  constructor(model: string = config.caseEmbeddingModel || "text-embedding-3-small") {
     this.model = model;
+    const apiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY not configured for embedding generation");
+    }
+    this.client = new OpenAI({ apiKey });
   }
 
   /**
@@ -21,12 +27,17 @@ export class EmbeddingService {
    * Returns: 1536-dimensional vector for text-embedding-3-small
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    const { embedding } = await embed({
-      model: openai.embedding(this.model),
-      value: text,
+    const response = await this.client.embeddings.create({
+      model: this.model,
+      input: text,
     });
 
-    return embedding;
+    const embedding = response.data?.[0]?.embedding;
+    if (!embedding) {
+      throw new Error("OpenAI embedding response missing data");
+    }
+
+    return embedding as number[];
   }
 
   /**
@@ -49,7 +60,10 @@ let embeddingService: EmbeddingService | null = null;
 
 export function getEmbeddingService(): EmbeddingService {
   if (!embeddingService) {
-    const model = process.env.CASE_EMBEDDING_MODEL || 'text-embedding-3-small';
+    const model = config.caseEmbeddingModel || process.env.CASE_EMBEDDING_MODEL || "text-embedding-3-small";
+    if (config.openaiApiKey && !process.env.OPENAI_API_KEY) {
+      process.env.OPENAI_API_KEY = config.openaiApiKey;
+    }
     embeddingService = new EmbeddingService(model);
   }
   return embeddingService;

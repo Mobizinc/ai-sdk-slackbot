@@ -5,18 +5,19 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { config as appConfig } from "../lib/config";
 
 export async function GET(request: Request) {
   // Security: Only allow access in development or with admin token
-  const isDevelopment = !process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'development';
-  const adminToken = process.env.BUSINESS_CONTEXT_ADMIN_TOKEN;
+  const isDevelopment = !appConfig.vercelEnv || appConfig.vercelEnv === 'development';
+  const adminToken = appConfig.adminApiToken;
   const authHeader = request.headers.get('authorization');
 
   // Allow if in development mode
   if (!isDevelopment) {
     // In production, require admin token
     if (!adminToken) {
-      return new Response('Admin interface is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.', {
+      return new Response('Admin interface is disabled in production. Set ADMIN_API_TOKEN to enable.', {
         status: 403,
         headers: {
           'Content-Type': 'text/plain',

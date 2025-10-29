@@ -3,12 +3,10 @@
  * Inspired by mobiz-intelligence-analytics case intelligence system.
  */
 
-import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
-import { modelProvider } from "../model-provider";
 import { config } from "../config";
 import { generatePatternSummary } from "../utils/content-helpers";
 import {
@@ -72,14 +70,31 @@ const CaseGuidanceSchema = z.object({
   nextSteps: z.array(z.string().max(100)).min(1).max(3),
 }) as z.ZodTypeAny;
 
-const createTool = tool as unknown as (options: any) => any;
-
-const guidanceTool = createTool({
-  description:
-    "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
-  inputSchema: CaseGuidanceSchema as z.ZodTypeAny,
-  execute: async (payload: CaseGuidancePayload) => payload,
-});
+const CASE_GUIDANCE_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    similarCases: {
+      type: "array",
+      items: { type: "string", maxLength: 120 },
+      minItems: 1,
+      maxItems: 3,
+    },
+    suggestions: {
+      type: "array",
+      items: { type: "string", maxLength: 100 },
+      minItems: 1,
+      maxItems: 4,
+    },
+    nextSteps: {
+      type: "array",
+      items: { type: "string", maxLength: 100 },
+      minItems: 1,
+      maxItems: 3,
+    },
+  },
+  required: ["similarCases", "suggestions", "nextSteps"],
+  additionalProperties: false,
+};
 
 /**
  * Generate intelligent assistance message when a case is first detected.
@@ -319,34 +334,57 @@ When ready, call the \`draft_case_guidance\` tool EXACTLY ONCE with:
 
 Prioritise actionable insights only.`;
 
-  try {
-    // Enhance prompt with business context
-    const businessContextService = getBusinessContextService();
-    const enhancedPrompt = await businessContextService.enhancePromptWithContext(
-      basePrompt,
-      channelName,
-      channelTopic,
-      channelPurpose
-    );
+  const businessContextService = getBusinessContextService();
+  const enhancedPrompt = await businessContextService.enhancePromptWithContext(
+    basePrompt,
+    channelName,
+    channelTopic,
+    channelPurpose
+  );
 
-    const result = await generateText({
-      model: modelProvider.languageModel("intelligent-assistant"),
-      system:
-        "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
-      prompt: enhancedPrompt,
-      tools: {
-        draft_case_guidance: guidanceTool,
-      },
-      toolChoice: { type: "tool", toolName: "draft_case_guidance" },
+  try {
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
+        },
+        {
+          role: "user",
+          content: enhancedPrompt,
+        },
+      ],
+      tools: [
+        {
+          name: "draft_case_guidance",
+          description:
+            "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
+          inputSchema: CASE_GUIDANCE_JSON_SCHEMA,
+        },
+      ],
+      maxSteps: 3,
     });
 
-    const toolResult = result.toolResults[0];
-
-    if (!toolResult || toolResult.type !== "tool-result") {
-      throw new Error("Structured guidance not returned");
+    if (response.toolCalls.length > 0) {
+      const structured = CaseGuidanceSchema.parse(response.toolCalls[0].input) as CaseGuidancePayload;
+      return formatGuidanceMessage(structured);
     }
 
-    const structured = CaseGuidanceSchema.parse(toolResult.output) as CaseGuidancePayload;
+    if (response.outputText) {
+      try {
+        const structured = CaseGuidanceSchema.parse(
+          JSON.parse(response.outputText),
+        ) as CaseGuidancePayload;
+        return formatGuidanceMessage(structured);
+      } catch (parseError) {
+        console.warn(
+          "[Intelligent Assistant] Failed to parse Anthropic text output:",
+          parseError,
+        );
+      }
+    }
 
     return structured;
   } catch (error) {

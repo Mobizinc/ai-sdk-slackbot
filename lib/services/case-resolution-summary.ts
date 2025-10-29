@@ -1,10 +1,9 @@
-import { generateText } from "../instrumented-ai";
 import type { CaseContext } from "../context-manager";
 import type {
   ServiceNowCaseJournalEntry,
   ServiceNowCaseResult,
 } from "../tools/servicenow";
-import { modelProvider } from "../model-provider";
+import { AnthropicChatService } from "./anthropic-chat";
 
 interface ResolutionSummaryInput {
   caseNumber: string;
@@ -89,19 +88,30 @@ Produce a Slack-formatted message with:
 Keep bullets concise (≤140 characters) and avoid repeating the case number. Do not invent details beyond the provided information.`;
 
   try {
-    const config = {
-      model: modelProvider.languageModel("resolution-summary"),
-      prompt,
-    };
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an internal Service Desk assistant. Produce concise Slack-formatted summaries without fabricating details.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
 
-    const { text } = await generateText(config);
-    const summary = text.trim();
+    const anthroText =
+      response.outputText ??
+      extractText(response.message);
 
-    if (summary.length === 0) {
-      return null;
+    if (anthroText && anthroText.trim().length > 0) {
+      return anthroText.trim();
     }
 
-    return summary;
+    throw new Error("Anthropic response missing text");
   } catch (error) {
     console.error("[ResolutionSummary] Failed to generate summary:", error);
 
@@ -117,4 +127,15 @@ Keep bullets concise (≤140 characters) and avoid repeating the case number. Do
 
     return fallbackLines.length > 0 ? fallbackLines.join("\n") : null;
   }
+}
+
+function extractText(message: any): string | undefined {
+  if (!message?.content) return undefined;
+  const blocks = Array.isArray(message.content) ? message.content : [message.content];
+  const text = blocks
+    .filter((block: any) => block?.type === "text")
+    .map((block: any) => block.text ?? "")
+    .join("\n")
+    .trim();
+  return text || undefined;
 }

@@ -12,7 +12,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { generateResponse } from "../lib/generate-response";
-import type { CoreMessage } from "ai";
+import type { ChatMessage as CoreMessage } from "../lib/agent/types";
 
 async function testAzureCase() {
   console.log("🧪 Testing Azure Microsoft Learn Integration\n");

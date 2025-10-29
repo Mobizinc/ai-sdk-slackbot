@@ -1,29 +1,33 @@
 import type { AppMentionEvent } from "./slack-event-types";
-import { client, getThread } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
 import { generateResponse } from "./generate-response";
 import { getContextManager } from "./context-manager";
 import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
+import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
+
+const slackMessaging = getSlackMessagingService();
 
 const updateStatusUtil = async (
   initialStatus: string,
   event: AppMentionEvent,
 ) => {
-  const initialMessage = await client.chat.postMessage({
+  const initialMessage = await slackMessaging.postMessage({
     channel: event.channel,
-    thread_ts: event.thread_ts ?? event.ts,
+    threadTs: event.thread_ts ?? event.ts,
     text: initialStatus,
   });
 
   if (!initialMessage || !initialMessage.ts)
     throw new Error("Failed to post initial message");
 
-  const updateMessage = async (status: string) => {
-    await client.chat.update({
+  const updateMessage = async (status: string, blocks?: any[]) => {
+    await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
       text: status,
+      blocks,
     });
   };
   return updateMessage;
@@ -64,7 +68,10 @@ export async function handleNewAppMention(
         return;
       }
 
-      const caseDetails = await serviceNowClient.getCase(caseNumber);
+      // Extract context for deterministic feature flag routing
+      const context = getServiceNowContextFromEvent(event);
+
+      const caseDetails = await serviceNowClient.getCase(caseNumber, context);
 
       if (!caseDetails) {
         await updateMessage(`Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`);
@@ -171,7 +178,7 @@ export async function handleNewAppMention(
   // If not a triage command, proceed with normal AI response
   let result: string;
   if (thread_ts) {
-    const messages = await getThread(channel, thread_ts, botUserId);
+    const messages = await slackMessaging.getThread(channel, thread_ts, botUserId);
     result = await generateResponse(messages, updateMessage, {
       channelId: channel,
       threadTs: thread_ts,
@@ -187,7 +194,30 @@ export async function handleNewAppMention(
     );
   }
 
-  await updateMessage(result);
+  // Check if result contains Block Kit data (JSON-encoded response)
+  try {
+    const parsed = JSON.parse(result);
+    if (parsed._blockKitData) {
+      console.log('[Handler] Block Kit data detected, formatting with Block Kit');
+
+      const { formatCaseAsBlockKit, generateCaseFallbackText } = await import("./formatters/servicenow-block-kit");
+
+      const blocks = formatCaseAsBlockKit(parsed._blockKitData.caseData, {
+        includeJournal: true,
+        journalEntries: parsed._blockKitData.journalEntries,
+        maxJournalEntries: 3,
+      });
+
+      const fallbackText = generateCaseFallbackText(parsed._blockKitData.caseData);
+
+      await updateMessage(fallbackText, blocks);
+    } else {
+      await updateMessage(parsed.text || result);
+    }
+  } catch {
+    // Not JSON or no Block Kit data - use as plain text
+    await updateMessage(result);
+  }
 
   // After responding, check for case numbers and trigger intelligent workflow
   const contextManager = getContextManager();
@@ -208,11 +238,14 @@ export async function handleNewAppMention(
       // Check if case is resolved
       const context = contextManager.getContextSync(caseNumber, actualThreadTs);
 
+      // Extract ServiceNow context for feature flag routing
+      const snContext = getServiceNowContextFromEvent(event);
+
       // Check ServiceNow state
       let isResolvedInServiceNow = false;
       if (serviceNowClient.isConfigured()) {
         try {
-          const caseDetails = await serviceNowClient.getCase(caseNumber);
+          const caseDetails = await serviceNowClient.getCase(caseNumber, snContext);
           if (caseDetails?.state?.toLowerCase().includes("closed") ||
               caseDetails?.state?.toLowerCase().includes("resolved")) {
             isResolvedInServiceNow = true;

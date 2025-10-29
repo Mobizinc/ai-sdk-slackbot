@@ -1,20 +1,16 @@
-interface NumericOption {
-  value: number;
-  defaultValue: number;
-  raw: string | undefined;
-  envKey: string;
-}
+import { CONFIG_DEFINITIONS, type ConfigDefinition, type ConfigKey, type ConfigValueMap } from "./config/registry";
+import {
+  getConfig,
+  getConfigSync,
+  refreshConfig,
+  getConfigValue,
+  serializeConfigValue,
+} from "./config/loader";
 
-function parseNumberOption({ value, defaultValue, raw, envKey }: NumericOption): number {
-  if (Number.isFinite(value) && value > 0) {
-    return value;
-  }
+export { CONFIG_DEFINITIONS };
+export type { ConfigDefinition, ConfigKey, ConfigValueMap };
 
-  if (raw !== undefined) {
-    console.warn(
-      `[Config] Ignoring invalid value for ${envKey}: ${raw}. Using default ${defaultValue}.`,
-    );
-  }
+export const config = getConfigSync();
 
   return defaultValue;
 }

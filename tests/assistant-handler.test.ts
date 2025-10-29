@@ -2,11 +2,14 @@ import { http, HttpResponse } from "msw";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 import { POST } from "../api/events";
-import {
-  __resetGenerateTextImpl,
-  __setGenerateTextImpl,
-} from "../lib/generate-response";
 import { server } from "./setup";
+
+const runAgentMock = vi.fn();
+
+
+vi.mock("../lib/agent/runner", () => ({
+  runAgent: (...args: unknown[]) => runAgentMock(...args),
+}));
 
 const hoisted = vi.hoisted(() => {
   return {
@@ -72,6 +75,7 @@ beforeEach(() => {
   hoisted.statusUpdates.length = 0;
   hoisted.postMessageMock.mockReset();
   hoisted.getThreadMock.mockReset();
+  runAgentMock.mockReset();
   pendingPromises.length = 0;
 
     server.use(
@@ -132,33 +136,17 @@ beforeEach(() => {
       },
     ]);
 
-    __setGenerateTextImpl(
-      vi.fn(async ({ tools }) => {
-        const caseLookup = await tools.serviceNow.execute({
-          action: "getCase",
-          number: "SCS0048402",
-        });
-
-        const journalLookup = await tools.serviceNow.execute({
-          action: "getCaseJournal",
-          caseSysId: caseLookup.case?.sys_id ?? "",
-          limit: 5,
-        });
-
-        const latestEntry = journalLookup.caseJournal?.[0];
-        const latestSummary = latestEntry
-          ? `${latestEntry.sys_created_on} by ${latestEntry.sys_created_by}: ${latestEntry.value}`
-          : "No recent activity found.";
-
-        return {
-          text: `Case ${caseLookup.case?.number}: ${latestSummary}`,
-        };
-      }),
-    );
+    runAgentMock.mockImplementation(async ({ updateStatus }) => {
+      updateStatus?.("is thinking...");
+      updateStatus?.("is looking up case SCS0048402 in ServiceNow...");
+      updateStatus?.("is fetching recent case activity from ServiceNow...");
+      updateStatus?.("");
+      return "Case SCS0048402: Issue acknowledged. Device rebooted.";
+    });
   });
 
   afterEach(() => {
-    __resetGenerateTextImpl();
+    runAgentMock.mockReset();
   });
 
   it("responds to a direct message by summarising the latest case activity", async () => {

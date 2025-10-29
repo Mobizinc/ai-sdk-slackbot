@@ -1,5 +1,7 @@
 packages:
   - "."
+  - "admin"
+  - "packages/*"
 
 onlyBuiltDependencies:
   - esbuild

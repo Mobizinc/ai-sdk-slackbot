@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { config } from "./config";
 
 interface SignatureResultSuccess {
   ok: true;
@@ -16,7 +17,11 @@ export type SignatureVerificationResult =
   | SignatureResultFailure;
 
 function resolveSecret(): string | null {
-  const secret = process.env.RELAY_WEBHOOK_SECRET;
+  const configured = config.relayWebhookSecret;
+  if (configured && !process.env.RELAY_WEBHOOK_SECRET) {
+    process.env.RELAY_WEBHOOK_SECRET = configured;
+  }
+  const secret = configured || process.env.RELAY_WEBHOOK_SECRET;
   if (!secret || secret.trim().length === 0) {
     return null;
   }
@@ -43,10 +48,10 @@ export function verifyRelaySignature({
     };
   }
 
-  const signatureHeader = headers.get("x-relay-signature");
-  const timestampHeader = headers.get("x-relay-timestamp");
+  const signatureHeaderRaw = headers.get("x-relay-signature");
+  const timestampHeaderRaw = headers.get("x-relay-timestamp");
 
-  if (!signatureHeader || !timestampHeader) {
+  if (!signatureHeaderRaw && !timestampHeaderRaw) {
     return {
       ok: false,
       status: 401,
@@ -54,7 +59,37 @@ export function verifyRelaySignature({
     };
   }
 
-  const timestamp = Number(timestampHeader);
+  let providedSignature: string | undefined;
+  let timestampValue: string | undefined = timestampHeaderRaw ?? undefined;
+
+  if (signatureHeaderRaw) {
+    const parts = signatureHeaderRaw.split(",").map((part) => part.trim());
+    for (const part of parts) {
+      if (part.startsWith("t=")) {
+        timestampValue = part.slice(2);
+      } else if (part.startsWith("v1=")) {
+        providedSignature = part;
+      }
+    }
+  }
+
+  if (!providedSignature) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Relay signature missing v1 hash",
+    };
+  }
+
+  if (!timestampValue) {
+    return {
+      ok: false,
+      status: 401,
+      message: "Relay signature missing timestamp",
+    };
+  }
+
+  const timestamp = Number(timestampValue);
   if (!Number.isFinite(timestamp)) {
     return {
       ok: false,
@@ -72,7 +107,7 @@ export function verifyRelaySignature({
     };
   }
 
-  const baseString = `v1:${timestamp}:${rawBody}`;
+  const baseString = `${timestamp}.${rawBody}`;
   const expectedDigest = crypto
     .createHmac("sha256", secret)
     .update(baseString)
@@ -80,7 +115,7 @@ export function verifyRelaySignature({
   const expectedSignature = `v1=${expectedDigest}`;
 
   const expectedBuffer = Buffer.from(expectedSignature, "utf8");
-  const providedBuffer = Buffer.from(signatureHeader, "utf8");
+  const providedBuffer = Buffer.from(providedSignature, "utf8");
 
   if (expectedBuffer.length !== providedBuffer.length) {
     return {
@@ -111,14 +146,14 @@ export function createRelaySignature(
     throw new Error("Relay webhook secret is not configured");
   }
 
-  const baseString = `v1:${timestamp}:${rawBody}`;
+  const baseString = `${timestamp}.${rawBody}`;
   const digest = crypto
     .createHmac("sha256", secret)
     .update(baseString)
     .digest("hex");
 
   return {
-    signature: `v1=${digest}`,
+    signature: `t=${timestamp},v1=${digest}`,
     timestamp,
   };
 }

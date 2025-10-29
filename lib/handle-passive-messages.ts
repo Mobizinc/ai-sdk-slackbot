@@ -1,8 +1,3 @@
-/**
- * Passive message handler for detecting case numbers in Slack channels.
- * Monitors all messages (without @mentions) and tracks case-related conversations.
- */
-
 import type { GenericMessageEvent } from "./slack-event-types";
 import { client } from "./slack-utils";
 import { getContextManager, type CaseContext } from "./context-manager";
@@ -15,21 +10,11 @@ import { getKBStateMachine, KBState } from "./services/kb-state-machine";
 import { ErrorHandler } from "./utils/error-handler";
 import { getCaseQualityAnalyzer, type QualityAssessment } from "./services/case-quality-analyzer";
 import {
-  generateGatheringQuestions,
-  formatGatheringMessage,
-  formatFollowUpMessage,
-  formatTimeoutMessage,
-  formatAbandonmentMessage,
-  formatNoteRequestMessage,
-} from "./services/interactive-kb-assistant";
-import { generateResolutionSummary } from "./services/case-resolution-summary";
-import { config } from "./config";
-import { buildIntelligentAssistance, shouldProvideAssistance } from "./services/intelligent-assistant";
-import { createAzureSearchService } from "./services/azure-search";
-import type {
-  ServiceNowCaseJournalEntry,
-  ServiceNowCaseResult,
-} from "./tools/servicenow";
+  handlePassiveMessage as handlePassiveMessageRefactored,
+  cleanupTimedOutGathering,
+  extractCaseNumbers,
+  notifyResolution,
+} from "./passive";
 
 /**
  * Case Detection Debouncer
@@ -66,39 +51,9 @@ const caseDebouncer = new CaseDetectionDebouncer();
 
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
-  botUserId: string
+  botUserId: string,
 ): Promise<void> {
-  // Skip bot's own messages to prevent loops
-  if (event.bot_id || event.user === botUserId) {
-    return;
-  }
-
-  // Skip if message is empty
-  if (!event.text || event.text.trim() === "") {
-    return;
-  }
-
-  // Skip @mentions - those are handled by the app_mention handler
-  // This prevents duplicate "watching case" messages when user @mentions bot
-  if (event.text.includes(`<@${botUserId}>`)) {
-    return;
-  }
-
-  const contextManager = getContextManager();
-
-  // Extract case numbers from message
-  const caseNumbers = contextManager.extractCaseNumbers(event.text);
-
-  // Found case numbers - process each one
-  for (const caseNumber of caseNumbers) {
-    await processCaseDetection(event, caseNumber, botUserId);
-  }
-
-  // Always check existing threads for resolution, regardless of case numbers
-  // This ensures resolution keywords trigger KB generation even when case numbers are mentioned
-  if (event.thread_ts) {
-    await addMessageToExistingThreads(event);
-  }
+  return handlePassiveMessageRefactored(event, botUserId);
 }
 
 /**

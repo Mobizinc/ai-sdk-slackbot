@@ -21,31 +21,25 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("selectLanguageModel", () => {
+describe("Model Provider", () => {
   it("uses Anthropic model when API key is available", async () => {
-    // Set ANTHROPIC_API_KEY so module detects Anthropic as available
-    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-    const { selectLanguageModel } = await loadModule();
-    const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
+    const { getActiveProvider, getActiveModelId } = await loadModule();
+    const provider = getActiveProvider();
+    const modelId = getActiveModelId();
 
-    expect(selection.modelId).toBe("claude-sonnet-4-5");
-    expect(selection.provider).toBe("anthropic");
+    expect(provider.provider).toBe("anthropic");
+    expect(modelId).toBe("claude-3-sonnet-20240229");
   });
 
-  it("falls back to OpenAI when OpenAI model is specified and no Anthropic", async () => {
-    // Temporarily remove Anthropic to test OpenAI fallback
+  it("throws an error when no Anthropic API key is configured", async () => {
     const originalAnthropicKey = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.AI_GATEWAY_API_KEY;
-    process.env.OPENAI_FALLBACK_MODEL = "gpt-test-mini";
 
-    const { selectLanguageModel } = await loadModule();
-    const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });
-
-    expect(selection.modelId).toBe("gpt-test-mini");
-    expect(selection.provider).toBe("openai");
+    await expect(loadModule()).rejects.toThrow(
+      "No Anthropic API key configured. Set ANTHROPIC_API_KEY in the environment or config."
+    );
     
-    // Restore original key
     process.env.ANTHROPIC_API_KEY = originalAnthropicKey;
   });
 });

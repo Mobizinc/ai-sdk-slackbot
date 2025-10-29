@@ -3,9 +3,8 @@
  * Acts as a senior engineer co-pilot during troubleshooting
  */
 
-import { generateText } from "../instrumented-ai";
-import { modelProvider } from "../model-provider";
 import { detectIssueType, getTroubleshootingTemplate } from "./troubleshooting-templates";
+import { AnthropicChatService } from "./anthropic-chat";
 
 export interface ClarifyingQuestions {
   questions: string[];
@@ -96,13 +95,27 @@ Return ONLY a JSON object with this structure:
   "reasoning": "Brief explanation of why these questions matter"
 }`;
 
-    const result = await generateText({
-      model: modelProvider.languageModel("intelligent-assistant"),
-      prompt,
+    const chatService = AnthropicChatService.getInstance();
+    const response = await chatService.send({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a senior IT support engineer. Respond with JSON only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
     });
 
-    // Parse JSON response
-    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+    const output = response.outputText ?? extractText(response.message);
+    if (!output) {
+      throw new Error("Anthropic did not return clarifying questions");
+    }
+
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("No JSON found in response");
     }
@@ -136,15 +149,26 @@ Return ONLY a JSON object with this structure:
 
     // Ultimate fallback
     return {
-      questions: [
-        "What specific error message do you see?",
-        "Does this affect all users or specific ones?",
-        "Has anything changed recently?",
-      ],
-      issueType,
-      reasoning: "General troubleshooting questions",
-    };
-  }
+    questions: [
+      "What specific error message do you see?",
+      "Does this affect all users or specific ones?",
+      "Has anything changed recently?",
+    ],
+    issueType,
+    reasoning: "General troubleshooting questions",
+  };
+}
+
+function extractText(message: any): string | undefined {
+  if (!message?.content) return undefined;
+  const blocks = Array.isArray(message.content) ? message.content : [message.content];
+  const text = blocks
+    .filter((block: any) => block?.type === "text")
+    .map((block: any) => block.text ?? "")
+    .join("\n")
+    .trim();
+  return text || undefined;
+}
 }
 
 /**

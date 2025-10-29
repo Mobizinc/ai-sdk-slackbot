@@ -1,7 +1,9 @@
 import { ConnectionPool } from "mssql";
 
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "./slack-messaging";
 import { getAllowedMobizDomains, isMobizEmail } from "./mobiz-filter";
+
+const slackMessaging = getSlackMessagingService();
 
 const DEFAULT_LOOKBACK_DAYS = 7;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";
@@ -310,11 +312,11 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
 
   if (chart) {
     try {
-      await client.files.uploadV2({
-        channel_id: options.channelId,
+      await slackMessaging.uploadFile({
+        channelId: options.channelId,
         filename: "mobiz-case-leaderboard.png",
         title: "Mobiz Service Desk Leaderboard",
-        initial_comment: message,
+        initialComment: message,
         file: chart.buffer,
       });
     } catch (error) {
@@ -323,7 +325,7 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
       const apiError = slackError?.data?.error ?? slackError?.message;
       if (String(apiError ?? "") === "missing_scope") {
         console.warn("files.uploadV2 missing scope; sending link instead");
-        await client.chat.postMessage({
+        await slackMessaging.postMessage({
           channel: options.channelId,
           text: `${message}\nChart: ${chart.shareUrl}`,
         });
@@ -332,7 +334,7 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
       }
     }
   } else {
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: options.channelId,
       text: message,
     });

@@ -7,6 +7,23 @@ const hoisted = vi.hoisted(() => {
   return {
     postMessageMock: vi.fn(),
     openConversationMock: vi.fn(),
+    lookupByEmailMock: vi.fn(),
+  };
+});
+
+vi.mock("../lib/slack/client", () => {
+  return {
+    getSlackClient: () => ({
+      chat: {
+        postMessage: hoisted.postMessageMock,
+      },
+      conversations: {
+        open: hoisted.openConversationMock,
+      },
+      users: {
+        lookupByEmail: hoisted.lookupByEmailMock,
+      },
+    }),
   };
 });
 
@@ -27,6 +44,7 @@ describe("relay endpoint", () => {
   beforeEach(() => {
     hoisted.postMessageMock.mockReset();
     hoisted.openConversationMock.mockReset();
+    hoisted.lookupByEmailMock.mockReset();
   });
 
   it("relays a message to a specified channel", async () => {
