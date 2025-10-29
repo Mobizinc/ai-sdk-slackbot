@@ -1,7 +1,15 @@
 import { generateText, tool, stepCountIs, type CoreMessage } from "./instrumented-ai";
 import { z } from "zod";
 import { exa } from "./utils";
-import { serviceNowClient } from "./tools/servicenow";
+import { serviceNowClient, type ServiceNowCaseResult, type ServiceNowCaseJournalEntry } from "./tools/servicenow";
+import {
+  formatCaseSummaryText,
+  formatIncidentForLLM,
+  formatJournalEntriesForLLM,
+  formatSearchResultsForLLM,
+  formatConfigurationItemsForLLM,
+} from "./services/servicenow-formatters";
+import { generatePatternSummary, extractKeyPoints, truncateToExcerpt } from "./utils/content-helpers";
 import { microsoftLearnMCP } from "./tools/microsoft-learn-mcp";
 import { createAzureSearchService } from "./services/azure-search";
 import { getContextManager } from "./context-manager";
@@ -14,6 +22,8 @@ import { getCurrentIssuesService } from "./services/current-issues-service";
 import { getSystemPrompt } from "./system-prompt";
 import { getCaseTriageService } from "./services/case-triage";
 import { getLoadingIndicator } from "./utils/loading-indicator";
+import { validateResponseFormat } from "./utils/response-validator";
+import { logValidationResult, recordValidationEvent } from "./utils/validation-logger";
 
 type WeatherToolInput = {
   latitude: number;
@@ -96,6 +106,8 @@ type MicrosoftLearnSearchInput = {
 type TriageCaseInput = {
   caseNumber: string;
 };
+
+// Note: Formatter functions have been moved to lib/services/servicenow-formatters.ts
 
 const weatherInputSchema = z.object({
   latitude: z.number(),
@@ -438,7 +450,10 @@ const generateResponseImpl = async (
         description:
           "Read data from ServiceNow (incidents, cases, case search with filters, knowledge base, recent journal entries, and configuration items). " +
           "Use 'searchCases' action to find cases by customer, priority, assignment, dates, or keywords. " +
-          "Use 'getCase' action only when you have a specific case number.",
+          "Use 'getCase' action only when you have a specific case number. " +
+          "All tool responses include formatted summaries (caseSummary, incidentSummary, journalSummary, casesSearchSummary, formattedItems). " +
+          "Use the formatted summaries as reference material. Present relevant information conversationally, building on the thread context. " +
+          "When multiple people have discussed this case, integrate the tool output with conversation history. Don't repeat information already shared.",
         inputSchema: serviceNowInputSchema,
         execute: async ({
           action,
@@ -496,7 +511,12 @@ const generateResponseImpl = async (
                 };
               }
 
-              return { incident };
+              const incidentSummary = formatIncidentForLLM(incident);
+
+              return {
+                incident,
+                incidentSummary,
+              };
             }
 
             if (action === "getCase") {
@@ -527,7 +547,24 @@ const generateResponseImpl = async (
                 };
               }
 
-              return { case: caseRecord };
+              let journalEntries: ServiceNowCaseJournalEntry[] = [];
+              if (caseRecord.sys_id) {
+                try {
+                  journalEntries = await serviceNowClient.getCaseJournal(caseRecord.sys_id, {
+                    limit: 5,
+                  });
+                } catch (journalError) {
+                  console.warn("[ServiceNow] Failed to fetch journal entries for case summary:", journalError);
+                }
+              }
+
+              const caseSummary = formatCaseSummaryText(caseRecord, journalEntries);
+
+              return {
+                case: caseRecord,
+                journalEntries,
+                caseSummary,
+              };
             }
 
             if (action === "getCaseJournal") {
@@ -562,7 +599,12 @@ const generateResponseImpl = async (
                 limit: limit ?? 20,
               });
 
-              return { caseJournal: journal };
+              const journalSummary = formatJournalEntriesForLLM(journal, number);
+
+              return {
+                caseJournal: journal,
+                journalSummary,
+              };
             }
 
             if (action === "searchKnowledge") {
@@ -598,15 +640,21 @@ const generateResponseImpl = async (
                 limit,
               });
 
+              const formattedItems = formatConfigurationItemsForLLM(configurationItems);
+
               if (!configurationItems.length) {
                 return {
                   configurationItems: [],
+                  formattedItems,
                   notFound: true,
                   message: "No matching configuration items were found in ServiceNow.",
                 };
               }
 
-              return { configurationItems };
+              return {
+                configurationItems,
+                formattedItems,
+              };
             }
 
             if (action === "searchCases") {
@@ -642,10 +690,14 @@ const generateResponseImpl = async (
                 limit,
               });
 
+              const appliedFilters = filterParts.length > 0 ? filterParts : ['active=true'];
+              const casesSearchSummary = formatSearchResultsForLLM(cases, appliedFilters, cases.length);
+
               if (cases.length === 0) {
                 return {
                   cases: [],
                   total: 0,
+                  casesSearchSummary,
                   message: `No cases found matching your criteria${filterDescription}.`,
                 };
               }
@@ -653,7 +705,8 @@ const generateResponseImpl = async (
               return {
                 cases,
                 total: cases.length,
-                filters_applied: filterParts.length > 0 ? filterParts : ['active=true'],
+                filters_applied: appliedFilters,
+                casesSearchSummary,
                 message: `Found ${cases.length} case${cases.length === 1 ? '' : 's'}${filterDescription}.`,
               };
             }
@@ -671,7 +724,7 @@ const generateResponseImpl = async (
 
       const searchSimilarCasesTool = createTool({
         description:
-          "Search for similar historical cases for REFERENCE and CONTEXT ONLY. Use this to understand patterns, similar issues, and technical contexts - but NEVER display specific details, journal entries, or activity from these reference cases. Only use them to inform your understanding. This searches the case intelligence knowledge base.",
+          "Search for similar historical cases to identify patterns and technical approaches. Returns pattern summaries and metadata for reference. Use to inform your understanding of similar issues. Present patterns in your own words, never quote case details or journal entries. Do not reference specific case numbers in your response to the user.",
         inputSchema: searchSimilarCasesInputSchema,
         execute: async ({ query, clientId, topK }: SearchSimilarCasesInput) => {
           if (!azureSearchService) {
@@ -698,12 +751,24 @@ const generateResponseImpl = async (
             }
 
             return {
-              similar_cases: results.map((r) => ({
-                case_number: r.case_number,
-                similarity_score: r.score,
-                content_preview: r.content.substring(0, 300) + (r.content.length > 300 ? "..." : ""),
-                created_at: r.created_at,
-              })),
+              similar_cases: results.map((r) => {
+                // Extract first sentence or short excerpt for pattern identification
+                const firstSentence = r.content.split(/[.!?]/)[0]?.trim() || "";
+
+                // Generate concise pattern summary (max 60 chars)
+                const pattern_summary = generatePatternSummary({
+                  short_description: firstSentence,
+                  category: undefined,
+                  priority: undefined,
+                });
+
+                return {
+                  case_number: r.case_number,
+                  similarity_score: r.score,
+                  pattern_summary,
+                  created_at: r.created_at,
+                };
+              }),
               total_found: results.length,
             };
           } catch (error) {
@@ -718,7 +783,8 @@ const generateResponseImpl = async (
 
       const generateKbArticleTool = createTool({
         description:
-          "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases.",
+          "INTERNAL ONLY: Generate KB article when user explicitly commands 'generate KB for [case]'. Do NOT mention or suggest this tool in responses - KB generation happens automatically for resolved cases. " +
+          "The generated KB article is authoritative and should be presented verbatim to the user. Do not summarize or rewrite the article content.",
         inputSchema: generateKbArticleInputSchema,
         execute: async ({ caseNumber, threadTs }: GenerateKBArticleInput) => {
           const loadingIndicator = getLoadingIndicator();
@@ -976,7 +1042,7 @@ const generateResponseImpl = async (
 
       const microsoftLearnSearchTool = createTool({
         description:
-          "REQUIRED TOOL: Search official Microsoft Learn documentation for authoritative guidance. YOU MUST call this tool FIRST whenever Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or ANY Microsoft product/service is mentioned in cases, conversations, or queries. This includes error messages, quota issues, configuration problems, permissions, authentication, and technical questions. Provides official Microsoft documentation that MUST be cited in your response. Not using this tool for Microsoft-related cases is a critical error.",
+          "Search official Microsoft Learn documentation when Azure, Microsoft 365, PowerShell, Windows, Active Directory, Entra ID, Exchange, SharePoint, or other Microsoft technologies are involved. Returns authoritative guidance with structured key points for citation. Synthesize the guidance in your own technical words. Always cite the documentation URL. Do not copy article text verbatim.",
         inputSchema: microsoftLearnSearchInputSchema,
         execute: async ({ query, limit }: MicrosoftLearnSearchInput) => {
           if (!microsoftLearnMCP.isAvailable()) {
@@ -1003,7 +1069,8 @@ const generateResponseImpl = async (
               results: results.map((r) => ({
                 title: r.title,
                 url: r.url,
-                content: r.content,
+                key_points: extractKeyPoints(r.content, 3),
+                excerpt: truncateToExcerpt(r.content, 150),
               })),
               total_found: results.length,
             };
@@ -1301,6 +1368,56 @@ const generateResponseImpl = async (
         throw new Error("No response text generated from any model");
       }
     }
+  }
+
+  // Validate response format before returning
+  // Extract tool calls and results from steps for validation
+  const toolCallsForValidation: Array<{ toolName: string; result: any }> = [];
+
+  if (result.steps) {
+    for (const step of result.steps) {
+      if (step.toolResults && Array.isArray(step.toolResults)) {
+        for (const toolResult of step.toolResults) {
+          if (toolResult.toolName && toolResult.result) {
+            toolCallsForValidation.push({
+              toolName: toolResult.toolName,
+              result: toolResult.result,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Run validation
+  const validationResult = validateResponseFormat(finalText, toolCallsForValidation);
+
+  // Log validation result
+  logValidationResult(validationResult, {
+    response: finalText,
+    toolCalls: toolCallsForValidation,
+    channelId: options?.channelId,
+    threadTs: options?.threadTs,
+  });
+
+  // Record for metrics
+  recordValidationEvent({
+    timestamp: new Date().toISOString(),
+    channelId: options?.channelId,
+    threadTs: options?.threadTs,
+    validationResult,
+    responsePreview: finalText.substring(0, 200),
+    toolCallCount: toolCallsForValidation.length,
+    environment: process.env.VERCEL_ENV || process.env.NODE_ENV,
+  });
+
+  // In development, log validation warnings to console
+  if (process.env.NODE_ENV === "development" && !validationResult.valid) {
+    console.warn("[Validation] Response validation failed:", {
+      warnings: validationResult.warnings,
+      missingElements: validationResult.missingElements,
+      toolsWithUnusedSummaries: validationResult.toolsWithUnusedSummaries,
+    });
   }
 
   // Convert markdown to Slack mrkdwn format

@@ -10,6 +10,7 @@ import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { modelProvider } from "../model-provider";
 import { config } from "../config";
+import { generatePatternSummary } from "../utils/content-helpers";
 import {
   MessageEmojis,
   createHeaderBlock,
@@ -294,8 +295,12 @@ async function synthesizeGuidance(
 
   const similarCasesContext = similarCases
     .map((c, idx) => {
-      return `${idx + 1}. Case ${c.case_number} (similarity: ${(c.score * 100).toFixed(0)}%)
-${c.content.substring(0, 300)}...`;
+      // Extract first sentence for pattern summary
+      const firstSentence = c.content.split(/[.!?]+/)[0]?.trim() || c.content.substring(0, 100);
+      const pattern = generatePatternSummary({
+        short_description: firstSentence,
+      });
+      return `${idx + 1}. Case ${c.case_number} (similarity: ${(c.score * 100).toFixed(0)}%) - ${pattern}`;
     })
     .join("\n\n");
 
