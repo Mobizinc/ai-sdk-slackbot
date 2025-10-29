@@ -412,17 +412,7 @@ async function postImpl(request: Request) {
       { status: 500 }
     );
   }
-}, {
-  name: "servicenow_webhook_handler",
-  runType: "chain",
-  tags: {
-    component: "api",
-    operation: "webhook",
-    service: "servicenow",
-  },
-});
-
-export const POST = postImpl;
+}
 
 export const POST = postImpl;
 

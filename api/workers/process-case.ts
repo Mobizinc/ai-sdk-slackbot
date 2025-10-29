@@ -213,17 +213,7 @@ async function postWorkerImpl(request: Request) {
       { status: 500 } // Trigger QStash retry
     );
   }
-}, {
-  name: "qstash_worker_process_case",
-  runType: "chain",
-  tags: {
-    component: "worker",
-    operation: "case_processing",
-    service: "qstash",
-  },
-});
-
-export const POST = postWorkerImpl;
+}
 
 export const POST = postWorkerImpl;
 

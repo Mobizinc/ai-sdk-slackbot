@@ -10,6 +10,7 @@ import { getBusinessContextService } from "./business-context-service";
 import { config } from "../config";
 import { getFeatureFlags } from "../config/feature-flags";
 import { AnthropicChatService } from "./anthropic-chat";
+import { MessageEmojis } from "../utils/message-styling";
 
 export interface KBArticle {
   title: string;
