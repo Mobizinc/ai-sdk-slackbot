@@ -3,8 +3,25 @@
  * Manages emoji reactions for KB article approval workflow
  */
 
-import { client } from "./slack-utils";
+import { getSlackMessagingService } from "./services/slack-messaging";
 import type { KBArticle } from "./services/kb-generator";
+import {
+  createHeaderBlock,
+  createSectionBlock,
+  createDivider,
+  createContextBlock,
+  createButton,
+  createInputBlock,
+  createCheckboxes,
+  sanitizeMrkdwn,
+  sanitizePlainText,
+  truncateText,
+  validateBlockCount,
+  MessageEmojis,
+  type KnownBlock,
+} from "./utils/message-styling";
+
+const slackMessaging = getSlackMessagingService();
 
 interface PendingKBApproval {
   caseNumber: string;
@@ -28,11 +45,15 @@ export class KBApprovalManager {
     article: KBArticle,
     messageText: string
   ): Promise<void> {
-    // Post the KB article to Slack
+    // Build Block Kit message with article preview and action buttons
+    const blocks = this.buildApprovalBlocks(caseNumber, article);
+
+    // Post the KB article to Slack with interactive buttons
     const result = await client.chat.postMessage({
       channel: channelId,
       thread_ts: threadTs,
-      text: messageText,
+      text: messageText, // Fallback text for notifications
+      blocks,
       unfurl_links: false,
     });
 
@@ -42,6 +63,139 @@ export class KBApprovalManager {
 
     // Store for approval tracking
     this.storePendingApproval(result.ts, channelId, caseNumber, article, threadTs);
+  }
+
+  /**
+   * Build Block Kit blocks for KB approval message
+   */
+  private buildApprovalBlocks(caseNumber: string, article: KBArticle): any[] {
+    const blocks: any[] = [];
+
+    // Header
+    blocks.push({
+      type: "header",
+      text: {
+        type: "plain_text",
+        text: `📚 KB Article Ready for Review`,
+        emoji: true,
+      },
+    });
+
+    // Case number context
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `Case: *${caseNumber}*`,
+        },
+      ],
+    });
+
+    // Title
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*${article.title}*`,
+      },
+    });
+
+    // Problem
+    const problemPreview =
+      article.problem.length > 200
+        ? `${article.problem.substring(0, 200)}...`
+        : article.problem;
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Problem:*\n${problemPreview}`,
+      },
+    });
+
+    // Solution preview
+    const solutionPreview =
+      article.solution.length > 300
+        ? `${article.solution.substring(0, 300)}...`
+        : article.solution;
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Solution:*\n${solutionPreview}`,
+      },
+    });
+
+    // Tags if available
+    if (article.tags.length > 0) {
+      blocks.push({
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `🏷️ ${article.tags.slice(0, 5).join(" • ")}`,
+          },
+        ],
+      });
+    }
+
+    // Divider
+    blocks.push({
+      type: "divider",
+    });
+
+    // Action buttons
+    blocks.push({
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "✅ Approve",
+            emoji: true,
+          },
+          style: "primary",
+          value: `kb_approve:${caseNumber}`,
+          action_id: "kb_approve",
+        },
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "❌ Reject",
+            emoji: true,
+          },
+          style: "danger",
+          value: `kb_reject:${caseNumber}`,
+          action_id: "kb_reject",
+        },
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "📝 Edit & Approve",
+            emoji: true,
+          },
+          value: `kb_edit:${caseNumber}`,
+          action_id: "kb_edit",
+        },
+      ],
+    });
+
+    // Footer with instructions
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: "_Review the article above and choose an action. Approved articles will be created in ServiceNow knowledge base._",
+        },
+      ],
+    });
+
+    return blocks;
   }
 
   /**
@@ -72,7 +226,64 @@ export class KBApprovalManager {
   }
 
   /**
-   * Handle reaction added to a KB proposal
+   * Handle button click for KB approval/rejection
+   * Called from interactivity API endpoint
+   */
+  async handleButtonClick(
+    action: "approve" | "reject" | "edit",
+    channelId: string,
+    messageTs: string,
+    userId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    const key = this.getApprovalKey(channelId, messageTs);
+    const approval = this.pendingApprovals.get(key);
+
+    if (!approval) {
+      return {
+        success: false,
+        message: "KB approval request not found or already processed",
+      };
+    }
+
+    try {
+      if (action === "approve") {
+        await this.handleApproval(approval, userId);
+        this.pendingApprovals.delete(key);
+        return {
+          success: true,
+          message: `KB article for ${approval.caseNumber} approved`,
+        };
+      } else if (action === "reject") {
+        await this.handleRejection(approval, userId);
+        this.pendingApprovals.delete(key);
+        return {
+          success: true,
+          message: `KB article for ${approval.caseNumber} rejected`,
+        };
+      } else if (action === "edit") {
+        // TODO: Open modal for editing
+        return {
+          success: false,
+          message: "Edit functionality coming soon",
+        };
+      }
+
+      return {
+        success: false,
+        message: "Unknown action",
+      };
+    } catch (error) {
+      console.error("[KB Approval] Error handling button click:", error);
+      return {
+        success: false,
+        message: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+
+  /**
+   * Handle reaction added to a KB proposal (DEPRECATED - keeping for backward compatibility)
+   * Use handleButtonClick for new button-based approvals
    */
   async handleReaction(
     channelId: string,
@@ -105,36 +316,29 @@ export class KBApprovalManager {
     userId: string
   ): Promise<void> {
     try {
-      // Update the message to show approved status
-      await client.chat.update({
+      // Sanitize case number
+      const sanitizedCaseNumber = sanitizePlainText(approval.caseNumber, 100);
+
+      // Update the message to show approved status using design system
+      await slackMessaging.updateMessage({
         channel: approval.channelId,
         ts: approval.messageTs,
-        text: `✅ *KB Article Approved* by <@${userId}>`,
+        text: `${MessageEmojis.SUCCESS} KB Article Approved by <@${userId}>`,
         blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `✅ *KB Article Approved* by <@${userId}>\n\n_Case: ${approval.caseNumber}_`,
-            },
-          },
-          {
-            type: "divider",
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: this.formatApprovedArticle(approval.article),
-            },
-          },
+          createSectionBlock(
+            `${MessageEmojis.KB_APPROVED} *KB Article Approved* by <@${userId}>\n\n_Case: ${sanitizedCaseNumber}_`
+          ),
+          createDivider(),
+          createSectionBlock(
+            this.formatApprovedArticle(approval.article)
+          ),
         ],
       });
 
       // Post confirmation in thread
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `✅ Knowledge base article for ${approval.caseNumber} has been approved!\n\n` +
           `_Next step: This article can be added to ServiceNow knowledge base._\n\n` +
           `*Article Summary:*\n${approval.article.title}`,
@@ -146,9 +350,9 @@ export class KBApprovalManager {
     } catch (error) {
       console.error("Error handling KB approval:", error);
 
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `❌ Error processing approval: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     }
@@ -162,26 +366,25 @@ export class KBApprovalManager {
     userId: string
   ): Promise<void> {
     try {
-      // Update the message to show rejected status
-      await client.chat.update({
+      // Sanitize case number
+      const sanitizedCaseNumber = sanitizePlainText(approval.caseNumber, 100);
+
+      // Update the message to show rejected status using design system
+      await slackMessaging.updateMessage({
         channel: approval.channelId,
         ts: approval.messageTs,
-        text: `❌ *KB Article Rejected* by <@${userId}>`,
+        text: `${MessageEmojis.ERROR} KB Article Rejected by <@${userId}>`,
         blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `❌ *KB Article Rejected* by <@${userId}>\n\n_Case: ${approval.caseNumber}_`,
-            },
-          },
+          createSectionBlock(
+            `${MessageEmojis.KB_REJECTED} *KB Article Rejected* by <@${userId}>\n\n_Case: ${sanitizedCaseNumber}_`
+          ),
         ],
       });
 
       // Post confirmation in thread
-      await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: approval.channelId,
-        thread_ts: approval.threadTs,
+        threadTs: approval.threadTs,
         text: `❌ Knowledge base article for ${approval.caseNumber} was rejected.\n\n` +
           `_The article draft will not be created._`,
       });
@@ -191,15 +394,24 @@ export class KBApprovalManager {
   }
 
   /**
-   * Format approved article for display
+   * Format approved article for display with sanitization
    */
   private formatApprovedArticle(article: KBArticle): string {
-    let formatted = `*${article.title}*\n\n`;
-    formatted += `📋 *Problem:* ${article.problem.substring(0, 150)}${article.problem.length > 150 ? "..." : ""}\n\n`;
-    formatted += `✅ *Solution:* ${article.solution.substring(0, 200)}${article.solution.length > 200 ? "..." : ""}\n\n`;
+    // Sanitize all user-generated content
+    const sanitizedTitle = sanitizeMrkdwn(article.title);
+    const problemPreview = truncateText(sanitizeMrkdwn(article.problem), 150);
+    const solutionPreview = truncateText(sanitizeMrkdwn(article.solution), 200);
+
+    let formatted = `*${sanitizedTitle}*\n\n`;
+    formatted += `${MessageEmojis.REQUEST} *Problem:* ${problemPreview}\n\n`;
+    formatted += `${MessageEmojis.SUCCESS} *Solution:* ${solutionPreview}\n\n`;
 
     if (article.tags.length > 0) {
-      formatted += `🏷️ *Tags:* ${article.tags.slice(0, 5).join(", ")}`;
+      const sanitizedTags = article.tags
+        .slice(0, 5)
+        .map(tag => sanitizeMrkdwn(tag))
+        .join(", ");
+      formatted += `${MessageEmojis.TAG} *Tags:* ${sanitizedTags}`;
     }
 
     return formatted;

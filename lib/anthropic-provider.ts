@@ -1,6 +1,12 @@
 /**
  * Anthropic API Provider
  * Direct Anthropic SDK client with prompt caching support
+ *
+ * LangSmith Tracing Integration:
+ * - wrapSDK automatically integrates with AsyncLocalStorage context from traceable wrappers
+ * - When called within a traced function (e.g., withLangSmithTrace), Anthropic calls
+ *   will appear as child spans in the trace hierarchy
+ * - The wrapper respects existing trace context and does NOT create orphaned root traces
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -15,7 +21,7 @@ let anthropicClientWrapped = false;
  */
 export function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
 
     if (!apiKey) {
       throw new Error(
@@ -82,7 +88,7 @@ export type AnthropicModel = typeof ANTHROPIC_MODELS[keyof typeof ANTHROPIC_MODE
  * Get configured Anthropic model
  */
 export function getConfiguredModel(): AnthropicModel {
-  const configured = process.env.ANTHROPIC_MODEL?.trim();
+  const configured = config.anthropicModel?.trim?.() || process.env.ANTHROPIC_MODEL?.trim();
 
   // Validate against supported models
   const supportedModels = Object.values(ANTHROPIC_MODELS);

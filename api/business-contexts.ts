@@ -5,6 +5,7 @@
 
 import { getBusinessContextRepository } from "../lib/db/repositories/business-context-repository";
 import type { NewBusinessContext } from "../lib/db/schema";
+import { config as appConfig } from "../lib/config";
 
 // Helper to parse query params
 function getQueryParam(url: string, param: string): string | null {
@@ -27,8 +28,8 @@ function jsonResponse(data: any, status: number = 200) {
 
 // Security check
 function checkAuth(request: Request) {
-  const isDevelopment = !process.env.VERCEL_ENV || process.env.VERCEL_ENV === 'development';
-  const adminToken = process.env.BUSINESS_CONTEXT_ADMIN_TOKEN;
+  const isDevelopment = !appConfig.vercelEnv || appConfig.vercelEnv === 'development';
+  const adminToken = appConfig.adminApiToken;
   const authHeader = request.headers.get('authorization');
 
   if (!isDevelopment) {
@@ -36,7 +37,7 @@ function checkAuth(request: Request) {
     if (!adminToken) {
       return jsonResponse({
         success: false,
-        error: "Business Context Admin API is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.",
+        error: "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
       }, 503);
     }
 

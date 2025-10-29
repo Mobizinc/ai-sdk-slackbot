@@ -30,7 +30,7 @@ export interface ComplexityScore {
  * - Multiple tool calls expected
  * - Long conversation context
  */
-export function classifyQueryComplexity(messages: CoreMessage[]): ComplexityScore {
+export function classifyQueryComplexity(messages: ChatMessage[]): ComplexityScore {
   if (messages.length === 0) {
     return {
       level: "simple",
@@ -129,7 +129,7 @@ export function classifyQueryComplexity(messages: CoreMessage[]): ComplexityScor
 /**
  * Override complexity for specific scenarios where we always want premium model
  */
-export function forceComplexModel(messages: CoreMessage[]): boolean {
+export function forceComplexModel(messages: ChatMessage[]): boolean {
   const lastMessage = messages[messages.length - 1];
   const userMessage = typeof lastMessage.content === "string"
     ? lastMessage.content.toLowerCase()

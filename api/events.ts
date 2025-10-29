@@ -5,12 +5,15 @@ import type {
 } from "../lib/slack-event-types";
 import { enqueueBackgroundTask } from "../lib/background-tasks";
 import { handleNewAppMention } from "../lib/handle-app-mention";
-import { verifyRequest, getBotId } from "../lib/slack-utils";
+import { verifyRequest } from "../lib/slack-utils";
+import { getSlackMessagingService } from "../lib/services/slack-messaging";
 import { assistantManager } from "../lib/assistant-manager";
 import { handlePassiveMessage } from "../lib/handle-passive-messages";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
+
+const slackMessaging = getSlackMessagingService();
 
 // Initialize database on cold start (module load)
 initializeDatabase().catch((err) => {
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
   await verifyRequest({ requestType, request, rawBody });
 
   try {
-    const botUserId = await getBotId();
+    const botUserId = await slackMessaging.getBotUserId();
 
     const event = payload.event as SlackEvent;
 

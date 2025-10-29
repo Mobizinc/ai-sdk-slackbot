@@ -146,6 +146,27 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
     };
   }
 }
+function buildAssessment(parsed: QualityAssessmentPayload): QualityAssessment {
+  let decision: QualityDecision;
+  if (parsed.score >= 80) {
+    decision = "high_quality";
+  } else if (parsed.score >= 50) {
+    decision = "needs_input";
+  } else {
+    decision = "insufficient";
+  }
+
+  return {
+    decision,
+    score: parsed.score,
+    problemClarity: parsed.problemClarity,
+    solutionClarity: parsed.solutionClarity,
+    stepsDocumented: parsed.stepsDocumented,
+    rootCauseIdentified: parsed.rootCauseIdentified,
+    missingInfo: parsed.missingInfo ?? [],
+    reasoning: parsed.reasoning,
+  };
+}
 
 function buildAssessment(parsed: QualityAssessmentPayload): QualityAssessment {
   let decision: QualityDecision;

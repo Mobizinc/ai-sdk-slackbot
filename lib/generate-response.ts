@@ -62,3 +62,5 @@ export const generateResponse = async (
   // Use legacy implementation
   return generateResponseLegacy(messages, updateStatus, options);
 };
+
+export const generateResponse = generateResponseImpl;

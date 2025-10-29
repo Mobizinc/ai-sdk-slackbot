@@ -4,6 +4,7 @@
  */
 
 import { createAzureSearchService, type SimilarCase as AzureSimilarCase } from "./azure-search";
+import { config } from "../config";
 
 export interface SimilarCase {
   caseNumber: string;
@@ -92,7 +93,7 @@ export class CaseIntelligenceService {
           totalKBArticlesFound: kbArticles.length,
           searchTimeMs,
           embeddingGenerated: true, // Assume embedding is generated for semantic search
-          searchIndex: process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod'
+          searchIndex: config.azureSearchIndexName || process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod'
         }
       };
     } catch (error) {
@@ -106,7 +107,7 @@ export class CaseIntelligenceService {
           totalKBArticlesFound: 0,
           searchTimeMs: Date.now() - startTime,
           embeddingGenerated: false,
-          searchIndex: process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod'
+          searchIndex: config.azureSearchIndexName || process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod'
         }
       };
     }
@@ -320,7 +321,10 @@ export class CaseIntelligenceService {
    * Check if Azure Search is properly configured
    */
   public isConfigured(): boolean {
-    return !!(process.env.AZURE_SEARCH_ENDPOINT && process.env.AZURE_SEARCH_KEY);
+    return !!(
+      (config.azureSearchEndpoint || process.env.AZURE_SEARCH_ENDPOINT) &&
+      (config.azureSearchKey || process.env.AZURE_SEARCH_KEY)
+    );
   }
 
   /**
@@ -341,7 +345,7 @@ export class CaseIntelligenceService {
         // Try a simple search to test connectivity
         await this.azureSearchService?.searchSimilarCases('test', { topK: 1 });
         connected = true;
-        indexName = process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod';
+        indexName = config.azureSearchIndexName || process.env.AZURE_SEARCH_INDEX_NAME || 'case-intelligence-prod';
       } catch (error) {
         console.error('[CaseIntelligenceService] Health check failed:', error);
         connected = false;

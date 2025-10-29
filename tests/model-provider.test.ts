@@ -36,7 +36,6 @@ describe("selectLanguageModel", () => {
     const originalAnthropicKey = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.AI_GATEWAY_API_KEY;
-    process.env.OPENAI_FALLBACK_MODEL = "gpt-test-mini";
 
     const { selectLanguageModel } = await loadModule();
     const selection = selectLanguageModel({ openAiModel: "gpt-test-mini" });

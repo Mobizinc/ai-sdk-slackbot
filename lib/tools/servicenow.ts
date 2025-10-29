@@ -1,4 +1,36 @@
 import { Buffer } from "node:buffer";
+import { config as appConfig } from "../config";
+import { featureFlags, hashUserId } from "../infrastructure/feature-flags";
+import type {
+  CaseRepository,
+  IncidentRepository,
+  KnowledgeRepository,
+  ServiceCatalogRepository,
+  ServiceManagementRepository,
+  CMDBRepository,
+  CustomerAccountRepository,
+  ChoiceRepository,
+  ProblemRepository,
+} from "../infrastructure/servicenow/repositories";
+import type {
+  Case,
+  Incident,
+  KnowledgeArticle,
+  CatalogItem,
+  ConfigurationItem,
+  Choice,
+} from "../infrastructure/servicenow/types";
+import {
+  getCaseRepository,
+  getIncidentRepository,
+  getKnowledgeRepository,
+  getServiceCatalogRepository,
+  getCmdbRepository,
+  getCustomerAccountRepository,
+  getChoiceRepository,
+  getProblemRepository,
+  type ServiceNowContext,
+} from "../infrastructure/servicenow/repositories";
 
 type ServiceNowAuthMode = "basic" | "token";
 
@@ -13,26 +45,36 @@ interface ServiceNowConfig {
   taskTable?: string;
 }
 
-const config: ServiceNowConfig = {
-  instanceUrl: process.env.SERVICENOW_INSTANCE_URL || process.env.SERVICENOW_URL,
-  username: process.env.SERVICENOW_USERNAME,
-  password: process.env.SERVICENOW_PASSWORD,
-  apiToken: process.env.SERVICENOW_API_TOKEN,
-  caseTable:
-    process.env.SERVICENOW_CASE_TABLE?.trim() || "sn_customerservice_case",
-  caseJournalName:
-    process.env.SERVICENOW_CASE_JOURNAL_NAME?.trim() ||
-    "x_mobit_serv_case_service_case",
-  ciTable: process.env.SERVICENOW_CI_TABLE?.trim() || "cmdb_ci",
-  taskTable: process.env.SERVICENOW_TASK_TABLE?.trim() || "sn_customerservice_task",
+function normalize(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+/**
+ * Type guard to check if a value is a plain object (not null, not an array)
+ */
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const serviceNowConfig: ServiceNowConfig = {
+  instanceUrl: normalize(appConfig.servicenowInstanceUrl || appConfig.servicenowUrl),
+  username: normalize(appConfig.servicenowUsername),
+  password: normalize(appConfig.servicenowPassword),
+  apiToken: normalize(appConfig.servicenowApiToken),
+  caseTable: (appConfig.servicenowCaseTable || "sn_customerservice_case").trim(),
+  caseJournalName: (appConfig.servicenowCaseJournalName || "x_mobit_serv_case_service_case").trim(),
+  ciTable: (appConfig.servicenowCiTable || "cmdb_ci").trim(),
+  taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
 };
 
 function detectAuthMode(): ServiceNowAuthMode | null {
-  if (config.username && config.password) {
+  if (serviceNowConfig.username && serviceNowConfig.password) {
     return "basic";
   }
 
-  if (config.apiToken) {
+  if (serviceNowConfig.apiToken) {
     return "token";
   }
 
@@ -43,7 +85,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
   const mode = detectAuthMode();
 
   if (mode === "basic") {
-    const encoded = Buffer.from(`${config.username}:${config.password}`).toString(
+    const encoded = Buffer.from(`${serviceNowConfig.username}:${serviceNowConfig.password}`).toString(
       "base64",
     );
     return {
@@ -53,7 +95,7 @@ async function buildAuthHeaders(): Promise<Record<string, string>> {
 
   if (mode === "token") {
     return {
-      Authorization: `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${serviceNowConfig.apiToken}`,
     };
   }
 
@@ -66,7 +108,7 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  if (!config.instanceUrl) {
+  if (!serviceNowConfig.instanceUrl) {
     throw new Error(
       "ServiceNow instance URL is not configured. Set SERVICENOW_INSTANCE_URL.",
     );
@@ -78,17 +120,30 @@ async function request<T>(
     ...(await buildAuthHeaders()),
   } as Record<string, string>;
 
-  const response = await fetch(`${config.instanceUrl}${path}`, {
+  const url = `${serviceNowConfig.instanceUrl}${path}`;
+  const method = (init.method || "GET").toUpperCase();
+
+  // Log the HTTP request
+  console.log(`[ServiceNow HTTP] ${method} ${url}`);
+  const startTime = Date.now();
+
+  const response = await fetch(url, {
     ...init,
     headers,
   });
 
+  const duration = Date.now() - startTime;
+
   if (!response.ok) {
+    console.error(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
     const body = await response.text();
     throw new Error(
       `ServiceNow request failed with status ${response.status}: ${body.slice(0, 500)}`,
     );
   }
+
+  // Log successful response
+  console.log(`[ServiceNow HTTP] Response: ${response.status} ${response.statusText} (${duration}ms)`);
 
   return (await response.json()) as T;
 }
@@ -289,22 +344,335 @@ export interface ServiceNowCustomerAccount {
 }
 
 export class ServiceNowClient {
-  public isConfigured(): boolean {
-    return Boolean(config.instanceUrl && detectAuthMode());
+  /**
+   * New repository pattern implementation (lazy-loaded)
+   * Used for gradual migration via feature flags
+   */
+  private caseRepository: CaseRepository | null = null;
+  private incidentRepository: IncidentRepository | null = null;
+  private knowledgeRepository: KnowledgeRepository | null = null;
+  private catalogRepository: (ServiceCatalogRepository & ServiceManagementRepository) | null = null;
+  private cmdbRepository: CMDBRepository | null = null;
+  private customerAccountRepository: CustomerAccountRepository | null = null;
+  private choiceRepository: ChoiceRepository | null = null;
+  private problemRepository: ProblemRepository | null = null;
+
+  /**
+   * Get or initialize the case repository
+   */
+  private getCaseRepo(): CaseRepository {
+    if (!this.caseRepository) {
+      this.caseRepository = getCaseRepository();
+    }
+    return this.caseRepository;
   }
 
-  public async getIncident(number: string): Promise<ServiceNowIncidentResult | null> {
+  /**
+   * Get or initialize the incident repository
+   */
+  private getIncidentRepo(): IncidentRepository {
+    if (!this.incidentRepository) {
+      this.incidentRepository = getIncidentRepository();
+    }
+    return this.incidentRepository;
+  }
+
+  /**
+   * Get or initialize the knowledge repository
+   */
+  private getKnowledgeRepo(): KnowledgeRepository {
+    if (!this.knowledgeRepository) {
+      this.knowledgeRepository = getKnowledgeRepository();
+    }
+    return this.knowledgeRepository;
+  }
+
+  /**
+   * Get or initialize the service catalog repository
+   */
+  private getCatalogRepo(): ServiceCatalogRepository & ServiceManagementRepository {
+    if (!this.catalogRepository) {
+      this.catalogRepository = getServiceCatalogRepository();
+    }
+    return this.catalogRepository;
+  }
+
+  private getCmdbRepo(): CMDBRepository {
+    if (!this.cmdbRepository) {
+      this.cmdbRepository = getCmdbRepository();
+    }
+    return this.cmdbRepository;
+  }
+
+  private getCustomerAccountRepo(): CustomerAccountRepository {
+    if (!this.customerAccountRepository) {
+      this.customerAccountRepository = getCustomerAccountRepository();
+    }
+    return this.customerAccountRepository;
+  }
+
+  private getChoiceRepo(): ChoiceRepository {
+    if (!this.choiceRepository) {
+      this.choiceRepository = getChoiceRepository();
+    }
+    return this.choiceRepository;
+  }
+
+  private getProblemRepo(): ProblemRepository {
+    if (!this.problemRepository) {
+      this.problemRepository = getProblemRepository();
+    }
+    return this.problemRepository;
+  }
+
+  /**
+   * Convert new Case domain model to legacy ServiceNowCaseResult format
+   */
+  private toDomainModelToLegacyFormat(case_: Case): ServiceNowCaseResult {
+    // Safely convert dates to ISO strings with error handling
+    let openedAtIso: string | undefined;
+    try {
+      openedAtIso = case_.openedAt?.toISOString();
+    } catch (error) {
+      console.warn(`[ServiceNow] Invalid opened_at date for case ${case_.number}`, {
+        openedAt: case_.openedAt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      openedAtIso = undefined;
+    }
+
+    return {
+      sys_id: case_.sysId,
+      number: case_.number,
+      short_description: case_.shortDescription,
+      description: case_.description,
+      priority: case_.priority,
+      state: case_.state,
+      category: case_.category,
+      subcategory: case_.subcategory,
+      opened_at: openedAtIso,
+      assignment_group: case_.assignmentGroup,
+      assigned_to: case_.assignedTo,
+      opened_by: case_.openedBy,
+      caller_id: case_.callerId,
+      submitted_by: case_.submittedBy,
+      contact: case_.contact,
+    account: case_.account,
+    company: case_.company,
+    url: case_.url,
+  };
+}
+
+  /**
+   * Convert new Incident domain model to legacy ServiceNowIncidentResult format
+   */
+  private incidentToLegacyFormat(incident: Incident): ServiceNowIncidentResult {
+    return {
+      sys_id: incident.sysId,
+      number: incident.number,
+      short_description: incident.shortDescription,
+      state: incident.state,
+      url: incident.url,
+    };
+  }
+
+  /**
+   * Convert new Incident domain model to legacy ServiceNowIncidentSummary format
+   */
+  private incidentToLegacySummaryFormat(incident: Incident): ServiceNowIncidentSummary {
+    return {
+      sys_id: incident.sysId,
+      number: incident.number,
+      short_description: incident.shortDescription,
+      state: incident.state,
+      resolved_at: incident.resolvedAt?.toISOString(),
+      close_code: incident.closeCode,
+      parent: incident.parent,
+      url: incident.url,
+    };
+  }
+
+  public isConfigured(): boolean {
+    return Boolean(serviceNowConfig.instanceUrl && detectAuthMode());
+  }
+
+  public async getIncident(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowIncidentResult | null> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] getIncident using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const incidentRepo = this.getIncidentRepo();
+        const incident = await incidentRepo.findByNumber(number);
+
+        if (!incident) {
+          console.log(`[ServiceNow] NEW path: Incident not found`, { number });
+          return null;
+        }
+
+        const result = this.incidentToLegacyFormat(incident);
+        console.log(`[ServiceNow] NEW path: Successfully retrieved incident`, {
+          number,
+          sysId: result.sys_id,
+        });
+        return result;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { number });
+
     const data = await request<{
       result: Array<ServiceNowIncidentResult & { sys_id: string }>;
     }>(`/api/now/table/incident?number=${encodeURIComponent(number)}`);
 
-    if (!data.result?.length) return null;
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Incident not found`, { number });
+      return null;
+    }
 
     const incident = data.result[0];
-    return {
+    const result = {
       ...incident,
-      url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`,
     };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved incident`, {
+      number,
+      sysId: result.sys_id,
+    });
+
+    return result;
+  }
+
+  public async getResolvedIncidents(
+    options: {
+      limit?: number;
+      olderThanMinutes?: number;
+      requireParentCase?: boolean;
+      requireEmptyCloseCode?: boolean;
+    } = {},
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowIncidentSummary[]> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] getResolvedIncidents using ${useNewPath ? "NEW" : "OLD"} path`, {
+      limit: options.limit,
+      olderThanMinutes: options.olderThanMinutes,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const incidentRepo = this.getIncidentRepo();
+        const incidents = await incidentRepo.findResolved(options);
+
+        const summaries = incidents.map((incident) => this.incidentToLegacySummaryFormat(incident));
+
+        console.log(`[ServiceNow] NEW path: Successfully retrieved resolved incidents`, {
+          count: summaries.length,
+        });
+
+        return summaries;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`);
+
+    const limit = options.limit ?? 50;
+    const queryParts: string[] = ["state=6", "active=true"];
+
+    if (options.requireParentCase !== false) {
+      queryParts.push("parentISNOTEMPTY");
+    }
+
+    if (options.requireEmptyCloseCode !== false) {
+      queryParts.push("close_codeISEMPTY");
+    }
+
+    if (options.olderThanMinutes && options.olderThanMinutes > 0) {
+      queryParts.push(`resolved_atRELATIVELE@minute@ago@${Math.floor(options.olderThanMinutes)}`);
+    }
+
+    const query = queryParts.join("^");
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}&sysparm_fields=${fields.join(
+        ",",
+      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+    );
+
+    const incidents = data.result ?? [];
+
+    const result = incidents.map((record) => {
+      const sysId = extractDisplayValue(record.sys_id);
+      return {
+        sys_id: sysId,
+        number: extractDisplayValue(record.number),
+        short_description: extractDisplayValue(record.short_description) || undefined,
+        state: extractDisplayValue(record.state) || undefined,
+        resolved_at: extractDisplayValue(record.resolved_at) || undefined,
+        close_code: extractDisplayValue(record.close_code) || undefined,
+        parent: extractDisplayValue(record.parent) || undefined,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+      } satisfies ServiceNowIncidentSummary;
+    });
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved resolved incidents`, {
+      count: result.length,
+    });
+
+    return result;
   }
 
   public async getResolvedIncidents(options: {
@@ -366,7 +734,57 @@ export class ServiceNowClient {
 
   public async searchKnowledge(
     input: ServiceNowKnowledgeSearchInput,
+    context?: ServiceNowContext,
   ): Promise<ServiceNowKnowledgeArticle[]> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] searchKnowledge using ${useNewPath ? "NEW" : "OLD"} path`, {
+      query: input.query,
+      limit: input.limit,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const knowledgeRepo = this.getKnowledgeRepo();
+        const articles = await knowledgeRepo.search(input.query, input.limit ?? 3);
+
+        // Convert to legacy format
+        const legacyArticles: ServiceNowKnowledgeArticle[] = articles.map((article) => ({
+          number: article.number,
+          short_description: article.shortDescription,
+          sys_id: article.sysId,
+          url: article.url,
+        }));
+
+        console.log(`[ServiceNow] NEW path: Successfully searched knowledge articles`, {
+          query: input.query,
+          found: legacyArticles.length,
+        });
+
+        return legacyArticles;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          query: input.query,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { query: input.query });
+
     const limit = input.limit ?? 3;
     const data = await request<{
       result: Array<{
@@ -380,14 +798,69 @@ export class ServiceNowClient {
       )}&sysparm_limit=${limit}`,
     );
 
-    return data.result.map((article) => ({
+    const result = data.result.map((article) => ({
       ...article,
-      url: `${config.instanceUrl}/nav_to.do?uri=kb_knowledge.do?sys_id=${article.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=kb_knowledge.do?sys_id=${article.sys_id}`,
     }));
+
+    console.log(`[ServiceNow] OLD path: Successfully searched knowledge articles`, {
+      query: input.query,
+      found: result.length,
+    });
+
+    return result;
   }
 
-  public async getCase(number: string): Promise<ServiceNowCaseResult | null> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+  public async getCase(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowCaseResult | null> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used (critical for monitoring rollout)
+    console.log(`[ServiceNow] getCase using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const caseRepo = this.getCaseRepo();
+        const case_ = await caseRepo.findByNumber(number);
+
+        if (!case_) {
+          console.log(`[ServiceNow] NEW path: Case not found`, { number });
+          return null;
+        }
+
+        const result = this.toDomainModelToLegacyFormat(case_);
+        console.log(`[ServiceNow] NEW path: Successfully retrieved case`, {
+          number,
+          sysId: result.sys_id,
+        });
+        return result;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { number });
+
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const data = await request<{
       result: Array<any>;
     }>(
@@ -396,7 +869,10 @@ export class ServiceNowClient {
       )}&sysparm_limit=1&sysparm_display_value=all`,
     );
 
-    if (!data.result?.length) return null;
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Case not found`, { number });
+      return null;
+    }
 
     const raw = data.result[0];
 
@@ -405,7 +881,7 @@ export class ServiceNowClient {
     const openedBy = extractDisplayValue(raw.opened_by);
     const callerId = extractDisplayValue(raw.caller_id);
 
-    return {
+    const result = {
       sys_id: sysId,
       number: raw.number,
       short_description: extractDisplayValue(raw.short_description),
@@ -420,8 +896,114 @@ export class ServiceNowClient {
       opened_by: openedBy,
       caller_id: callerId,
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+      contact: extractReferenceSysId(raw.contact),
+      account: extractReferenceSysId(raw.account),
+      company: extractReferenceSysId(raw.company),
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
     };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved case`, {
+      number,
+      sysId: result.sys_id,
+    });
+
+    return result;
+  }
+
+  public async getCaseBySysId(
+    sysId: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowCaseResult | null> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used (critical for monitoring rollout)
+    console.log(`[ServiceNow] getCaseBySysId using ${useNewPath ? "NEW" : "OLD"} path`, {
+      sysId,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const caseRepo = this.getCaseRepo();
+        const case_ = await caseRepo.findBySysId(sysId);
+
+        if (!case_) {
+          console.log(`[ServiceNow] NEW path: Case not found`, { sysId });
+          return null;
+        }
+
+        const result = this.toDomainModelToLegacyFormat(case_);
+        console.log(`[ServiceNow] NEW path: Successfully retrieved case`, {
+          sysId,
+          number: result.number,
+        });
+        return result;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          sysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { sysId });
+
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
+    const data = await request<{
+      result: Array<any>;
+    }>(
+      `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
+        `sys_id=${sysId}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Case not found`, { sysId });
+      return null;
+    }
+
+    const raw = data.result[0];
+
+    const result = {
+      sys_id: extractDisplayValue(raw.sys_id),
+      number: extractDisplayValue(raw.number),
+      short_description: extractDisplayValue(raw.short_description),
+      description: extractDisplayValue(raw.description),
+      priority: extractDisplayValue(raw.priority),
+      state: extractDisplayValue(raw.state),
+      category: extractDisplayValue(raw.category),
+      subcategory: extractDisplayValue(raw.subcategory),
+      opened_at: extractDisplayValue(raw.opened_at),
+      assignment_group: extractDisplayValue(raw.assignment_group),
+      assigned_to: extractDisplayValue(raw.assigned_to),
+      opened_by: extractDisplayValue(raw.opened_by),
+      caller_id: extractDisplayValue(raw.caller_id),
+      submitted_by: extractDisplayValue(raw.submitted_by),
+      contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
+      account: extractReferenceSysId(raw.account), // Extract account sys_id
+      company: extractReferenceSysId(raw.company),
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
+        raw.sys_id,
+      )}`,
+    };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved case`, {
+      sysId,
+      number: result.number,
+    });
+
+    return result;
   }
 
   public async getCaseBySysId(sysId: string): Promise<ServiceNowCaseResult | null> {
@@ -464,8 +1046,66 @@ export class ServiceNowClient {
   public async getCaseJournal(
     caseSysId: string,
     { limit = 20 }: { limit?: number } = {},
+    context?: ServiceNowContext,
   ): Promise<ServiceNowCaseJournalEntry[]> {
-    const journalName = config.caseJournalName;
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] getCaseJournal using ${useNewPath ? "NEW" : "OLD"} path`, {
+      caseSysId,
+      limit,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const caseRepo = this.getCaseRepo();
+        const journalName = serviceNowConfig.caseJournalName;
+
+        const entries = await caseRepo.getJournalEntries(caseSysId, {
+          limit,
+          journalName,
+        });
+
+        // Convert repository format to legacy ServiceNowCaseJournalEntry format
+        const legacyEntries: ServiceNowCaseJournalEntry[] = entries.map((entry) => ({
+          sys_id: entry.sysId,
+          element: entry.element,
+          element_id: entry.elementId,
+          name: entry.name,
+          sys_created_on: entry.createdOn,
+          sys_created_by: entry.createdBy,
+          value: entry.value,
+        }));
+
+        console.log(`[ServiceNow] NEW path: Successfully retrieved journal entries`, {
+          caseSysId,
+          count: legacyEntries.length,
+        });
+
+        return legacyEntries;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          caseSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { caseSysId });
+
+    const journalName = serviceNowConfig.caseJournalName;
     const queryParts = [`element_id=${caseSysId}`];
     if (journalName) {
       queryParts.push(`name=${journalName}`);
@@ -482,14 +1122,72 @@ export class ServiceNowClient {
       )}`,
     );
 
+    console.log(`[ServiceNow] OLD path: Successfully retrieved journal entries`, {
+      caseSysId,
+      count: data.result?.length ?? 0,
+    });
+
     return data.result ?? [];
   }
 
   public async searchConfigurationItems(
     input: { name?: string; ipAddress?: string; sysId?: string; limit?: number },
+    context?: ServiceNowContext,
   ): Promise<ServiceNowConfigurationItem[]> {
-    const table = config.ciTable ?? "cmdb_ci";
     const limit = input.limit ?? 5;
+
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] searchConfigurationItems using ${useNewPath ? "NEW" : "OLD"} path`, {
+      name: input.name,
+      ipAddress: input.ipAddress,
+      sysId: input.sysId,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const cmdbRepo = this.getCmdbRepo();
+        const criteria = {
+          name: input.name,
+          ipAddress: input.ipAddress,
+          sysId: input.sysId,
+          limit,
+        };
+
+        const items = await cmdbRepo.search(criteria);
+
+        return items.map((item: ConfigurationItem) => ({
+          sys_id: item.sysId,
+          name: item.name,
+          sys_class_name: item.className,
+          fqdn: item.fqdn,
+          host_name: item.hostName,
+          ip_addresses: item.ipAddresses,
+          owner_group: item.ownerGroup,
+          support_group: item.supportGroup,
+          location: item.location,
+          environment: item.environment,
+          status: item.status,
+          description: item.description,
+          url: item.url,
+        }));
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          name: input.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // fall through to legacy implementation
+      }
+    }
+
+    const table = serviceNowConfig.ciTable ?? "cmdb_ci";
 
     const queryGroups: string[] = [];
 
@@ -561,7 +1259,7 @@ export class ServiceNowClient {
           extractDisplayValue(item.short_description) ||
           extractDisplayValue(item.description) ||
           undefined,
-        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowConfigurationItem;
     });
   }
@@ -582,6 +1280,7 @@ export class ServiceNowClient {
       sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
       sortOrder?: 'asc' | 'desc';
     },
+    context?: ServiceNowContext,
   ): Promise<ServiceNowCaseSummary[]> {
     const table = config.caseTable ?? "sn_customerservice_case";
     const limit = input.limit ?? 25; // Increased default from 5 to 25
@@ -662,7 +1361,7 @@ export class ServiceNowClient {
         company: extractDisplayValue(record.company) || undefined,
         opened_at: extractDisplayValue(record.opened_at) || undefined,
         updated_on: extractDisplayValue(record.sys_updated_on) || undefined,
-        url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowCaseSummary;
     });
   }
@@ -673,19 +1372,62 @@ export class ServiceNowClient {
   public async addCaseWorkNote(
     sysId: string,
     workNote: string,
-    workNotes: boolean = true
+    workNotes: boolean = true,
+    context?: ServiceNowContext,
   ): Promise<void> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used (critical for monitoring rollout)
+    console.log(`[ServiceNow] addCaseWorkNote using ${useNewPath ? "NEW" : "OLD"} path`, {
+      sysId,
+      isInternal: workNotes,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const caseRepo = this.getCaseRepo();
+        await caseRepo.addWorkNote(sysId, workNote, workNotes);
+
+        console.log(`[ServiceNow] NEW path: Successfully added work note`, {
+          sysId,
+          isInternal: workNotes,
+        });
+        return;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          sysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { sysId });
+
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const endpoint = `/api/now/table/${table}/${sysId}`;
 
-    const payload = workNotes ? 
-      { work_notes: workNote } : 
+    const payload = workNotes ?
+      { work_notes: workNote } :
       { comments: workNote };
 
     await request(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
+
+    console.log(`[ServiceNow] OLD path: Successfully added work note`, { sysId });
   }
 
   /**
@@ -693,15 +1435,78 @@ export class ServiceNowClient {
    */
   public async updateCase(
     sysId: string,
-    updates: Record<string, any>
+    updates: Record<string, any>,
+    context?: ServiceNowContext,
   ): Promise<void> {
-    const table = config.caseTable ?? "sn_customerservice_case";
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Check if updates contain only repository-supported fields
+    const supportedFields = ['shortDescription', 'description', 'priority', 'state', 'category', 'subcategory', 'assignmentGroup', 'assignedTo',
+                              'short_description', 'assignment_group', 'assigned_to']; // Include both camelCase and snake_case
+    const updateKeys = Object.keys(updates);
+    const hasUnsupportedFields = updateKeys.some(key => !supportedFields.includes(key));
+
+    // Log which path is being used
+    console.log(`[ServiceNow] updateCase using ${useNewPath && !hasUnsupportedFields ? "NEW" : "OLD"} path`, {
+      sysId,
+      fields: updateKeys,
+      hasUnsupportedFields,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath && !hasUnsupportedFields) {
+      // NEW PATH: Use repository pattern (only if all fields are supported)
+      try {
+        const caseRepo = this.getCaseRepo();
+
+        // Map snake_case to camelCase for repository
+        const typedUpdates: any = {};
+        if (updates.short_description) typedUpdates.shortDescription = updates.short_description;
+        if (updates.description) typedUpdates.description = updates.description;
+        if (updates.priority) typedUpdates.priority = updates.priority;
+        if (updates.state) typedUpdates.state = updates.state;
+        if (updates.category) typedUpdates.category = updates.category;
+        if (updates.subcategory) typedUpdates.subcategory = updates.subcategory;
+        if (updates.assignment_group) typedUpdates.assignmentGroup = updates.assignment_group;
+        if (updates.assigned_to) typedUpdates.assignedTo = updates.assigned_to;
+
+        await caseRepo.update(sysId, typedUpdates);
+
+        console.log(`[ServiceNow] NEW path: Successfully updated case`, { sysId, fields: updateKeys });
+        return;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          sysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error, or unsupported fields)
+    if (hasUnsupportedFields) {
+      console.log(`[ServiceNow] OLD path: Using legacy (unsupported fields: ${updateKeys.filter(k => !supportedFields.includes(k)).join(', ')})`, { sysId });
+    } else {
+      console.log(`[ServiceNow] OLD path: Using legacy implementation`, { sysId });
+    }
+
+    const table = serviceNowConfig.caseTable ?? "sn_customerservice_case";
     const endpoint = `/api/now/table/${table}/${sysId}`;
 
     await request(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+
+    console.log(`[ServiceNow] OLD path: Successfully updated case`, { sysId });
   }
 
   /**
@@ -709,9 +1514,174 @@ export class ServiceNowClient {
    */
   public async addCaseComment(
     sysId: string,
-    comment: string
+    comment: string,
+    context?: ServiceNowContext,
   ): Promise<void> {
-    await this.addCaseWorkNote(sysId, comment, false);
+    await this.addCaseWorkNote(sysId, comment, false, context);
+  }
+
+  public async addIncidentWorkNote(
+    incidentSysId: string,
+    workNote: string,
+    context?: ServiceNowContext,
+  ): Promise<void> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] addIncidentWorkNote using ${useNewPath ? "NEW" : "OLD"} path`, {
+      incidentSysId,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const incidentRepo = this.getIncidentRepo();
+        await incidentRepo.addWorkNote(incidentSysId, workNote);
+
+        console.log(`[ServiceNow] NEW path: Successfully added incident work note`, { incidentSysId });
+        return;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          incidentSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { incidentSysId });
+
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({ work_notes: workNote }),
+    });
+
+    console.log(`[ServiceNow] OLD path: Successfully added incident work note`, { incidentSysId });
+  }
+
+  public async getVoiceWorkNotesSince(
+    options: {
+      since: Date;
+      limit?: number;
+    },
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowWorkNote[]> {
+    const sinceString = formatDateForServiceNow(options.since);
+    const limit = options.limit ?? 200;
+
+    const queryParts = [
+      "element=work_notes",
+      `sys_created_on>=${sinceString}`,
+      "valueLIKECall",
+      "valueLIKESession ID",
+    ];
+
+    const query = queryParts.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/sys_journal_field?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_limit=${limit}&sysparm_display_value=all&sysparm_fields=sys_id,element_id,value,sys_created_on,sys_created_by`,
+    );
+
+    return (data.result ?? []).map((row) => ({
+      sys_id: extractDisplayValue(row.sys_id),
+      element_id: extractDisplayValue(row.element_id),
+      value: extractDisplayValue(row.value) || "",
+      sys_created_on: extractDisplayValue(row.sys_created_on) || "",
+      sys_created_by: extractDisplayValue(row.sys_created_by) || undefined,
+    }));
+  }
+
+  public async closeIncident(
+    incidentSysId: string,
+    options: {
+      closeCode?: string;
+      closeNotes?: string;
+      additionalUpdates?: Record<string, unknown>;
+    } = {},
+    context?: ServiceNowContext,
+  ): Promise<void> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Check if additionalUpdates has non-standard fields
+    const hasAdditionalUpdates = options.additionalUpdates && Object.keys(options.additionalUpdates).length > 0;
+
+    // Log which path is being used
+    console.log(`[ServiceNow] closeIncident using ${useNewPath && !hasAdditionalUpdates ? "NEW" : "OLD"} path`, {
+      incidentSysId,
+      hasAdditionalUpdates,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath && !hasAdditionalUpdates) {
+      // NEW PATH: Use repository pattern (only if no additional updates)
+      try {
+        const incidentRepo = this.getIncidentRepo();
+        await incidentRepo.close(
+          incidentSysId,
+          options.closeCode ?? "Solved Remotely (Permanently)",
+          options.closeNotes ?? "Automatically closed after remaining in Resolved state during scheduled incident audit.",
+        );
+
+        console.log(`[ServiceNow] NEW path: Successfully closed incident`, { incidentSysId });
+        return;
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          incidentSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error, or has additional updates)
+    if (hasAdditionalUpdates) {
+      console.log(`[ServiceNow] OLD path: Using legacy (has additional updates)`, { incidentSysId });
+    } else {
+      console.log(`[ServiceNow] OLD path: Using legacy implementation`, { incidentSysId });
+    }
+
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    const payload: Record<string, unknown> = {
+      state: "7", // Closed
+      active: false,
+      close_code: options.closeCode ?? "Solved Remotely (Permanently)",
+      close_notes:
+        options.closeNotes ??
+        "Automatically closed after remaining in Resolved state during scheduled incident audit.",
+      ...options.additionalUpdates,
+    };
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    console.log(`[ServiceNow] OLD path: Successfully closed incident`, { incidentSysId });
   }
 
   public async addIncidentWorkNote(
@@ -791,38 +1761,114 @@ export class ServiceNowClient {
    *
    * Original: Issue #9 - AI-Driven Incident Creation from Cases
    */
-  public async createIncidentFromCase(input: {
-    caseSysId: string;
-    caseNumber: string;
-    category?: string;
-    subcategory?: string;
-    shortDescription: string;
-    description?: string;
-    urgency?: string;
-    priority?: string;
-    callerId?: string;
-    assignmentGroup?: string;
-    assignedTo?: string;
-    isMajorIncident?: boolean;
-    // Company/Account context (prevents orphaned incidents)
-    company?: string;
-    account?: string;
-    businessService?: string;
-    location?: string;
-    // Contact information
-    contact?: string;
-    contactType?: string;
-    openedBy?: string;
-    // Technical context
-    cmdbCi?: string;
-    // Multi-tenancy / Domain separation
-    sysDomain?: string;
-    sysDomainPath?: string;
-  }): Promise<{
+  public async createIncidentFromCase(
+    input: {
+      caseSysId: string;
+      caseNumber: string;
+      category?: string;
+      subcategory?: string;
+      shortDescription: string;
+      description?: string;
+      urgency?: string;
+      priority?: string;
+      callerId?: string;
+      assignmentGroup?: string;
+      assignedTo?: string;
+      isMajorIncident?: boolean;
+      // Company/Account context (prevents orphaned incidents)
+      company?: string;
+      account?: string;
+      businessService?: string;
+      location?: string;
+      // Contact information
+      contact?: string;
+      contactType?: string;
+      openedBy?: string;
+      // Technical context
+      cmdbCi?: string;
+      // Multi-tenancy / Domain separation
+      sysDomain?: string;
+      sysDomainPath?: string;
+    },
+    context?: ServiceNowContext,
+  ): Promise<{
     incident_number: string;
     incident_sys_id: string;
     incident_url: string;
   }> {
+    // Feature flag: Decide whether to use new repository pattern or legacy implementation
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    // Log which path is being used
+    console.log(`[ServiceNow] createIncidentFromCase using ${useNewPath ? "NEW" : "OLD"} path`, {
+      caseNumber: input.caseNumber,
+      isMajorIncident: input.isMajorIncident,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      // NEW PATH: Use repository pattern
+      try {
+        const caseRepo = this.getCaseRepo();
+
+        // Map input to CreateIncidentInput
+        const incidentInput: any = {
+          shortDescription: input.shortDescription,
+          description: input.description,
+          caller: input.callerId,
+          category: input.category,
+          subcategory: input.subcategory,
+          urgency: input.urgency,
+          priority: input.priority,
+          assignmentGroup: input.assignmentGroup,
+          assignedTo: input.assignedTo,
+          company: input.company,
+          account: input.account,
+          businessService: input.businessService,
+          location: input.location,
+          contact: input.contact,
+          contactType: input.contactType,
+          openedBy: input.openedBy,
+          cmdbCi: input.cmdbCi,
+          sysDomain: input.sysDomain,
+          sysDomainPath: input.sysDomainPath,
+          isMajorIncident: input.isMajorIncident,
+        };
+
+        const incident = await caseRepo.createIncidentFromCase(input.caseSysId, incidentInput);
+
+        console.log(`[ServiceNow] NEW path: Successfully created incident`, {
+          caseNumber: input.caseNumber,
+          incidentNumber: incident.number,
+          incidentSysId: incident.sysId,
+        });
+
+        return {
+          incident_number: incident.number,
+          incident_sys_id: incident.sysId,
+          incident_url: incident.url,
+        };
+      } catch (error) {
+        // Log error but don't crash - fall back to old path
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          caseNumber: input.caseNumber,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Legacy implementation (or fallback from error)
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, {
+      caseNumber: input.caseNumber,
+    });
+
     const table = "incident";
 
     // Build incident payload
@@ -915,7 +1961,7 @@ export class ServiceNowClient {
     return {
       incident_number: incident.number,
       incident_sys_id: incident.sys_id,
-      incident_url: `${config.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
+      incident_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${incident.sys_id}`
     };
   }
 
@@ -927,73 +1973,120 @@ export class ServiceNowClient {
    * - Incidents: Unplanned service disruptions requiring immediate restoration
    * - Problems: Root cause investigations for recurring/potential incidents
    */
-  public async createProblemFromCase(input: {
-    caseSysId: string;
-    caseNumber: string;
-    category?: string;
-    subcategory?: string;
-    shortDescription: string;
-    description?: string;
-    urgency?: string;
-    priority?: string;
-    callerId?: string;
-    assignmentGroup?: string;
-    assignedTo?: string;
-    firstReportedBy?: string;
-    // Company/Account context (prevents orphaned problems)
-    company?: string;
-    account?: string;
-    businessService?: string;
-    location?: string;
-    // Contact information
-    contact?: string;
-    contactType?: string;
-    openedBy?: string;
-    // Technical context
-    cmdbCi?: string;
-    // Multi-tenancy / Domain separation
-    sysDomain?: string;
-    sysDomainPath?: string;
-  }): Promise<{
+  public async createProblemFromCase(
+    input: {
+      caseSysId: string;
+      caseNumber: string;
+      category?: string;
+      subcategory?: string;
+      shortDescription: string;
+      description?: string;
+      urgency?: string;
+      priority?: string;
+      callerId?: string;
+      assignmentGroup?: string;
+      assignedTo?: string;
+      firstReportedBy?: string;
+      // Company/Account context (prevents orphaned problems)
+      company?: string;
+      account?: string;
+      businessService?: string;
+      location?: string;
+      // Contact information
+      contact?: string;
+      contactType?: string;
+      openedBy?: string;
+      // Technical context
+      cmdbCi?: string;
+      // Multi-tenancy / Domain separation
+      sysDomain?: string;
+      sysDomainPath?: string;
+    },
+    context?: ServiceNowContext,
+  ): Promise<{
     problem_number: string;
     problem_sys_id: string;
     problem_url: string;
   }> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] createProblemFromCase using ${useNewPath ? "NEW" : "OLD"} path`, {
+      caseNumber: input.caseNumber,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const problemRepo = this.getProblemRepo();
+        const problem = await problemRepo.createFromCase(input.caseSysId, {
+          shortDescription: input.shortDescription,
+          description: input.description,
+          category: input.category,
+          subcategory: input.subcategory,
+          urgency: input.urgency,
+          priority: input.priority,
+          caller: input.callerId,
+          assignmentGroup: input.assignmentGroup,
+          assignedTo: input.assignedTo,
+          firstReportedBy: input.firstReportedBy,
+          company: input.company,
+          account: input.account,
+          businessService: input.businessService,
+          location: input.location,
+          contact: input.contact,
+          contactType: input.contactType,
+          openedBy: input.openedBy,
+          cmdbCi: input.cmdbCi,
+          sysDomain: input.sysDomain,
+          sysDomainPath: input.sysDomainPath,
+           caseNumber: input.caseNumber,
+        });
+
+        return {
+          problem_number: problem.number,
+          problem_sys_id: problem.sysId,
+          problem_url: problem.url,
+        };
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          caseNumber: input.caseNumber,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // fall back to legacy implementation
+      }
+    }
+
     const table = "problem";
 
-    // Build problem payload
     const payload: Record<string, any> = {
       short_description: input.shortDescription,
       description: input.description || input.shortDescription,
-      urgency: input.urgency || "3", // Default to medium urgency
-      priority: input.priority || "3", // Default to medium priority
+      urgency: input.urgency || "3",
+      priority: input.priority || "3",
       caller_id: input.callerId,
       assignment_group: input.assignmentGroup,
-      // Link to parent Case
       parent: input.caseSysId,
-      // Add work notes documenting source
       work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this requires root cause analysis via problem management.`,
     };
 
-    // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
     if (input.category) {
       payload.category = input.category;
     }
     if (input.subcategory) {
       payload.subcategory = input.subcategory;
     }
-
-    // Add assigned_to if provided (user explicitly assigned to case)
     if (input.assignedTo) {
       payload.assigned_to = input.assignedTo;
     }
-
-    // Add first_reported_by_task if provided (task that first reported this problem)
     if (input.firstReportedBy) {
       payload.first_reported_by_task = input.firstReportedBy;
     }
-
-    // Add company/account context (prevents orphaned problems)
     if (input.company) {
       payload.company = input.company;
     }
@@ -1006,8 +2099,6 @@ export class ServiceNowClient {
     if (input.location) {
       payload.location = input.location;
     }
-
-    // Add contact information
     if (input.contact) {
       payload.contact = input.contact;
     }
@@ -1017,13 +2108,9 @@ export class ServiceNowClient {
     if (input.openedBy) {
       payload.opened_by = input.openedBy;
     }
-
-    // Add technical context
     if (input.cmdbCi) {
       payload.cmdb_ci = input.cmdbCi;
     }
-
-    // Add multi-tenancy / domain separation
     if (input.sysDomain) {
       payload.sys_domain = input.sysDomain;
     }
@@ -1031,7 +2118,6 @@ export class ServiceNowClient {
       payload.sys_domain_path = input.sysDomainPath;
     }
 
-    // Create problem via ServiceNow Table API
     const response = await request<{ result: any }>(
       `/api/now/table/${table}`,
       {
@@ -1049,7 +2135,7 @@ export class ServiceNowClient {
     return {
       problem_number: problem.number,
       problem_sys_id: problem.sys_id,
-      problem_url: `${config.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
+      problem_url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=problem.do?sys_id=${problem.sys_id}`
     };
   }
 
@@ -1061,11 +2147,14 @@ export class ServiceNowClient {
    *
    * Original: api/app/services/servicenow_api_client.py:101-182
    */
-  public async getChoiceList(input: {
-    table: string;
-    element: string;
-    includeInactive?: boolean;
-  }): Promise<Array<{
+  public async getChoiceList(
+    input: {
+      table: string;
+      element: string;
+      includeInactive?: boolean;
+    },
+    context?: ServiceNowContext,
+  ): Promise<Array<{
     label: string;
     value: string;
     sequence: number;
@@ -1073,6 +2162,46 @@ export class ServiceNowClient {
     dependent_value?: string;
   }>> {
     const { table, element, includeInactive = false } = input;
+
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getChoiceList using ${useNewPath ? "NEW" : "OLD"} path`, {
+      table,
+      element,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const choiceRepo = this.getChoiceRepo();
+        const choices = await choiceRepo.list({
+          table,
+          element,
+          includeInactive,
+        });
+
+        return choices.map((choice: Choice) => ({
+          label: choice.label,
+          value: choice.value,
+          sequence: choice.sequence ?? 0,
+          inactive: choice.inactive ?? false,
+          dependent_value: choice.dependentValue,
+        }));
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          table,
+          element,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // fall back to legacy path
+      }
+    }
 
     // Build query to filter by table and element
     const queryParts = [`name=${table}`, `element=${element}`];
@@ -1142,26 +2271,74 @@ export class ServiceNowClient {
   /**
    * Get catalog items from Service Catalog
    */
-  public async getCatalogItems(input: {
-    category?: string;
-    keywords?: string[];
-    active?: boolean;
-    limit?: number;
-  }): Promise<ServiceNowCatalogItem[]> {
+  public async getCatalogItems(
+    input: {
+      category?: string;
+      keywords?: string[];
+      active?: boolean;
+      limit?: number;
+    },
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowCatalogItem[]> {
+    // Feature flag
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getCatalogItems using ${useNewPath ? "NEW" : "OLD"} path`, {
+      category: input.category,
+      keywordCount: input.keywords?.length,
+      featureEnabled: useNewPath,
+    });
+
+    if (useNewPath) {
+      try {
+        const catalogRepo = this.getCatalogRepo();
+        const items = await catalogRepo.search({
+          category: input.category,
+          keywords: input.keywords,
+          active: input.active,
+          limit: input.limit,
+        });
+
+        const legacyItems: ServiceNowCatalogItem[] = items.map((item) => ({
+          sys_id: item.sysId,
+          name: item.name,
+          short_description: item.shortDescription,
+          description: item.description,
+          category: item.category,
+          active: item.active,
+          url: item.url,
+        }));
+
+        console.log(`[ServiceNow] NEW path: Successfully searched catalog items`, {
+          found: legacyItems.length,
+        });
+
+        return legacyItems;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // OLD PATH
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`);
+
     const limit = input.limit ?? 10;
     const queryParts: string[] = [];
 
-    // Filter by active status (default to active only)
     if (input.active !== false) {
       queryParts.push('active=true');
     }
 
-    // Filter by category
     if (input.category) {
       queryParts.push(`category.nameLIKE${input.category}`);
     }
 
-    // Keyword search in name and short description
     if (input.keywords && input.keywords.length > 0) {
       const keywordQuery = input.keywords
         .map(keyword => `nameLIKE${keyword}^ORshort_descriptionLIKE${keyword}`)
@@ -1196,7 +2373,51 @@ export class ServiceNowClient {
   /**
    * Get a specific catalog item by name
    */
-  public async getCatalogItemByName(name: string): Promise<ServiceNowCatalogItem | null> {
+  public async getCatalogItemByName(
+    name: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowCatalogItem | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getCatalogItemByName using ${useNewPath ? "NEW" : "OLD"} path`, { name });
+
+    if (useNewPath) {
+      try {
+        const catalogRepo = this.getCatalogRepo();
+        const item = await catalogRepo.findByName(name);
+
+        if (!item) {
+          console.log(`[ServiceNow] NEW path: Catalog item not found`, { name });
+          return null;
+        }
+
+        const result: ServiceNowCatalogItem = {
+          sys_id: item.sysId,
+          name: item.name,
+          short_description: item.shortDescription,
+          description: item.description,
+          category: item.category,
+          active: item.active,
+          url: item.url,
+        };
+
+        console.log(`[ServiceNow] NEW path: Found catalog item`, { name, sysId: item.sysId });
+        return result;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // OLD PATH
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { name });
+
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
@@ -1227,14 +2448,17 @@ export class ServiceNowClient {
    * Get URL for catalog item
    */
   private getCatalogItemUrl(sysId: string): string {
-    return `${config.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
+    return `${serviceNowConfig.instanceUrl}/sp?id=sc_cat_item&sys_id=${sysId}`;
   }
 
   /**
    * Get Business Service by name (READ-ONLY)
    * Used by LLM for service classification - does not create records
    */
-  public async getBusinessService(name: string): Promise<ServiceNowBusinessService | null> {
+  public async getBusinessService(
+    name: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowBusinessService | null> {
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
@@ -1255,7 +2479,7 @@ export class ServiceNowClient {
       name: extractDisplayValue(service.name),
       description: extractDisplayValue(service.description) || undefined,
       parent: extractDisplayValue(service.parent) || undefined,
-      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=cmdb_ci_service_business.do?sys_id=${sysId}`,
     };
   }
 
@@ -1263,7 +2487,51 @@ export class ServiceNowClient {
    * Get Service Offering by name (READ-ONLY)
    * Used by LLM for service classification - does not create records
    */
-  public async getServiceOffering(name: string): Promise<ServiceNowServiceOffering | null> {
+  public async getServiceOffering(
+    name: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowServiceOffering | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getServiceOffering using ${useNewPath ? "NEW" : "OLD"} path`, { name });
+
+    if (useNewPath) {
+      try {
+        const catalogRepo = this.getCatalogRepo();
+        const offering = await catalogRepo.findServiceOfferingByName(name);
+
+        if (!offering) {
+          console.log(`[ServiceNow] NEW path: Service offering not found`, { name });
+          return null;
+        }
+
+        // Convert to legacy format (repository returns simpler format)
+        const result: ServiceNowServiceOffering = {
+          sys_id: offering.sysId,
+          name: offering.name,
+          description: undefined, // Not in repository response
+          parent: undefined, // Not in repository response
+          parent_name: undefined, // Not in repository response
+          url: offering.url,
+        };
+
+        console.log(`[ServiceNow] NEW path: Found service offering`, { name, sysId: offering.sysId });
+        return result;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // OLD PATH
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { name });
+
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
@@ -1283,7 +2551,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (offering.parent) {
-      if (typeof offering.parent === 'object') {
+      if (isPlainObject(offering.parent)) {
         parentSysId = offering.parent.value || undefined;
         parentName = offering.parent.display_value || undefined;
       } else if (typeof offering.parent === 'string') {
@@ -1297,9 +2565,9 @@ export class ServiceNowClient {
     if (offering.description) {
       if (typeof offering.description === 'string') {
         description = offering.description || undefined;
-      } else if (typeof offering.description === 'object' && offering.description.display_value) {
+      } else if (isPlainObject(offering.description) && offering.description.display_value) {
         description = offering.description.display_value || undefined;
-      } else if (typeof offering.description === 'object' && offering.description.value) {
+      } else if (isPlainObject(offering.description) && offering.description.value) {
         description = offering.description.value || undefined;
       }
     }
@@ -1310,7 +2578,7 @@ export class ServiceNowClient {
       description,
       parent: parentSysId,
       parent_name: parentName,
-      url: `${config.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=service_offering.do?sys_id=${sysId}`,
     };
   }
 
@@ -1318,7 +2586,10 @@ export class ServiceNowClient {
    * Get Application Service by name (READ-ONLY)
    * Used by LLM for service classification - does not create records
    */
-  public async getApplicationService(name: string): Promise<ServiceNowApplicationService | null> {
+  public async getApplicationService(
+    name: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowApplicationService | null> {
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
@@ -1338,7 +2609,7 @@ export class ServiceNowClient {
     let parentSysId: string | undefined;
     let parentName: string | undefined;
     if (service.parent) {
-      if (typeof service.parent === 'object') {
+      if (isPlainObject(service.parent)) {
         parentSysId = service.parent.value || undefined;
         parentName = service.parent.display_value || undefined;
       } else if (typeof service.parent === 'string') {
@@ -1352,9 +2623,9 @@ export class ServiceNowClient {
     if (service.description) {
       if (typeof service.description === 'string') {
         description = service.description || undefined;
-      } else if (typeof service.description === 'object' && service.description.display_value) {
+      } else if (isPlainObject(service.description) && service.description.display_value) {
         description = service.description.display_value || undefined;
-      } else if (typeof service.description === 'object' && service.description.value) {
+      } else if (isPlainObject(service.description) && service.description.value) {
         description = service.description.value || undefined;
       }
     }
@@ -1365,7 +2636,7 @@ export class ServiceNowClient {
       description,
       parent: parentSysId,
       parent_name: parentName,
-      url: `${config.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=cmdb_ci_service_discovered.do?sys_id=${sysId}`,
     };
   }
 
@@ -1374,11 +2645,58 @@ export class ServiceNowClient {
    * Returns list of application services linked to a company
    * Optionally filter by parent service offering (e.g., "Application Administration")
    */
-  public async getApplicationServicesForCompany(input: {
-    companySysId: string;
-    parentServiceOffering?: string;
-    limit?: number;
-  }): Promise<Array<{ name: string; sys_id: string; parent_name?: string }>> {
+  public async getApplicationServicesForCompany(
+    input: {
+      companySysId: string;
+      parentServiceOffering?: string;
+      limit?: number;
+    },
+    context?: ServiceNowContext,
+  ): Promise<Array<{ name: string; sys_id: string; parent_name?: string }>> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getApplicationServicesForCompany using ${useNewPath ? "NEW" : "OLD"} path`, {
+      companySysId: input.companySysId,
+      parentServiceOffering: input.parentServiceOffering,
+    });
+
+    if (useNewPath) {
+      try {
+        const catalogRepo = this.getCatalogRepo();
+        const services = await catalogRepo.findApplicationServicesByCompany(input.companySysId, {
+          parentServiceOffering: input.parentServiceOffering,
+          limit: input.limit,
+        });
+
+        const result = services.map((service) => ({
+          name: service.name,
+          sys_id: service.sysId,
+          parent_name: service.parentName,
+        }));
+
+        console.log(`[ServiceNow] NEW path: Found application services`, {
+          companySysId: input.companySysId,
+          count: result.length,
+        });
+
+        return result;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          companySysId: input.companySysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // OLD PATH
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, {
+      companySysId: input.companySysId,
+    });
+
     const limit = input.limit ?? 100;
 
     // Build query to filter by company
@@ -1411,7 +2729,7 @@ export class ServiceNowClient {
         // Extract parent name
         let parentName: string | undefined;
         if (service.parent) {
-          if (typeof service.parent === 'object' && service.parent.display_value) {
+          if (isPlainObject(service.parent) && service.parent.display_value) {
             parentName = service.parent.display_value;
           } else if (typeof service.parent === 'string') {
             parentName = service.parent;
@@ -1434,7 +2752,46 @@ export class ServiceNowClient {
    * Get Customer Account by number (READ-ONLY)
    * Used to query customer account information
    */
-  public async getCustomerAccount(number: string): Promise<ServiceNowCustomerAccount | null> {
+  public async getCustomerAccount(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowCustomerAccount | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getCustomerAccount using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const accountRepo = this.getCustomerAccountRepo();
+        const account = await accountRepo.findByNumber(number);
+        if (!account) {
+          return null;
+        }
+
+        return {
+          sys_id: account.sysId,
+          number: account.number,
+          name: account.name,
+          url: account.url,
+        };
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall back to legacy implementation
+      }
+    }
+
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
@@ -1454,22 +2811,25 @@ export class ServiceNowClient {
       sys_id: sysId,
       number: extractDisplayValue(account.number),
       name: extractDisplayValue(account.name),
-      url: `${config.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=customer_account.do?sys_id=${sysId}`,
     };
   }
 
   /**
    * Fetch all categories and subcategories for a ServiceNow table
    */
-  public async getCategoriesForTable(table: string = 'sn_customerservice_case'): Promise<{
+  public async getCategoriesForTable(
+    table: string = 'sn_customerservice_case',
+    context?: ServiceNowContext,
+  ): Promise<{
     categories: string[];
     subcategories: string[];
     categoryDetails: Array<any>;
     subcategoryDetails: Array<any>;
   }> {
     try {
-      const categories = await this.getChoiceList({ table, element: 'category' });
-      const subcategories = await this.getChoiceList({ table, element: 'subcategory' });
+      const categories = await this.getChoiceList({ table, element: 'category' }, context);
+      const subcategories = await this.getChoiceList({ table, element: 'subcategory' }, context);
 
       return {
         categories: categories.map(c => c.label),
@@ -1503,19 +2863,22 @@ export class ServiceNowClient {
   /**
    * Create a child task for a case
    */
-  public async createChildTask(input: {
-    caseSysId: string;
-    caseNumber: string;
-    description: string;
-    assignmentGroup?: string;
-    shortDescription?: string;
-    priority?: string;
-  }): Promise<{
+  public async createChildTask(
+    input: {
+      caseSysId: string;
+      caseNumber: string;
+      description: string;
+      assignmentGroup?: string;
+      shortDescription?: string;
+      priority?: string;
+    },
+    context?: ServiceNowContext,
+  ): Promise<{
     sys_id: string;
     number: string;
     url: string;
   }> {
-    const table = config.taskTable ?? "sn_customerservice_task";
+    const table = serviceNowConfig.taskTable ?? "sn_customerservice_task";
     const endpoint = `/api/now/table/${table}`;
 
     // Build task payload
@@ -1550,7 +2913,7 @@ export class ServiceNowClient {
     return {
       sys_id: task.sys_id,
       number: task.number,
-      url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${task.sys_id}`,
     };
   }
 
@@ -1658,7 +3021,8 @@ export const serviceNowClient = new ServiceNowClient();
 export async function addCaseWorkNote(
   sysId: string,
   workNote: string,
-  workNotes: boolean = true
+  workNotes: boolean = true,
+  context?: ServiceNowContext,
 ): Promise<void> {
-  await serviceNowClient.addCaseWorkNote(sysId, workNote, workNotes);
+  await serviceNowClient.addCaseWorkNote(sysId, workNote, workNotes, context);
 }

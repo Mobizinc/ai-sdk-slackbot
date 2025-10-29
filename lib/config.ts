@@ -1,20 +1,16 @@
-interface NumericOption {
-  value: number;
-  defaultValue: number;
-  raw: string | undefined;
-  envKey: string;
-}
+import { CONFIG_DEFINITIONS, type ConfigDefinition, type ConfigKey, type ConfigValueMap } from "./config/registry";
+import {
+  getConfig,
+  getConfigSync,
+  refreshConfig,
+  getConfigValue,
+  serializeConfigValue,
+} from "./config/loader";
 
-function parseNumberOption({ value, defaultValue, raw, envKey }: NumericOption): number {
-  if (Number.isFinite(value) && value > 0) {
-    return value;
-  }
+export { CONFIG_DEFINITIONS };
+export type { ConfigDefinition, ConfigKey, ConfigValueMap };
 
-  if (raw !== undefined) {
-    console.warn(
-      `[Config] Ignoring invalid value for ${envKey}: ${raw}. Using default ${defaultValue}.`,
-    );
-  }
+export const config = getConfigSync();
 
   return defaultValue;
 }
@@ -76,4 +72,32 @@ export const config = {
   cmdbReconciliationCacheResults: getBooleanEnv("CMDB_RECONCILIATION_CACHE_RESULTS", true),
   cmdbReconciliationAssignmentGroup: process.env.CMDB_RECONCILIATION_ASSIGNMENT_GROUP || "CMDB Administrators",
   cmdbReconciliationSlackChannel: process.env.CMDB_RECONCILIATION_SLACK_CHANNEL || "cmdb-alerts",
+
+  // ITSM Record Creation configuration
+  // Only create incidents/problems for cases in these assignment groups
+  incidentCreationAllowedGroups: getStringArrayEnv("INCIDENT_CREATION_ALLOWED_GROUPS", [
+    "Incident and Case Management",
+  ]),
+
+  // Case Escalation configuration
+  // Enable/disable automatic escalation for non-BAU cases
+  escalationEnabled: getBooleanEnv("ESCALATION_ENABLED", true),
+  // Business intelligence score threshold for automatic escalation (0-100)
+  escalationBiScoreThreshold: getNumberEnv("ESCALATION_BI_SCORE_THRESHOLD", 20),
+  // Default Slack channel for escalations (if no client-specific channel configured)
+  escalationDefaultChannel: process.env.ESCALATION_DEFAULT_CHANNEL || "case-escalations",
+  // Whether to @mention the assigned engineer in escalation notifications
+  escalationNotifyAssignedEngineer: getBooleanEnv("ESCALATION_NOTIFY_ASSIGNED_ENGINEER", true),
+  // Whether to use LLM to generate contextual escalation messages
+  escalationUseLlmMessages: getBooleanEnv("ESCALATION_USE_LLM_MESSAGES", true),
+
+  // LLM Timeout configurations (in milliseconds)
+  // Default timeout for general LLM operations
+  llmTimeoutMs: getNumberEnv("LLM_TIMEOUT_MS", 30000), // 30 seconds
+  // Timeout for case classification (typically faster)
+  llmClassificationTimeoutMs: getNumberEnv("LLM_CLASSIFICATION_TIMEOUT_MS", 15000), // 15 seconds
+  // Timeout for KB generation (may take longer)
+  llmKBGenerationTimeoutMs: getNumberEnv("LLM_KB_GENERATION_TIMEOUT_MS", 45000), // 45 seconds
+  // Timeout for escalation message generation
+  llmEscalationTimeoutMs: getNumberEnv("LLM_ESCALATION_TIMEOUT_MS", 20000), // 20 seconds
 };

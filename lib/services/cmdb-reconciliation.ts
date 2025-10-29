@@ -2,8 +2,11 @@ import { ServiceNowClient, ServiceNowConfigurationItem } from "../tools/servicen
 import { getCmdbReconciliationRepository } from "../db/repositories/cmdb-reconciliation-repository";
 import { getBusinessContextService } from "./business-context";
 import { CmdbReconciliationResult } from "../db/schema";
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "./slack-messaging";
 import { config } from "../config";
+import { createSystemContext } from "../infrastructure/servicenow-context";
+
+const slackMessaging = getSlackMessagingService();
 
 export interface ReconciliationInput {
   caseNumber: string;
@@ -56,13 +59,16 @@ export class CmdbReconciliationService {
    */
   async reconcileEntities(input: ReconciliationInput): Promise<ReconciliationResult> {
     console.log(`[CMDB] Starting reconciliation for case ${input.caseNumber}`);
-    
+
+    // Create ServiceNow context for system operation (deterministic routing)
+    const snContext = createSystemContext('cmdb-reconciliation');
+
     const allEntities = this.flattenEntities(input.entities);
     const results: CmdbReconciliationResult[] = [];
 
     for (const entity of allEntities) {
       try {
-        const result = await this.reconcileEntity(input.caseNumber, input.caseSysId, entity);
+        const result = await this.reconcileEntity(input.caseNumber, input.caseSysId, entity, snContext);
         results.push(result);
       } catch (error) {
         console.error(`[CMDB] Error reconciling entity ${entity.value}:`, error);
@@ -100,7 +106,8 @@ export class CmdbReconciliationService {
   private async reconcileEntity(
     caseNumber: string,
     caseSysId: string,
-    entity: { value: string; type: string }
+    entity: { value: string; type: string },
+    snContext: any, // ServiceNowContext
   ): Promise<CmdbReconciliationResult> {
     // Step 1: Resolve entity aliases using BusinessContext
     const resolution = await this.resolveEntityAlias(entity.value, entity.type);
@@ -125,7 +132,7 @@ export class CmdbReconciliationService {
     }
 
     // Step 2: Search CMDB for the resolved entity
-    const cmdbMatches = await this.searchCmdb(resolution.resolvedValue, entity.type);
+    const cmdbMatches = await this.searchCmdb(resolution.resolvedValue, entity.type, snContext);
     
     // Create initial record
     const record = await this.repository.create({
@@ -147,7 +154,7 @@ export class CmdbReconciliationService {
     // Step 3: Process CMDB matches
     if (cmdbMatches.length === 0) {
       // No match found - create child task
-      await this.createChildTaskForMissingCi(record.id, caseSysId, caseNumber, entity.value, resolution.resolvedValue);
+      await this.createChildTaskForMissingCi(record.id, caseSysId, caseNumber, entity.value, resolution.resolvedValue, snContext);
       return await this.repository.markAsSkipped(record.id, "No CMDB match found - child task created");
     } else if (cmdbMatches.length === 1) {
       // Exact match found - link CI to case
@@ -253,27 +260,37 @@ export class CmdbReconciliationService {
    */
   private async searchCmdb(
     entityValue: string,
-    entityType: string
+    entityType: string,
+    snContext: any, // ServiceNowContext from caller
   ): Promise<ServiceNowConfigurationItem[]> {
     try {
       if (entityType === "IP_ADDRESS") {
-        return await this.serviceNowClient.searchConfigurationItems({
-          ipAddress: entityValue,
-          limit: 5,
-        });
+        return await this.serviceNowClient.searchConfigurationItems(
+          {
+            ipAddress: entityValue,
+            limit: 5,
+          },
+          snContext,
+        );
       } else if (entityType === "NETWORK_DEVICE") {
         // Search for network devices (firewalls, routers, switches)
         // The searchConfigurationItems method will search across name, fqdn, u_fqdn, host_name
         // This covers most network device naming patterns
-        return await this.serviceNowClient.searchConfigurationItems({
-          name: entityValue,
-          limit: 5,
-        });
+        return await this.serviceNowClient.searchConfigurationItems(
+          {
+            name: entityValue,
+            limit: 5,
+          },
+          snContext,
+        );
       } else {
-        return await this.serviceNowClient.searchConfigurationItems({
-          name: entityValue,
-          limit: 5,
-        });
+        return await this.serviceNowClient.searchConfigurationItems(
+          {
+            name: entityValue,
+            limit: 5,
+          },
+          snContext,
+        );
       }
     } catch (error) {
       console.error(`[CMDB] Error searching for ${entityValue}:`, error);
@@ -295,8 +312,10 @@ export class CmdbReconciliationService {
         `IP Addresses: ${ci.ip_addresses.join(", ") || "None"}\n` +
         `Owner Group: ${ci.owner_group || "Not specified"}`;
 
-      await this.serviceNowClient.addCaseWorkNote(caseSysId, workNote);
-      
+      // Use system context for CMDB operations (deterministic routing)
+      const snContext = createSystemContext('cmdb-reconciliation');
+      await this.serviceNowClient.addCaseWorkNote(caseSysId, workNote, true, snContext);
+
       console.log(`[CMDB] Linked CI ${ci.name} to case ${caseSysId}`);
     } catch (error) {
       console.error(`[CMDB] Error linking CI to case:`, error);
@@ -312,7 +331,8 @@ export class CmdbReconciliationService {
     caseSysId: string,
     caseNumber: string,
     originalEntity: string,
-    resolvedEntity: string
+    resolvedEntity: string,
+    snContext: any, // ServiceNowContext
   ): Promise<void> {
     try {
       // Get the reconciliation record to find the case
@@ -334,14 +354,17 @@ Detection Confidence: ${reconciliation.confidence}
 
 This task was automatically generated by the CMDB Reconciliation system.`;
 
-      const task = await this.serviceNowClient.createChildTask({
-        caseSysId: caseSysId,
-        caseNumber: caseNumber,
-        description: taskDescription,
-        assignmentGroup: config.cmdbReconciliationAssignmentGroup,
-        shortDescription: `Create CMDB CI: ${resolvedEntity}`,
-        priority: "3", // High priority for missing CI
-      });
+      const task = await this.serviceNowClient.createChildTask(
+        {
+          caseSysId: caseSysId,
+          caseNumber: caseNumber,
+          description: taskDescription,
+          assignmentGroup: config.cmdbReconciliationAssignmentGroup,
+          shortDescription: `Create CMDB CI: ${resolvedEntity}`,
+          priority: "3", // High priority for missing CI
+        },
+        snContext,
+      );
 
       // Update the reconciliation record with task details
       await this.repository.updateWithChildTask(reconciliationId, {
@@ -384,17 +407,12 @@ A child task has been created and assigned to *${config.cmdbReconciliationAssign
 
 Please review and update the CMDB to maintain data quality.`;
 
-      const result = await client.chat.postMessage({
+      await slackMessaging.postMessage({
         channel: config.cmdbReconciliationSlackChannel,
         text: message,
-        mrkdwn: true,
       });
 
-      if (!result.ok) {
-        console.error(`[CMDB] Failed to send Slack notification:`, result.error);
-      } else {
-        console.log(`[CMDB] Sent Slack notification to ${config.cmdbReconciliationSlackChannel}`);
-      }
+      console.log(`[CMDB] Sent Slack notification to ${config.cmdbReconciliationSlackChannel}`);
     } catch (error) {
       console.error(`[CMDB] Error sending Slack notification:`, error);
       // Don't throw - notification failure shouldn't break the reconciliation process

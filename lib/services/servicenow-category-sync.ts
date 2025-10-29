@@ -55,13 +55,20 @@ export class ServiceNowCategorySyncService {
 
       // Import ServiceNow client dynamically to ensure env vars are loaded
       const { serviceNowClient } = await import("../tools/servicenow");
+      const { createSystemContext } = await import("../infrastructure/servicenow-context");
+
+      // Create ServiceNow context for system operation (deterministic routing)
+      const snContext = createSystemContext('category-sync');
 
       // Fetch choices from ServiceNow
-      const choices = await serviceNowClient.getChoiceList({
-        table: tableName,
-        element,
-        includeInactive: false,
-      });
+      const choices = await serviceNowClient.getChoiceList(
+        {
+          table: tableName,
+          element,
+          includeInactive: false,
+        },
+        snContext,
+      );
 
       const choicesFetched = choices.length;
       console.log(`[Category Sync] Fetched ${choicesFetched} choices from ServiceNow`);

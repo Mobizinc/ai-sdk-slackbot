@@ -948,7 +948,7 @@ Important: Return ONLY the JSON object, no additional text.
       );
 
       // Extract text content from response
-      const textContent = response.content.find(block => block.type === 'text');
+      const textContent = response.content.find((block: Anthropic.Messages.ContentBlock) => block.type === 'text');
       if (!textContent || textContent.type !== 'text') {
         throw new Error('No text content in Anthropic response');
       }
@@ -1703,7 +1703,7 @@ Important: Return ONLY the JSON object, no additional text.
           });
         }
 
-        console.warn(
+      console.warn(
           `[CaseClassifier] AI suggested invalid INCIDENT category: "${originalIncidentCategory}" ` +
           `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
           `defaulting to "Application Support" | ` +

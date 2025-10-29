@@ -320,7 +320,7 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
    * Format KB article for Slack display
    */
   formatForSlack(article: KBArticle): string {
-    let formatted = `📚 *Knowledge Base Article Draft*\n\n`;
+    let formatted = `${MessageEmojis.BOOK} *Knowledge Base Article Draft*\n\n`;
     formatted += `*Title:* ${article.title}\n\n`;
     formatted += `*Problem:*\n${article.problem}\n\n`;
 
@@ -351,7 +351,7 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
   formatSimilarKBsWarning(
     similarKBs: Array<{ case_number: string; content: string; score: number }>
   ): string {
-    let message = `⚠️ *Similar KB Articles Found*\n\n`;
+    let message = `${MessageEmojis.WARNING} *Similar KB Articles Found*\n\n`;
     message += `This issue may already be documented:\n\n`;
 
     similarKBs.slice(0, 3).forEach((kb, idx) => {

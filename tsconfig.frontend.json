@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "outDir": "./public/frontend",
+    "rootDir": "./frontend",
+    "module": "es2020",
+    "target": "es2020",
+    "lib": ["DOM", "ES2020"],
+    "moduleResolution": "node",
+    "strict": true,
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["frontend/**/*.ts"],
+  "exclude": ["node_modules", "dist", "public/frontend"]
+}

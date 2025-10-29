@@ -19,31 +19,56 @@ import { serviceNowClient } from "./tools/servicenow";
 import { getKBGenerator } from "./services/kb-generator";
 import { getKBApprovalManager } from "./handle-kb-approval";
 import { getChannelInfo } from "./services/channel-info";
+import { getLoadingIndicator } from "./utils/loading-indicator";
 import { getKBStateMachine, KBState } from "./services/kb-state-machine";
+import { ErrorHandler } from "./utils/error-handler";
 import { getCaseQualityAnalyzer, type QualityAssessment } from "./services/case-quality-analyzer";
 import {
-  generateGatheringQuestions,
-  formatGatheringMessage,
-  formatFollowUpMessage,
-  formatTimeoutMessage,
-  formatAbandonmentMessage,
-  formatNoteRequestMessage,
-} from "./services/interactive-kb-assistant";
-import { generateResolutionSummary } from "./services/case-resolution-summary";
-import { config } from "./config";
-import { buildIntelligentAssistance, shouldProvideAssistance } from "./services/intelligent-assistant";
-import { createAzureSearchService } from "./services/azure-search";
-import type {
-  ServiceNowCaseJournalEntry,
-  ServiceNowCaseResult,
-} from "./tools/servicenow";
+  handlePassiveMessage as handlePassiveMessageRefactored,
+  cleanupTimedOutGathering,
+  extractCaseNumbers,
+  notifyResolution,
+} from "./passive";
+
+/**
+ * Case Detection Debouncer
+ * Prevents duplicate "watching case" messages when the same case is mentioned multiple times rapidly
+ */
+class CaseDetectionDebouncer {
+  private pending = new Map<string, number>(); // caseNumber:threadTs -> timestamp
+  private readonly DEBOUNCE_MS = 5000; // 5 seconds
+
+  /**
+   * Check if we should process this case detection or skip due to debouncing
+   */
+  shouldProcess(caseNumber: string, threadTs: string): boolean {
+    const key = `${caseNumber}:${threadTs}`;
+    const now = Date.now();
+    const lastProcessed = this.pending.get(key);
+
+    if (lastProcessed && (now - lastProcessed) < this.DEBOUNCE_MS) {
+      return false; // Too soon - skip
+    }
+
+    // Mark as processed
+    this.pending.set(key, now);
+
+    // Cleanup old entries after debounce period
+    setTimeout(() => this.pending.delete(key), this.DEBOUNCE_MS);
+
+    return true;
+  }
+}
+
+// Global debouncer instance
+const caseDebouncer = new CaseDetectionDebouncer();
 
 /**
  * Main entry point - uses feature flag to determine implementation
  */
 export async function handlePassiveMessage(
   event: GenericMessageEvent,
-  botUserId: string
+  botUserId: string,
 ): Promise<void> {
   const flags = getFeatureFlags();
 
@@ -110,6 +135,12 @@ async function processCaseDetection(
   const contextManager = getContextManager();
   const threadTs = event.thread_ts || event.ts;
   const channelId = event.channel;
+
+  // Check debouncer first to prevent rapid duplicate processing
+  if (!caseDebouncer.shouldProcess(caseNumber, threadTs)) {
+    console.log(`[Passive Monitor] Skipping ${caseNumber} in thread ${threadTs} - debouncing (too soon since last detection)`);
+    return;
+  }
 
   // Add message to context
   contextManager.addMessage(caseNumber, channelId, threadTs, {
@@ -186,7 +217,8 @@ async function processCaseDetection(
     await client.chat.postMessage({
       channel: channelId,
       thread_ts: event.ts, // Always reply in thread to keep channels clean
-      text: intelligentMessage,
+      blocks: intelligentMessage.blocks,
+      text: intelligentMessage.text,
       unfurl_links: false,
     });
 
@@ -500,12 +532,21 @@ async function notifyResolutionOriginal(
     console.error(`[KB Generation] ERROR for ${caseNumber}:`, error);
     console.error(`[KB Generation] Stack trace:`, error instanceof Error ? error.stack : "No stack trace");
 
-    // Fallback: simple notification
+    // Use error handler for contextual error message
+    const errorResult = ErrorHandler.handle(error, {
+      operation: "KB generation",
+      caseNumber,
+    });
+
+    // Post contextual error message with recovery steps
     try {
+      const errorBlocks = ErrorHandler.formatForSlack(errorResult);
+
       await client.chat.postMessage({
         channel: channelId,
         thread_ts: threadTs,
-        text: `✅ It looks like *${caseNumber}* has been resolved!\n\n_Error during KB generation: ${error instanceof Error ? error.message : "Unknown error"}_`,
+        text: ErrorHandler.getSimpleMessage(errorResult),
+        blocks: errorBlocks,
         unfurl_links: false,
       });
     } catch (slackError) {
@@ -530,8 +571,25 @@ async function generateAndPostKB(
 ): Promise<void> {
   console.log(`[KB Generation] Generating KB article for ${caseNumber}...`);
 
-  const kbGenerator = getKBGenerator();
-  const result = await kbGenerator.generateArticle(context, caseDetails);
+  const loadingIndicator = getLoadingIndicator();
+  let loadingTs: string | undefined;
+
+  try {
+    // Post loading indicator
+    loadingTs = await loadingIndicator.postLoadingMessage(
+      channelId,
+      threadTs,
+      "kb_generation"
+    );
+
+    const kbGenerator = getKBGenerator();
+    const result = await kbGenerator.generateArticle(context, caseDetails);
+
+    // Update loading indicator to success
+    await loadingIndicator.updateToSuccess(
+      loadingTs,
+      `KB article generated with ${result.confidence}% confidence`
+    );
 
   if (result.isDuplicate) {
     // Similar KB exists - notify and skip
@@ -564,9 +622,21 @@ async function generateAndPostKB(
     message
   );
 
-  const stateMachine = getKBStateMachine();
-  stateMachine.setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
-  console.log(`[KB Generation] Posted KB for approval: ${caseNumber}`);
+    const stateMachine = getKBStateMachine();
+    stateMachine.setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
+    console.log(`[KB Generation] Posted KB for approval: ${caseNumber}`);
+  } catch (error) {
+    // Update loading indicator to error state
+    if (loadingTs) {
+      await loadingIndicator.updateToError(
+        loadingTs,
+        `Failed to generate KB article: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+
+    // Re-throw error to maintain existing error handling
+    throw error;
+  }
 }
 
 /**
