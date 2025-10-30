@@ -222,7 +222,7 @@ Tool responses contain both `summary` and `rawData` fields to support different 
 
 - **Similar cases:** Use pattern_summary for quick identification, content_preview for understanding the actual technical approach
 
-- **Microsoft Learn:** Use key_points for quick reference, rawContent for detailed technical guidance
+- **Microsoft Learn:** Use key_points for quick reference, excerpt for additional context
 
 **Response Format:**
 

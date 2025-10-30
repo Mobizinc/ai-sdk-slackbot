@@ -1068,8 +1068,8 @@ const generateResponseImpl = async (
               results: results.map((r) => ({
                 title: r.title,
                 url: r.url,
-                key_points: extractKeyPoints(r.content, 3), // Quick summary for rapid context
-                rawContent: r.content, // Full article for deep technical guidance
+                key_points: extractKeyPoints(r.content, 3), // 2-3 bullets, max 80 chars each
+                excerpt: truncateToExcerpt(r.content, 150), // 150 chars
               })),
               total_found: results.length,
             };
