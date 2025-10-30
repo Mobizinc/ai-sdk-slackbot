@@ -293,7 +293,7 @@ async function generateProactiveGuidance(
     console.log(`[Intelligent Assistant]   ${idx + 1}. ${c.case_number} (score: ${c.score.toFixed(2)})`);
   });
 
-  // Use gpt-5 to synthesize guidance from similar cases
+  // Use Claude to synthesize guidance from similar cases
   const guidance = await synthesizeGuidance(
     caseDetails,
     similarCases,
@@ -306,7 +306,7 @@ async function generateProactiveGuidance(
 }
 
 /**
- * Synthesize actionable guidance from similar cases using gpt-5.
+ * Synthesize actionable guidance from similar cases using Claude (Anthropic).
  */
 async function synthesizeGuidance(
   currentCase: ServiceNowCaseResult,

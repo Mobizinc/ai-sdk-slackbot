@@ -407,16 +407,40 @@ The bot maintains context within both threads and direct messages, so it can fol
 
 ### Extending with New Tools
 
-The chatbot is built with an extensible architecture using the [AI SDK's tool system](https://sdk.vercel.ai/docs/ai-sdk-core/tools-and-tool-calling). You can easily add new tools such as:
+The chatbot uses a modular tool architecture with direct Anthropic SDK integration. All tools are located in `lib/agent/tools/`. You can easily add new tools such as:
 
 - Knowledge base search
 - Database queries
 - Custom API integrations
 - Company documentation search
 
-To add a new tool, extend the `tools` object in `lib/generate-response.ts` following the existing pattern.
+**To add a new tool:**
 
-You can also disable any of the existing tools by removing the tool in the `lib/ai.ts` file.
+1. Create a new file in `lib/agent/tools/your-tool.ts`
+2. Use `createTool()` from `./anthropic-tools.ts`:
+   ```typescript
+   import { createTool, type AgentToolFactoryParams } from "./shared";
+
+   export function createYourTool(params: AgentToolFactoryParams) {
+     return createTool({
+       name: "your_tool_name",
+       description: "What the tool does...",
+       input_schema: {
+         type: "object",
+         properties: { /* JSON Schema */ },
+         required: ["field1", "field2"],
+       },
+       execute: async (input) => {
+         // Tool implementation
+         return { result: "..." };
+       }
+     });
+   }
+   ```
+3. Register in `lib/agent/tools/factory.ts` by adding to `createLegacyAgentTools()`
+4. Tool automatically available to the agent orchestrator
+
+See existing tools in `lib/agent/tools/` (service-now.ts, microsoft-learn.ts, knowledge-base.ts, etc.) for examples.
 
 ## Inbound Relay API
 

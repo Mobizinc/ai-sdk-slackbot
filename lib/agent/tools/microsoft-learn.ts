@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { microsoftLearnMCP } from "../../tools/microsoft-learn-mcp";
 import { createTool, type AgentToolFactoryParams } from "./shared";
+import { extractKeyPoints, truncateToExcerpt } from "../../utils/content-helpers";
 
 export type MicrosoftLearnSearchInput = {
   query: string;
@@ -51,7 +52,8 @@ export function createMicrosoftLearnTool(params: AgentToolFactoryParams) {
           results: results.map((r) => ({
             title: r.title,
             url: r.url,
-            content: r.content,
+            key_points: extractKeyPoints(r.content, 3), // 2-3 bullets, max 80 chars each
+            excerpt: truncateToExcerpt(r.content, 150), // 150 chars
           })),
           total_found: results.length,
         };
