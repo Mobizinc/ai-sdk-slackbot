@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateResponse } from "../lib/generate-response";
+import { generateResponse } from "../lib/agent";
 import { __setToolRegistry } from "../lib/agent/tool-registry";
 import type { ChatMessage } from "../lib/agent/types";
 
