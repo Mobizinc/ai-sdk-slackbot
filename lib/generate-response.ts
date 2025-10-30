@@ -511,11 +511,11 @@ const generateResponseImpl = async (
                 };
               }
 
-              const incidentSummary = formatIncidentForLLM(incident);
+              const formatted = formatIncidentForLLM(incident);
 
               return {
-                incident,
-                incidentSummary,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
               };
             }
 
@@ -558,12 +558,11 @@ const generateResponseImpl = async (
                 }
               }
 
-              const caseSummary = formatCaseSummaryText(caseRecord, journalEntries);
+              const formatted = formatCaseSummaryText(caseRecord, journalEntries);
 
               return {
-                case: caseRecord,
-                journalEntries,
-                caseSummary,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
               };
             }
 
@@ -599,11 +598,11 @@ const generateResponseImpl = async (
                 limit: limit ?? 20,
               });
 
-              const journalSummary = formatJournalEntriesForLLM(journal, number);
+              const formatted = formatJournalEntriesForLLM(journal, number);
 
               return {
-                caseJournal: journal,
-                journalSummary,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
               };
             }
 
@@ -640,20 +639,20 @@ const generateResponseImpl = async (
                 limit,
               });
 
-              const formattedItems = formatConfigurationItemsForLLM(configurationItems);
+              const formatted = formatConfigurationItemsForLLM(configurationItems);
 
               if (!configurationItems.length) {
                 return {
-                  configurationItems: [],
-                  formattedItems,
+                  summary: formatted?.summary,
+                  rawData: formatted?.rawData,
                   notFound: true,
                   message: "No matching configuration items were found in ServiceNow.",
                 };
               }
 
               return {
-                configurationItems,
-                formattedItems,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
               };
             }
 
@@ -691,22 +690,21 @@ const generateResponseImpl = async (
               });
 
               const appliedFilters = filterParts.length > 0 ? filterParts : ['active=true'];
-              const casesSearchSummary = formatSearchResultsForLLM(cases, appliedFilters, cases.length);
+              const formatted = formatSearchResultsForLLM(cases, appliedFilters, cases.length);
 
               if (cases.length === 0) {
                 return {
-                  cases: [],
+                  summary: formatted?.summary,
+                  rawData: formatted?.rawData,
                   total: 0,
-                  casesSearchSummary,
                   message: `No cases found matching your criteria${filterDescription}.`,
                 };
               }
 
               return {
-                cases,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
                 total: cases.length,
-                filters_applied: appliedFilters,
-                casesSearchSummary,
                 message: `Found ${cases.length} case${cases.length === 1 ? '' : 's'}${filterDescription}.`,
               };
             }
@@ -755,7 +753,7 @@ const generateResponseImpl = async (
                 // Extract first sentence or short excerpt for pattern identification
                 const firstSentence = r.content.split(/[.!?]/)[0]?.trim() || "";
 
-                // Generate concise pattern summary (max 60 chars)
+                // Generate concise pattern summary (max 60 chars) for quick context
                 const pattern_summary = generatePatternSummary({
                   short_description: firstSentence,
                   category: undefined,
@@ -765,7 +763,8 @@ const generateResponseImpl = async (
                 return {
                   case_number: r.case_number,
                   similarity_score: r.score,
-                  pattern_summary,
+                  pattern_summary, // Quick context
+                  content_preview: r.content.substring(0, 300) + (r.content.length > 300 ? "..." : ""), // Full preview for deep analysis
                   created_at: r.created_at,
                 };
               }),
@@ -1069,8 +1068,8 @@ const generateResponseImpl = async (
               results: results.map((r) => ({
                 title: r.title,
                 url: r.url,
-                key_points: extractKeyPoints(r.content, 3),
-                excerpt: truncateToExcerpt(r.content, 150),
+                key_points: extractKeyPoints(r.content, 3), // Quick summary for rapid context
+                rawContent: r.content, // Full article for deep technical guidance
               })),
               total_found: results.length,
             };

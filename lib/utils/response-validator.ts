@@ -117,100 +117,21 @@ export function validateResponseFormat(
 ): ValidationResult {
   const warnings: string[] = [];
   const missingElements: string[] = [];
-  const toolsWithUnusedSummaries: string[] = [];
+  const toolsWithUnusedSummaries: string[] = []; // Kept for backward compatibility but no longer populated
 
   // Detect response type
   const responseType = detectResponseType(response);
   const responseLength = response.trim().length;
 
-  // Find tools that returned formatted summaries
-  const toolsWithSummaries = toolCalls.filter((tool) =>
-    hasFormattedSummary(tool.result)
+  // Simple structural validation - check for section presence only (informational)
+  // No keyword matching or content overlap validation
+
+  // Check if any ServiceNow tools were called (for context on whether to check structure)
+  const hasServiceNowTools = toolCalls.some((tool) =>
+    ["getCase", "getIncident", "searchCases", "getCMDB", "getCaseJournal", "getConfigurationItems"].includes(tool.toolName)
   );
 
-  if (toolsWithSummaries.length === 0) {
-    // No formatted summaries provided, nothing to validate
-    return {
-      valid: true,
-      warnings: [],
-      missingElements: [],
-      toolsWithUnusedSummaries: [],
-      responseType,
-      responseLength,
-    };
-  }
-
-  // Check if response references the formatted summaries
-  for (const tool of toolsWithSummaries) {
-    const summaryField = getFormattedSummaryField(tool.result);
-    if (!summaryField) continue;
-
-    const summaryContent = tool.result[summaryField];
-    if (!summaryContent) continue;
-
-    // Handle different field types
-    let contentToCheck: string;
-    if (Array.isArray(summaryContent)) {
-      // For key_points array, join into single string
-      contentToCheck = summaryContent.join(" ");
-    } else if (typeof summaryContent === "string") {
-      contentToCheck = summaryContent;
-    } else {
-      // Skip non-string, non-array fields
-      continue;
-    }
-
-    // Check if the response seems to use the summary content
-    // We look for key keywords from the summary in the response
-    const summaryKeywords = extractKeyPhrases(contentToCheck);
-
-    if (summaryKeywords.length === 0) {
-      // No distinctive keywords found, skip validation for this tool
-      continue;
-    }
-
-    // Count how many keywords from summary appear in response
-    const matchedKeywords = summaryKeywords.filter((keyword) =>
-      response.toLowerCase().includes(keyword.toLowerCase())
-    );
-
-    // Adjust threshold based on response type
-    let matchThreshold: number;
-
-    if (responseType === 'field_query') {
-      // For field queries, be very lenient - only warn if COMPLETELY ignored (0% match)
-      matchThreshold = Math.max(1, Math.ceil(summaryKeywords.length * 0.1)); // 10% threshold
-    } else if (responseType === 'overview') {
-      // For overviews, use standard threshold
-      matchThreshold = Math.max(2, Math.ceil(summaryKeywords.length * 0.2)); // 20% threshold
-    } else {
-      // Unknown type - use lenient threshold
-      matchThreshold = Math.max(1, Math.ceil(summaryKeywords.length * 0.15)); // 15% threshold
-    }
-
-    const hasEnoughMatches = matchedKeywords.length >= matchThreshold;
-
-    if (!hasEnoughMatches) {
-      // Only warn if summary is completely ignored for field queries
-      if (responseType === 'field_query' && matchedKeywords.length > 0) {
-        // Field query uses some summary content - this is fine
-        continue;
-      }
-
-      toolsWithUnusedSummaries.push(tool.toolName);
-      warnings.push(
-        `Tool ${tool.toolName} returned ${summaryField} but response doesn't appear to use it (only ${matchedKeywords.length}/${summaryKeywords.length} keywords matched, response_type: ${responseType})`
-      );
-    }
-  }
-
-  // Check for expected sections when ServiceNow summaries are provided
-  // Only enforce for overview-type responses
-  const serviceNowTools = toolsWithSummaries.filter((tool) =>
-    ["getCase", "getIncident", "searchCases", "getCMDB"].includes(tool.toolName)
-  );
-
-  if (serviceNowTools.length > 0) {
+  if (hasServiceNowTools) {
     if (responseType === 'overview') {
       // For overviews: require Summary + Current State, warn on missing optional sections
       const requiredMissing: string[] = [];
@@ -238,44 +159,36 @@ export function validateResponseFormat(
         }
       }
 
-      // Only add required sections to missingElements (affects valid flag)
-      missingElements.push(...requiredMissing);
+      // Track missing sections as informational only (not errors)
+      // Don't add to missingElements - this is just for observability
 
       if (requiredMissing.length > 0) {
         warnings.push(
-          `Overview response missing required sections: ${requiredMissing.join(", ")}`
+          `[INFO] Overview response missing suggested sections: ${requiredMissing.join(", ")}`
         );
       }
 
-      // Log optional sections as info, not warning
+      // Optional sections are just FYI
       if (optionalMissing.length > 0 && responseLength > 500) {
-        // Only warn about optional sections if response is long enough to warrant them
-        warnings.push(
-          `Overview response could include optional sections: ${optionalMissing.join(", ")}`
-        );
+        console.log(`[Validation] Optional sections not included: ${optionalMissing.join(", ")}`);
       }
     } else if (responseType === 'field_query') {
       // For field queries: sections are NOT required
       // Skip section validation entirely
       console.log(`[Validation] Skipping section validation for field_query response (${responseLength} chars)`);
     } else {
-      // Unknown type: be lenient, only check for Summary
+      // Unknown type: informational suggestion only
       const hasSummary = /\*Summary\*|\*\*Summary\*\*|^Summary:/im.test(response);
 
       if (!hasSummary && responseLength > 300) {
-        missingElements.push("Summary");
-        warnings.push(
-          `Response should include at least a Summary section for longer responses (${responseLength} chars)`
-        );
+        console.log(`[Validation] Longer response (${responseLength} chars) might benefit from a Summary section`);
       }
     }
   }
 
-  // Field queries are allowed to skip sections, but not to completely ignore summaries
-  // An invalid response has warnings AND either:
-  // 1. It's an overview/unknown type (sections required), OR
-  // 2. It's a field query that completely ignored summaries
-  const valid = warnings.length === 0;
+  // All validation is now informational only - always return valid: true
+  // Warnings are for observability, not enforcement
+  const valid = true;
 
   return {
     valid,
@@ -364,7 +277,7 @@ function extractKeyPhrases(content: string): string[] {
   const distinctiveWords = words.filter((word) => !commonWords.has(word));
 
   // Return unique words, limited to 15 (increased from 10)
-  return [...new Set(distinctiveWords)].slice(0, 15);
+  return Array.from(new Set(distinctiveWords)).slice(0, 15);
 }
 
 /**

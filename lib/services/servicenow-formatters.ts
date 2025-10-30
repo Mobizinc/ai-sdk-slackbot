@@ -19,13 +19,15 @@ import type {
 
 /**
  * Maximum length for individual journal entries before truncation
+ * Increased to allow more detailed context for AI reasoning
  */
-const MAX_JOURNAL_ENTRY_LENGTH = 1000;
+const MAX_JOURNAL_ENTRY_LENGTH = 8000;
 
 /**
  * Number of journal entries to show in Latest Activity sections
+ * Increased to provide richer historical context
  */
-const MAX_JOURNAL_ENTRIES = 5;
+const MAX_JOURNAL_ENTRIES = 20;
 
 // ============================================================================
 // Type Definitions
@@ -166,16 +168,17 @@ export function deduplicateJournalEntries(
 /**
  * Formats case data with journal entries into structured sections
  *
+ * Returns both a formatted summary for quick context and raw data for deep analysis.
  * Sections: Summary, Current State, Latest Activity, Context, References
  *
  * @param caseRecord - ServiceNow case record
  * @param journalEntries - Journal entries for the case
- * @returns Formatted text with sections or null if no data
+ * @returns Object with summary (formatted text) and rawData (full case + journals)
  */
 export function formatCaseSummaryText(
   caseRecord: ServiceNowCaseResult,
   journalEntries: ServiceNowCaseJournalEntry[],
-): string | null {
+): { summary: string; rawData: { case: ServiceNowCaseResult; journals: ServiceNowCaseJournalEntry[] } } | null {
   const summary = sanitizeCaseText(caseRecord.short_description);
   const state = sanitizeCaseText(caseRecord.state);
   const priority = sanitizeCaseText(caseRecord.priority);
@@ -245,20 +248,27 @@ export function formatCaseSummaryText(
     return null;
   }
 
-  return sections.join("\n\n");
+  return {
+    summary: sections.join("\n\n"),
+    rawData: {
+      case: caseRecord,
+      journals: journalEntries,
+    },
+  };
 }
 
 /**
  * Formats incident data into structured sections
  *
+ * Returns both a formatted summary for quick context and raw data for deep analysis.
  * Sections: Summary, Current State, References
  *
  * @param incident - ServiceNow incident record
- * @returns Formatted text with sections or null if no data
+ * @returns Object with summary (formatted text) and rawData (full incident)
  */
 export function formatIncidentForLLM(
   incident: ServiceNowIncidentResult,
-): string | null {
+): { summary: string; rawData: ServiceNowIncidentResult } | null {
   const summary = sanitizeCaseText(incident.short_description);
   const state = sanitizeCaseText(incident.state);
 
@@ -293,22 +303,26 @@ export function formatIncidentForLLM(
     return null;
   }
 
-  return sections.join("\n\n");
+  return {
+    summary: sections.join("\n\n"),
+    rawData: incident,
+  };
 }
 
 /**
  * Formats journal entries into structured, sanitized list
  *
+ * Returns both a formatted summary for quick context and raw entries for deep analysis.
  * Sections: Summary (count), Latest Activity (entries)
  *
  * @param entries - Array of journal entries
  * @param caseName - Optional case number/name for context
- * @returns Formatted text with sections or null if no entries
+ * @returns Object with summary (formatted text) and rawData (full entries array)
  */
 export function formatJournalEntriesForLLM(
   entries: ServiceNowCaseJournalEntry[],
   caseName?: string,
-): string | null {
+): { summary: string; rawData: ServiceNowCaseJournalEntry[] } | null {
   if (entries.length === 0) {
     return null;
   }
@@ -344,26 +358,33 @@ export function formatJournalEntriesForLLM(
     );
   }
 
-  return sections.join("\n\n");
+  return {
+    summary: sections.join("\n\n"),
+    rawData: entries,
+  };
 }
 
 /**
  * Formats case search results into structured summary with top results
  *
+ * Returns both a formatted summary for quick context and raw data for deep analysis.
  * Sections: Summary (count), Current State (filters), Latest Activity (top results), Context
  *
  * @param cases - Array of case summaries
  * @param filters - Applied filter descriptions
  * @param total - Total number of matching cases
- * @returns Formatted text with sections or null if no results
+ * @returns Object with summary (formatted text) and rawData (full cases array)
  */
 export function formatSearchResultsForLLM(
   cases: ServiceNowCaseSummary[],
   filters: string[],
   total?: number,
-): string | null {
+): { summary: string; rawData: { cases: ServiceNowCaseSummary[]; filters: string[]; total?: number } } | null {
   if (cases.length === 0) {
-    return "Summary\nNo cases found matching the search criteria.";
+    return {
+      summary: "Summary\nNo cases found matching the search criteria.",
+      rawData: { cases: [], filters, total: 0 },
+    };
   }
 
   const sections: string[] = [];
@@ -397,22 +418,29 @@ export function formatSearchResultsForLLM(
     sections.push("Context", `Showing top ${topCases.length} of ${totalText} results`);
   }
 
-  return sections.join("\n\n");
+  return {
+    summary: sections.join("\n\n"),
+    rawData: { cases, filters, total },
+  };
 }
 
 /**
  * Formats configuration items (CMDB) into structured list
  *
+ * Returns both a formatted summary for quick context and raw data for deep analysis.
  * Sections: Summary (count), Latest Activity (items with key fields), Context
  *
  * @param items - Array of configuration items
- * @returns Formatted text with sections or null if no items
+ * @returns Object with summary (formatted text) and rawData (full items array)
  */
 export function formatConfigurationItemsForLLM(
   items: ServiceNowConfigurationItem[],
-): string | null {
+): { summary: string; rawData: ServiceNowConfigurationItem[] } | null {
   if (items.length === 0) {
-    return "Summary\nNo configuration items found.";
+    return {
+      summary: "Summary\nNo configuration items found.",
+      rawData: [],
+    };
   }
 
   const sections: string[] = [];
@@ -458,5 +486,8 @@ export function formatConfigurationItemsForLLM(
     sections.push("Context", `Showing top ${topItems.length} of ${items.length} items`);
   }
 
-  return sections.join("\n\n");
+  return {
+    summary: sections.join("\n\n"),
+    rawData: items,
+  };
 }
