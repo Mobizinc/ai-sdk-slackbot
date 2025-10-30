@@ -164,16 +164,16 @@ formatUsageMetrics(usage): string
 ### Modified Files
 
 #### `lib/model-provider.ts`
-- Added priority-based provider selection
+- **Anthropic-only architecture** (AI SDK completely removed)
 - Exported `anthropic` and `anthropicModel` for direct usage
-- Maintained `modelProvider` for backwards compatibility
-- Added `getActiveProvider()` helper
+- Exported `getActiveProvider()` and `getActiveModelId()` helpers
+- **Removed:** `modelProvider`, AI Gateway, OpenAI fallbacks
 
 #### `lib/services/case-classifier.ts`
 - Added cache metrics to `CaseClassification` interface
 - Added 9 prompt building helpers (categories, instructions, examples, etc.)
 - Implemented `classifyCaseWithCaching()` method with 3 cache breakpoints
-- Updated `classifyCase()` with routing logic (Anthropic → AI Gateway → OpenAI)
+- **Uses direct Anthropic SDK** with prompt caching (no fallback routing)
 
 #### `.env.example`
 - Added Anthropic API configuration section (marked RECOMMENDED)
@@ -268,23 +268,26 @@ Cost: $0.0289
 
 ## Backwards Compatibility
 
-The migration maintains **100% backwards compatibility**:
+The migration is **100% complete** as of commit `4db7664`:
 
-✅ **Services still using AI SDK:**
-- KB article generation
-- Quality analyzer
-- Resolution summary
-- These will continue using `modelProvider` (AI Gateway or OpenAI fallback)
+✅ **All Services Use Direct Anthropic SDK:**
+- Main bot (via lib/agent/orchestrator.ts)
+- KB article generation (lib/agent/tools/knowledge-base.ts)
+- Case classification (lib/services/case-classifier.ts)
+- Intelligent assistance (lib/services/intelligent-assistant.ts)
+- All interactions traced via LangSmith wrapSDK()
 
-✅ **Gradual Migration Path:**
-- Only case classification uses Anthropic caching initially
-- Other services can migrate one-by-one
-- No breaking changes to existing code
+✅ **Single SDK Architecture:**
+- Direct Anthropic SDK (@anthropic-ai/sdk) only
+- No AI SDK dependencies
+- No fallback chains or tiered routing
+- Simplified error handling via Anthropic retry logic
 
-✅ **Fallback Chain:**
-```
-Anthropic fails → Try AI Gateway → Try OpenAI → Fallback classification
-```
+✅ **Clean Migration:**
+- Legacy lib/generate-response.ts (1,429 lines) removed
+- Modular tool system in lib/agent/tools/* (15 tools)
+- Zero AI SDK packages in dependencies
+- Complete LangSmith observability integration
 
 ## Migration Checklist
 
