@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -50,7 +50,7 @@ describe("Current Issues Tool", () => {
     (currentIssues.getCurrentIssuesService as any).mockReturnValue(mockCurrentIssuesService);
 
     // Create tools
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: [],
       options: { channelId: "C123456" },
@@ -128,7 +128,7 @@ describe("Current Issues Tool", () => {
 
   describe("Current Issues - Error Cases", () => {
     it("should return error when channelId is not available", async () => {
-      const toolsWithoutChannel = createLegacyAgentTools({
+      const toolsWithoutChannel = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         options: {},

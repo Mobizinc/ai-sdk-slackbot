@@ -2,7 +2,7 @@
  * Agent Tools Factory
  *
  * Re-exports individual tool modules and provides unified factory function.
- * This file serves as the public API for the legacy tool system.
+ * This file serves as the public API for the modular tool system.
  *
  * All tool implementations have been extracted to dedicated modules:
  * - weather.ts, web-search.ts, service-now.ts, search.ts
@@ -41,15 +41,15 @@ export type { CaseSearchInput } from "./case-search";
 export type { AgentToolFactoryParams } from "./shared";
 
 /**
- * Creates all agent tools for the legacy agent implementation.
+ * Creates all agent tools for the Anthropic orchestrator.
  *
  * This function combines all individual tool modules into a single registry
- * that maintains backward compatibility with the legacy tool system.
+ * that provides the complete tool set for the agent.
  *
  * @param params - Factory parameters including messages, case numbers, and callbacks
  * @returns Record of all available tools keyed by name
  */
-export function createLegacyAgentTools(params: AgentToolFactoryParams) {
+export function createAgentTools(params: AgentToolFactoryParams) {
   return {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
@@ -64,3 +64,8 @@ export function createLegacyAgentTools(params: AgentToolFactoryParams) {
     caseAggregation: createCaseAggregationTool(params), // NEW: Case aggregations
   };
 }
+
+/**
+ * @deprecated Use createAgentTools instead. This alias exists for backward compatibility.
+ */
+export const createLegacyAgentTools = createAgentTools;

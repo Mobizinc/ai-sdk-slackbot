@@ -1,12 +1,12 @@
-import { createLegacyAgentTools, type AgentToolFactoryParams } from "./tools/factory";
+import { createAgentTools, type AgentToolFactoryParams } from "./tools/factory";
 
 export interface ToolRegistry {
   createTools(params: AgentToolFactoryParams): Record<string, unknown>;
 }
 
-class LegacyToolRegistry implements ToolRegistry {
+class DefaultToolRegistry implements ToolRegistry {
   createTools(params: AgentToolFactoryParams): Record<string, unknown> {
-    return createLegacyAgentTools(params);
+    return createAgentTools(params);
   }
 }
 
@@ -14,7 +14,7 @@ let registry: ToolRegistry | null = null;
 
 export function getToolRegistry(): ToolRegistry {
   if (!registry) {
-    registry = new LegacyToolRegistry();
+    registry = new DefaultToolRegistry();
   }
   return registry;
 }

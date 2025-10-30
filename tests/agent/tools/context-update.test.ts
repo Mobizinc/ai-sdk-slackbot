@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -65,7 +65,7 @@ describe("Context Update Proposal Tool", () => {
     (updateManager.getContextUpdateManager as any).mockReturnValue(mockContextUpdateManager);
 
     // Create tools
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: ["SCS0001234"],
       options: {},
@@ -215,7 +215,7 @@ describe("Context Update Proposal Tool", () => {
 
   describe("Context Update - Error Cases", () => {
     it("should return error when no case number available", async () => {
-      const toolsNoCaseNumber = createLegacyAgentTools({
+      const toolsNoCaseNumber = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         options: {},

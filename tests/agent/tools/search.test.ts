@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -34,7 +34,7 @@ describe("Similar Cases Search Tool", () => {
     mockSearchSimilarCases = (azureSearch as any).__mockSearchSimilarCases;
 
     // Create tools
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: ["SCS0001234"],
       updateStatus: mockUpdateStatus,

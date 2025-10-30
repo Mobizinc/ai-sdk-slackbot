@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 describe("Weather Tool", () => {
@@ -19,7 +19,7 @@ describe("Weather Tool", () => {
     vi.clearAllMocks();
 
     // Create tools
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: [],
       updateStatus: mockUpdateStatus,

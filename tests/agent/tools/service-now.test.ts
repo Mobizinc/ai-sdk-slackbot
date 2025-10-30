@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -36,7 +36,7 @@ describe("ServiceNow Tool", () => {
 
     // Create tools with empty caseNumbers to avoid normalization conflicts
     // Individual tests will override with specific caseNumbers when testing normalization
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: [],
       updateStatus: mockUpdateStatus,
@@ -187,7 +187,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsWithCase = createLegacyAgentTools({
+      const toolsWithCase = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["SCS0046363"], // Context loader found this
         updateStatus: mockUpdateStatus,
@@ -213,7 +213,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
 
-      const toolsWithIncident = createLegacyAgentTools({
+      const toolsWithIncident = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["INC0167587"],
         updateStatus: mockUpdateStatus,
@@ -239,7 +239,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsEmpty = createLegacyAgentTools({
+      const toolsEmpty = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [], // No cases in context
         updateStatus: mockUpdateStatus,
@@ -265,7 +265,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
 
-      const toolsEmpty = createLegacyAgentTools({
+      const toolsEmpty = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         updateStatus: mockUpdateStatus,
@@ -291,7 +291,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsWithCase = createLegacyAgentTools({
+      const toolsWithCase = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["SCS0046363"],
         updateStatus: mockUpdateStatus,
