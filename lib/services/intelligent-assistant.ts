@@ -3,12 +3,11 @@
  * Inspired by mobiz-intelligence-analytics case intelligence system.
  */
 
-import { generateText, tool } from "../instrumented-ai";
 import { z } from "zod";
 import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
-import { modelProvider } from "../model-provider";
+import { getAnthropicClient, getConfiguredModel } from "../anthropic-provider";
 import { config } from "../config";
 import { generatePatternSummary } from "../utils/content-helpers";
 import {
@@ -72,14 +71,39 @@ const CaseGuidanceSchema = z.object({
   nextSteps: z.array(z.string().max(100)).min(1).max(3),
 }) as z.ZodTypeAny;
 
-const createTool = tool as unknown as (options: any) => any;
-
-const guidanceTool = createTool({
+// Anthropic tool definition
+const guidanceTool = {
+  name: "draft_case_guidance",
   description:
     "Provide actionable guidance for the analyst. Call exactly once with structured bullet points.",
-  inputSchema: CaseGuidanceSchema as z.ZodTypeAny,
-  execute: async (payload: CaseGuidancePayload) => payload,
-});
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      similarCases: {
+        type: "array" as const,
+        items: { type: "string" as const, maxLength: 120 },
+        minItems: 1,
+        maxItems: 3,
+        description: "1-3 bullet strings summarising matched cases (case number + fix)",
+      },
+      suggestions: {
+        type: "array" as const,
+        items: { type: "string" as const, maxLength: 100 },
+        minItems: 1,
+        maxItems: 4,
+        description: "2-4 tactical troubleshooting ideas (≤80 chars each)",
+      },
+      nextSteps: {
+        type: "array" as const,
+        items: { type: "string" as const, maxLength: 100 },
+        minItems: 1,
+        maxItems: 3,
+        description: "1-3 immediate follow-up actions (≤80 chars each)",
+      },
+    },
+    required: ["similarCases", "suggestions", "nextSteps"],
+  },
+};
 
 /**
  * Generate intelligent assistance message when a case is first detected.
@@ -329,24 +353,32 @@ Prioritise actionable insights only.`;
       channelPurpose
     );
 
-    const result = await generateText({
-      model: modelProvider.languageModel("intelligent-assistant"),
+    const anthropic = getAnthropicClient();
+    const model = getConfiguredModel();
+
+    const result = await anthropic.messages.create({
+      model,
+      max_tokens: 2048,
       system:
         "You are a proactive support co-pilot. ALWAYS call the `draft_case_guidance` tool exactly once with concise bullets.",
-      prompt: enhancedPrompt,
-      tools: {
-        draft_case_guidance: guidanceTool,
-      },
-      toolChoice: { type: "tool", toolName: "draft_case_guidance" },
+      messages: [
+        {
+          role: "user",
+          content: enhancedPrompt,
+        },
+      ],
+      tools: [guidanceTool],
+      tool_choice: { type: "tool", name: "draft_case_guidance" },
     });
 
-    const toolResult = result.toolResults[0];
+    // Extract tool use from response
+    const toolUseBlock = result.content.find((block) => block.type === "tool_use");
 
-    if (!toolResult || toolResult.type !== "tool-result") {
+    if (!toolUseBlock || toolUseBlock.type !== "tool_use") {
       throw new Error("Structured guidance not returned");
     }
 
-    const structured = CaseGuidanceSchema.parse(toolResult.output) as CaseGuidancePayload;
+    const structured = CaseGuidanceSchema.parse(toolUseBlock.input) as CaseGuidancePayload;
 
     return structured;
   } catch (error) {
