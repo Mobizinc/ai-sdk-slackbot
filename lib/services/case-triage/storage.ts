@@ -2,34 +2,107 @@
  * Case Triage Storage
  *
  * Database persistence operations for case triage workflow.
+ * Handles saving inbound webhooks, classification results, and discovered entities.
+ *
+ * @module case-triage/storage
+ *
+ * @example
+ * ```typescript
+ * const repository = getCaseClassificationRepository();
+ * const storage = new TriageStorage(repository);
+ *
+ * // Record inbound webhook
+ * const inboundId = await storage.recordInbound(webhook);
+ *
+ * // Save classification results
+ * await storage.saveClassification({
+ *   caseNumber: "SCS0012345",
+ *   workflowId: "standard",
+ *   classification: result,
+ *   processingTimeMs: 2500,
+ *   servicenowUpdated: true,
+ * });
+ *
+ * // Store discovered entities
+ * const entityCount = await storage.saveEntities("SCS0012345", "abc123", classification);
+ * ```
  */
 
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../../db/schema";
 import type { ServiceNowCaseWebhook } from "../../schemas/servicenow-webhook";
 import type { CaseClassification } from "../case-classifier";
 import { calculateClassificationCost } from "./scoring";
+import { ENTITY_TYPE_MAPPING, ENTITY_VALUE_MAX_LENGTH } from "./constants";
 
+/**
+ * Repository interface for case classification database operations.
+ *
+ * This interface abstracts the database layer allowing for different
+ * implementations (Drizzle ORM, raw SQL, mock for testing).
+ */
 export interface CaseClassificationRepository {
+  /** Save inbound webhook payload */
   saveInboundPayload(data: NewCaseClassificationInbound): Promise<void>;
+  /** Retrieve unprocessed payload by case number */
   getUnprocessedPayload(caseNumber: string): Promise<{ id: number } | null>;
+  /** Mark payload as processed with workflow ID */
   markPayloadAsProcessed(id: number, workflowId: string): Promise<void>;
+  /** Save classification result with metadata */
   saveClassificationResult(data: NewCaseClassificationResults): Promise<void>;
+  /** Batch save discovered entities */
   saveDiscoveredEntities(entities: NewCaseDiscoveredEntities[]): Promise<void>;
+  /** Get latest classification for a case */
   getLatestClassificationResult(caseNumber: string): Promise<any>;
+  /** Get aggregate statistics for time period */
   getClassificationStats(days: number): Promise<any>;
 }
 
 /**
  * Storage layer for case triage operations
+ *
+ * Manages persistence of:
+ * - Inbound webhook payloads (for audit trail)
+ * - Classification results (with token usage and cost)
+ * - Discovered technical entities (IP addresses, systems, users, etc.)
+ *
+ * **Error Handling:**
+ * - Storage failures are logged but don't throw
+ * - Classification can succeed even if storage fails
+ * - This ensures webhook processing is resilient
+ *
+ * **Database Schema:**
+ * - case_classification_inbound - Raw webhook payloads
+ * - case_classification_results - Classification outputs with metrics
+ * - case_discovered_entities - Technical entities extracted by LLM
  */
 export class TriageStorage {
+  /**
+   * @param repository - Database repository implementation
+   */
   constructor(private repository: CaseClassificationRepository) {}
 
   /**
-   * Record inbound webhook payload to database
+   * Record inbound webhook payload to database for audit trail
+   *
+   * Creates a record in case_classification_inbound table with the raw payload
+   * and routing context. This provides an audit trail of all webhook deliveries
+   * and enables idempotency checking.
    *
    * @param webhook - ServiceNow webhook payload
-   * @returns Inbound record ID or null if storage failed
+   * @returns Inbound record ID if successful, null if storage failed
+   *
+   * @example
+   * ```typescript
+   * const inboundId = await storage.recordInbound(webhook);
+   * if (inboundId) {
+   *   console.log(`Recorded inbound payload with ID: ${inboundId}`);
+   * }
+   * ```
+   *
+   * **Error Handling:**
+   * - Returns null on failure (doesn't throw)
+   * - Logs error but continues processing
+   * - Null return means audit trail unavailable but classification proceeds
    */
   async recordInbound(webhook: ServiceNowCaseWebhook): Promise<number | null> {
     try {
@@ -59,9 +132,49 @@ export class TriageStorage {
   }
 
   /**
-   * Store classification result to database
+   * Store classification result to database with comprehensive metadata
+   *
+   * Persists the LLM classification output along with:
+   * - Token usage (prompt, completion, total)
+   * - Cost calculation (based on token usage)
+   * - Model and provider information
+   * - Processing time metrics
+   * - Similar cases and KB articles counts
+   * - Business intelligence detection flags
+   * - Service portfolio classification (offering, application)
    *
    * @param data - Classification data with metadata
+   * @param data.caseNumber - ServiceNow case number
+   * @param data.workflowId - Workflow identifier used for classification
+   * @param data.classification - Complete LLM classification result
+   * @param data.processingTimeMs - Total processing time in milliseconds
+   * @param data.servicenowUpdated - Whether work note was written to ServiceNow
+   *
+   * @example
+   * ```typescript
+   * await storage.saveClassification({
+   *   caseNumber: "SCS0012345",
+   *   workflowId: "standard",
+   *   classification: {
+   *     category: "Network",
+   *     confidence_score: 0.92,
+   *     token_usage_input: 15000,
+   *     token_usage_output: 1200,
+   *     // ...
+   *   },
+   *   processingTimeMs: 2500,
+   *   servicenowUpdated: true,
+   * });
+   * ```
+   *
+   * **Error Handling:**
+   * - Failures are logged but don't throw
+   * - Classification success is independent of storage
+   * - entitiesCount defaults to 0 (updated later by saveEntities)
+   *
+   * **Business Intelligence Detection:**
+   * - Flags cases with project scope, executive visibility, compliance, or financial impact
+   * - Used for escalation and priority routing
    */
   async saveClassification(data: {
     caseNumber: string;
@@ -111,12 +224,49 @@ export class TriageStorage {
   }
 
   /**
-   * Store discovered entities to database
+   * Store discovered technical entities to database
    *
-   * @param caseNumber - Case number
-   * @param caseSysId - Case sys_id
-   * @param classification - Classification result with technical_entities
-   * @returns Number of entities stored
+   * Extracts technical entities from LLM classification and persists them
+   * individually for CMDB reconciliation and tracking.
+   *
+   * **Entity Types Mapped:**
+   * - `ip_addresses` → IP_ADDRESS
+   * - `systems` → SYSTEM
+   * - `users` → USER
+   * - `software` → SOFTWARE
+   * - `error_codes` → ERROR_CODE
+   * - `network_devices` → NETWORK_DEVICE
+   *
+   * @param caseNumber - ServiceNow case number
+   * @param caseSysId - ServiceNow case sys_id
+   * @param classification - Classification result with technical_entities field
+   * @returns Number of entities successfully stored
+   *
+   * @example
+   * ```typescript
+   * const classification = {
+   *   technical_entities: {
+   *     ip_addresses: ["192.168.1.100", "10.0.0.5"],
+   *     systems: ["exchange-server-01"],
+   *     error_codes: ["0x80070005"]
+   *   },
+   *   confidence_score: 0.85
+   * };
+   *
+   * const count = await storage.saveEntities("SCS0012345", "abc123", classification);
+   * // Returns: 4 (2 IPs + 1 system + 1 error code)
+   * ```
+   *
+   * **Entity Processing:**
+   * - Entities are truncated to 500 chars (DB column limit)
+   * - Unknown entity types are skipped
+   * - Non-array values are skipped
+   * - Empty lists result in 0 entities stored
+   *
+   * **Error Handling:**
+   * - Returns 0 on failure (doesn't throw)
+   * - Logs entity type counts on success
+   * - Logs errors but doesn't block classification
    */
   async saveEntities(
     caseNumber: string,
@@ -131,19 +281,10 @@ export class TriageStorage {
       const entities: NewCaseDiscoveredEntities[] = [];
 
       // Map technical_entities to individual entity records
-      const entityTypeMapping: Record<string, string> = {
-        ip_addresses: "IP_ADDRESS",
-        systems: "SYSTEM",
-        users: "USER",
-        software: "SOFTWARE",
-        error_codes: "ERROR_CODE",
-        network_devices: "NETWORK_DEVICE",
-      };
-
       for (const [entityCategory, entityList] of Object.entries(
         classification.technical_entities
       )) {
-        const entityType = entityTypeMapping[entityCategory];
+        const entityType = ENTITY_TYPE_MAPPING[entityCategory];
         if (!entityType || !Array.isArray(entityList)) {
           continue;
         }
@@ -153,7 +294,7 @@ export class TriageStorage {
             caseNumber,
             caseSysId,
             entityType,
-            entityValue: String(entityValue).substring(0, 500), // Truncate to column limit
+            entityValue: String(entityValue).substring(0, ENTITY_VALUE_MAX_LENGTH),
             confidence: classification.confidence_score || 0.5,
             status: "discovered",
             source: "llm",

@@ -2,6 +2,40 @@
  * Case Triage Constants
  *
  * Configuration values, magic numbers, and default settings for the case triage system.
+ *
+ * **Categories:**
+ * - **Timing:** Idempotency windows, cache TTLs, staleness thresholds
+ * - **Limits:** Service counts, entity value lengths
+ * - **Costs:** Token pricing for cost calculation
+ * - **Statistics:** Default values for metrics
+ * - **Mappings:** Entity type translations
+ *
+ * **Usage:**
+ * - Import specific constants as needed
+ * - Use getClassificationConfig() for runtime configuration
+ * - All timing values are well-tested in production
+ *
+ * @module case-triage/constants
+ *
+ * @example
+ * ```typescript
+ * import {
+ *   IDEMPOTENCY_WINDOW_MINUTES,
+ *   ENTITY_TYPE_MAPPING,
+ *   getClassificationConfig
+ * } from './constants';
+ *
+ * // Check if within idempotency window
+ * if (ageMinutes < IDEMPOTENCY_WINDOW_MINUTES) {
+ *   return cachedResult;
+ * }
+ *
+ * // Map entity types
+ * const dbType = ENTITY_TYPE_MAPPING['ip_addresses']; // "IP_ADDRESS"
+ *
+ * // Get full config
+ * const config = getClassificationConfig(options, globalConfig);
+ * ```
  */
 
 import type { CaseTriageOptions } from "./types";
@@ -43,6 +77,25 @@ export const DEFAULT_CACHE_HIT_RATE = 0.15;
 export const DEFAULT_STATS_DAYS = 7;
 
 /**
+ * Entity type mapping for technical entities discovered by LLM
+ *
+ * Maps from classification field names to database enum values.
+ */
+export const ENTITY_TYPE_MAPPING: Record<string, string> = {
+  ip_addresses: "IP_ADDRESS",
+  systems: "SYSTEM",
+  users: "USER",
+  software: "SOFTWARE",
+  error_codes: "ERROR_CODE",
+  network_devices: "NETWORK_DEVICE",
+};
+
+/**
+ * Maximum length for entity values (DB column limit)
+ */
+export const ENTITY_VALUE_MAX_LENGTH = 500;
+
+/**
  * Full classification configuration derived from options and global config
  */
 export interface ClassificationConfig {
@@ -59,6 +112,31 @@ export interface ClassificationConfig {
 
 /**
  * Convert partial options to full config with defaults from global config
+ *
+ * Merges user-provided options with global configuration defaults to create
+ * a complete ClassificationConfig with all feature flags resolved.
+ *
+ * **Default Behavior:**
+ * - Most features enabled by default (caching, similar cases, KB articles, etc.)
+ * - writeToServiceNow defaults to FALSE (explicit opt-in)
+ * - Catalog redirect and CMDB reconciliation use global config defaults
+ *
+ * @param options - Partial options from caller (API, webhook, agent)
+ * @param globalConfig - Global application configuration
+ * @returns Complete configuration with all flags resolved
+ *
+ * @example
+ * ```typescript
+ * // API call with custom options
+ * const config = getClassificationConfig({
+ *   writeToServiceNow: true,
+ *   maxRetries: 5
+ * }, globalConfig);
+ *
+ * // config.enableCaching = true (default)
+ * // config.writeToServiceNow = true (override)
+ * // config.maxRetries = 5 (override)
+ * ```
  */
 export function getClassificationConfig(
   options: CaseTriageOptions = {},
