@@ -46,6 +46,7 @@ export interface CaseRecord {
   short_description: ServiceNowField;
   description: ServiceNowField;
   priority: ServiceNowField;
+  impact?: ServiceNowField;
   state: ServiceNowField;
   category: ServiceNowField;
   subcategory: ServiceNowField;
@@ -57,7 +58,15 @@ export interface CaseRecord {
   caller_id: ServiceNowField;
   submitted_by: ServiceNowField;
   contact: ServiceNowField;
+  u_contact_phone?: ServiceNowField;
+  contact_phone?: ServiceNowField;
   account: ServiceNowField;
+  business_service?: ServiceNowField;
+  location?: ServiceNowField;
+  cmdb_ci?: ServiceNowField;
+  urgency?: ServiceNowField;
+  sys_domain?: ServiceNowField;
+  sys_domain_path?: ServiceNowField;
   sys_created_on?: string;
   sys_updated_on?: string;
 }
