@@ -106,7 +106,10 @@ describe("ServiceNow Tool", () => {
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0009876"); // Normalized as case first
       expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0009876"); // Then try as incident
-      expect(result).toEqual({ incident: mockIncident });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining(mockIncident),
+      });
     });
 
     it("should return not found message when case and incident both missing", async () => {
@@ -177,7 +180,16 @@ describe("ServiceNow Tool", () => {
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0007890"); // Try as incident first
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0007890"); // Fallback to case
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
+          caseData: mockCase,
+        }),
+      });
     });
   });
 

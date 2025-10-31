@@ -1,6 +1,7 @@
 import { ServiceNowIncidentWebhookSchema } from "../lib/schemas/servicenow-incident-webhook";
 import { handleIncidentUpdate } from "../lib/services/incident-sync-service";
 import { withLangSmithTrace } from "../lib/observability";
+import { parseServiceNowPayload } from "../lib/utils/servicenow-payload";
 
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 
@@ -24,28 +25,23 @@ function isAuthorized(request: Request): boolean {
   return false;
 }
 
-async function parseBody(request: Request): Promise<any> {
-  const raw = await request.text();
-  if (!raw) return {};
-
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    console.error("[IncidentWebhook] Failed to parse JSON payload", error);
-    throw error;
-  }
-}
-
 const postImpl = withLangSmithTrace(
   async (request: Request) => {
     if (!isAuthorized(request)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rawPayload = await request.text();
+
+    if (!rawPayload) {
+      return Response.json({ error: "Empty payload" }, { status: 400 });
+    }
+
     let payload: unknown;
     try {
-      payload = await parseBody(request);
+      payload = parseServiceNowPayload(rawPayload);
     } catch (error) {
+      console.error("[IncidentWebhook] Failed to parse JSON payload", error);
       return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
     }
 

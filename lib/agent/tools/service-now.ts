@@ -379,7 +379,30 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             const caseRecord = await serviceNowClient.getCase(normalizedCaseNumber, snContext);
             if (caseRecord) {
               console.log(`[ServiceNow] Found ${normalizedCaseNumber} in case table (fallback from incident)`);
-              return { case: caseRecord };
+              const formattedFallback = formatCaseSummaryText(caseRecord, []);
+              if (formattedFallback) {
+                return {
+                  summary: formattedFallback.summary,
+                  rawData: formattedFallback.rawData,
+                  _blockKitData: {
+                    type: "case_detail",
+                    caseData: caseRecord,
+                    journalEntries: [],
+                  },
+                };
+              }
+
+              return {
+                rawData: {
+                  case: caseRecord,
+                  journals: [],
+                },
+                _blockKitData: {
+                  type: "case_detail",
+                  caseData: caseRecord,
+                  journalEntries: [],
+                },
+              };
             }
 
             return {
@@ -439,7 +462,17 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             const incident = await serviceNowClient.getIncident(normalizedIncidentNumber, snContext);
             if (incident) {
               console.log(`[ServiceNow] Found ${normalizedIncidentNumber} in incident table (fallback from case)`);
-              return { incident };
+              const formattedFallback = formatIncidentForLLM(incident);
+              if (formattedFallback) {
+                return {
+                  summary: formattedFallback.summary,
+                  rawData: formattedFallback.rawData,
+                };
+              }
+
+              return {
+                rawData: incident,
+              };
             }
 
             return {

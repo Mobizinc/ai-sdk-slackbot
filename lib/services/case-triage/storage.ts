@@ -31,31 +31,14 @@
 import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../../db/schema";
 import type { ServiceNowCaseWebhook } from "../../schemas/servicenow-webhook";
 import type { CaseClassification } from "../case-classifier";
+import type { CaseClassificationRepository } from "../../db/repositories/case-classification-repository";
 import { calculateClassificationCost } from "./scoring";
 import { ENTITY_TYPE_MAPPING, ENTITY_VALUE_MAX_LENGTH } from "./constants";
 
 /**
- * Repository interface for case classification database operations.
- *
- * This interface abstracts the database layer allowing for different
- * implementations (Drizzle ORM, raw SQL, mock for testing).
+ * Re-export the repository type for external use
  */
-export interface CaseClassificationRepository {
-  /** Save inbound webhook payload */
-  saveInboundPayload(data: NewCaseClassificationInbound): Promise<void>;
-  /** Retrieve unprocessed payload by case number */
-  getUnprocessedPayload(caseNumber: string): Promise<{ id: number } | null>;
-  /** Mark payload as processed with workflow ID */
-  markPayloadAsProcessed(id: number, workflowId: string): Promise<void>;
-  /** Save classification result with metadata */
-  saveClassificationResult(data: NewCaseClassificationResults): Promise<void>;
-  /** Batch save discovered entities */
-  saveDiscoveredEntities(entities: NewCaseDiscoveredEntities[]): Promise<void>;
-  /** Get latest classification for a case */
-  getLatestClassificationResult(caseNumber: string): Promise<any>;
-  /** Get aggregate statistics for time period */
-  getClassificationStats(days: number): Promise<any>;
-}
+export type { CaseClassificationRepository };
 
 /**
  * Storage layer for case triage operations

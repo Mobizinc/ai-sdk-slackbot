@@ -50,7 +50,7 @@
 import type { CaseTriageResult, CacheResult, CacheKey } from "./types";
 import type { SimilarCaseResult } from "../../schemas/servicenow-webhook";
 import type { KBArticle } from "../kb-article-search";
-import type { CaseClassificationRepository } from "./storage";
+import type { CaseClassificationRepository } from "../../db/repositories/case-classification-repository";
 
 /**
  * Two-layer cache for case triage operations
