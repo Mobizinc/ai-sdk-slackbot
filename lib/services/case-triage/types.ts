@@ -4,7 +4,9 @@
  * Shared type definitions for the case triage modular system.
  */
 
-import type { CaseClassificationResult, SimilarCaseResult, KBArticleResult } from "../case-classifier";
+import type { CaseClassification } from "../case-classifier";
+import type { SimilarCaseResult } from "../../schemas/servicenow-webhook";
+import type { KBArticle } from "../kb-article-search";
 
 export interface CaseTriageOptions {
   /**
@@ -65,9 +67,9 @@ export interface CaseTriageResult {
   caseNumber: string;
   caseSysId: string;
   workflowId: string;
-  classification: CaseClassificationResult;
+  classification: CaseClassification;
   similarCases: SimilarCaseResult[];
-  kbArticles: KBArticleResult[];
+  kbArticles: KBArticle[];
   servicenowUpdated: boolean;
   updateError?: string;
   processingTimeMs: number;
@@ -118,7 +120,7 @@ export interface CacheKey {
  * Classification execution result
  */
 export interface ClassificationExecutionResult {
-  classification: CaseClassificationResult;
+  classification: CaseClassification;
   attemptCount: number;
   totalTimeMs: number;
 }

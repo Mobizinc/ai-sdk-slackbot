@@ -4,7 +4,7 @@
  * Work note generation and formatting utilities for case triage operations.
  */
 
-import type { CaseClassificationResult } from "../case-classifier";
+import type { CaseClassification } from "../case-classifier";
 import type { RecordCreationResult } from "./types";
 
 // Re-export main work note formatter
@@ -23,7 +23,7 @@ export function formatIncidentWorkNote(
   incidentNumber: string,
   incidentUrl: string,
   suggestion: { is_major_incident: boolean; reasoning: string },
-  classification: CaseClassificationResult
+  classification: CaseClassification
 ): string {
   return (
     `🚨 ${suggestion.is_major_incident ? 'MAJOR ' : ''}INCIDENT CREATED\n\n` +
@@ -49,7 +49,7 @@ export function formatProblemWorkNote(
   problemNumber: string,
   problemUrl: string,
   suggestion: { reasoning: string },
-  classification: CaseClassificationResult
+  classification: CaseClassification
 ): string {
   return (
     `🔍 PROBLEM CREATED\n\n` +
