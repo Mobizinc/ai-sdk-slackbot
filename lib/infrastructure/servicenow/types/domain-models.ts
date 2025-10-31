@@ -14,6 +14,7 @@ export interface Case {
   shortDescription: string;
   description?: string;
   priority?: string;
+  impact?: string;
   state?: string;
   category?: string;
   subcategory?: string;
@@ -31,9 +32,17 @@ export interface Case {
   submittedBy?: string;
   contact?: string;
   contactName?: string;
+  contactPhone?: string;
   account?: string;
   accountName?: string;
   company?: string;
+  companyName?: string;
+  businessService?: string;
+  location?: string;
+  cmdbCi?: string;
+  urgency?: string;
+  sysDomain?: string;
+  sysDomainPath?: string;
   url: string;
 }
 
@@ -208,6 +217,7 @@ export interface CreateIncidentInput {
   subcategory?: string;
   urgency?: string;
   priority?: string;
+  impact?: string;
   assignmentGroup?: string;
   assignedTo?: string;
   // Company/Account context (prevents orphaned incidents)
@@ -221,6 +231,9 @@ export interface CreateIncidentInput {
   openedBy?: string;
   // Technical context
   cmdbCi?: string;
+  // Enriched context
+  workNotes?: string;
+  customerNotes?: string;
   // Multi-tenancy / Domain separation
   sysDomain?: string;
   sysDomainPath?: string;

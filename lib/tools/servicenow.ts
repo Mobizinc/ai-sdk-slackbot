@@ -170,6 +170,46 @@ function extractReferenceSysId(field: any): string | undefined {
   return undefined;
 }
 
+function sanitizeText(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?p>/gi, "\n")
+    .replace(/<\/?[^>]+>/g, " ")
+    .replace(/\r?\n+/g, "\n")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.length ? cleaned : undefined;
+}
+
+function formatJournalEntries(entries: ServiceNowCaseJournalEntry[], limit = 5): string | undefined {
+  if (!entries.length) {
+    return undefined;
+  }
+
+  const lines: string[] = [];
+  for (const entry of entries.slice(0, limit)) {
+    const sanitized = sanitizeText(entry.value) ?? "(no content)";
+    let when = "recent";
+    if (entry.sys_created_on) {
+      const date = new Date(entry.sys_created_on);
+      if (!Number.isNaN(date.getTime())) {
+        when = date.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+      }
+    }
+    const author = entry.sys_created_by || "unknown";
+    lines.push(`• ${when} – ${author}: ${sanitized}`);
+  }
+
+  return lines.join("\n");
+}
+
 function normalizeIpAddresses(field: any): string[] {
   if (!field) return [];
   if (Array.isArray(field)) {
@@ -239,18 +279,32 @@ export interface ServiceNowCaseResult {
   short_description?: string;
   description?: string;
   priority?: string;
+  impact?: string;
   state?: string;
   category?: string;
   subcategory?: string;
   opened_at?: string;
   assignment_group?: string;
+  assignment_group_sys_id?: string;
   assigned_to?: string;
+  assigned_to_sys_id?: string;
   opened_by?: string;
+  opened_by_sys_id?: string;
   caller_id?: string;
+  caller_id_sys_id?: string;
   submitted_by?: string;
   contact?: string; // Reference to customer_contact table (sys_id)
+  contact_phone?: string;
+  contact_type?: string;
   account?: string; // Reference to customer_account table (sys_id)
   company?: string; // Reference to customer_account/company table (sys_id)
+  company_name?: string;
+  business_service?: string;
+  location?: string;
+  cmdb_ci?: string;
+  urgency?: string;
+  sys_domain?: string;
+  sys_domain_path?: string;
   url?: string;
 }
 
@@ -448,21 +502,34 @@ export class ServiceNowClient {
       short_description: case_.shortDescription,
       description: case_.description,
       priority: case_.priority,
+      impact: case_.impact,
       state: case_.state,
       category: case_.category,
       subcategory: case_.subcategory,
       opened_at: openedAtIso,
       assignment_group: case_.assignmentGroup,
+      assignment_group_sys_id: case_.assignmentGroupSysId,
       assigned_to: case_.assignedTo,
+      assigned_to_sys_id: case_.assignedToSysId,
       opened_by: case_.openedBy,
+      opened_by_sys_id: case_.openedBySysId,
       caller_id: case_.callerId,
+      caller_id_sys_id: case_.callerIdSysId,
       submitted_by: case_.submittedBy,
       contact: case_.contact,
-    account: case_.account,
-    company: case_.company,
-    url: case_.url,
-  };
-}
+      contact_phone: case_.contactPhone,
+      account: case_.account,
+      company: case_.company,
+      company_name: case_.companyName,
+      business_service: case_.businessService,
+      location: case_.location,
+      cmdb_ci: case_.cmdbCi,
+      urgency: case_.urgency,
+      sys_domain: case_.sysDomain,
+      sys_domain_path: case_.sysDomainPath,
+      url: case_.url,
+    };
+  }
 
   /**
    * Convert new Incident domain model to legacy ServiceNowIncidentResult format
@@ -676,6 +743,105 @@ export class ServiceNowClient {
     return result;
   }
 
+  public async getIncidentsByParent(
+    parentSysId: string,
+    options: { includeResolved?: boolean; includeClosed?: boolean } = {},
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowIncidentSummary[]> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getIncidentsByParent using ${useNewPath ? "NEW" : "OLD"} path`, {
+      parentSysId,
+      includeResolved: options.includeResolved,
+      includeClosed: options.includeClosed,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const incidentRepo = this.getIncidentRepo();
+        const incidents = await incidentRepo.findByParent(parentSysId);
+        let summaries = incidents.map((incident) => this.incidentToLegacySummaryFormat(incident));
+
+        if (!options.includeResolved) {
+          summaries = summaries.filter((incident) => incident.state !== "6" && incident.state?.toLowerCase() !== "resolved");
+        }
+
+        if (!options.includeClosed) {
+          summaries = summaries.filter((incident) => incident.state !== "7" && incident.state?.toLowerCase() !== "closed");
+        }
+
+        return summaries;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          parentSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const queryParts = [`parent=${parentSysId}`];
+    if (!options.includeResolved && !options.includeClosed) {
+      queryParts.push("stateNOT IN6,7");
+    } else {
+      if (!options.includeResolved) {
+        queryParts.push("state!=6");
+      }
+      if (!options.includeClosed) {
+        queryParts.push("state!=7");
+      }
+    }
+
+    const query = queryParts.join("^");
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "state",
+      "resolved_at",
+      "close_code",
+      "parent",
+    ];
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/incident?sysparm_query=${encodeURIComponent(query)}&sysparm_fields=${fields.join(
+        ",",
+      )}&sysparm_display_value=all`,
+    );
+
+    const incidents = (data.result ?? []).map((record) => {
+      const sysId = extractDisplayValue(record.sys_id);
+      return {
+        sys_id: sysId,
+        number: extractDisplayValue(record.number),
+        short_description: extractDisplayValue(record.short_description) || undefined,
+        state: extractDisplayValue(record.state) || undefined,
+        resolved_at: extractDisplayValue(record.resolved_at) || undefined,
+        close_code: extractDisplayValue(record.close_code) || undefined,
+        parent: extractDisplayValue(record.parent) || undefined,
+        url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`,
+      } satisfies ServiceNowIncidentSummary;
+    });
+
+    return incidents.filter((incident) => {
+      if (!options.includeResolved && (incident.state === "6" || incident.state?.toLowerCase() === "resolved")) {
+        return false;
+      }
+      if (!options.includeClosed && (incident.state === "7" || incident.state?.toLowerCase() === "closed")) {
+        return false;
+      }
+      return true;
+    });
+  }
+
   public async searchKnowledge(
     input: ServiceNowKnowledgeSearchInput,
     context?: ServiceNowContext,
@@ -831,18 +997,30 @@ export class ServiceNowClient {
       short_description: extractDisplayValue(raw.short_description),
       description: extractDisplayValue(raw.description),
       priority: extractDisplayValue(raw.priority),
+      impact: extractDisplayValue(raw.impact),
+      urgency: extractDisplayValue(raw.urgency),
       state: extractDisplayValue(raw.state),
       category: extractDisplayValue(raw.category),
       subcategory: extractDisplayValue(raw.subcategory),
       opened_at: extractDisplayValue(raw.opened_at),
       assignment_group: extractDisplayValue(raw.assignment_group),
+      assignment_group_sys_id: extractReferenceSysId(raw.assignment_group),
       assigned_to: extractDisplayValue(raw.assigned_to),
+      assigned_to_sys_id: extractReferenceSysId(raw.assigned_to),
       opened_by: openedBy,
+      opened_by_sys_id: extractReferenceSysId(raw.opened_by),
       caller_id: callerId,
+      caller_id_sys_id: extractReferenceSysId(raw.caller_id),
       submitted_by: extractDisplayValue(raw.submitted_by) || openedBy || callerId || undefined,
       contact: extractReferenceSysId(raw.contact),
+      contact_phone: extractDisplayValue(raw.u_contact_phone || raw.contact_phone),
+      contact_type: extractDisplayValue(raw.contact_type),
       account: extractReferenceSysId(raw.account),
       company: extractReferenceSysId(raw.company),
+      company_name: extractDisplayValue(raw.company),
+      business_service: extractReferenceSysId(raw.business_service),
+      location: extractReferenceSysId(raw.location),
+      cmdb_ci: extractReferenceSysId(raw.cmdb_ci),
       url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
     };
 
@@ -925,18 +1103,32 @@ export class ServiceNowClient {
       short_description: extractDisplayValue(raw.short_description),
       description: extractDisplayValue(raw.description),
       priority: extractDisplayValue(raw.priority),
+      impact: extractDisplayValue(raw.impact),
+      urgency: extractDisplayValue(raw.urgency),
       state: extractDisplayValue(raw.state),
       category: extractDisplayValue(raw.category),
       subcategory: extractDisplayValue(raw.subcategory),
       opened_at: extractDisplayValue(raw.opened_at),
       assignment_group: extractDisplayValue(raw.assignment_group),
+      assignment_group_sys_id: extractReferenceSysId(raw.assignment_group),
       assigned_to: extractDisplayValue(raw.assigned_to),
+      assigned_to_sys_id: extractReferenceSysId(raw.assigned_to),
       opened_by: extractDisplayValue(raw.opened_by),
+      opened_by_sys_id: extractReferenceSysId(raw.opened_by),
       caller_id: extractDisplayValue(raw.caller_id),
+      caller_id_sys_id: extractReferenceSysId(raw.caller_id),
       submitted_by: extractDisplayValue(raw.submitted_by),
       contact: extractReferenceSysId(raw.contact), // Extract contact sys_id
+      contact_phone: extractDisplayValue(raw.u_contact_phone || raw.contact_phone),
+      contact_type: extractDisplayValue(raw.contact_type),
       account: extractReferenceSysId(raw.account), // Extract account sys_id
       company: extractReferenceSysId(raw.company),
+      company_name: extractDisplayValue(raw.company),
+      business_service: extractReferenceSysId(raw.business_service),
+      location: extractReferenceSysId(raw.location),
+      cmdb_ci: extractReferenceSysId(raw.cmdb_ci),
+      sys_domain: extractReferenceSysId(raw.sys_domain),
+      sys_domain_path: extractDisplayValue(raw.sys_domain_path),
       url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
         raw.sys_id,
       )}`,
@@ -1672,6 +1864,32 @@ export class ServiceNowClient {
     console.log(`[ServiceNow] OLD path: Successfully closed incident`, { incidentSysId });
   }
 
+  private async getIncidentSourceContext(
+    caseSysId: string,
+    context?: ServiceNowContext,
+  ): Promise<{
+    caseRecord: ServiceNowCaseResult | null;
+    journalEntries: ServiceNowCaseJournalEntry[];
+  }> {
+    try {
+      const [caseRecord, journalEntries] = await Promise.all([
+        this.getCaseBySysId(caseSysId, context),
+        this.getCaseJournal(caseSysId, { limit: 5 }, context),
+      ]);
+
+      return {
+        caseRecord,
+        journalEntries: journalEntries ?? [],
+      };
+    } catch (error) {
+      console.error("[ServiceNow] Failed to gather incident source context:", error);
+      return {
+        caseRecord: null,
+        journalEntries: [],
+      };
+    }
+  }
+
   /**
    * Create Incident from Case
    * Implements ITSM best practice: service disruptions become Incident records
@@ -1688,6 +1906,7 @@ export class ServiceNowClient {
       description?: string;
       urgency?: string;
       priority?: string;
+      impact?: string;
       callerId?: string;
       assignmentGroup?: string;
       assignedTo?: string;
@@ -1729,6 +1948,84 @@ export class ServiceNowClient {
       channelId: context?.channelId,
     });
 
+    const { caseRecord, journalEntries } = await this.getIncidentSourceContext(
+      input.caseSysId,
+      context,
+    );
+
+    const assignmentGroupId =
+      input.assignmentGroup ?? caseRecord?.assignment_group_sys_id ?? undefined;
+    const assignmentGroupName = caseRecord?.assignment_group;
+    const assignedToId = input.assignedTo ?? caseRecord?.assigned_to_sys_id ?? undefined;
+    const assignedToName = caseRecord?.assigned_to;
+    const callerId =
+      input.callerId ??
+      caseRecord?.caller_id_sys_id ??
+      caseRecord?.caller_id ??
+      undefined;
+    const urgency = input.urgency ?? caseRecord?.urgency;
+    const impact = input.impact ?? caseRecord?.impact;
+    const priority = input.priority ?? caseRecord?.priority;
+    const businessService = input.businessService ?? caseRecord?.business_service;
+    const location = input.location ?? caseRecord?.location;
+    const cmdbCi = input.cmdbCi ?? caseRecord?.cmdb_ci;
+    const company = input.company ?? caseRecord?.company;
+    const account = input.account ?? caseRecord?.account;
+    const contact = input.contact ?? caseRecord?.contact;
+    const contactType = input.contactType ?? caseRecord?.contact_type;
+    const openedBy =
+      input.openedBy ??
+      caseRecord?.opened_by_sys_id ??
+      caseRecord?.opened_by ??
+      undefined;
+
+    const shortDescription =
+      sanitizeText(caseRecord?.short_description) ??
+      sanitizeText(input.shortDescription) ??
+      input.shortDescription;
+    const detailedDescription =
+      sanitizeText(caseRecord?.description ?? input.description) ?? shortDescription;
+
+    const journalSummary = formatJournalEntries(journalEntries);
+
+    const workNoteSections: string[] = [
+      `Incident automatically created from Case ${input.caseNumber}.`,
+    ];
+
+    if (shortDescription) {
+      workNoteSections.push(`Case Summary: ${shortDescription}`);
+    }
+
+    if (detailedDescription && detailedDescription !== shortDescription) {
+      workNoteSections.push(`Case Description: ${detailedDescription}`);
+    }
+
+    const assignmentDetails: string[] = [];
+    if (assignmentGroupName) assignmentDetails.push(`Group: ${assignmentGroupName}`);
+    if (assignedToName) assignmentDetails.push(`Assigned To: ${assignedToName}`);
+    if (assignmentDetails.length) {
+      workNoteSections.push(`Assignment: ${assignmentDetails.join(" | ")}`);
+    }
+
+    const priorityDetails: string[] = [];
+    if (priority) priorityDetails.push(`Priority ${priority}`);
+    if (urgency) priorityDetails.push(`Urgency ${urgency}`);
+    if (impact) priorityDetails.push(`Impact ${impact}`);
+    if (priorityDetails.length) {
+      workNoteSections.push(priorityDetails.join(" • "));
+    }
+
+    if (caseRecord?.company_name) {
+      workNoteSections.push(`Customer: ${caseRecord.company_name}`);
+    }
+
+    if (journalSummary) {
+      workNoteSections.push(`Recent Case Activity:\n${journalSummary}`);
+    }
+
+    const workNotes = workNoteSections.join("\n\n");
+    const customerFacingNotes = `We converted case ${input.caseNumber} into an incident for deeper investigation. We'll continue to post updates here.`;
+
     if (useNewPath) {
       // NEW PATH: Use repository pattern
       try {
@@ -1736,26 +2033,29 @@ export class ServiceNowClient {
 
         // Map input to CreateIncidentInput
         const incidentInput: any = {
-          shortDescription: input.shortDescription,
-          description: input.description,
-          caller: input.callerId,
-          category: input.category,
-          subcategory: input.subcategory,
-          urgency: input.urgency,
-          priority: input.priority,
-          assignmentGroup: input.assignmentGroup,
-          assignedTo: input.assignedTo,
-          company: input.company,
-          account: input.account,
-          businessService: input.businessService,
-          location: input.location,
-          contact: input.contact,
-          contactType: input.contactType,
-          openedBy: input.openedBy,
-          cmdbCi: input.cmdbCi,
-          sysDomain: input.sysDomain,
-          sysDomainPath: input.sysDomainPath,
+          shortDescription,
+          description: detailedDescription,
+          caller: callerId,
+          category: input.category ?? caseRecord?.category,
+          subcategory: input.subcategory ?? caseRecord?.subcategory,
+          urgency,
+          priority,
+          impact,
+          assignmentGroup: assignmentGroupId,
+          assignedTo: assignedToId,
+          company,
+          account,
+          businessService,
+          location,
+          contact,
+          contactType,
+          openedBy,
+          cmdbCi,
+          sysDomain: input.sysDomain ?? caseRecord?.sys_domain,
+          sysDomainPath: input.sysDomainPath ?? caseRecord?.sys_domain_path,
           isMajorIncident: input.isMajorIncident,
+          workNotes,
+          customerNotes: customerFacingNotes,
         };
 
         const incident = await caseRepo.createIncidentFromCase(input.caseSysId, incidentInput);
@@ -1790,59 +2090,57 @@ export class ServiceNowClient {
 
     // Build incident payload
     const payload: Record<string, any> = {
-      short_description: input.shortDescription,
-      description: input.description || input.shortDescription,
-      urgency: input.urgency || "3", // Default to medium urgency
-      priority: input.priority || "3", // Default to medium priority
-      caller_id: input.callerId,
-      assignment_group: input.assignmentGroup,
+      short_description: shortDescription,
+      description: detailedDescription,
+      urgency: urgency || "3", // Default to medium urgency
+      impact: impact,
+      priority: priority || "3", // Default to medium priority
+      caller_id: callerId,
+      assignment_group: assignmentGroupId,
+      assigned_to: assignedToId,
       // Link to parent Case
       parent: input.caseSysId,
-      // Add work notes documenting source
-      work_notes: `Automatically created from Case ${input.caseNumber} via AI triage system. ITSM record type classification determined this is a service disruption requiring incident management.`,
+      // Add work notes documenting source and recent activity
+      work_notes: workNotes,
+      comments: customerFacingNotes,
     };
 
     // Only set category/subcategory if provided (avoid sending undefined which can clear fields)
-    if (input.category) {
-      payload.category = input.category;
+    if (input.category || caseRecord?.category) {
+      payload.category = input.category ?? caseRecord?.category;
     }
-    if (input.subcategory) {
-      payload.subcategory = input.subcategory;
-    }
-
-    // Add assigned_to if provided (user explicitly assigned to case)
-    if (input.assignedTo) {
-      payload.assigned_to = input.assignedTo;
+    if (input.subcategory || caseRecord?.subcategory) {
+      payload.subcategory = input.subcategory ?? caseRecord?.subcategory;
     }
 
     // Add company/account context (prevents orphaned incidents)
-    if (input.company) {
-      payload.company = input.company;
+    if (company) {
+      payload.company = company;
     }
-    if (input.account) {
-      payload.account = input.account;
+    if (account) {
+      payload.account = account;
     }
-    if (input.businessService) {
-      payload.business_service = input.businessService;
+    if (businessService) {
+      payload.business_service = businessService;
     }
-    if (input.location) {
-      payload.location = input.location;
+    if (location) {
+      payload.location = location;
     }
 
     // Add contact information
-    if (input.contact) {
-      payload.contact = input.contact;
+    if (contact) {
+      payload.contact = contact;
     }
-    if (input.contactType) {
-      payload.contact_type = input.contactType;
+    if (contactType) {
+      payload.contact_type = contactType;
     }
-    if (input.openedBy) {
-      payload.opened_by = input.openedBy;
+    if (openedBy) {
+      payload.opened_by = openedBy;
     }
 
     // Add technical context
-    if (input.cmdbCi) {
-      payload.cmdb_ci = input.cmdbCi;
+    if (cmdbCi) {
+      payload.cmdb_ci = cmdbCi;
     }
 
     // Add multi-tenancy / domain separation

@@ -454,11 +454,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             const extractedSysId = extractReference(caseRecord.sys_id);
             if (extractedSysId) {
               updateStatus?.(`is fetching recent activity for case ${normalizedNumber}...`);
-              journalEntries = await serviceNowClient.getCaseJournal(
+              journalEntries = (await serviceNowClient.getCaseJournal(
                 extractedSysId,
                 { limit: 20 }, // Fetch latest 20 for rich context (increased from 5)
                 snContext,
-              );
+              )) ?? [];
               console.log(`[ServiceNow Tool] Fetched ${journalEntries.length} journal entries for context`);
             }
           } catch (error) {
@@ -545,11 +545,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           const journalReference = normalizedJournalNumber ?? number ?? caseSysId;
           updateStatus?.(`is fetching journal entries for ${journalReference}...`);
 
-          const journal = await serviceNowClient.getCaseJournal(
+          const journal = (await serviceNowClient.getCaseJournal(
             sysId!,
             { limit: limit ?? 20 },
             snContext,
-          );
+          )) ?? [];
 
           // Use shared formatter for consistent formatting
           const formatted = formatJournalEntriesForLLM(journal, journalReference);
@@ -592,7 +592,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is searching configuration items...`);
 
-          const results = await serviceNowClient.searchConfigurationItems(
+          const results = (await serviceNowClient.searchConfigurationItems(
             {
               name: ciName,
               ipAddress,
@@ -600,7 +600,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               limit: limit ?? 10,
             },
             snContext,
-          );
+          )) ?? [];
 
           const formatted = formatConfigurationItemsForLLM(results);
 
@@ -631,7 +631,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             sortOrder,
           };
 
-          const results = await serviceNowClient.searchCustomerCases(filters, snContext);
+          const results = (await serviceNowClient.searchCustomerCases(filters, snContext)) ?? [];
 
           // Build filter descriptions for formatter
           const appliedFilters: string[] = [];
