@@ -1,0 +1,135 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ServiceNow Formatter Snapshots > Data Truncation > should limit number of journal entries displayed 1`] = `
+"Summary
+
+20 journal entries
+
+Latest Activity
+
+• Oct 28, 15:00 – user: Entry 1
+• Oct 28, 14:00 – user: Entry 2
+• Oct 28, 13:00 – user: Entry 3
+• Oct 28, 12:00 – user: Entry 4
+• Oct 28, 11:00 – user: Entry 5
+
+Context
+
+Showing 5 of 20 entries"
+`;
+
+exports[`ServiceNow Formatter Snapshots > Data Truncation > should truncate very long descriptions 1`] = `
+"Summary
+
+Test case with long description
+
+Current State
+
+Status: New | Priority: 3
+
+Context
+
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+References
+
+• SCS0000001"
+`;
+
+exports[`ServiceNow Formatter Snapshots > Edge Cases > should handle missing optional fields gracefully 1`] = `
+"Summary
+
+Test
+
+Current State
+
+Status: New
+
+References
+
+• SCS0000001"
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatCaseSummaryText > should match snapshot for complete case with journal entries 1`] = `
+"Summary
+
+Email server down affecting Finance department
+
+Current State
+
+Status: Open | Priority: 1 | Assigned: John Smith
+
+Latest Activity
+
+• Oct 28, 15:30 – jsmith: Escalated to Microsoft Support - Ticket #MS-12345
+• Oct 28, 15:15 – jsmith: Checked Azure Service Health dashboard - no outages reported
+• Oct 28, 14:45 – jsmith: Monitoring email flow after service restart
+
+Context
+
+Users in Finance reporting they cannot send or receive emails since 2pm. Impact: 50 users.
+
+References
+
+• SCS0012345"
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatCaseSummaryText > should match snapshot for minimal case 1`] = `
+"Summary
+
+Test case
+
+Current State
+
+Status: New | Priority: 4
+
+References
+
+• SCS0099999"
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatIncidentForLLM > should match snapshot for incident 1`] = `
+"Summary
+
+SharePoint site access denied - 403 Forbidden
+
+Current State
+
+Status: In Progress
+
+References
+
+• INC0045678"
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatJournalEntriesForLLM > should match snapshot for journal entries 1`] = `
+"Summary
+
+3 journal entries for SCS0012345
+
+Latest Activity
+
+• Oct 28, 15:30 – jsmith: Escalated to Microsoft Support
+• Oct 28, 15:15 – jsmith: Checked Azure Service Health - no outages
+• Oct 28, 14:45 – jsmith: Restarted Exchange service"
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatSearchResultsForLLM > should match snapshot for empty search results 1`] = `
+"Summary
+No cases found matching the search criteria."
+`;
+
+exports[`ServiceNow Formatter Snapshots > formatSearchResultsForLLM > should match snapshot for search results 1`] = `
+"Summary
+
+Found 2 cases
+
+Current State
+
+Filters: email, server
+
+Latest Activity
+
+• SCS0012340: Email connectivity issue [P1] (Resolved)
+• SCS0012335: Exchange server timeout [P2] (Resolved)"
+`;

@@ -1,6 +1,6 @@
 import type { AppMentionEvent } from "./slack-event-types";
 import { getSlackMessagingService } from "./services/slack-messaging";
-import { generateResponse } from "./generate-response";
+import { generateResponse } from "./agent";
 import { getContextManager } from "./context-manager";
 import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";

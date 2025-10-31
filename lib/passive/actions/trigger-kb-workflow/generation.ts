@@ -4,6 +4,7 @@ import { getKBApprovalManager } from "../../../handle-kb-approval";
 import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
 import { formatAbandonmentMessage } from "../../../services/interactive-kb-assistant";
 import type { TriggerKBWorkflowDeps } from "./deps";
+import { getLoadingIndicator } from "../../../utils/loading-indicator";
 
 export async function generateAndPostKB(
   deps: TriggerKBWorkflowDeps,
@@ -17,25 +18,57 @@ export async function generateAndPostKB(
 ) {
   const { caseNumber, channelId, threadTs, context, caseDetails } = params;
   const kbGenerator = getKBGenerator();
-  const result = await kbGenerator.generateArticle(context, caseDetails);
+  const loadingIndicator = getLoadingIndicator();
+  let loadingMessageTs: string | undefined;
 
-  if (result.isDuplicate) {
-    await handleDuplicateKB(deps, caseNumber, channelId, threadTs, result);
-    return;
+  try {
+    loadingMessageTs = await loadingIndicator.postLoadingMessage(
+      channelId,
+      threadTs,
+      "kb_generation",
+    );
+
+    const result = await kbGenerator.generateArticle(context, caseDetails);
+
+    if (result.isDuplicate) {
+      if (loadingMessageTs) {
+        await loadingIndicator.updateToSuccess(
+          loadingMessageTs,
+          "Similar KB article already exists",
+        );
+      }
+      await handleDuplicateKB(deps, caseNumber, channelId, threadTs, result);
+      return;
+    }
+
+    const message = buildKBApprovalMessage(caseNumber, result.article, result.confidence);
+
+    const kbApprovalManager = getKBApprovalManager();
+    await kbApprovalManager.postForApproval(
+      caseNumber,
+      channelId,
+      threadTs,
+      result.article,
+      message,
+    );
+
+    if (loadingMessageTs) {
+      await loadingIndicator.updateToSuccess(
+        loadingMessageTs,
+        `KB article generated with ${result.confidence}% confidence`,
+      );
+    }
+
+    getKBStateMachine().setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
+  } catch (error) {
+    if (loadingMessageTs) {
+      await loadingIndicator.updateToError(
+        loadingMessageTs,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+    throw error;
   }
-
-  const message = buildKBApprovalMessage(caseNumber, result.article, result.confidence);
-
-  const kbApprovalManager = getKBApprovalManager();
-  await kbApprovalManager.postForApproval(
-    caseNumber,
-    channelId,
-    threadTs,
-    result.article,
-    message,
-  );
-
-  getKBStateMachine().setState(caseNumber, threadTs, KBState.PENDING_APPROVAL);
 }
 
 async function handleDuplicateKB(

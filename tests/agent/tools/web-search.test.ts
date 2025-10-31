@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -29,7 +29,7 @@ describe("Web Search Tool", () => {
     (utils as any).exa = mockExa;
 
     // Create tools
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: [],
       updateStatus: mockUpdateStatus,
@@ -179,7 +179,7 @@ describe("Web Search Tool", () => {
       const utils = await import("../../../lib/utils");
       (utils as any).exa = null;
 
-      const toolsWithoutExa = createLegacyAgentTools({
+      const toolsWithoutExa = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         updateStatus: mockUpdateStatus,
@@ -198,7 +198,7 @@ describe("Web Search Tool", () => {
       const utils = await import("../../../lib/utils");
       (utils as any).exa = undefined;
 
-      const toolsWithoutExa = createLegacyAgentTools({
+      const toolsWithoutExa = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         updateStatus: mockUpdateStatus,

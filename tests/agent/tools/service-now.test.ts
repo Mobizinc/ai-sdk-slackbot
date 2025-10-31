@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createLegacyAgentTools } from "../../../lib/agent/tools/factory";
+import { createAgentTools } from "../../../lib/agent/tools/factory";
 import type { ChatMessage } from "../../../lib/agent/types";
 
 // Mock dependencies
@@ -29,14 +29,14 @@ describe("ServiceNow Tool", () => {
     mockServiceNowClient.isConfigured = vi.fn().mockReturnValue(true);
     mockServiceNowClient.getCase = vi.fn();
     mockServiceNowClient.getIncident = vi.fn();
-    mockServiceNowClient.getCaseJournal = vi.fn();
+    mockServiceNowClient.getCaseJournal = vi.fn().mockResolvedValue([]);
     mockServiceNowClient.searchKnowledge = vi.fn();
-    mockServiceNowClient.searchConfigurationItems = vi.fn();
-    mockServiceNowClient.searchCustomerCases = vi.fn();
+    mockServiceNowClient.searchConfigurationItems = vi.fn().mockResolvedValue([]);
+    mockServiceNowClient.searchCustomerCases = vi.fn().mockResolvedValue([]);
 
     // Create tools with empty caseNumbers to avoid normalization conflicts
     // Individual tests will override with specific caseNumbers when testing normalization
-    tools = createLegacyAgentTools({
+    tools = createAgentTools({
       messages: createMockMessages(),
       caseNumbers: [],
       updateStatus: mockUpdateStatus,
@@ -80,7 +80,11 @@ describe("ServiceNow Tool", () => {
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         "is looking up case SCS0001234 in ServiceNow..."
       );
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+      });
     });
 
     it("should fallback to incident table if case not found", async () => {
@@ -148,7 +152,10 @@ describe("ServiceNow Tool", () => {
       // Should normalize to INC0005678 (default INC prefix for incidents)
       expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0005678");
-      expect(result).toEqual({ incident: mockIncident });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining(mockIncident),
+      });
     });
 
     it("should fallback to case table if incident not found", async () => {
@@ -187,7 +194,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsWithCase = createLegacyAgentTools({
+      const toolsWithCase = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["SCS0046363"], // Context loader found this
         updateStatus: mockUpdateStatus,
@@ -202,7 +209,11 @@ describe("ServiceNow Tool", () => {
       // Should call with canonical normalized number from params.caseNumbers
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0046363");
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+      });
     });
 
     it("should normalize bare incident number using params.caseNumbers", async () => {
@@ -213,7 +224,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
 
-      const toolsWithIncident = createLegacyAgentTools({
+      const toolsWithIncident = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["INC0167587"],
         updateStatus: mockUpdateStatus,
@@ -228,7 +239,9 @@ describe("ServiceNow Tool", () => {
       // Should call with canonical normalized number from params.caseNumbers
       expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0167587");
-      expect(result).toEqual({ incident: mockIncident });
+      expect(result).toMatchObject({
+        rawData: expect.objectContaining(mockIncident),
+      });
     });
 
     it("should default to SCS prefix when no match in params.caseNumbers", async () => {
@@ -239,7 +252,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsEmpty = createLegacyAgentTools({
+      const toolsEmpty = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [], // No cases in context
         updateStatus: mockUpdateStatus,
@@ -254,7 +267,14 @@ describe("ServiceNow Tool", () => {
       // Should normalize to SCS by default
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0099999");
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toEqual(
+        expect.objectContaining({
+          summary: expect.any(String),
+          rawData: expect.objectContaining({
+            case: mockCase,
+          }),
+        }),
+      );
     });
 
     it("should default to INC prefix for getIncident when no match", async () => {
@@ -265,7 +285,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getIncident.mockResolvedValue(mockIncident);
 
-      const toolsEmpty = createLegacyAgentTools({
+      const toolsEmpty = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: [],
         updateStatus: mockUpdateStatus,
@@ -280,7 +300,9 @@ describe("ServiceNow Tool", () => {
       // Should normalize to INC by default for incidents
       expect(mockServiceNowClient.getIncident).toHaveBeenCalled();
       expect(mockServiceNowClient.getIncident.mock.calls[0][0]).toBe("INC0099999");
-      expect(result).toEqual({ incident: mockIncident });
+      expect(result).toMatchObject({
+        rawData: expect.objectContaining(mockIncident),
+      });
     });
 
     it("should normalize when number parameter is provided as numeric type", async () => {
@@ -291,7 +313,7 @@ describe("ServiceNow Tool", () => {
       };
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
 
-      const toolsWithCase = createLegacyAgentTools({
+      const toolsWithCase = createAgentTools({
         messages: createMockMessages(),
         caseNumbers: ["SCS0046363"],
         updateStatus: mockUpdateStatus,
@@ -328,8 +350,8 @@ describe("ServiceNow Tool", () => {
         expect.any(Object),
       );
       expect(result).toEqual({
-        entries: mockJournal,
-        total: 2,
+        summary: expect.any(String),
+        rawData: mockJournal,
       });
     });
 
@@ -353,8 +375,8 @@ describe("ServiceNow Tool", () => {
         expect.any(Object),
       );
       expect(result).toEqual({
-        entries: mockJournal,
-        total: 1,
+        summary: expect.any(String),
+        rawData: mockJournal,
       });
     });
 
@@ -435,7 +457,15 @@ describe("ServiceNow Tool", () => {
   describe("ServiceNow Tool - searchConfigurationItem Action", () => {
     it("should search configuration items by CI name", async () => {
       const mockCIs = [
-        { name: "server01", sys_id: "ci123", ip_address: "10.0.0.1" },
+        {
+          name: "server01",
+          sys_id: "ci123",
+          ip_addresses: ["10.0.0.1"],
+          sys_class_name: "Server",
+          status: "In Service",
+          environment: "Prod",
+          url: "https://example.com/ci123",
+        },
       ];
       mockServiceNowClient.searchConfigurationItems.mockResolvedValue(mockCIs);
 
@@ -453,15 +483,25 @@ describe("ServiceNow Tool", () => {
         },
         expect.any(Object)
       );
-      expect(result).toEqual({
-        configuration_items: mockCIs,
-        total_found: 1,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          summary: expect.any(String),
+          rawData: expect.arrayContaining(mockCIs),
+        }),
+      );
     });
 
     it("should search configuration items by IP address", async () => {
       const mockCIs = [
-        { name: "server02", sys_id: "ci456", ip_address: "10.0.0.2" },
+        {
+          name: "server02",
+          sys_id: "ci456",
+          ip_addresses: ["10.0.0.2"],
+          sys_class_name: "Server",
+          status: "In Service",
+          environment: "Prod",
+          url: "https://example.com/ci456",
+        },
       ];
       mockServiceNowClient.searchConfigurationItems.mockResolvedValue(mockCIs);
 
@@ -480,10 +520,12 @@ describe("ServiceNow Tool", () => {
         },
         expect.any(Object)
       );
-      expect(result).toEqual({
-        configuration_items: mockCIs,
-        total_found: 1,
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          summary: expect.any(String),
+          rawData: expect.arrayContaining(mockCIs),
+        }),
+      );
     });
 
     it("should throw error when all search params are missing", async () => {
@@ -534,12 +576,10 @@ describe("ServiceNow Tool", () => {
         expect.any(Object),
       );
       expect(result).toEqual({
-        cases: mockCases,
-        total_found: 2,
-        applied_filters: expect.objectContaining({
-          companyName: "Acme Corp",
-          priority: "2",
-          state: "Open",
+        summary: expect.any(String),
+        rawData: expect.objectContaining({
+          cases: mockCases,
+          total: 2,
         }),
       });
     });

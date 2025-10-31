@@ -75,7 +75,12 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         // includeAttachments not specified - should default to false
       });
 
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+      });
       expect(serviceNowClient.getAttachments).not.toHaveBeenCalled();
       expect(result._attachmentBlocks).toBeUndefined();
     });
@@ -103,7 +108,12 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         includeAttachments: true, // Requested but feature disabled
       });
 
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+      });
       expect(serviceNowClient.getAttachments).not.toHaveBeenCalled();
     });
 
@@ -152,7 +162,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
       );
       expect(serviceNowClient.downloadAttachment).toHaveBeenCalledWith("attach_1");
 
-      expect(result.case).toEqual(mockCase);
+      expect(result.rawData?.case).toEqual(mockCase);
       expect(result._attachmentBlocks).toBeDefined();
       expect(result._attachmentBlocks).toHaveLength(1);
       expect(result._attachmentBlocks[0].type).toBe("image");
@@ -216,7 +226,12 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         includeAttachments: true,
       });
 
-      expect(result).toEqual({ case: mockCase });
+      expect(result).toMatchObject({
+        summary: expect.any(String),
+        rawData: expect.objectContaining({
+          case: mockCase,
+        }),
+      });
       expect(result._attachmentBlocks).toBeUndefined();
     });
 

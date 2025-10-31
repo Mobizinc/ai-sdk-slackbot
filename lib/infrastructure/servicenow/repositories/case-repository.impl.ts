@@ -398,6 +398,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
     if (input.subcategory) payload.subcategory = input.subcategory;
     if (input.assignmentGroup) payload.assignment_group = input.assignmentGroup;
     if (input.assignedTo) payload.assigned_to = input.assignedTo;
+    if (input.impact) payload.impact = input.impact;
 
     // Company/Account context (prevents orphaned incidents)
     if (input.company) payload.company = input.company;
@@ -412,6 +413,9 @@ export class ServiceNowCaseRepository implements CaseRepository {
 
     // Technical context
     if (input.cmdbCi) payload.cmdb_ci = input.cmdbCi;
+
+    if (input.workNotes) payload.work_notes = input.workNotes;
+    if (input.customerNotes) payload.comments = input.customerNotes;
 
     // Multi-tenancy / Domain separation
     if (input.sysDomain) payload.sys_domain = input.sysDomain;

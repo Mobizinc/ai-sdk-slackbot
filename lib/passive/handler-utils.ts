@@ -7,6 +7,31 @@ import { getResolutionDetector } from "./detectors/resolution-detector";
 import { getKBStateMachine } from "../services/kb-state-machine";
 import { getChannelInfo } from "../services/channel-info";
 
+/**
+ * Case Detection Debouncer
+ * Prevents duplicate assistance posts when the same case is mentioned repeatedly in rapid succession.
+ */
+class CaseDetectionDebouncer {
+  private readonly DEBOUNCE_MS = 5000;
+  private readonly pending = new Map<string, number>();
+
+  shouldProcess(caseNumber: string, threadTs: string): boolean {
+    const key = `${caseNumber}:${threadTs}`;
+    const now = Date.now();
+    const lastProcessed = this.pending.get(key);
+
+    if (lastProcessed && now - lastProcessed < this.DEBOUNCE_MS) {
+      return false;
+    }
+
+    this.pending.set(key, now);
+    setTimeout(() => this.pending.delete(key), this.DEBOUNCE_MS);
+    return true;
+  }
+}
+
+const caseDetectionDebouncer = new CaseDetectionDebouncer();
+
 export function shouldSkipMessage(event: GenericMessageEvent, botUserId: string): boolean {
   return !!(
     event.bot_id ||
@@ -23,6 +48,13 @@ export async function processCaseDetection(
   const contextAction = getAddToContextAction();
   const postAction = getPostAssistanceAction();
   const threadTs = event.thread_ts || event.ts;
+
+  if (!caseDetectionDebouncer.shouldProcess(caseNumber, threadTs)) {
+    console.log(
+      `[Passive Handler] Skipping duplicate assistance for ${caseNumber} in thread ${threadTs} (debounced)`,
+    );
+    return;
+  }
 
   contextAction.addMessageFromEvent(caseNumber, event);
   const context = contextAction.getContext(caseNumber, threadTs);

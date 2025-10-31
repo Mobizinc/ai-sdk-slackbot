@@ -325,28 +325,6 @@ export const CONFIG_DEFINITIONS = {
     group: "servicenow",
     description: "Task table name used for ServiceNow sub-tasks.",
   },
-  aiGatewayApiKey: {
-    envVar: "AI_GATEWAY_API_KEY",
-    type: "string",
-    default: "",
-    group: "llm",
-    description: "API key for the AI gateway proxy.",
-    sensitive: true,
-  },
-  aiGatewayDefaultModel: {
-    envVar: "AI_GATEWAY_DEFAULT_MODEL",
-    type: "string",
-    default: "",
-    group: "llm",
-    description: "Default model identifier for the AI gateway.",
-  },
-  aiGatewayModelOverride: {
-    envVar: "AI_GATEWAY_MODEL",
-    type: "string",
-    default: "",
-    group: "llm",
-    description: "Optional override model for the AI gateway routing.",
-  },
   openaiApiKey: {
     envVar: "OPENAI_API_KEY",
     type: "string",

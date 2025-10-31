@@ -7,6 +7,7 @@
 import type { ServiceNowCatalogItem } from '../tools/servicenow';
 import type { HRRequestType, HRDetectionResult } from './hr-request-detector';
 import { serviceNowClient } from '../tools/servicenow';
+import { closeIncidentsForCase } from './incident-sync-service';
 import { getHRRequestDetector } from './hr-request-detector';
 import { getClientSettingsRepository } from '../db/repositories/client-settings-repository';
 import type { ClientSettings, NewCatalogRedirectLog } from '../db/schema';
@@ -397,6 +398,12 @@ export class CatalogRedirectHandler {
           result.caseClosed = true;
           console.log(
             `[CatalogRedirect] Closed case ${input.caseNumber} with state: ${config.closeState}`
+          );
+
+          await closeIncidentsForCase(
+            input.caseSysId,
+            `Case ${input.caseNumber} closed after catalog redirect.`,
+            snContext,
           );
         } catch (error) {
           console.error(`[CatalogRedirect] Failed to close case:`, error);

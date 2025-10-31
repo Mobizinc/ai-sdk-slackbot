@@ -131,7 +131,7 @@ export class PostAssistanceAction {
       );
 
       // Build intelligent message using existing service
-      const message = await buildIntelligentAssistance(
+      const assistance = await buildIntelligentAssistance(
         caseNumber,
         caseDetails,
         this.deps.searchFacade.isAzureSearchConfigured()
@@ -146,7 +146,8 @@ export class PostAssistanceAction {
       await this.deps.slackMessaging.postToThread({
         channel: channelId,
         threadTs: threadTs,
-        text: message,
+        text: assistance.text,
+        blocks: assistance.blocks,
         unfurlLinks: false,
       });
 

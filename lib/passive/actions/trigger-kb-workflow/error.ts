@@ -1,5 +1,5 @@
-
 import { getKBStateMachine, KBState } from "../../../services/kb-state-machine";
+import { ErrorHandler } from "../../../utils/error-handler";
 import type { TriggerKBWorkflowDeps } from "./deps";
 
 export async function handleWorkflowError(
@@ -14,15 +14,17 @@ export async function handleWorkflowError(
   const { caseNumber, channelId, threadTs, error } = params;
   console.error(`[KB Generation] ERROR for ${caseNumber}:`, error);
 
+  const errorResult = ErrorHandler.handle(error, {
+    operation: "KB generation",
+    caseNumber,
+  });
+
   try {
     await deps.slackMessaging.postToThread({
       channel: channelId,
       threadTs,
-      text: `✅ It looks like *${caseNumber}* has been resolved!
-
-_Error during KB generation: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }_`,
+      text: ErrorHandler.getSimpleMessage(errorResult),
+      blocks: ErrorHandler.formatForSlack(errorResult),
       unfurlLinks: false,
     });
   } catch (slackError) {

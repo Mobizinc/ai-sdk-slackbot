@@ -4,7 +4,7 @@ import type {
   GenericMessageEvent,
 } from "./slack-event-types";
 import { getSlackMessagingService } from "./services/slack-messaging";
-import { generateResponse } from "./generate-response";
+import { generateResponse } from "./agent";
 import { withLangSmithTrace } from "./observability";
 
 const slackMessaging = getSlackMessagingService();

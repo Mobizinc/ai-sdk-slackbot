@@ -13,6 +13,13 @@ import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/imag
 import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
 import { normalizeCaseId, findMatchingCaseNumber } from "../../utils/case-number-normalizer";
+import {
+  formatCaseSummaryText,
+  formatIncidentForLLM,
+  formatJournalEntriesForLLM,
+  formatSearchResultsForLLM,
+  formatConfigurationItemsForLLM,
+} from "../../services/servicenow-formatters";
 
 /**
  * Extract value from ServiceNow reference field
@@ -381,6 +388,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             };
           }
 
+          // Format incident data with summary + rawData structure
+          const formatted = formatIncidentForLLM(incident);
+
           // Handle attachments if requested
           if (includeAttachments) {
             updateStatus?.(`is fetching attachments for incident ${number}...`);
@@ -394,14 +404,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
             if (imageBlocks.length > 0) {
               return {
-                incident,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
               };
             }
           }
 
-          return { incident };
+          return {
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
+          };
         }
 
         if (action === "getCase") {
@@ -434,18 +448,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             };
           }
 
-          // Automatically fetch journal entries for Block Kit "Latest Activity" section
+          // Automatically fetch journal entries for context and Block Kit display
           let journalEntries: any[] = [];
           try {
             const extractedSysId = extractReference(caseRecord.sys_id);
             if (extractedSysId) {
               updateStatus?.(`is fetching recent activity for case ${normalizedNumber}...`);
-              journalEntries = await serviceNowClient.getCaseJournal(
+              journalEntries = (await serviceNowClient.getCaseJournal(
                 extractedSysId,
-                { limit: 5 }, // Fetch latest 5 for Block Kit display
+                { limit: 20 }, // Fetch latest 20 for rich context (increased from 5)
                 snContext,
-              );
-              console.log(`[ServiceNow Tool] Fetched ${journalEntries.length} journal entries for Block Kit`);
+              )) ?? [];
+              console.log(`[ServiceNow Tool] Fetched ${journalEntries.length} journal entries for context`);
             }
           } catch (error) {
             console.warn(`[ServiceNow Tool] Failed to fetch journal for ${normalizedNumber}:`, error);
@@ -464,9 +478,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             );
 
             if (imageBlocks.length > 0) {
+              // Format case data even when attachments are present
+              const formatted = formatCaseSummaryText(caseRecord, journalEntries);
+
               // Return with special _attachments marker for runner to handle
               return {
-                case: caseRecord,
+                summary: formatted?.summary,
+                rawData: formatted?.rawData,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
                 _blockKitData: {
@@ -478,8 +496,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             }
           }
 
+          // Format case data with summary + rawData structure
+          const formatted = formatCaseSummaryText(caseRecord, journalEntries);
+
           return {
-            case: caseRecord,
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
             _blockKitData: {
               type: "case_detail",
               caseData: caseRecord,
@@ -523,40 +545,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           const journalReference = normalizedJournalNumber ?? number ?? caseSysId;
           updateStatus?.(`is fetching journal entries for ${journalReference}...`);
 
-          const journal = await serviceNowClient.getCaseJournal(
+          const journal = (await serviceNowClient.getCaseJournal(
             sysId!,
             { limit: limit ?? 20 },
             snContext,
-          );
+          )) ?? [];
 
-          // Format journal entries for Claude to display as "Latest Activity"
-          // Match production format: "Oct 5, 14:23 – jsmith: [action]"
-          const formattedEntries = journal
-            .slice(0, 3) // Show latest 3 entries max
-            .map((entry: any) => {
-              try {
-                const date = new Date(entry.sys_created_on);
-                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-                const user = entry.sys_created_by || 'unknown';
-                const valueStr = extractReference(entry.value) ?? '(no content)';
-                const content = String(valueStr).substring(0, 150); // Truncate long entries
-                return `• ${dateStr}, ${timeStr} – ${user}: ${content}`;
-              } catch (error) {
-                // Fallback for invalid dates
-                const user = entry.sys_created_by || 'unknown';
-                const valueStr = extractReference(entry.value) ?? '(no content)';
-                const content = String(valueStr).substring(0, 150);
-                return `• ${user}: ${content}`;
-              }
-            })
-            .join('\n');
+          // Use shared formatter for consistent formatting
+          const formatted = formatJournalEntriesForLLM(journal, journalReference);
 
           return {
-            summary: `Retrieved ${journal.length} journal ${journal.length === 1 ? 'entry' : 'entries'}`,
-            latest_activity: formattedEntries || 'No journal entries found',
-            entries: journal, // Keep structured data for potential future use
-            total: journal.length,
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
           };
         }
 
@@ -592,7 +592,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           updateStatus?.(`is searching configuration items...`);
 
-          const results = await serviceNowClient.searchConfigurationItems(
+          const results = (await serviceNowClient.searchConfigurationItems(
             {
               name: ciName,
               ipAddress,
@@ -600,11 +600,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               limit: limit ?? 10,
             },
             snContext,
-          );
+          )) ?? [];
+
+          const formatted = formatConfigurationItemsForLLM(results);
 
           return {
-            configuration_items: results,
-            total_found: results.length,
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
           };
         }
 
@@ -629,12 +631,24 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             sortOrder,
           };
 
-          const results = await serviceNowClient.searchCustomerCases(filters, snContext);
+          const results = (await serviceNowClient.searchCustomerCases(filters, snContext)) ?? [];
+
+          // Build filter descriptions for formatter
+          const appliedFilters: string[] = [];
+          if (query) appliedFilters.push(`query="${query}"`);
+          if (accountName) appliedFilters.push(`account=${accountName}`);
+          if (companyName) appliedFilters.push(`company=${companyName}`);
+          if (priority) appliedFilters.push(`priority=${priority}`);
+          if (state) appliedFilters.push(`state=${state}`);
+          if (assignmentGroup) appliedFilters.push(`group=${assignmentGroup}`);
+          if (assignedTo) appliedFilters.push(`assigned_to=${assignedTo}`);
+          if (activeOnly) appliedFilters.push(`active=true`);
+
+          const formatted = formatSearchResultsForLLM(results, appliedFilters, results.length);
 
           return {
-            cases: results,
-            total_found: results.length,
-            applied_filters: filters,
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
           };
         }
 
