@@ -22,6 +22,8 @@ import { createMicrosoftLearnTool } from "./microsoft-learn";
 import { createTriageTool } from "./triage";
 import { createCaseAggregationTool } from "./case-aggregation";
 import { createCaseSearchTool } from "./case-search";
+import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
+import { createVeloCloudTool } from "./velocloud";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -36,6 +38,8 @@ export type { MicrosoftLearnSearchInput } from "./microsoft-learn";
 export type { TriageCaseInput } from "./triage";
 export type { CaseAggregationInput } from "./case-aggregation";
 export type { CaseSearchInput } from "./case-search";
+export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
+export type { VeloCloudToolInput } from "./velocloud";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -62,6 +66,8 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     microsoftLearnSearch: createMicrosoftLearnTool(params),
     triageCase: createTriageTool(params),
     caseAggregation: createCaseAggregationTool(params), // NEW: Case aggregations
+    getFirewallStatus: createFortiManagerMonitorTool(params), // NEW: FortiManager monitoring
+    queryVelocloud: createVeloCloudTool(params), // NEW: VeloCloud REST queries
   };
 }
 

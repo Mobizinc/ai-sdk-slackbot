@@ -1,0 +1,6456 @@
+{
+  "discovered_at": "2025-11-01T00:45:16.598Z",
+  "firewall_count": 34,
+  "interface_count": 365,
+  "network_count": 162,
+  "interfaces": [
+    {
+      "firewall_name": "ACM-AZ-FW01",
+      "interface_name": "port1",
+      "ip_address": "10.230.19.52",
+      "netmask": "255.255.255.248",
+      "network_cidr": "10.230.19.48/29",
+      "network_address": "10.230.19.48",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "external",
+      "alias": "outside"
+    },
+    {
+      "firewall_name": "ACM-AZ-FW01",
+      "interface_name": "port2",
+      "ip_address": "10.230.19.4",
+      "netmask": "255.255.255.248",
+      "network_cidr": "10.230.19.0/29",
+      "network_address": "10.230.19.0",
+      "cidr_bits": 29,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "internal",
+      "alias": "AllCare Data"
+    },
+    {
+      "firewall_name": "ACM-AZ-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.255.1.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.1.0/24",
+      "network_address": "10.255.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.104.234",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.104.232/30",
+      "network_address": "47.176.104.232",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "wan2",
+      "ip_address": "35.131.122.26",
+      "netmask": "255.255.255.252",
+      "network_cidr": "35.131.122.24/30",
+      "network_address": "35.131.122.24",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.34.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.34.0/24",
+      "network_address": "10.223.34.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.34.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.34.0/24",
+      "network_address": "192.168.34.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.34.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.34.0/24",
+      "network_address": "172.16.34.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "CSD-Guest",
+      "ip_address": "172.16.35.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.35.0/24",
+      "network_address": "172.16.35.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "CSD-Guest"
+    },
+    {
+      "firewall_name": "ACM-CSD-HSP-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.221.86.154",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.221.86.152/29",
+      "network_address": "12.221.86.152",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "wan2",
+      "ip_address": "173.198.109.78",
+      "netmask": "255.255.255.252",
+      "network_cidr": "173.198.109.76/30",
+      "network_address": "173.198.109.76",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Spectrum Backup"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "internal",
+      "ip_address": "10.1.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.1.10.0/24",
+      "network_address": "10.1.10.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.14.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.14.0/24",
+      "network_address": "10.223.14.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.14.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.14.0/24",
+      "network_address": "192.168.14.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.60.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.60.0/24",
+      "network_address": "172.16.60.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-BF-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.0.178.106",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.0.178.104/29",
+      "network_address": "12.0.178.104",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "wan2",
+      "ip_address": "50.197.180.221",
+      "netmask": "255.255.255.252",
+      "network_cidr": "50.197.180.220/30",
+      "network_address": "50.197.180.220",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.25.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.25.0/24",
+      "network_address": "10.223.25.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.25.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.25.0/24",
+      "network_address": "192.168.25.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-BKY-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.165.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.165.0/24",
+      "network_address": "172.16.165.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "wan1",
+      "ip_address": "98.154.112.62",
+      "netmask": "255.255.255.252",
+      "network_cidr": "98.154.112.60/30",
+      "network_address": "98.154.112.60",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Legacy Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "wan2",
+      "ip_address": "74.62.25.238",
+      "netmask": "255.255.255.252",
+      "network_cidr": "74.62.25.236/30",
+      "network_address": "74.62.25.236",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.168.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.168.0/24",
+      "network_address": "10.223.168.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.168.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.168.0/24",
+      "network_address": "192.168.168.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.170.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.170.0/24",
+      "network_address": "172.16.170.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-CNA-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.17.33.2",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.17.33.0/29",
+      "network_address": "12.17.33.0",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "wan2",
+      "ip_address": "69.75.0.218",
+      "netmask": "255.255.255.252",
+      "network_cidr": "69.75.0.216/30",
+      "network_address": "69.75.0.216",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.19.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.19.0/24",
+      "network_address": "10.223.19.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.19.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.19.0/24",
+      "network_address": "192.168.19.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.19.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.19.0/24",
+      "network_address": "172.16.19.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-CP-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.0.137.138",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.0.137.136/29",
+      "network_address": "12.0.137.136",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "wan2",
+      "ip_address": "98.186.228.82",
+      "netmask": "255.255.255.240",
+      "network_cidr": "98.186.228.80/28",
+      "network_address": "98.186.228.80",
+      "cidr_bits": 28,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.12.0/24",
+      "network_address": "10.223.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.12.0/24",
+      "network_address": "192.168.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.140.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.140.0/24",
+      "network_address": "172.16.140.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-CVista-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.41.109.26",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.41.109.24/29",
+      "network_address": "12.41.109.24",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "wan2",
+      "ip_address": "99.57.181.1",
+      "netmask": "255.255.255.248",
+      "network_cidr": "99.57.181.0/29",
+      "network_address": "99.57.181.0",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.18.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.18.0/24",
+      "network_address": "10.223.18.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.18.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.18.0/24",
+      "network_address": "192.168.18.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.40.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.40.0/24",
+      "network_address": "172.16.40.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-DLA-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.177.137.138",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.177.137.136/30",
+      "network_address": "47.177.137.136",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "0",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "wan2",
+      "ip_address": "64.63.149.222",
+      "netmask": "255.255.255.252",
+      "network_cidr": "64.63.149.220/30",
+      "network_address": "64.63.149.220",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "dmz",
+      "ip_address": "10.10.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.10.0/24",
+      "network_address": "10.10.10.0",
+      "cidr_bits": 24,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.255.1.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.1.0/24",
+      "network_address": "10.255.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.2.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.2.0/24",
+      "network_address": "192.168.2.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.70.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.70.0/24",
+      "network_address": "172.16.70.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-DNY-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.24.255.106",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.24.255.104/29",
+      "network_address": "12.24.255.104",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.94.242",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.94.240/30",
+      "network_address": "76.53.94.240",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.42.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.42.0/24",
+      "network_address": "10.223.42.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.42.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.42.0/24",
+      "network_address": "192.168.42.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-ELA-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.42.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.42.0/24",
+      "network_address": "172.16.42.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.159.136.82",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.159.136.80/29",
+      "network_address": "12.159.136.80",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "wan2",
+      "ip_address": "74.93.20.169",
+      "netmask": "255.255.255.252",
+      "network_cidr": "74.93.20.168/30",
+      "network_address": "74.93.20.168",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.13.0/24",
+      "network_address": "10.223.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.13.0/24",
+      "network_address": "192.168.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.180.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.180.0/24",
+      "network_address": "172.16.180.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-FSO-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.221.86.138",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.221.86.136/29",
+      "network_address": "12.221.86.136",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "wan2",
+      "ip_address": "66.214.40.110",
+      "netmask": "255.255.255.252",
+      "network_cidr": "66.214.40.108/30",
+      "network_address": "66.214.40.108",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.16.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.16.0/24",
+      "network_address": "10.223.16.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.16.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.16.0/24",
+      "network_address": "192.168.16.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-GLE-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.160.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.160.0/24",
+      "network_address": "172.16.160.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.23.10.178",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.23.10.176/29",
+      "network_address": "12.23.10.176",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "wan2",
+      "ip_address": "64.191.124.178",
+      "netmask": "255.255.255.252",
+      "network_cidr": "64.191.124.176/30",
+      "network_address": "64.191.124.176",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Backup"
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.43.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.43.0/24",
+      "network_address": "10.223.43.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.43.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.43.0/24",
+      "network_address": "192.168.43.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.43.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.43.0/24",
+      "network_address": "172.16.43.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-IGW-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.179.4.218",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.179.4.216/30",
+      "network_address": "47.179.4.216",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.79.42",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.79.40/30",
+      "network_address": "76.53.79.40",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.41.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.41.0/24",
+      "network_address": "10.223.41.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.41.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.41.0/24",
+      "network_address": "172.16.41.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LAN-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.41.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.41.0/24",
+      "network_address": "192.168.41.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.104.238",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.104.236/30",
+      "network_address": "47.176.104.236",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "wan2",
+      "ip_address": "104.254.5.242",
+      "netmask": "255.255.255.240",
+      "network_cidr": "104.254.5.240/28",
+      "network_address": "104.254.5.240",
+      "cidr_bits": 28,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel-Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.3.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.3.0/24",
+      "network_address": "10.223.3.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.3.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.3.0/24",
+      "network_address": "192.168.3.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.80.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.80.0/24",
+      "network_address": "172.16.80.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-LB-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.4.168.110",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.4.168.104/29",
+      "network_address": "12.4.168.104",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "wan2",
+      "ip_address": "71.27.119.213",
+      "netmask": "255.255.255.252",
+      "network_cidr": "71.27.119.212/30",
+      "network_address": "71.27.119.212",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.15.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.15.0/24",
+      "network_address": "10.223.15.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.15.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.15.0/24",
+      "network_address": "192.168.15.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.100.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.100.0/24",
+      "network_address": "172.16.100.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-MDS-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.179.13.210",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.179.13.208/30",
+      "network_address": "47.179.13.208",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "wan2",
+      "ip_address": "173.197.80.182",
+      "netmask": "255.255.255.252",
+      "network_cidr": "173.197.80.180/30",
+      "network_address": "173.197.80.180",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.11.0/24",
+      "network_address": "10.223.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.11.0/24",
+      "network_address": "192.168.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-MH-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.30.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.30.0/24",
+      "network_address": "172.16.30.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.3.142",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.3.140/30",
+      "network_address": "47.176.3.140",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "wan2",
+      "ip_address": "47.178.22.2",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.178.22.0/30",
+      "network_address": "47.178.22.0",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.37.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.37.0/24",
+      "network_address": "10.223.37.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.37.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.37.0/24",
+      "network_address": "192.168.37.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.37.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.37.0/24",
+      "network_address": "172.16.37.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-OXD-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "wan1",
+      "ip_address": "12.221.126.162",
+      "netmask": "255.255.255.248",
+      "network_cidr": "12.221.126.160/29",
+      "network_address": "12.221.126.160",
+      "cidr_bits": 29,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.126.230",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.126.228/30",
+      "network_address": "76.53.126.228",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.4.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.4.0/24",
+      "network_address": "10.223.4.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.4.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.4.0/24",
+      "network_address": "192.168.4.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SA-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.50.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.50.0/24",
+      "network_address": "172.16.50.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.244.234",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.244.232/30",
+      "network_address": "47.176.244.232",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "wan2",
+      "ip_address": "72.34.90.186",
+      "netmask": "255.255.255.252",
+      "network_cidr": "72.34.90.184/30",
+      "network_address": "72.34.90.184",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.99.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.99.0/24",
+      "network_address": "10.223.99.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.99.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.99.0/24",
+      "network_address": "192.168.99.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.20.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.20.0/24",
+      "network_address": "172.16.20.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-SB-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.77.246",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.77.244/30",
+      "network_address": "47.176.77.244",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.20.106",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.20.104/30",
+      "network_address": "76.53.20.104",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.8.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.8.0/24",
+      "network_address": "10.223.8.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.8.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.8.0/24",
+      "network_address": "192.168.8.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-SM-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.90.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.90.0/24",
+      "network_address": "172.16.90.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "wan1",
+      "ip_address": "50.250.165.61",
+      "netmask": "255.255.255.252",
+      "network_cidr": "50.250.165.60/30",
+      "network_address": "50.250.165.60",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "dmz",
+      "ip_address": "10.10.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.10.0/24",
+      "network_address": "10.10.10.0",
+      "cidr_bits": 24,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.255.1.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.1.0/24",
+      "network_address": "10.255.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.24.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.24.0/24",
+      "network_address": "192.168.24.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.24.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.24.0/24",
+      "network_address": "172.16.24.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-STKTN-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.177.154.66",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.177.154.64/30",
+      "network_address": "47.177.154.64",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.201.58",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.201.56/30",
+      "network_address": "76.53.201.56",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Charter Communications"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.17.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.17.0/24",
+      "network_address": "10.223.17.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.17.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.17.0/24",
+      "network_address": "192.168.17.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.150.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.150.0/24",
+      "network_address": "172.16.150.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-TMC-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.179.4.70",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.179.4.68/30",
+      "network_address": "47.179.4.68",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "wan2",
+      "ip_address": "64.183.32.102",
+      "netmask": "255.255.255.252",
+      "network_cidr": "64.183.32.100/30",
+      "network_address": "64.183.32.100",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.7.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.7.0/24",
+      "network_address": "10.223.7.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.7.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.7.0/24",
+      "network_address": "192.168.7.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TOR-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.130.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.130.0/24",
+      "network_address": "172.16.130.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "wan1",
+      "ip_address": "50.189.15.185",
+      "netmask": "255.255.255.252",
+      "network_cidr": "50.189.15.184/30",
+      "network_address": "50.189.15.184",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "wan2",
+      "ip_address": "32.143.28.146",
+      "netmask": "255.255.255.252",
+      "network_cidr": "32.143.28.144/30",
+      "network_address": "32.143.28.144",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "AT&T"
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "dmz",
+      "ip_address": "10.10.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.10.0/24",
+      "network_address": "10.10.10.0",
+      "cidr_bits": 24,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "internal",
+      "ip_address": "10.10.20.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.20.0/24",
+      "network_address": "10.10.20.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.32.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.32.0/24",
+      "network_address": "10.223.32.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.32.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.32.0/24",
+      "network_address": "192.168.32.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.32.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.32.0/24",
+      "network_address": "172.16.32.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-TUL-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.85.14",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.85.12/30",
+      "network_address": "76.53.85.12",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.6.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.6.0/24",
+      "network_address": "10.223.6.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.6.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.6.0/24",
+      "network_address": "192.168.6.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.110.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.110.0/24",
+      "network_address": "172.16.110.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-UPL-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.179.2.38",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.179.2.36/30",
+      "network_address": "47.179.2.36",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "wan2",
+      "ip_address": "66.214.38.138",
+      "netmask": "255.255.255.252",
+      "network_cidr": "66.214.38.136/30",
+      "network_address": "66.214.38.136",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.26.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.26.0/24",
+      "network_address": "10.223.26.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.26.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.26.0/24",
+      "network_address": "192.168.26.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.55.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.55.0/24",
+      "network_address": "172.16.55.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "FPAWH-Guest",
+      "ip_address": "172.16.33.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.33.0/24",
+      "network_address": "172.16.33.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "FPAWH-Guest"
+    },
+    {
+      "firewall_name": "ACM-FPA-WC-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "wan1",
+      "ip_address": "66.215.82.74",
+      "netmask": "255.255.255.252",
+      "network_cidr": "66.215.82.72/30",
+      "network_address": "66.215.82.72",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Legacy Primary"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "wan2",
+      "ip_address": "35.131.122.26",
+      "netmask": "255.255.255.252",
+      "network_cidr": "35.131.122.24/30",
+      "network_address": "35.131.122.24",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "0",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "dmz",
+      "ip_address": "96.90.157.42",
+      "netmask": "255.255.255.240",
+      "network_cidr": "96.90.157.32/28",
+      "network_address": "96.90.157.32",
+      "cidr_bits": 28,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.27.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.27.0/24",
+      "network_address": "10.223.27.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.27.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.27.0/24",
+      "network_address": "192.168.27.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.65.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.65.0/24",
+      "network_address": "172.16.65.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-HDG-HSP-FW01",
+      "interface_name": "HDG-Guest",
+      "ip_address": "172.16.36.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.36.0/24",
+      "network_address": "172.16.36.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "HDG-Guest"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.246.82",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.246.80/30",
+      "network_address": "47.176.246.80",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.57.134",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.57.132/30",
+      "network_address": "76.53.57.132",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.23.0/24",
+      "network_address": "10.223.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.23.0/24",
+      "network_address": "192.168.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "HDG-Guest",
+      "ip_address": "172.16.36.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.36.0/24",
+      "network_address": "172.16.36.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "HDG-Guest"
+    },
+    {
+      "firewall_name": "ACM-HDG-PD-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.245.154",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.245.152/30",
+      "network_address": "47.176.245.152",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "wan2",
+      "ip_address": "47.181.229.228",
+      "netmask": "255.255.255.0",
+      "network_cidr": "47.181.229.0/24",
+      "network_address": "47.181.229.0",
+      "cidr_bits": 24,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.21.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.21.0/24",
+      "network_address": "10.223.21.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "rspan",
+      "ip_address": "10.255.12.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.12.0/24",
+      "network_address": "10.255.12.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Sniffer VLAN",
+      "alias": "rspan.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.21.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.21.0/24",
+      "network_address": "192.168.21.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.21.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.21.0/24",
+      "network_address": "172.16.21.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-HDG-RC-FW01",
+      "interface_name": "HDG-Guest",
+      "ip_address": "172.16.36.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.36.0/24",
+      "network_address": "172.16.36.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "HDG-Guest"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "wan1",
+      "ip_address": "47.176.243.166",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.243.164/30",
+      "network_address": "47.176.243.164",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Primary"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "wan2",
+      "ip_address": "76.53.7.22",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.7.20/30",
+      "network_address": "76.53.7.20",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Secondary"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "wqt.root",
+      "ip_address": "10.253.255.254",
+      "netmask": "255.255.240.0",
+      "network_cidr": "10.253.240.0/20",
+      "network_address": "10.253.240.0",
+      "cidr_bits": 20,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine Soft Switch",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "internal",
+      "ip_address": "192.168.1.99",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.1.0/24",
+      "network_address": "192.168.1.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "fortilink",
+      "ip_address": "10.223.22.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.223.22.0/24",
+      "network_address": "10.223.22.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "quarantine",
+      "ip_address": "10.255.11.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.11.0/24",
+      "network_address": "10.255.11.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "Quarantine VLAN",
+      "alias": "quarantine.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "nac_segment",
+      "ip_address": "10.255.13.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.255.13.0/24",
+      "network_address": "10.255.13.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "NAC Segment VLAN",
+      "alias": "nac_segment.fortilink"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.22.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.22.0/24",
+      "network_address": "192.168.22.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.22.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.22.0/24",
+      "network_address": "172.16.22.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "HDG-Guest",
+      "ip_address": "172.16.36.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.36.0/24",
+      "network_address": "172.16.36.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "HDG-Guest"
+    },
+    {
+      "firewall_name": "ACM-HDG-RM-FW01",
+      "interface_name": "ACMIOT",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "ACMIOT"
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "wan1",
+      "ip_address": "47.176.246.82",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.246.80/30",
+      "network_address": "47.176.246.80",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "0",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "wan2",
+      "ip_address": "76.53.57.134",
+      "netmask": "255.255.255.252",
+      "network_cidr": "76.53.57.132/30",
+      "network_address": "76.53.57.132",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "dmz",
+      "ip_address": "10.10.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.10.0/24",
+      "network_address": "10.10.10.0",
+      "cidr_bits": 24,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "internal",
+      "ip_address": "10.10.20.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.20.0/24",
+      "network_address": "10.10.20.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "fortilink",
+      "ip_address": "169.254.1.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "169.254.1.0/24",
+      "network_address": "169.254.1.0",
+      "cidr_bits": 24,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "AllCare Data",
+      "ip_address": "192.168.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.23.0/24",
+      "network_address": "192.168.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-PD-FWtmp",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.23.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.23.0/24",
+      "network_address": "172.16.23.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "wan1",
+      "ip_address": "47.176.245.154",
+      "netmask": "255.255.255.252",
+      "network_cidr": "47.176.245.152/30",
+      "network_address": "47.176.245.152",
+      "cidr_bits": 30,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "Nitel Fiber"
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "wan2",
+      "ip_address": "47.180.180.195",
+      "netmask": "255.255.255.0",
+      "network_cidr": "47.180.180.0/24",
+      "network_address": "47.180.180.0",
+      "cidr_bits": 24,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "dmz",
+      "ip_address": "10.10.10.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "10.10.10.0/24",
+      "network_address": "10.10.10.0",
+      "cidr_bits": 24,
+      "interface_type": "DMZ",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "internal",
+      "ip_address": "192.168.21.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "192.168.21.0/24",
+      "network_address": "192.168.21.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": "AllCare Data"
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "fortilink",
+      "ip_address": "169.254.1.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "169.254.1.0/24",
+      "network_address": "169.254.1.0",
+      "cidr_bits": 24,
+      "interface_type": "WAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    },
+    {
+      "firewall_name": "ACM-RC-FWtmp",
+      "interface_name": "AllCare Voice",
+      "ip_address": "172.16.21.1",
+      "netmask": "255.255.255.0",
+      "network_cidr": "172.16.21.0/24",
+      "network_address": "172.16.21.0",
+      "cidr_bits": 24,
+      "interface_type": "LAN",
+      "status": "1",
+      "mode": 0,
+      "description": "",
+      "alias": ""
+    }
+  ],
+  "networks": [
+    {
+      "network_cidr": "10.230.19.48/29",
+      "firewalls": [
+        "ACM-AZ-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.230.19.0/29",
+      "firewalls": [
+        "ACM-AZ-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.255.1.0/24",
+      "firewalls": [
+        "ACM-AZ-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-STKTN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.104.232/30",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "35.131.122.24/30",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.253.240.0/20",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.1.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.223.34.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.255.11.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.255.13.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.34.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.34.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.35.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.23.0/24",
+      "firewalls": [
+        "ACM-CSD-HSP-FW01",
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01",
+        "ACM-PD-FWtmp"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.221.86.152/29",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "173.198.109.76/30",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.1.10.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.223.14.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.255.12.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-RC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.14.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.60.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.33.0/24",
+      "firewalls": [
+        "ACM-FPA-BF-FW01",
+        "ACM-FPA-BKY-FW01",
+        "ACM-FPA-CNA-FW01",
+        "ACM-FPA-CP-FW01",
+        "ACM-FPA-CVista-FW01",
+        "ACM-FPA-DLA-FW01",
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-ELA-FW01",
+        "ACM-FPA-FSO-FW01",
+        "ACM-FPA-GLE-FW01",
+        "ACM-FPA-IGW-FW01",
+        "ACM-FPA-LAN-FW01",
+        "ACM-FPA-LB-FW01",
+        "ACM-FPA-MDS-FW01",
+        "ACM-FPA-MH-FW01",
+        "ACM-FPA-OXD-FW01",
+        "ACM-FPA-SA-FW01",
+        "ACM-FPA-SB-FW01",
+        "ACM-FPA-SM-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TMC-FW01",
+        "ACM-FPA-TOR-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-FPA-UPL-FW01",
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.0.178.104/29",
+      "firewalls": [
+        "ACM-FPA-BKY-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "50.197.180.220/30",
+      "firewalls": [
+        "ACM-FPA-BKY-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.25.0/24",
+      "firewalls": [
+        "ACM-FPA-BKY-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.25.0/24",
+      "firewalls": [
+        "ACM-FPA-BKY-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.165.0/24",
+      "firewalls": [
+        "ACM-FPA-BKY-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "98.154.112.60/30",
+      "firewalls": [
+        "ACM-FPA-CNA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "74.62.25.236/30",
+      "firewalls": [
+        "ACM-FPA-CNA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.168.0/24",
+      "firewalls": [
+        "ACM-FPA-CNA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.168.0/24",
+      "firewalls": [
+        "ACM-FPA-CNA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.170.0/24",
+      "firewalls": [
+        "ACM-FPA-CNA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.17.33.0/29",
+      "firewalls": [
+        "ACM-FPA-CP-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "69.75.0.216/30",
+      "firewalls": [
+        "ACM-FPA-CP-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.19.0/24",
+      "firewalls": [
+        "ACM-FPA-CP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.19.0/24",
+      "firewalls": [
+        "ACM-FPA-CP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.19.0/24",
+      "firewalls": [
+        "ACM-FPA-CP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.0.137.136/29",
+      "firewalls": [
+        "ACM-FPA-CVista-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "98.186.228.80/28",
+      "firewalls": [
+        "ACM-FPA-CVista-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.12.0/24",
+      "firewalls": [
+        "ACM-FPA-CVista-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.12.0/24",
+      "firewalls": [
+        "ACM-FPA-CVista-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.140.0/24",
+      "firewalls": [
+        "ACM-FPA-CVista-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.41.109.24/29",
+      "firewalls": [
+        "ACM-FPA-DLA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "99.57.181.0/29",
+      "firewalls": [
+        "ACM-FPA-DLA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.18.0/24",
+      "firewalls": [
+        "ACM-FPA-DLA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.18.0/24",
+      "firewalls": [
+        "ACM-FPA-DLA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.40.0/24",
+      "firewalls": [
+        "ACM-FPA-DLA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.177.137.136/30",
+      "firewalls": [
+        "ACM-FPA-DNY-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "64.63.149.220/30",
+      "firewalls": [
+        "ACM-FPA-DNY-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.10.10.0/24",
+      "firewalls": [
+        "ACM-FPA-DNY-FW01",
+        "ACM-FPA-STKTN-FW01",
+        "ACM-FPA-TUL-FW01",
+        "ACM-PD-FWtmp",
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "DMZ"
+    },
+    {
+      "network_cidr": "192.168.2.0/24",
+      "firewalls": [
+        "ACM-FPA-DNY-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.70.0/24",
+      "firewalls": [
+        "ACM-FPA-DNY-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.24.255.104/29",
+      "firewalls": [
+        "ACM-FPA-ELA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.94.240/30",
+      "firewalls": [
+        "ACM-FPA-ELA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.42.0/24",
+      "firewalls": [
+        "ACM-FPA-ELA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.42.0/24",
+      "firewalls": [
+        "ACM-FPA-ELA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.42.0/24",
+      "firewalls": [
+        "ACM-FPA-ELA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.159.136.80/29",
+      "firewalls": [
+        "ACM-FPA-FSO-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "74.93.20.168/30",
+      "firewalls": [
+        "ACM-FPA-FSO-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.13.0/24",
+      "firewalls": [
+        "ACM-FPA-FSO-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.13.0/24",
+      "firewalls": [
+        "ACM-FPA-FSO-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.180.0/24",
+      "firewalls": [
+        "ACM-FPA-FSO-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.221.86.136/29",
+      "firewalls": [
+        "ACM-FPA-GLE-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "66.214.40.108/30",
+      "firewalls": [
+        "ACM-FPA-GLE-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.16.0/24",
+      "firewalls": [
+        "ACM-FPA-GLE-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.16.0/24",
+      "firewalls": [
+        "ACM-FPA-GLE-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.160.0/24",
+      "firewalls": [
+        "ACM-FPA-GLE-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.23.10.176/29",
+      "firewalls": [
+        "ACM-FPA-IGW-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "64.191.124.176/30",
+      "firewalls": [
+        "ACM-FPA-IGW-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.43.0/24",
+      "firewalls": [
+        "ACM-FPA-IGW-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.43.0/24",
+      "firewalls": [
+        "ACM-FPA-IGW-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.43.0/24",
+      "firewalls": [
+        "ACM-FPA-IGW-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.179.4.216/30",
+      "firewalls": [
+        "ACM-FPA-LAN-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.79.40/30",
+      "firewalls": [
+        "ACM-FPA-LAN-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.41.0/24",
+      "firewalls": [
+        "ACM-FPA-LAN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.41.0/24",
+      "firewalls": [
+        "ACM-FPA-LAN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.41.0/24",
+      "firewalls": [
+        "ACM-FPA-LAN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.104.236/30",
+      "firewalls": [
+        "ACM-FPA-LB-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "104.254.5.240/28",
+      "firewalls": [
+        "ACM-FPA-LB-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.3.0/24",
+      "firewalls": [
+        "ACM-FPA-LB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.3.0/24",
+      "firewalls": [
+        "ACM-FPA-LB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.80.0/24",
+      "firewalls": [
+        "ACM-FPA-LB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.4.168.104/29",
+      "firewalls": [
+        "ACM-FPA-MDS-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "71.27.119.212/30",
+      "firewalls": [
+        "ACM-FPA-MDS-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.15.0/24",
+      "firewalls": [
+        "ACM-FPA-MDS-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.15.0/24",
+      "firewalls": [
+        "ACM-FPA-MDS-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.100.0/24",
+      "firewalls": [
+        "ACM-FPA-MDS-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.179.13.208/30",
+      "firewalls": [
+        "ACM-FPA-MH-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "173.197.80.180/30",
+      "firewalls": [
+        "ACM-FPA-MH-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.11.0/24",
+      "firewalls": [
+        "ACM-FPA-MH-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.11.0/24",
+      "firewalls": [
+        "ACM-FPA-MH-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.30.0/24",
+      "firewalls": [
+        "ACM-FPA-MH-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.3.140/30",
+      "firewalls": [
+        "ACM-FPA-OXD-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "47.178.22.0/30",
+      "firewalls": [
+        "ACM-FPA-OXD-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.37.0/24",
+      "firewalls": [
+        "ACM-FPA-OXD-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.37.0/24",
+      "firewalls": [
+        "ACM-FPA-OXD-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.37.0/24",
+      "firewalls": [
+        "ACM-FPA-OXD-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "12.221.126.160/29",
+      "firewalls": [
+        "ACM-FPA-SA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.126.228/30",
+      "firewalls": [
+        "ACM-FPA-SA-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.4.0/24",
+      "firewalls": [
+        "ACM-FPA-SA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.4.0/24",
+      "firewalls": [
+        "ACM-FPA-SA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.50.0/24",
+      "firewalls": [
+        "ACM-FPA-SA-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.244.232/30",
+      "firewalls": [
+        "ACM-FPA-SB-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "72.34.90.184/30",
+      "firewalls": [
+        "ACM-FPA-SB-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.99.0/24",
+      "firewalls": [
+        "ACM-FPA-SB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.99.0/24",
+      "firewalls": [
+        "ACM-FPA-SB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.20.0/24",
+      "firewalls": [
+        "ACM-FPA-SB-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.77.244/30",
+      "firewalls": [
+        "ACM-FPA-SM-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.20.104/30",
+      "firewalls": [
+        "ACM-FPA-SM-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.8.0/24",
+      "firewalls": [
+        "ACM-FPA-SM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.8.0/24",
+      "firewalls": [
+        "ACM-FPA-SM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.90.0/24",
+      "firewalls": [
+        "ACM-FPA-SM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "50.250.165.60/30",
+      "firewalls": [
+        "ACM-FPA-STKTN-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "192.168.24.0/24",
+      "firewalls": [
+        "ACM-FPA-STKTN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.24.0/24",
+      "firewalls": [
+        "ACM-FPA-STKTN-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.177.154.64/30",
+      "firewalls": [
+        "ACM-FPA-TMC-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.201.56/30",
+      "firewalls": [
+        "ACM-FPA-TMC-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.17.0/24",
+      "firewalls": [
+        "ACM-FPA-TMC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.17.0/24",
+      "firewalls": [
+        "ACM-FPA-TMC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.150.0/24",
+      "firewalls": [
+        "ACM-FPA-TMC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.179.4.68/30",
+      "firewalls": [
+        "ACM-FPA-TOR-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "64.183.32.100/30",
+      "firewalls": [
+        "ACM-FPA-TOR-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.7.0/24",
+      "firewalls": [
+        "ACM-FPA-TOR-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.7.0/24",
+      "firewalls": [
+        "ACM-FPA-TOR-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.130.0/24",
+      "firewalls": [
+        "ACM-FPA-TOR-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "50.189.15.184/30",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "32.143.28.144/30",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.10.20.0/24",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01",
+        "ACM-PD-FWtmp"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "10.223.32.0/24",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.32.0/24",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.32.0/24",
+      "firewalls": [
+        "ACM-FPA-TUL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "76.53.85.12/30",
+      "firewalls": [
+        "ACM-FPA-UPL-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.6.0/24",
+      "firewalls": [
+        "ACM-FPA-UPL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.6.0/24",
+      "firewalls": [
+        "ACM-FPA-UPL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.110.0/24",
+      "firewalls": [
+        "ACM-FPA-UPL-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.179.2.36/30",
+      "firewalls": [
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "66.214.38.136/30",
+      "firewalls": [
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.26.0/24",
+      "firewalls": [
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.26.0/24",
+      "firewalls": [
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.55.0/24",
+      "firewalls": [
+        "ACM-FPA-WC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "66.215.82.72/30",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "96.90.157.32/28",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "DMZ"
+    },
+    {
+      "network_cidr": "10.223.27.0/24",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.27.0/24",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.65.0/24",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.36.0/24",
+      "firewalls": [
+        "ACM-HDG-HSP-FW01",
+        "ACM-HDG-PD-FW01",
+        "ACM-HDG-RC-FW01",
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.246.80/30",
+      "firewalls": [
+        "ACM-HDG-PD-FW01",
+        "ACM-PD-FWtmp"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.57.132/30",
+      "firewalls": [
+        "ACM-HDG-PD-FW01",
+        "ACM-PD-FWtmp"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.23.0/24",
+      "firewalls": [
+        "ACM-HDG-PD-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.23.0/24",
+      "firewalls": [
+        "ACM-HDG-PD-FW01",
+        "ACM-PD-FWtmp"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.245.152/30",
+      "firewalls": [
+        "ACM-HDG-RC-FW01",
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "47.181.229.0/24",
+      "firewalls": [
+        "ACM-HDG-RC-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.21.0/24",
+      "firewalls": [
+        "ACM-HDG-RC-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.21.0/24",
+      "firewalls": [
+        "ACM-HDG-RC-FW01",
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.21.0/24",
+      "firewalls": [
+        "ACM-HDG-RC-FW01",
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "47.176.243.164/30",
+      "firewalls": [
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "76.53.7.20/30",
+      "firewalls": [
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "10.223.22.0/24",
+      "firewalls": [
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "192.168.22.0/24",
+      "firewalls": [
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "172.16.22.0/24",
+      "firewalls": [
+        "ACM-HDG-RM-FW01"
+      ],
+      "interface_type": "LAN"
+    },
+    {
+      "network_cidr": "169.254.1.0/24",
+      "firewalls": [
+        "ACM-PD-FWtmp",
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "WAN"
+    },
+    {
+      "network_cidr": "47.180.180.0/24",
+      "firewalls": [
+        "ACM-RC-FWtmp"
+      ],
+      "interface_type": "WAN"
+    }
+  ]
+}
