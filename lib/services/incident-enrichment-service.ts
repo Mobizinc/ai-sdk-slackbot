@@ -38,10 +38,10 @@ export class IncidentEnrichmentService {
 
     return {
       enabled: enabled === "true",
-      confidenceThreshold: parseInt(threshold, 10),
-      maxAttempts: parseInt(maxAttempts, 10),
-      maxAgeHours: parseInt(maxAge, 10),
-      model,
+      confidenceThreshold: parseInt(threshold ?? "70", 10),
+      maxAttempts: parseInt(maxAttempts ?? "3", 10),
+      maxAgeHours: parseInt(maxAge ?? "24", 10),
+      model: model ?? "claude-haiku-4-5",
     };
   }
 

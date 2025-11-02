@@ -90,7 +90,7 @@ async function runSync(): Promise<Response> {
     // Create ServiceNow context for cron job (deterministic routing)
     const snContext = createSystemContext('cron-sync-voice-worknotes');
 
-    const notes = await serviceNowClient.getVoiceWorkNotesSince({ since: startTime }, snContext);
+    const notes = await serviceNowClient.getVoiceWorkNotesSince({ since: startTime });
 
     if (!notes.length) {
       await setAppSetting(SETTING_KEY, now.toISOString());
