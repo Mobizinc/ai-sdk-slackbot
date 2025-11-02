@@ -129,7 +129,8 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           if (!text) {
             throw new Error("[Agent] Anthropic response did not include text output.");
           }
-          params.updateStatus?.("complete");
+          // Don't call updateStatus("complete") - it overwrites the actual response message
+          // The actual text response will be displayed by the handler
 
           // Store Block Kit data in options for orchestrator to retrieve
           if (blockKitData && params.options) {

@@ -290,6 +290,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "**When to Use Each:**\n" +
       "- Use getCase/getIncident ONLY when user provides a specific case number\n" +
       "- Use searchCases when filtering by customer, status, or other criteria without a specific number\n\n" +
+      "**CRITICAL: Avoid Redundant Calls**\n" +
+      "- INC prefix (e.g., INC0168060) → ALWAYS use 'getIncident' ONLY, never getCase\n" +
+      "- SCS/CS prefix (e.g., SCS1234567) → ALWAYS use 'getCase' ONLY, never getIncident\n" +
+      "- Do NOT call both getIncident AND getCase for the same number\n" +
+      "- If getIncident or getCase succeeds, you have complete information - STOP, do not make additional calls\n" +
+      "- Each prefix maps to a specific ServiceNow table - calling the wrong action will always fail\n\n" +
       "**Attachments:** When includeAttachments=true, returns visual content (screenshots, diagrams). Useful for troubleshooting UI errors or viewing monitoring dashboards. Increases token usage 3000-10000 per case. Only enable when visual analysis is critical.",
     inputSchema: serviceNowInputSchema,
     execute: async ({
