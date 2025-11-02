@@ -2,6 +2,7 @@ import type { ServiceNowCaseWebhook } from "../../schemas/servicenow-webhook";
 import type { ServiceNowContext } from "../../infrastructure/servicenow-context";
 import type { CaseClassification } from "../case-classifier";
 import { serviceNowClient } from "../../tools/servicenow";
+import { getIncidentEnrichmentRepository } from "../../db/repositories/incident-enrichment-repository";
 
 export interface IncidentHandlingResult {
   incidentCreated: boolean;
@@ -186,6 +187,41 @@ async function createIncidentFromCase({
       `[Case Triage] Created ${suggestion.is_major_incident ? "MAJOR " : ""}` +
         `Incident ${incidentResult.incident_number} from Case ${webhook.case_number}`,
     );
+
+    // Add incident to enrichment watchlist
+    if (process.env.ENABLE_INCIDENT_ENRICHMENT === "true") {
+      try {
+        const repository = getIncidentEnrichmentRepository();
+        await repository.recordIncident({
+          incidentSysId: incidentResult.incident_sys_id,
+          incidentNumber: incidentResult.incident_number,
+          caseSysId: webhook.sys_id,
+          caseNumber: webhook.case_number,
+          enrichmentStage: "created",
+          matchedCis: [],
+          extractedEntities: {},
+          confidenceScores: {},
+          lastProcessedAt: new Date(),
+          metadata: {
+            // Store Slack context if available
+            slack_channel_id: (webhook.metadata as any)?.slack_channel_id,
+            slack_thread_ts: (webhook.metadata as any)?.slack_thread_ts,
+            assignment_group: webhook.assignment_group,
+            account: webhook.account || webhook.account_id,
+          },
+        });
+
+        console.log(
+          `[Case Triage] Added incident ${incidentResult.incident_number} to enrichment watchlist`
+        );
+      } catch (error) {
+        console.error(
+          `[Case Triage] Failed to add incident ${incidentResult.incident_number} to enrichment watchlist:`,
+          error
+        );
+        // Don't fail incident creation if watchlist insertion fails
+      }
+    }
   } catch (error) {
     console.error("[Case Triage] Failed to create Incident:", error);
   }

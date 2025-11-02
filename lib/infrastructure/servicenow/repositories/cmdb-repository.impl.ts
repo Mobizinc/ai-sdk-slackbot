@@ -122,4 +122,50 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
   async findByEnvironment(environment: string, limit = 25): Promise<ConfigurationItem[]> {
     return this.search({ environment, limit });
   }
+
+  async getRelatedCIs(ciSysId: string, relationshipType?: string): Promise<ConfigurationItem[]> {
+    // Query cmdb_rel_ci table for relationships
+    const queryParts = [`parent=${ciSysId}^ORchild=${ciSysId}`];
+
+    if (relationshipType) {
+      queryParts.push(`type.name=${relationshipType}`);
+    }
+
+    const query = queryParts.join("^");
+
+    const response = await this.httpClient.get<any>(
+      `/api/now/table/cmdb_rel_ci`,
+      {
+        sysparm_query: query,
+        sysparm_display_value: "all",
+        sysparm_limit: 50,
+      },
+    );
+
+    const records = Array.isArray(response.result) ? response.result : [response.result];
+    const relatedCiSysIds = records
+      .filter(Boolean)
+      .map((rel) => {
+        // Get the "other" CI (if we're parent, get child; if we're child, get parent)
+        const parentSysId = rel.parent?.value || rel.parent;
+        const childSysId = rel.child?.value || rel.child;
+        return parentSysId === ciSysId ? childSysId : parentSysId;
+      })
+      .filter(Boolean);
+
+    // Fetch full CI details for related CIs
+    const relatedCIs: ConfigurationItem[] = [];
+    for (const sysId of relatedCiSysIds) {
+      try {
+        const ci = await this.findBySysId(sysId);
+        if (ci) {
+          relatedCIs.push(ci);
+        }
+      } catch (error) {
+        console.warn(`[CMDB Repository] Failed to fetch related CI ${sysId}:`, error);
+      }
+    }
+
+    return relatedCIs;
+  }
 }

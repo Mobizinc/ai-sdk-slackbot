@@ -25,6 +25,9 @@
     },
     "api/cron/sync-categories.ts": {
       "maxDuration": 180
+    },
+    "api/cron/enrich-pending-incidents.ts": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -47,6 +50,10 @@
     {
       "path": "/api/cron/sync-categories",
       "schedule": "0 0,12 * * *"
+    },
+    {
+      "path": "/api/cron/enrich-pending-incidents",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

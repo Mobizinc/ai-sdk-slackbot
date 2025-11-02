@@ -1,0 +1,26 @@
+CREATE TABLE "incident_enrichment_states" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"incident_sys_id" text NOT NULL,
+	"incident_number" text NOT NULL,
+	"case_sys_id" text,
+	"case_number" text,
+	"enrichment_stage" text DEFAULT 'created' NOT NULL,
+	"matched_cis" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"extracted_entities" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"confidence_scores" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"clarification_requested_at" timestamp with time zone,
+	"clarification_slack_ts" text,
+	"enrichment_attempts" integer DEFAULT 0 NOT NULL,
+	"last_work_note_at" timestamp with time zone,
+	"last_processed_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_enrichment_incident_sys_id" ON "incident_enrichment_states" USING btree ("incident_sys_id");--> statement-breakpoint
+CREATE INDEX "idx_enrichment_case_sys_id" ON "incident_enrichment_states" USING btree ("case_sys_id");--> statement-breakpoint
+CREATE INDEX "idx_enrichment_stage" ON "incident_enrichment_states" USING btree ("enrichment_stage");--> statement-breakpoint
+CREATE INDEX "idx_enrichment_last_processed" ON "incident_enrichment_states" USING btree ("last_processed_at");--> statement-breakpoint
+CREATE INDEX "idx_enrichment_created_at" ON "incident_enrichment_states" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "idx_enrichment_stage_processed" ON "incident_enrichment_states" USING btree ("enrichment_stage","last_processed_at");

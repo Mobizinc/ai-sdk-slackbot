@@ -15,6 +15,7 @@ import { verifyRequest } from "../lib/slack-utils";
 import { getEscalationService } from "../lib/services/escalation-service";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getSlackMessagingService } from "../lib/services/slack-messaging";
+import { getIncidentClarificationService } from "../lib/services/incident-clarification-service";
 import { initializeDatabase } from "../lib/db/init";
 import { ErrorHandler } from "../lib/utils/error-handler";
 import { getCaseRepository, getAssignmentGroupRepository } from "../lib/infrastructure/servicenow/repositories";
@@ -150,6 +151,11 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
     // Handle KB approval button actions
     if (actionId.startsWith("kb_")) {
       await handleKBApprovalAction(actionId, value, payload);
+    }
+
+    // Handle incident enrichment CI selection buttons
+    if (actionId.startsWith("select_ci_") || actionId === "skip_ci") {
+      await handleIncidentEnrichmentAction(actionId, value, payload);
     }
   }
 }
@@ -757,6 +763,115 @@ async function handleEscalationAction(
       channel: container.channel_id,
       threadTs: container.message_ts,
       text: ErrorHandler.getSimpleMessage(errorResult),
+    });
+  }
+}
+
+/**
+ * Handle Incident Enrichment CI Selection button actions
+ * Processes technician responses to CI clarification requests
+ */
+async function handleIncidentEnrichmentAction(
+  actionId: string,
+  value: string,
+  payload: BlockActionsPayload
+): Promise<void> {
+  const { user, container } = payload;
+
+  console.log(
+    `[Interactivity] Incident enrichment action ${actionId} by user ${user.id}`,
+    { value }
+  );
+
+  try {
+    const clarificationService = getIncidentClarificationService();
+
+    // Parse the button value (contains incident_sys_id and CI details)
+    let parsedValue: any;
+    try {
+      parsedValue = JSON.parse(value);
+    } catch (error) {
+      console.error("[Interactivity] Failed to parse enrichment button value:", error);
+      await slackMessaging.postMessage({
+        channel: container.channel_id,
+        threadTs: container.message_ts,
+        text: "Error processing CI selection - invalid button data",
+      });
+      return;
+    }
+
+    if (actionId === "skip_ci") {
+      // User chose to skip auto-linking
+      console.log(
+        `[Interactivity] User ${user.id} skipped CI linking for incident ${parsedValue.incident_sys_id}`
+      );
+
+      await clarificationService.handleSkipAction(parsedValue.incident_sys_id);
+
+      // Update Slack message to show action was taken
+      await slackMessaging.updateMessage({
+        channel: container.channel_id,
+        ts: container.message_ts,
+        text: `CI linking skipped by <@${user.id}>. Incident will need manual CI linking in ServiceNow.`,
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `✓ CI linking skipped by <@${user.id}>.\n\nIncident will need manual CI linking in ServiceNow if needed.`,
+            },
+          },
+        ],
+      });
+    } else if (actionId.startsWith("select_ci_")) {
+      // User selected a CI
+      const incidentSysId = parsedValue.incident_sys_id;
+      const ciSysId = parsedValue.ci_sys_id;
+      const ciName = parsedValue.ci_name;
+
+      console.log(
+        `[Interactivity] User ${user.id} selected CI ${ciName} for incident ${incidentSysId}`
+      );
+
+      //  Handle the clarification response
+      const result = await clarificationService.handleClarificationResponse({
+        incidentSysId,
+        selectedCiSysId: ciSysId,
+        selectedCiName: ciName,
+        respondedBy: user.id,
+      });
+
+      // Update Slack message to show action was taken
+      if (result.success) {
+        await slackMessaging.updateMessage({
+          channel: container.channel_id,
+          ts: container.message_ts,
+          text: `CI linked by <@${user.id}>: ${ciName}`,
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `✓ CI linked by <@${user.id}>: *${ciName}*\n\n${result.message}`,
+              },
+            },
+          ],
+        });
+      } else {
+        await slackMessaging.postMessage({
+          channel: container.channel_id,
+          threadTs: container.message_ts,
+          text: `Error linking CI: ${result.message}`,
+        });
+      }
+    }
+  } catch (error) {
+    console.error(`[Interactivity] Error handling incident enrichment action:`, error);
+
+    await slackMessaging.postMessage({
+      channel: container.channel_id,
+      threadTs: container.message_ts,
+      text: `Error processing CI selection: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
   }
 }

@@ -59,4 +59,9 @@ export interface CMDBRepository {
    * Find CIs by environment (e.g., "production", "development")
    */
   findByEnvironment(environment: string, limit?: number): Promise<ConfigurationItem[]>;
+
+  /**
+   * Get CIs related to a given CI via cmdb_rel_ci table
+   */
+  getRelatedCIs(ciSysId: string, relationshipType?: string): Promise<ConfigurationItem[]>;
 }

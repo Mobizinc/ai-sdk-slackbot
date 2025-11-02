@@ -15,8 +15,6 @@ import type {
 import type {
   Case,
   Incident,
-  KnowledgeArticle,
-  CatalogItem,
   ConfigurationItem,
   Choice,
 } from "../infrastructure/servicenow/types";
@@ -1756,7 +1754,6 @@ export class ServiceNowClient {
       since: Date;
       limit?: number;
     },
-    context?: ServiceNowContext,
   ): Promise<ServiceNowWorkNote[]> {
     const sinceString = formatDateForServiceNow(options.since);
     const limit = options.limit ?? 200;
@@ -1862,6 +1859,89 @@ export class ServiceNowClient {
     });
 
     console.log(`[ServiceNow] OLD path: Successfully closed incident`, { incidentSysId });
+  }
+
+  /**
+   * Update Incident fields
+   * Used by incident enrichment workflow to add metadata and CI links
+   */
+  public async updateIncident(
+    incidentSysId: string,
+    updates: Record<string, unknown>,
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+
+    console.log(`[ServiceNow] Successfully updated incident ${incidentSysId}`, {
+      fields: Object.keys(updates),
+    });
+  }
+
+  /**
+   * Get Incident Work Notes (Journal Entries)
+   * Retrieves work_notes journal entries for incident enrichment analysis
+   */
+  public async getIncidentWorkNotes(
+    incidentSysId: string,
+    options: { limit?: number } = {},
+  ): Promise<ServiceNowCaseJournalEntry[]> {
+    const limit = options.limit || 100;
+    const endpoint = `/api/now/table/sys_journal_field?element_id=${incidentSysId}&element=work_notes&ORDERBYDESCsys_created_on&sysparm_limit=${limit}`;
+
+    const data = await request<{
+      result: Array<{
+        sys_id: { display_value: string; value: string } | string;
+        element_id: { display_value: string; value: string } | string;
+        value: { display_value: string; value: string } | string;
+        sys_created_on: { display_value: string; value: string } | string;
+        sys_created_by: { display_value: string; value: string } | string;
+      }>;
+    }>(endpoint);
+
+    const extractDisplayValue = (
+      field:
+        | string
+        | { display_value: string; value: string }
+        | null
+        | undefined,
+    ): string => {
+      if (!field) return "";
+      if (typeof field === "string") return field;
+      return field.display_value || field.value || "";
+    };
+
+    return (data.result ?? []).map((row) => ({
+      sys_id: extractDisplayValue(row.sys_id),
+      element: "work_notes",
+      element_id: extractDisplayValue(row.element_id),
+      value: extractDisplayValue(row.value) || "",
+      sys_created_on: extractDisplayValue(row.sys_created_on) || "",
+      sys_created_by: extractDisplayValue(row.sys_created_by) || "",
+    }));
+  }
+
+  /**
+   * Link CI (Configuration Item) to Incident
+   * Updates the cmdb_ci field with the matched CI sys_id
+   */
+  public async linkCiToIncident(
+    incidentSysId: string,
+    ciSysId: string,
+  ): Promise<void> {
+    const endpoint = `/api/now/table/incident/${incidentSysId}`;
+
+    await request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({
+        cmdb_ci: ciSysId,
+      }),
+    });
+
+    console.log(`[ServiceNow] Linked CI ${ciSysId} to incident ${incidentSysId}`);
   }
 
   private async getIncidentSourceContext(
@@ -2672,7 +2752,6 @@ export class ServiceNowClient {
    */
   public async getBusinessService(
     name: string,
-    context?: ServiceNowContext,
   ): Promise<ServiceNowBusinessService | null> {
     const data = await request<{
       result: Array<Record<string, any>>;
@@ -2803,7 +2882,6 @@ export class ServiceNowClient {
    */
   public async getApplicationService(
     name: string,
-    context?: ServiceNowContext,
   ): Promise<ServiceNowApplicationService | null> {
     const data = await request<{
       result: Array<Record<string, any>>;
@@ -3087,7 +3165,6 @@ export class ServiceNowClient {
       shortDescription?: string;
       priority?: string;
     },
-    context?: ServiceNowContext,
   ): Promise<{
     sys_id: string;
     number: string;
@@ -3151,7 +3228,6 @@ export class ServiceNowClient {
       summary?: string;
       notes?: string;
     },
-    context?: ServiceNowContext,
   ): Promise<{
     interaction_sys_id: string;
     interaction_number: string;

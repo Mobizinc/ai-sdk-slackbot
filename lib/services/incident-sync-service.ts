@@ -1,5 +1,7 @@
 import { createSystemContext, type ServiceNowContext } from "../infrastructure/servicenow-context";
 import { serviceNowClient } from "../tools/servicenow";
+import { getIncidentEnrichmentService } from "./incident-enrichment-service";
+import { getIncidentEnrichmentRepository } from "../db/repositories/incident-enrichment-repository";
 import type { ServiceNowIncidentWebhook } from "../schemas/servicenow-incident-webhook";
 
 const INCIDENT_STATE = {
@@ -62,12 +64,53 @@ export async function handleIncidentUpdate(payload: ServiceNowIncidentWebhook): 
   const incidentState = normalizeState(payload.state, payload.state_label);
   const snContext = createSystemContext("incident-webhook");
 
+  // Run final enrichment before resolved/closed state transitions
+  if ((isResolved(incidentState) || isClosed(incidentState)) && incidentSysId) {
+    try {
+      const enrichmentService = getIncidentEnrichmentService();
+      const enabled = await enrichmentService.isEnabled();
+      if (enabled) {
+        console.log(
+          `[IncidentSync] Running final enrichment for ${payload.incident_number} before state change`
+        );
+        const enrichmentResult = await enrichmentService.runFinalEnrichment(incidentSysId);
+        if (enrichmentResult.success) {
+          console.log(
+            `[IncidentSync] Final enrichment complete for ${payload.incident_number}: ${enrichmentResult.message}`
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        `[IncidentSync] Final enrichment error for ${payload.incident_number}:`,
+        error
+      );
+      // Don't block state transition on enrichment failure
+    }
+  }
+
   if (isResolved(incidentState)) {
     await syncCaseFromResolvedIncident(payload, parentCaseSysId, incidentSysId, snContext);
   }
 
   if (isClosed(incidentState)) {
     await syncCaseFromClosedIncident(payload, parentCaseSysId, incidentSysId, snContext);
+
+    // Remove from enrichment watchlist when closed
+    if (incidentSysId) {
+      try {
+        const repository = getIncidentEnrichmentRepository();
+        await repository.removeFromWatchlist(incidentSysId);
+        console.log(
+          `[IncidentSync] Removed ${payload.incident_number} from enrichment watchlist`
+        );
+      } catch (error) {
+        console.error(
+          `[IncidentSync] Error removing ${payload.incident_number} from watchlist:`,
+          error
+        );
+      }
+    }
   }
 
   if (isOnHold(incidentState)) {
