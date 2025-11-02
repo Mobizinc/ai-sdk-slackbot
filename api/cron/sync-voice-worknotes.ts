@@ -197,7 +197,6 @@ async function runSync(): Promise<Response> {
             startTime: metadata.startTime,
             endTime: metadata.endTime,
           },
-          snContext,
         );
 
         // Update local record with ServiceNow IDs

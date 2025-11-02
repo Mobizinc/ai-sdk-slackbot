@@ -10,6 +10,7 @@ import { POST } from "../../api/interactivity";
 import { getSlackMessagingService } from "../../lib/services/slack-messaging";
 import { getEscalationService } from "../../lib/services/escalation-service";
 import { getKBApprovalManager } from "../../lib/handle-kb-approval";
+import { getIncidentClarificationService } from "../../lib/services/incident-clarification-service";
 
 // Mock dependencies
 vi.mock("../../lib/slack-utils", () => ({
@@ -36,6 +37,13 @@ vi.mock("../../lib/handle-kb-approval", () => ({
     handleApprovalAction: vi.fn(),
     handleRejectionAction: vi.fn(),
     handleEditAction: vi.fn(),
+  })),
+}));
+
+vi.mock("../../lib/services/incident-clarification-service", () => ({
+  getIncidentClarificationService: vi.fn(() => ({
+    handleClarificationResponse: vi.fn().mockResolvedValue({ success: true, message: "Success" }),
+    handleSkipAction: vi.fn().mockResolvedValue(undefined),
   })),
 }));
 
@@ -641,6 +649,363 @@ describe("Interactivity API Security", () => {
 
       const response = await POST(request);
       expect(response.status).not.toBe(500);
+    });
+  });
+
+  describe("Incident Enrichment Button Handlers", () => {
+    let mockClarificationService: any;
+
+    beforeEach(() => {
+      mockClarificationService = getIncidentClarificationService();
+    });
+
+    it("✓ Routes select_ci_* actions to handleIncidentEnrichmentAction", async () => {
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "select_ci",
+              incident_sys_id: "incident_sys_id_123",
+              ci_sys_id: "ci_sys_id_456",
+              ci_name: "test-ci",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("✓ Routes skip_ci action to handleIncidentEnrichmentAction", async () => {
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "skip_ci",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "skip_ci",
+              incident_sys_id: "incident_sys_id_123",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("✓ Parses button JSON value correctly", async () => {
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "select_ci",
+              incident_sys_id: "incident_sys_id_123",
+              ci_sys_id: "ci_sys_id_456",
+              ci_name: "edge-ACCT0242146-01",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+    });
+
+    it("✓ Calls clarificationService.handleClarificationResponse for select", async () => {
+      const mockClarificationService = getIncidentClarificationService();
+      (mockClarificationService.handleClarificationResponse as any).mockResolvedValue({
+        success: true,
+        message: "Successfully linked CI: test-ci",
+      });
+
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "select_ci",
+              incident_sys_id: "incident_sys_id_123",
+              ci_sys_id: "ci_sys_id_456",
+              ci_name: "test-ci",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      await POST(request);
+
+      expect(mockClarificationService.handleClarificationResponse).toHaveBeenCalledWith({
+        incidentSysId: "incident_sys_id_123",
+        selectedCiSysId: "ci_sys_id_456",
+        selectedCiName: "test-ci",
+        respondedBy: "U123",
+      });
+    });
+
+    it("✓ Calls clarificationService.handleSkipAction for skip", async () => {
+      const { getIncidentClarificationService } = await import("../../lib/services/incident-clarification-service");
+      const mockClarificationService = getIncidentClarificationService();
+
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "skip_ci",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "skip_ci",
+              incident_sys_id: "incident_sys_id_123",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      await POST(request);
+
+      expect(mockClarificationService.handleSkipAction).toHaveBeenCalledWith("incident_sys_id_123");
+    });
+
+    it("✓ Updates Slack message with confirmation", async () => {
+      const mockClarificationService = getIncidentClarificationService();
+      (mockClarificationService.handleClarificationResponse as any).mockResolvedValue({
+        success: true,
+        message: "Successfully linked CI: test-ci",
+      });
+
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "select_ci",
+              incident_sys_id: "incident_sys_id_123",
+              ci_sys_id: "ci_sys_id_456",
+              ci_name: "test-ci",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      await POST(request);
+
+      expect(mockSlackMessaging.updateMessage).toHaveBeenCalledWith({
+        channel: "C123456",
+        ts: "1234567890.123456",
+        text: "CI linked by <@U123>: test-ci",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "✓ CI linked by <@U123>: *test-ci*\n\nSuccessfully linked CI: test-ci",
+            },
+          },
+        ],
+      });
+    });
+
+    it("✓ Handles parse errors gracefully", async () => {
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: "invalid json{",
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      // Should post error message
+      expect(mockSlackMessaging.postMessage).toHaveBeenCalledWith({
+        channel: "C123456",
+        threadTs: "1234567890.123456",
+        text: "Error processing CI selection - invalid button data",
+      });
+    });
+
+    it("✓ Posts error message on failure", async () => {
+      const mockClarificationService = getIncidentClarificationService();
+      (mockClarificationService.handleClarificationResponse as any).mockResolvedValue({
+        success: false,
+        message: "CI linking failed",
+      });
+
+      const payload = {
+        type: "block_actions",
+        user: { id: "U123", username: "testuser", name: "Test User" },
+        container: {
+          type: "message",
+          message_ts: "1234567890.123456",
+          channel_id: "C123456",
+          is_ephemeral: false,
+        },
+        team: { id: "T123", domain: "example" },
+        actions: [
+          {
+            action_id: "select_ci_0",
+            block_id: "block1",
+            type: "button",
+            value: JSON.stringify({
+              action: "select_ci",
+              incident_sys_id: "incident_sys_id_123",
+              ci_sys_id: "ci_sys_id_456",
+              ci_name: "test-ci",
+            }),
+            action_ts: "1234567890.123456",
+          },
+        ],
+        response_url: "https://hooks.slack.com/response",
+      };
+
+      const request = new Request("https://example.com/api/interactivity", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: `payload=${encodeURIComponent(JSON.stringify(payload))}`,
+      });
+
+      await POST(request);
+
+      expect(mockSlackMessaging.postMessage).toHaveBeenCalledWith({
+        channel: "C123456",
+        threadTs: "1234567890.123456",
+        text: "Error linking CI: CI linking failed",
+      });
     });
   });
 

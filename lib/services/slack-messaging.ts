@@ -304,7 +304,7 @@ export class SlackMessagingService {
     file: Buffer;
   }): Promise<{ ok: boolean }> {
     try {
-      const result = await this.client.files.uploadV2({
+      await this.client.files.uploadV2({
         channel_id: params.channelId,
         filename: params.filename,
         title: params.title,

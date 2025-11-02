@@ -1,0 +1,27 @@
+{
+  "audit_date": "2025-11-01T23:23:24.006Z",
+  "altus": {
+    "firewalls": 29,
+    "networks": 30,
+    "firewall_network_relationships": 31
+  },
+  "allcare": {
+    "firewalls": 34,
+    "duplicates": 0,
+    "with_serial": 34,
+    "with_location": 31,
+    "networks": 31,
+    "firewall_network_relationships": 85,
+    "vpn_tunnels": 33,
+    "location_mismatches": 0
+  },
+  "contamination": {
+    "allcare_to_altus": 0,
+    "altus_to_allcare": 0
+  },
+  "issues": [],
+  "warnings": [
+    "1 Allcare networks have no location field"
+  ],
+  "verdict": "FAIL"
+}

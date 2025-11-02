@@ -36,8 +36,8 @@ import { getEscalationService } from "./escalation-service";
 import { config } from "../config";
 
 // Import from extracted modules
-import type { CaseTriageOptions, CaseTriageResult, CacheKey } from "./case-triage/types";
-import { TriageStorage, type CaseClassificationRepository } from "./case-triage/storage";
+import type { CaseTriageOptions, CaseTriageResult } from "./case-triage/types";
+import { TriageStorage } from "./case-triage/storage";
 import { TriageCache } from "./case-triage/cache";
 import { enrichClassificationContext } from "./case-triage/retrieval";
 import { handleRecordTypeSuggestion } from "./case-triage/incident-handler";
@@ -56,7 +56,7 @@ export class CaseTriageService {
   private categorySyncService = getCategorySyncService();
   private catalogRedirectHandler = getCatalogRedirectHandler();
   private cmdbReconciliationService = getCmdbReconciliationService();
-  private escalationService = getEscalationService();
+
 
   // Module instances
   private storage = new TriageStorage(this.repository);

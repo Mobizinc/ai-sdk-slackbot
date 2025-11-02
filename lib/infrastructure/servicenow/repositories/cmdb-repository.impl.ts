@@ -56,18 +56,18 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
 
     if (criteria.name) {
       queryParts.push(
-        `nameLIKE${criteria.name}^ORfqdnLIKE${criteria.name}^ORhost_nameLIKE${criteria.name}`,
+        `name LIKE ${criteria.name}^OR fqdn LIKE ${criteria.name}^OR host_name LIKE ${criteria.name}`,
       );
     }
 
     if (criteria.ipAddress) {
       queryParts.push(
-        `ip_addressLIKE${criteria.ipAddress}^ORu_ip_addressLIKE${criteria.ipAddress}`,
+        `ip_address LIKE ${criteria.ipAddress}^OR u_ip_address LIKE ${criteria.ipAddress}`,
       );
     }
 
     if (criteria.fqdn) {
-      queryParts.push(`fqdnLIKE${criteria.fqdn}^ORu_fqdnLIKE${criteria.fqdn}`);
+      queryParts.push(`fqdn LIKE ${criteria.fqdn}^OR u_fqdn LIKE ${criteria.fqdn}`);
     }
 
     if (criteria.className) {

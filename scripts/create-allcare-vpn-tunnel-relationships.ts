@@ -65,8 +65,8 @@ async function createAllcareVPNTunnelRelationships(dryRun: boolean = false) {
 
   const authHeader = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 
-  // Get hub firewall sys_id
-  const hubQuery = `name=${hubFirewall}`;
+  // Get hub firewall sys_id - MUST filter by serial to get correct entry
+  const hubQuery = `name=${hubFirewall}^serial_number=FGVM4VTM23003310`;
   const hubUrl = `${instanceUrl}/api/now/table/cmdb_ci_ip_firewall?sysparm_query=${encodeURIComponent(hubQuery)}&sysparm_fields=sys_id,name&sysparm_limit=1`;
 
   const hubResp = await fetch(hubUrl, {

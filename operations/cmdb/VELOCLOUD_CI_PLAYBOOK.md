@@ -4,47 +4,72 @@
 
 Make every TPX/TelePacific VeloCloud edge visible to the triage agent so Claude can quickly determine whether a site depends on SD-WAN for internet access. The data also feeds ServiceNow so the CMDB reflects carrier-managed connectivity.
 
-## 1. Export Edge Inventory
+## 1. Pre-flight Checklist
 
-1. Ensure `.env` / `.env.local` contains the correct VeloCloud credentials (API token or username/password) for each tenant you manage:
-   ```
-   VELOCLOUD_CUSTOMERA_URL=https://orchestrator.example.com
-   VELOCLOUD_CUSTOMERA_API_TOKEN=token
-   ```
-2. Run the exporter (use `all` to iterate across every configured tenant):
-   ```bash
-   pnpm tsx scripts/export-velocloud-edges.ts all
-   # optionally specify a single tenant
-   pnpm tsx scripts/export-velocloud-edges.ts customera
-   # change output location
-   pnpm tsx scripts/export-velocloud-edges.ts all --out=ci-records/velocloud-edges.alt.json
-   ```
-3. The script writes a normalized payload to `ci-records/velocloud-edges.json` (see `ci-records/velocloud-edges.template.json` for structure).
+1. `.env.local` must contain VeloCloud orchestrator credentials for Altus/Allcare (`VELOCLOUD_URL`, `VELOCLOUD_API_TOKEN` or username/password). The credentials already live in the repo vault.
+2. Confirm ServiceNow credentials (`SERVICENOW_URL/USERNAME/PASSWORD`) are set for the production instance.
+3. Ensure the **Allcare-Azure** location CI exists (created during the firewall rebuild) and each Altus firewall is mapped to its site location.
+4. Identify the TPX company record: `TPX - TelePacific` (or `TPx Communications`) should exist in **core_company**. The import script will auto-look it up; create it first if missing so `managed_by`/`manufacturer` populate.
+5. Optional but recommended: run the firewall rebuild first (`scripts/rebuild-allcare-from-fortimanager.ts`) so locations/network relationships are fresh before attaching Velocloud data.
 
-Fields captured per edge:
-- `edge_id`, `logical_id`, `edge_name`
-- `site_name` (when provided by TPX)
-- `edge_state`, `activation_state`, `last_contact`
-- `model_number`, `account_hint` (first `ACCTxxxxx` token in the name)
+## 2. Import Edges & Circuits (Automated)
 
-## 2. Load Into ServiceNow
+Use the new ingestion script which pulls live data from VeloCloud and pushes it straight into the CMDB.
 
-1. Create or reuse a CI class (recommended: `cmdb_ci_carrier_device` or a custom subclass like `u_sdwan_edge`).
-2. Map payload fields to CI attributes:
-   | Payload field | Suggested SN attribute | Notes |
-   |---------------|-----------------------|-------|
-   | `edge_name`   | `name`                | Keep the TPX naming convention |
-   | `logical_id`  | `serial_number`       | Unique identifier from VeloCloud |
-   | `model_number`| `model_number`        | Populate manufacturer `= VMware` or `= TPX` |
-   | `edge_state`  | `u_edge_state`        | Custom string field if needed |
-   | `account_hint`| `u_account_number`    | Helps reconcile with billing |
-   | `last_contact`| `last_discovered`     | Convert to DateTime |
-3. Create relationships:
-   - **Depends on** the site/location CI (facility or office)
-   - **Provides connectivity to** the customer firewall CI (Fortinet, Palo Alto, SonicWall, etc.)
-   - Optional: link to WAN circuits or carrier contracts.
+```bash
+# dry run (prints actions, no writes)
+npx tsx scripts/import-altus-velocloud-edges.ts --dry-run
 
-## 3. Surface to Claude & Discovery
+# live run (default enterprise configured in env)
+npx tsx scripts/import-altus-velocloud-edges.ts
+
+# specify a customer alias if multiple tenants are configured
+npx tsx scripts/import-altus-velocloud-edges.ts --customer allcare
+
+# provide a CSV export from the TPX portal if API link stats are unavailable
+npx tsx scripts/import-altus-velocloud-edges.ts --csv ~/Downloads/monitor_edges_export.csv
+```
+
+What it does:
+
+| Object            | Class                    | Key fields populated                                                                                           |
+|-------------------|--------------------------|------------------------------------------------------------------------------------------------------------------|
+| Velocloud Edge    | `cmdb_ci_ip_router`      | `name = "<Altus site> Velocloud Edge"`, `serial_number = logicalId`, `asset_tag = VC-<edgeId>`, manufacturer = VMware/Velocloud, `managed_by = TPX`, location = Altus site |
+| WAN Circuit (link)| `cmdb_ci_ip_network`     | One per edge link. Stores Link ID, transport type, bandwidth, TPX account metadata, `correlation_id = VC-LINK-<edgeId>-<linkId>` |
+| Relationships     | `cmdb_rel_ci`            | Edge → Firewall (`Connects to::Connected by`), Edge → Circuit (`Depends on::Used by`)                                                                  |
+
+The script skips sites it cannot map to an Altus firewall (logging a warning) and is idempotent—re-running updates existing CIs rather than creating duplicates.
+If the VeloCloud orchestrator does not permit link-status queries (`edge/getEdgeLinkStatus`), include the portal export CSV with `--csv` and the importer will seed circuits from the “Connected Links” column (still creating the proper relationships). When TPX unlocks the API call, circuits will populate automatically without the CSV.
+
+## 3. Post-Run Validation
+
+Run the following quick checks (either manually or via a helper script):
+
+- **Edge count** – `cmdb_ci_ip_router` where `asset_tagSTARTSWITHVC-` should match the number of edges returned by VeloCloud.
+- **Circuit health** – `cmdb_ci_ip_network` where `correlation_idSTARTSWITHVC-LINK-` should equal 2 circuits per dual-homed site (or match the live portal count).
+- **Relationships** – the Azure hub firewall (`ACM-AZ-FW01`) should now display 29 spokes under CI Relationships. Each Velocloud edge should show:
+  - `Connects to` relationship to its Altus firewall.
+  - `Depends on` relationships to TPX circuits.
+- **No blanks** – run a query for `cmdb_ci_ip_network` with `subnetISEMPTY^correlation_idSTARTSWITHVC-LINK-` to ensure the script populated metadata (should return zero).
+
+## 4. Surface to Claude & Discovery
+
+1. Store the edge/circuit inventory (or re-query via API) so Discovery/triage prompts can mention SD-WAN status automatically.
+2. Update the Connectivity Reasoning agent to note when a site has TPX Velocloud coverage and suggest running `queryVelocloud` before escalating carrier tickets.
+3. For cases referencing an Altus site, check the Velocloud status alongside Fortinet/TPX alerts to provide carriers with concrete evidence (link ID, latency data, etc.).
+
+## 5. Operational Checklist
+
+- [ ] Schedule `import-altus-velocloud-edges.ts` (e.g., nightly) so CMDB data stays in sync with TPX changes.
+- [ ] When a new Altus site comes online, add the Fortinet firewall first, then rerun the Velocloud importer to attach the SD-WAN gear automatically.
+- [ ] Document any unmatched edges in the run log so facilities with missing Fortinet firewalls can be fixed.
+- [ ] Train responders that TPX circuit data now lives in CMDB—include circuit ID and bandwidth in incident notes when opening carrier tickets.
+
+## References
+
+- `scripts/import-altus-velocloud-edges.ts` – primary ingestion script (supports `--dry-run` and `--customer` flags)
+- `lib/agent/tools/velocloud.ts` – runtime tool for fetching live edge/link status
+- `scripts/test-velocloud-tool.ts` – ad-hoc tester for orchestrator connectivity
 
 1. Store the exported JSON in the context manager or hydrate an internal lookup so the Discovery agent can attach `sdwan_edge` metadata to the case.
 2. Update the Discovery agent snippets to include:

@@ -231,24 +231,80 @@ export class VeloCloudService {
   ): Promise<VeloCloudLinkStatus[]> {
     const client = this.getClient(config);
     const targetEnterprise = params.enterpriseId ?? config.enterpriseId;
-    const body: Record<string, unknown> = {
+    const baseBody: Record<string, unknown> = {
       edgeId: params.edgeId,
     };
     if (targetEnterprise !== undefined) {
-      body.enterpriseId = targetEnterprise;
+      baseBody.enterpriseId = targetEnterprise;
     }
 
-    const result = await client.request<{ linkStatus?: VeloCloudLinkStatus[] } | VeloCloudLinkStatus[]>({
-      path: "edge/getEdgeLinkStatus",
-      body,
-    });
+    const attempts: Array<{
+      path: string;
+      prepareBody?: (body: Record<string, unknown>) => Record<string, unknown>;
+      extract: (payload: any) => VeloCloudLinkStatus[] | null;
+    }> = [
+      {
+        path: "edge/getEdgeLinkStatus",
+        extract: (payload) => extractLinkStatus(payload),
+      },
+      {
+        path: "enterprise/getEdgeLinkStatus",
+        extract: (payload) => extractLinkStatus(payload),
+      },
+      {
+        path: "monitor/getEdgeLinkStatus",
+        prepareBody: (body) => ({
+          ...body,
+          interval: {
+            start: Math.trunc((Date.now() - 12 * 60 * 60 * 1000) / 1000),
+            end: Math.trunc(Date.now() / 1000),
+          },
+          metrics: ["latencyMs", "lossPct"],
+          includeLinkMetrics: true,
+        }),
+        extract: (payload) =>
+          extractLinkStatus(payload?.data ?? payload?.linkStatus ?? payload?.result),
+      },
+      {
+        path: "monitor/getEdgeLinkSeries",
+        prepareBody: (body) => ({
+          ...body,
+          interval: {
+            start: Math.trunc((Date.now() - 12 * 60 * 60 * 1000) / 1000),
+            end: Math.trunc(Date.now() / 1000),
+          },
+          metrics: ["bytesRx", "bytesTx"],
+        }),
+        extract: (payload) => extractLinkSeries(payload),
+      },
+    ];
 
-    if (Array.isArray(result)) {
-      return result;
+    let lastError: unknown;
+
+    for (const attempt of attempts) {
+      try {
+        const body = attempt.prepareBody ? attempt.prepareBody({ ...baseBody }) : baseBody;
+        const result = await client.request<any>({
+          path: attempt.path,
+          body,
+        });
+        const links = attempt.extract(result);
+        if (links && links.length > 0) {
+          return links;
+        }
+        if (links && links.length === 0) {
+          return [];
+        }
+      } catch (error) {
+        lastError = error;
+        if (!isMethodError(error)) {
+          throw error;
+        }
+      }
     }
 
-    if (result?.linkStatus && Array.isArray(result.linkStatus)) {
-      return result.linkStatus;
+    if (lastError) {
+      throw lastError;
     }
 
     return [];
@@ -536,4 +592,50 @@ function truncate(text: string, max: number): string {
     return text;
   }
   return `${text.slice(0, max)}…`;
+}
+
+function extractLinkStatus(payload: any): VeloCloudLinkStatus[] | null {
+  if (!payload) return null;
+  if (Array.isArray(payload)) {
+    return payload as VeloCloudLinkStatus[];
+  }
+  if (Array.isArray(payload.linkStatus)) {
+    return payload.linkStatus as VeloCloudLinkStatus[];
+  }
+  if (Array.isArray(payload.data)) {
+    return payload.data as VeloCloudLinkStatus[];
+  }
+  return null;
+}
+
+function extractLinkSeries(payload: any): VeloCloudLinkStatus[] | null {
+  if (!payload || !Array.isArray(payload.series)) {
+    return null;
+  }
+
+  const result: VeloCloudLinkStatus[] = [];
+  for (const series of payload.series) {
+    if (!series || typeof series !== "object") continue;
+    const linkId = series.linkId ?? series.displayName;
+    const summary = series.summary ?? {};
+    result.push({
+      linkId,
+      name: series.displayName ?? `Link ${linkId ?? "unknown"}`,
+      linkState: summary.linkState ?? summary.status ?? undefined,
+      capacityDown: summary.capacityDown,
+      capacityUp: summary.capacityUp,
+      latencyMs: summary.latencyMs ?? summary.latency ?? undefined,
+      lossPct: summary.lossPct ?? summary.loss ?? undefined,
+    });
+  }
+
+  return result;
+}
+
+function isMethodError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const message = (error as Error).message || "";
+  return message.includes("methodError") || message.includes("404 Not Found");
 }
