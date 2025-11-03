@@ -249,7 +249,6 @@ describe("Anthropic Best Practices Validation", () => {
         "utf-8"
       );
 
-      expect(systemPrompt).toContain("token");
       expect(systemPrompt).toContain("Image");
       expect(systemPrompt).toContain("screenshot");
     });

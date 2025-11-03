@@ -23,3 +23,9 @@ export class TriggerKBWorkflowAction {
     await cleanupTimedOut(this.deps);
   }
 }
+
+// Export individual functions for direct testing
+export { triggerWorkflowStage as triggerWorkflow };
+export { handleUserResponseStage as handleUserResponse };
+export { cleanupTimedOut };
+export type { TriggerKBWorkflowDeps };

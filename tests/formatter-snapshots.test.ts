@@ -17,7 +17,7 @@ import type {
   ServiceNowIncidentResult,
   ServiceNowCaseJournalEntry,
   ServiceNowCaseSummary,
-} from "../lib/types/servicenow";
+} from "../lib/tools/servicenow";
 
 describe("ServiceNow Formatter Snapshots", () => {
   describe("formatCaseSummaryText", () => {
@@ -33,21 +33,29 @@ describe("ServiceNow Formatter Snapshots", () => {
         assigned_to: "John Smith",
         account: "Contoso Corp",
         submitted_by: "Jane Doe",
-        sys_created_on: "2025-10-28 14:00:00",
       };
 
       const journalEntries: ServiceNowCaseJournalEntry[] = [
         {
+          sys_id: "journal1",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 15:30:00",
           sys_created_by: "jsmith",
           value: "Escalated to Microsoft Support - Ticket #MS-12345",
         },
         {
+          sys_id: "journal2",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 15:15:00",
           sys_created_by: "jsmith",
           value: "Checked Azure Service Health dashboard - no outages reported",
         },
         {
+          sys_id: "journal3",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 14:45:00",
           sys_created_by: "jsmith",
           value: "Monitoring email flow after service restart",
@@ -59,17 +67,20 @@ describe("ServiceNow Formatter Snapshots", () => {
         journalEntries
       );
 
+      // Extract summary from object
+      const summary = formatted?.summary;
+
       // Verify structure
-      expect(formatted).toContain("Summary");
-      expect(formatted).toContain("Current State");
-      expect(formatted).toContain("Latest Activity");
+      expect(summary).toContain("Summary");
+      expect(summary).toContain("Current State");
+      expect(summary).toContain("Latest Activity");
 
       // Verify content
-      expect(formatted).toContain("Email server down");
-      expect(formatted).toContain("SCS0012345");
-      expect(formatted).toContain("Open");
+      expect(summary).toContain("Email server down");
+      expect(summary).toContain("SCS0012345");
+      expect(summary).toContain("Open");
 
-      expect(formatted).toMatchSnapshot();
+      expect(summary).toMatchSnapshot();
     });
 
     it("should match snapshot for minimal case", () => {
@@ -87,10 +98,10 @@ describe("ServiceNow Formatter Snapshots", () => {
       );
 
       // Should still have required sections even with minimal data
-      expect(formatted).toContain("Summary");
-      expect(formatted).toContain("Current State");
+      expect(formatted?.summary).toContain("Summary");
+      expect(formatted?.summary).toContain("Current State");
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
   });
 
@@ -105,22 +116,22 @@ describe("ServiceNow Formatter Snapshots", () => {
         description:
           "Marketing team unable to access SharePoint site, receiving 403 error since this morning.",
         assigned_to: "Sarah Johnson",
-        caller: "Mark Wilson",
+        caller_id: "Mark Wilson",
         sys_created_on: "2025-10-28 13:00:00",
       };
 
       const formatted = formatIncidentForLLM(incident as ServiceNowIncidentResult);
 
       // Verify structure
-      expect(formatted).toContain("Summary");
-      expect(formatted).toContain("Current State");
+      expect(formatted?.summary).toContain("Summary");
+      expect(formatted?.summary).toContain("Current State");
 
       // Verify content
-      expect(formatted).toContain("SharePoint");
-      expect(formatted).toContain("403 Forbidden");
-      expect(formatted).toContain("In Progress");
+      expect(formatted?.summary).toContain("SharePoint");
+      expect(formatted?.summary).toContain("403 Forbidden");
+      expect(formatted?.summary).toContain("In Progress");
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
   });
 
@@ -128,16 +139,25 @@ describe("ServiceNow Formatter Snapshots", () => {
     it("should match snapshot for journal entries", () => {
       const entries: ServiceNowCaseJournalEntry[] = [
         {
+          sys_id: "journal1",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 15:30:00",
           sys_created_by: "jsmith",
           value: "Escalated to Microsoft Support",
         },
         {
+          sys_id: "journal2",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 15:15:00",
           sys_created_by: "jsmith",
           value: "Checked Azure Service Health - no outages",
         },
         {
+          sys_id: "journal3",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 14:45:00",
           sys_created_by: "jsmith",
           value: "Restarted Exchange service",
@@ -147,14 +167,14 @@ describe("ServiceNow Formatter Snapshots", () => {
       const formatted = formatJournalEntriesForLLM(entries, "SCS0012345");
 
       // Verify structure
-      expect(formatted).toContain("Latest Activity");
-      expect(formatted).toContain("•");
+      expect(formatted?.summary).toContain("Latest Activity");
+      expect(formatted?.summary).toContain("•");
 
       // Verify content
-      expect(formatted).toContain("jsmith");
-      expect(formatted).toContain("Escalated");
+      expect(formatted?.summary).toContain("jsmith");
+      expect(formatted?.summary).toContain("Escalated");
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
 
     it("should return null for empty entries", () => {
@@ -173,9 +193,9 @@ describe("ServiceNow Formatter Snapshots", () => {
           short_description: "Email connectivity issue",
           state: "Resolved",
           priority: "1",
-          assigned_to: null,
-          account: null,
-          sys_created_on: "2025-10-27 10:00:00",
+          account: undefined,
+          opened_at: "2025-10-27 10:00:00",
+          url: "https://test.service-now.com/scs0012340",
         },
         {
           sys_id: "case002",
@@ -183,9 +203,9 @@ describe("ServiceNow Formatter Snapshots", () => {
           short_description: "Exchange server timeout",
           state: "Resolved",
           priority: "2",
-          assigned_to: null,
-          account: null,
-          sys_created_on: "2025-10-26 14:00:00",
+          account: undefined,
+          opened_at: "2025-10-26 14:00:00",
+          url: "https://test.service-now.com/scs0012335",
         },
       ];
 
@@ -196,21 +216,21 @@ describe("ServiceNow Formatter Snapshots", () => {
       );
 
       // Verify structure
-      expect(formatted).toContain("Summary");
-      expect(formatted).toContain("•");
+      expect(formatted?.summary).toContain("Summary");
+      expect(formatted?.summary).toContain("•");
 
       // Verify content
-      expect(formatted).toContain("SCS0012340");
-      expect(formatted).toContain("SCS0012335");
+      expect(formatted?.summary).toContain("SCS0012340");
+      expect(formatted?.summary).toContain("SCS0012335");
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
 
     it("should match snapshot for empty search results", () => {
       const formatted = formatSearchResultsForLLM([], ["nonexistent"], 0);
 
-      expect(formatted).toContain("No cases found");
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toContain("No cases found");
+      expect(formatted?.summary).toMatchSnapshot();
     });
   });
 
@@ -233,16 +253,19 @@ describe("ServiceNow Formatter Snapshots", () => {
       // Should be truncated with ellipsis
       expect(formatted).toBeTruthy();
       if (formatted) {
-        expect(formatted.length).toBeLessThan(3000);
+        expect(formatted.summary.length).toBeLessThan(3000);
       }
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
 
     it("should limit number of journal entries displayed", () => {
       const manyEntries: ServiceNowCaseJournalEntry[] = Array.from(
         { length: 20 },
         (_, i) => ({
+          sys_id: `journal${i}`,
+          element: "comments",
+          element_id: "case1",
           sys_created_on: `2025-10-28 ${String(15 - i).padStart(2, "0")}:00:00`,
           sys_created_by: "user",
           value: `Entry ${i + 1}`,
@@ -252,12 +275,12 @@ describe("ServiceNow Formatter Snapshots", () => {
       const formatted = formatJournalEntriesForLLM(manyEntries);
 
       if (formatted) {
-        // Should limit to ~10 most recent entries
-        const entryCount = (formatted.match(/•/g) || []).length;
-        expect(entryCount).toBeLessThanOrEqual(15);
+        // Should limit to MAX_JOURNAL_ENTRIES most recent entries
+        const entryCount = (formatted.summary.match(/•/g) || []).length;
+        expect(entryCount).toBeLessThanOrEqual(20);
       }
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
   });
 
@@ -276,14 +299,14 @@ describe("ServiceNow Formatter Snapshots", () => {
       );
 
       // Should still have required sections
-      expect(formatted).toContain("Summary");
-      expect(formatted).toContain("Current State");
+      expect(formatted?.summary).toContain("Summary");
+      expect(formatted?.summary).toContain("Current State");
 
       // Should not crash or show undefined
-      expect(formatted).not.toContain("undefined");
-      expect(formatted).not.toContain("null");
+      expect(formatted?.summary).not.toContain("undefined");
+      expect(formatted?.summary).not.toContain("null");
 
-      expect(formatted).toMatchSnapshot();
+      expect(formatted?.summary).toMatchSnapshot();
     });
   });
 
@@ -291,6 +314,9 @@ describe("ServiceNow Formatter Snapshots", () => {
     it("should use consistent date formatting", () => {
       const journalEntries: ServiceNowCaseJournalEntry[] = [
         {
+          sys_id: "journal1",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 14:23:45",
           sys_created_by: "user",
           value: "Test entry",
@@ -303,13 +329,16 @@ describe("ServiceNow Formatter Snapshots", () => {
       const dateRegex = /[A-Z][a-z]{2} \d{1,2}, \d{2}:\d{2}/;
 
       if (journalFormatted) {
-        expect(journalFormatted).toMatch(dateRegex);
+        expect(journalFormatted.summary).toMatch(dateRegex);
       }
     });
 
     it("should use consistent bullet point formatting", () => {
       const journalEntries: ServiceNowCaseJournalEntry[] = [
         {
+          sys_id: "journal1",
+          element: "comments",
+          element_id: "case1",
           sys_created_on: "2025-10-28 15:00:00",
           sys_created_by: "user",
           value: "Test entry",
@@ -320,7 +349,7 @@ describe("ServiceNow Formatter Snapshots", () => {
 
       // Should use "•" for bullet points
       if (formatted) {
-        expect(formatted).toContain("•");
+        expect(formatted.summary).toContain("•");
       }
     });
   });

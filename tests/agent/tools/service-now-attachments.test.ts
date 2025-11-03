@@ -260,7 +260,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         includeAttachments: true,
       });
 
-      expect(result.case).toEqual(mockCase);
+      expect(result.rawData.case).toEqual(mockCase);
       // Attachment processing failed, so no blocks
       expect(result._attachmentBlocks).toBeUndefined();
     });
@@ -311,7 +311,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         "inc_123",
         3
       );
-      expect(result.incident).toEqual(mockIncident);
+      expect(result.rawData.incident).toEqual(mockIncident);
       expect(result._attachmentBlocks).toBeDefined();
       expect(result._attachmentCount).toBe(1);
     });
