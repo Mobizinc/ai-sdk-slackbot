@@ -81,6 +81,14 @@ export interface IncidentRecord {
   description: ServiceNowField;
   state: ServiceNowField;
   priority: ServiceNowField;
+  assigned_to: ServiceNowField;
+  assignment_group: ServiceNowField;
+  company: ServiceNowField;
+  caller_id: ServiceNowField;
+  category: ServiceNowField;
+  subcategory: ServiceNowField;
+  business_service?: ServiceNowField;
+  cmdb_ci?: ServiceNowField;
   resolved_at?: string;
   close_code: ServiceNowField;
   parent: ServiceNowField;

@@ -66,6 +66,16 @@ export interface Incident {
   description?: string;
   state?: string;
   priority?: string;
+  assignedTo?: string;
+  assignmentGroup?: string;
+  company?: string;
+  callerId?: string;
+  category?: string;
+  subcategory?: string;
+  businessService?: string;
+  cmdbCi?: string;
+  sysCreatedOn?: Date;
+  sysUpdatedOn?: Date;
   resolvedAt?: Date;
   closeCode?: string;
   parent?: string;
