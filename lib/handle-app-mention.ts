@@ -209,6 +209,15 @@ export async function handleNewAppMention(
         const fallbackText = parsed._blockKitData.fallbackText || blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData);
 
         console.log('[Handler] Rendering incident Block Kit');
+        console.log('[Handler] Incident data:', {
+          number: parsed._blockKitData.incidentData?.number,
+          hasBlocks: !!blocks,
+          blockCount: blocks?.length,
+          hasFallback: !!fallbackText,
+          blockTypes: blocks?.map((b: any) => b.type).join(', ')
+        });
+        console.log('[Handler] Incident Block Kit structure:', JSON.stringify(blocks?.slice(0, 2), null, 2));
+
         await updateMessage(fallbackText, blocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Use existing case formatting

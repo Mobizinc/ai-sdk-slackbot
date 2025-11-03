@@ -141,12 +141,24 @@ export class SlackMessagingService {
           }
 
           console.log(`[Slack Messaging] Updating message with ${options.blocks.length} Block Kit blocks`);
+          console.log(`[Slack Messaging] First 3 blocks:`, JSON.stringify(options.blocks.slice(0, 3), null, 2));
+          console.log(`[Slack Messaging] Fallback text:`, options.text?.substring(0, 100));
         } else {
           // Text-only message
           updateParams.text = options.text || "Message sent";
         }
 
-        await this.client.chat.update(updateParams);
+        const response = await this.client.chat.update(updateParams);
+
+        // Log the Slack API response for debugging
+        console.log(`[Slack Messaging] Update response:`, {
+          ok: response.ok,
+          channel: response.channel,
+          ts: response.ts,
+          text: response.message?.text?.substring(0, 100),
+          hasBlocks: !!response.message?.blocks,
+          blockCount: response.message?.blocks?.length || 0,
+        });
 
         // Track successful update time
         this.lastUpdateTimes.set(messageKey, Date.now());
