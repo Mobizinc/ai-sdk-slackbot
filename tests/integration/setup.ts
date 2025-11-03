@@ -20,6 +20,9 @@ if (!process.env.SLACK_BOT_TOKEN) {
 if (!process.env.SLACK_SIGNING_SECRET) {
   process.env.SLACK_SIGNING_SECRET = "test-signing-secret";
 }
+if (!process.env.ANTHROPIC_API_KEY) {
+  process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+}
 
 // For ServiceNow, use placeholder values that will be overridden by real credentials
 // if the developer has them configured
@@ -28,6 +31,9 @@ if (!process.env.SERVICENOW_INSTANCE_URL && !process.env.SERVICENOW_URL) {
   process.env.SERVICENOW_USERNAME = "test-user";
   process.env.SERVICENOW_PASSWORD = "test-password";
 }
+
+// Mark as integration test to configure MSW properly
+process.env.INTEGRATION_TEST = "true";
 
 afterEach(() => {
   vi.clearAllMocks();

@@ -12,10 +12,21 @@ Latest Activity
 • Oct 28, 13:00 – user: Entry 3
 • Oct 28, 12:00 – user: Entry 4
 • Oct 28, 11:00 – user: Entry 5
-
-Context
-
-Showing 5 of 20 entries"
+• Oct 28, 10:00 – user: Entry 6
+• Oct 28, 09:00 – user: Entry 7
+• Oct 28, 08:00 – user: Entry 8
+• Oct 28, 07:00 – user: Entry 9
+• Oct 28, 06:00 – user: Entry 10
+• Oct 28, 05:00 – user: Entry 11
+• Oct 28, 04:00 – user: Entry 12
+• Oct 28, 03:00 – user: Entry 13
+• Oct 28, 02:00 – user: Entry 14
+• Oct 28, 01:00 – user: Entry 15
+• Oct 28, 00:00 – user: Entry 16
+• recent – user: Entry 17
+• recent – user: Entry 18
+• recent – user: Entry 19
+• recent – user: Entry 20"
 `;
 
 exports[`ServiceNow Formatter Snapshots > Data Truncation > should truncate very long descriptions 1`] = `
@@ -89,17 +100,27 @@ References
 `;
 
 exports[`ServiceNow Formatter Snapshots > formatIncidentForLLM > should match snapshot for incident 1`] = `
-"Summary
+"*Summary*
 
 SharePoint site access denied - 403 Forbidden
 
-Current State
+*Current State*
 
-Status: In Progress
+Status: In Progress | Priority: 3 | Assigned: Sarah Johnson
 
-References
+Created: Oct 28, 2025, 01:00 PM
 
-• INC0045678"
+*Task Details*
+
+Caller: Mark Wilson
+
+*Detailed Description*
+
+Marketing team unable to access SharePoint site, receiving 403 error since this morning.
+
+*Reference*
+
+INC0045678"
 `;
 
 exports[`ServiceNow Formatter Snapshots > formatJournalEntriesForLLM > should match snapshot for journal entries 1`] = `
@@ -130,6 +151,6 @@ Filters: email, server
 
 Latest Activity
 
-• SCS0012340: Email connectivity issue [P1] (Resolved)
-• SCS0012335: Exchange server timeout [P2] (Resolved)"
+• <https://test.service-now.com/scs0012340|SCS0012340>: Email connectivity issue [P1] (Resolved)
+• <https://test.service-now.com/scs0012335|SCS0012335>: Exchange server timeout [P2] (Resolved)"
 `;

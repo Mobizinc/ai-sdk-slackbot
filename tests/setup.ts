@@ -20,11 +20,16 @@ process.env.SERVICENOW_CASE_JOURNAL_NAME =
   process.env.SERVICENOW_CASE_JOURNAL_NAME ?? "x_mobit_serv_case_service_case";
 process.env.RELAY_WEBHOOK_SECRET =
   process.env.RELAY_WEBHOOK_SECRET ?? "test-relay-secret";
+process.env.ANTHROPIC_API_KEY =
+  process.env.ANTHROPIC_API_KEY ?? "test-anthropic-key";
 
 export const server = setupServer();
 
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: "error" });
+  // Use "bypass" for integration tests to allow real HTTP requests
+  // Use "error" for unit tests to catch unmocked requests
+  const strategy = process.env.INTEGRATION_TEST === "true" ? "bypass" : "error";
+  server.listen({ onUnhandledRequest: strategy });
 });
 
 afterEach(() => {

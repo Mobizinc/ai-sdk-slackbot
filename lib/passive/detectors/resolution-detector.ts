@@ -9,6 +9,7 @@
 
 import type { CaseContext } from '../../context-manager';
 import type { CaseDataService } from '../../services/case-data';
+import { getCaseDataService } from '../../services/case-data';
 
 export interface ResolutionDetectorDeps {
   caseDataService: CaseDataService;
@@ -134,12 +135,10 @@ export class ResolutionDetector {
 let detector: ResolutionDetector | null = null;
 
 /**
- * Get the resolution detector singleton
+ * Get resolution detector singleton
  */
 export function getResolutionDetector(): ResolutionDetector {
   if (!detector) {
-    // Import lazily to avoid circular dependencies
-    const { getCaseDataService } = require('../../services/case-data');
     detector = new ResolutionDetector({
       caseDataService: getCaseDataService(),
     });
