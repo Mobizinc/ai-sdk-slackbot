@@ -13,24 +13,89 @@ const updateStatusUtil = async (
   initialStatus: string,
   event: AppMentionEvent,
 ) => {
+  // Create initial message with dedicated status block
   const initialMessage = await slackMessaging.postMessage({
     channel: event.channel,
     threadTs: event.thread_ts ?? event.ts,
-    text: initialStatus,
+    text: "Processing your request...",
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "_Processing your request..._"
+        }
+      },
+      {
+        type: "context",
+        block_id: "status_block",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `⏳ ${initialStatus}`
+          }
+        ]
+      }
+    ]
   });
 
   if (!initialMessage || !initialMessage.ts)
     throw new Error("Failed to post initial message");
 
-  const updateMessage = async (status: string, blocks?: any[]) => {
+  const statusEmojis: Record<string, string> = {
+    'is thinking...': '⏳',
+    'thinking': '⏳',
+    'calling-tool': '🔧',
+    'is looking up': '🔍',
+    'is searching': '🔎',
+    'is fetching': '📥',
+    'analyzing': '🧠',
+    'is gathering': '📊',
+  };
+
+  // Non-destructive status update - only updates the status block
+  const updateStatus = async (status: string) => {
+    // Find matching emoji
+    const emojiKey = Object.keys(statusEmojis).find(key => status.includes(key)) || '';
+    const emoji = statusEmojis[emojiKey] || '⚙️';
+
     await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
-      text: status,
+      text: "Processing your request...",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "_Processing your request..._"
+          }
+        },
+        {
+          type: "context",
+          block_id: "status_block",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `${emoji} ${status}`
+            }
+          ]
+        }
+      ]
+    });
+  };
+
+  // Destructive final update - replaces entire message with final content
+  const setFinalMessage = async (text: string, blocks?: any[]) => {
+    await slackMessaging.updateMessage({
+      channel: event.channel,
+      ts: initialMessage.ts as string,
+      text,
       blocks,
     });
   };
-  return updateMessage;
+
+  return { updateStatus, setFinalMessage };
 };
 
 export async function handleNewAppMention(
@@ -44,7 +109,7 @@ export async function handleNewAppMention(
   }
 
   const { thread_ts, channel } = event;
-  const updateMessage = await updateStatusUtil("is thinking...", event);
+  const { updateStatus, setFinalMessage } = await updateStatusUtil("is thinking...", event);
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:
@@ -60,11 +125,11 @@ export async function handleNewAppMention(
     console.log(`[App Mention] Detected triage command for case ${caseNumber}`);
 
     try {
-      await updateMessage(`is triaging case ${caseNumber}...`);
+      await updateStatus(`is triaging case ${caseNumber}...`);
 
       // Fetch case from ServiceNow
       if (!serviceNowClient.isConfigured()) {
-        await updateMessage("ServiceNow integration is not configured. Cannot triage cases.");
+        await setFinalMessage("ServiceNow integration is not configured. Cannot triage cases.");
         return;
       }
 
@@ -74,7 +139,7 @@ export async function handleNewAppMention(
       const caseDetails = await serviceNowClient.getCase(caseNumber, context);
 
       if (!caseDetails) {
-        await updateMessage(`Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`);
+        await setFinalMessage(`Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`);
         return;
       }
 
@@ -165,12 +230,12 @@ export async function handleNewAppMention(
       }
       response += `_`;
 
-      await updateMessage(response);
+      await setFinalMessage(response);
       return;
 
     } catch (error) {
       console.error(`[App Mention] Triage failed for ${caseNumber}:`, error);
-      await updateMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await setFinalMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
       return;
     }
   }
@@ -179,14 +244,14 @@ export async function handleNewAppMention(
   let result: string;
   if (thread_ts) {
     const messages = await slackMessaging.getThread(channel, thread_ts, botUserId);
-    result = await generateResponse(messages, updateMessage, {
+    result = await generateResponse(messages, updateStatus, {
       channelId: channel,
       threadTs: thread_ts,
     });
   } else {
     result = await generateResponse(
       [{ role: "user", content: event.text }],
-      updateMessage,
+      updateStatus,
       {
         channelId: channel,
         threadTs: thread_ts ?? event.ts,
@@ -224,7 +289,7 @@ export async function handleNewAppMention(
         console.log('[Handler] Incident Block Kit structure:', JSON.stringify(blocks?.slice(0, 2), null, 2));
 
         // Send LLM's full response as text + Block Kit blocks below it
-        await updateMessage(llmResponse, blocks);
+        await setFinalMessage(llmResponse, blocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Use existing case formatting
         const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
@@ -235,18 +300,18 @@ export async function handleNewAppMention(
         const fallbackText = blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData);
 
         console.log('[Handler] Rendering case Block Kit');
-        await updateMessage(fallbackText, blocks);
+        await setFinalMessage(fallbackText, blocks);
       } else {
         // Unknown type, fallback to text
         console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
-        await updateMessage(parsed.text || result);
+        await setFinalMessage(parsed.text || result);
       }
     } else {
-      await updateMessage(parsed.text || result);
+      await setFinalMessage(parsed.text || result);
     }
   } catch {
     // Not JSON or no Block Kit data - use as plain text
-    await updateMessage(result);
+    await setFinalMessage(result);
   }
 
   // After responding, check for case numbers and trigger intelligent workflow
