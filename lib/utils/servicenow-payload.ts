@@ -28,8 +28,60 @@ export function fixInvalidEscapeSequences(payload: string): string {
  */
 export function removeTrailingCommas(payload: string): string {
   return payload
-    .replace(/,(\s*[}\]])/g, "$1")
-    .replace(/,(\s*)$/gm, "$1");
+    .replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * Escape control characters inside JSON string values.
+ * ServiceNow often sends unescaped newlines/tabs inside string values.
+ */
+export function escapeControlCharsInStrings(payload: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < payload.length; i++) {
+    const char = payload[i];
+    const charCode = char.charCodeAt(0);
+
+    // Track if we're inside a string (between unescaped quotes)
+    if (char === '"' && !escaped) {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    // Track escape sequences
+    if (char === '\\' && !escaped) {
+      escaped = true;
+      result += char;
+      continue;
+    }
+
+    // If we're inside a string, escape control characters
+    if (inString && !escaped) {
+      // Escape common control characters
+      if (char === '\n') {
+        result += '\\n';
+      } else if (char === '\r') {
+        result += '\\r';
+      } else if (char === '\t') {
+        result += '\\t';
+      } else if (charCode < 0x20 || charCode === 0x7F) {
+        // Other control characters - remove them
+        continue;
+      } else {
+        result += char;
+      }
+    } else {
+      result += char;
+    }
+
+    // Reset escape flag for next character
+    escaped = false;
+  }
+
+  return result;
 }
 
 /**
@@ -42,17 +94,21 @@ export function fixUnescapedQuotes(payload: string): string {
 }
 
 /**
- * Remove unescaped control characters that break JSON.parse(),
- * while keeping properly escaped newlines/tabs/carriage returns.
+ * Sanitize ServiceNow payload by fixing common JSON issues.
+ * This is the main sanitization function that applies multiple fixes.
  */
 export function sanitizeServiceNowPayload(payload: string): string {
-  let sanitized = fixInvalidEscapeSequences(payload);
-  // Remove control characters first
-  sanitized = sanitized
-    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "")
-    .replace(/[\u2028\u2029]/g, "");
-  // Then fix trailing commas (after control chars are removed)
+  let sanitized = payload;
+
+  // 1. Escape control characters inside JSON string values (most important!)
+  sanitized = escapeControlCharsInStrings(sanitized);
+
+  // 2. Fix invalid escape sequences (like L:\)
+  sanitized = fixInvalidEscapeSequences(sanitized);
+
+  // 3. Remove trailing commas before closing braces/brackets
   sanitized = removeTrailingCommas(sanitized);
+
   return sanitized;
 }
 
