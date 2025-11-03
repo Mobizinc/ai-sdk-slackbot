@@ -4,6 +4,17 @@
  */
 
 /**
+ * Extract a snippet of JSON around an error position for debugging.
+ */
+function extractErrorContext(payload: string, position: number, contextSize = 50): string {
+  const start = Math.max(0, position - contextSize);
+  const end = Math.min(payload.length, position + contextSize);
+  const snippet = payload.slice(start, end);
+  const marker = "^".padStart(Math.min(position - start, contextSize) + 1);
+  return `...${snippet}...\n   ${marker} (position ${position})`;
+}
+
+/**
  * Fix invalid escape sequences in JSON strings.
  * ServiceNow may send paths like "L:\" which need escaping.
  */
@@ -12,14 +23,37 @@ export function fixInvalidEscapeSequences(payload: string): string {
 }
 
 /**
+ * Remove trailing commas before closing braces/brackets.
+ * This fixes malformed JSON like {"key": "value",}
+ */
+export function removeTrailingCommas(payload: string): string {
+  return payload
+    .replace(/,(\s*[}\]])/g, "$1")
+    .replace(/,(\s*)$/gm, "$1");
+}
+
+/**
+ * Fix common quote escaping issues in JSON strings.
+ */
+export function fixUnescapedQuotes(payload: string): string {
+  // Fix unescaped quotes inside strings (heuristic approach)
+  // This is a best-effort fix and may not handle all cases
+  return payload.replace(/([^\\])"([^":,}\]]+)"([^:,}\]])/g, '$1\\"$2\\"$3');
+}
+
+/**
  * Remove unescaped control characters that break JSON.parse(),
  * while keeping properly escaped newlines/tabs/carriage returns.
  */
 export function sanitizeServiceNowPayload(payload: string): string {
-  const sanitized = fixInvalidEscapeSequences(payload);
-  return sanitized
+  let sanitized = fixInvalidEscapeSequences(payload);
+  // Remove control characters first
+  sanitized = sanitized
     .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "")
     .replace(/[\u2028\u2029]/g, "");
+  // Then fix trailing commas (after control chars are removed)
+  sanitized = removeTrailingCommas(sanitized);
+  return sanitized;
 }
 
 export function removeBom(payload: string): string {
@@ -84,6 +118,15 @@ export function decodeBase64Payload(payload: string): string | null {
  * Tries a series of sanitisation/decoding attempts before parsing.
  */
 export function parseServiceNowPayload(rawPayload: string): unknown {
+  // Log raw payload preview (first 500 chars) for debugging
+  const payloadPreview = rawPayload.length > 500
+    ? `${rawPayload.substring(0, 500)}... (${rawPayload.length} total chars)`
+    : rawPayload;
+  console.log("[ServiceNowPayload] Attempting to parse payload:", {
+    length: rawPayload.length,
+    preview: payloadPreview,
+  });
+
   const attempts: Array<{ description: string; value: () => string | null }> = [
     {
       description: "trimmed payload",
@@ -110,7 +153,7 @@ export function parseServiceNowPayload(rawPayload: string): unknown {
     },
   ];
 
-  const errors: Error[] = [];
+  const errors: Array<{ attempt: string; error: Error; candidate?: string }> = [];
 
   for (const attempt of attempts) {
     const candidate = attempt.value();
@@ -122,16 +165,39 @@ export function parseServiceNowPayload(rawPayload: string): unknown {
       if (Object.keys(parsed as Record<string, unknown>).length === 0) {
         continue;
       }
+      console.log(`[ServiceNowPayload] Successfully parsed using ${attempt.description}`);
       return parsed;
     } catch (error) {
-      errors.push(error as Error);
-      console.warn(`[ServiceNowPayload] Failed to parse ${attempt.description}:`, error);
+      const err = error as Error;
+      errors.push({ attempt: attempt.description, error: err, candidate });
+
+      // Extract position from error message (e.g., "position 202")
+      const positionMatch = err.message.match(/position (\d+)/);
+      const position = positionMatch ? parseInt(positionMatch[1], 10) : undefined;
+
+      if (position !== undefined && candidate) {
+        const errorContext = extractErrorContext(candidate, position);
+        console.warn(
+          `[ServiceNowPayload] Failed to parse ${attempt.description}:`,
+          err.message,
+          "\nError context:",
+          errorContext
+        );
+      } else {
+        console.warn(`[ServiceNowPayload] Failed to parse ${attempt.description}:`, err.message);
+      }
     }
   }
 
+  // Provide detailed error information
   if (errors.length > 0) {
-    throw errors[errors.length - 1];
+    const lastError = errors[errors.length - 1];
+    console.error("[ServiceNowPayload] All parsing attempts failed:", {
+      totalAttempts: errors.length,
+      attempts: errors.map(e => ({ attempt: e.attempt, error: e.error.message })),
+    });
+    throw lastError.error;
   }
 
-  throw new Error("Unable to parse ServiceNow payload");
+  throw new Error("Unable to parse ServiceNow payload: no valid JSON found");
 }

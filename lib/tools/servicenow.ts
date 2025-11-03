@@ -168,9 +168,17 @@ function extractReferenceSysId(field: any): string | undefined {
   return undefined;
 }
 
-function sanitizeText(value?: string | null): string | undefined {
+function sanitizeText(value?: string | null | any): string | undefined {
   if (!value) return undefined;
-  const cleaned = value
+
+  // Handle ServiceNow display_value objects
+  const stringValue = typeof value === 'object' && value.display_value
+    ? value.display_value
+    : typeof value === 'string'
+    ? value
+    : String(value);
+
+  const cleaned = stringValue
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/?p>/gi, "\n")
     .replace(/<\/?[^>]+>/g, " ")

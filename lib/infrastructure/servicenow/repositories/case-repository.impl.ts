@@ -347,7 +347,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
       createdBy: typeof record.sys_created_by === "object"
         ? record.sys_created_by.display_value
         : (record.sys_created_by || ""),
-      value: record.value,
+      value: typeof record.value === "object" ? record.value.display_value : record.value,
     }));
   }
 
