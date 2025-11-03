@@ -1,8 +1,10 @@
-import { client } from "../slack-utils";
+import { getSlackMessagingService } from "./slack-messaging";
 import {
   getLatestCaseQueueSnapshot,
   type LatestSnapshotOptions,
 } from "./case-queue-snapshots";
+
+const slackMessaging = getSlackMessagingService();
 
 interface ChartArtifact {
   buffer: Buffer;
@@ -402,11 +404,11 @@ export async function postCaseQueueReport(
 
   if (chart) {
     try {
-      await client.files.uploadV2({
-        channel_id: channelId,
+      await slackMessaging.uploadFile({
+        channelId: channelId,
         filename: chart.filename,
         title: chart.title,
-        initial_comment: message,
+        initialComment: message,
         file: chart.buffer,
       });
     } catch (error) {
@@ -419,7 +421,7 @@ export async function postCaseQueueReport(
         console.warn(
           "Slack files.uploadV2 missing scope; falling back to text-only report",
         );
-        await client.chat.postMessage({
+        await slackMessaging.postMessage({
           channel: channelId,
           text: `${message}\nChart: ${chart.shareUrl}`,
         });
@@ -428,7 +430,7 @@ export async function postCaseQueueReport(
       }
     }
   } else {
-    await client.chat.postMessage({
+    await slackMessaging.postMessage({
       channel: channelId,
       text: message,
     });
@@ -436,11 +438,11 @@ export async function postCaseQueueReport(
 
   if (includeUnassignedChart && unassignedChart) {
     try {
-      await client.files.uploadV2({
-        channel_id: channelId,
+      await slackMessaging.uploadFile({
+        channelId: channelId,
         filename: unassignedChart.filename,
         title: unassignedChart.title,
-        initial_comment: "Unassigned backlog by client",
+        initialComment: "Unassigned backlog by client",
         file: unassignedChart.buffer,
       });
     } catch (error) {
@@ -453,7 +455,7 @@ export async function postCaseQueueReport(
         console.warn(
           "Slack files.uploadV2 missing scope for unassigned chart; posting link instead",
         );
-        await client.chat.postMessage({
+        await slackMessaging.postMessage({
           channel: channelId,
           text: `Unassigned backlog by client: ${unassignedChart.shareUrl}`,
         });

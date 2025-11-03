@@ -199,6 +199,40 @@ Status: [state] | Priority: [priority] | Assigned: [name]
 <https://servicenow.com/case|SCS1234567>
 ```
 
+### Using Tool Results
+
+Tool responses contain both `summary` and `rawData` fields to support different levels of analysis:
+
+- **summary**: Quick overview and structured highlights - use for rapid context
+- **rawData**: Complete information - use for deep analysis and accurate details
+
+**How to use both sources:**
+
+1. **Read the summary first** to understand the situation quickly
+2. **Reference rawData** when you need specific details, exact values, or deep context
+3. **Synthesize both sources** into your response naturally
+
+**Examples:**
+
+- **Quick query:** "What's the status of SCS123?"
+  - Use the summary for a fast, conversational response
+
+- **Detailed analysis:** "Why is SCS123 taking so long to resolve?"
+  - Use rawData to examine full journal history, all troubleshooting steps, timestamps, etc.
+
+- **Similar cases:** Use pattern_summary for quick identification, content_preview for understanding the actual technical approach
+
+- **Microsoft Learn:** Use key_points for quick reference, excerpt for additional context
+
+**Response Format:**
+
+Structure your responses with clear sections when providing detailed information:
+- Use `## Summary` for overview
+- Use `## Current State` for status/priority
+- Use `## Latest Activity` for recent updates (when relevant)
+
+These sections help readability but are guidelines, not rigid requirements. Adapt based on the question.
+
 ---
 
 ## Style Guidelines

@@ -1,0 +1,4802 @@
+[
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "9d037ec4c301b21066d9bdb4e4013192",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff0501318b",
+      "value": "03c0c308c3592250ad36b9ff0501318b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "85037a40c3013690ad36b9ff05013124",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff05013190",
+      "value": "03c0c308c3592250ad36b9ff05013190"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "99037a40c3013690ad36b9ff05013144",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff0501318c",
+      "value": "07c0c308c3592250ad36b9ff0501318c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "740332484741761085733525d36d4388",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013191",
+      "value": "07c0c308c3592250ad36b9ff05013191"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "d10332484741761085733525d36d43d2",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013199",
+      "value": "07c0c308c3592250ad36b9ff05013199"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff05013190",
+      "value": "03c0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:16",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "954a727f8338fa50185f7000feaad36c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:16",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0b0a3a73c3b0321066d9bdb4e4013148",
+      "value": "0b0a3a73c3b0321066d9bdb4e4013148"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff05013190",
+      "value": "03c0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "954afe73c3b0321066d9bdb4e40131c2",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:17",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0b0a3a73c3b0321066d9bdb4e4013148",
+      "value": "0b0a3a73c3b0321066d9bdb4e4013148"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff05013190",
+      "value": "03c0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "e54a7e3fc3f0b290ad36b9ff050131fa",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:17",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0b0a3a73c3b0321066d9bdb4e4013148",
+      "value": "0b0a3a73c3b0321066d9bdb4e4013148"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "cd0336488309be5039717000feaad34b",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff0501318d",
+      "value": "0bc0c308c3592250ad36b9ff0501318d"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "78037ec4c301b21066d9bdb4e401313e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff05013192",
+      "value": "0bc0c308c3592250ad36b9ff05013192"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a103f60483cd7e50185f7000feaad304",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff0501319a",
+      "value": "0bc0c308c3592250ad36b9ff0501319a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12f3297fc3892e501302560fb00131b6",
+      "value": "12f3297fc3892e501302560fb00131b6"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:55",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/60bc4e22c0a8010e01f074cbe6bd73c3",
+      "value": "60bc4e22c0a8010e01f074cbe6bd73c3"
+    },
+    "sys_id": "98841344839d621068537cdfeeaad397",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:55",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:51",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "d7749f04839d621068537cdfeeaad3c9",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:51",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:31",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "62e3a17fc3892e501302560fb0013134",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:31",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "07545304839d621068537cdfeeaad378",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:17",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:01",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "6803bec88309be50ba267000feaad36e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:01",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0fc0c308c3592250ad36b9ff0501318e",
+      "value": "0fc0c308c3592250ad36b9ff0501318e"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "f803f2488309be5039717000feaad321",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0fc0c308c3592250ad36b9ff05013193",
+      "value": "0fc0c308c3592250ad36b9ff05013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:43",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "1d74db04839d621068537cdfeeaad3d1",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:43",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12fdbe9cc34d2a101302560fb0013133",
+      "value": "12fdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "d0749b04839d621068537cdfeeaad32f",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:39",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12fdbe9cc34d2a101302560fb0013133",
+      "value": "12fdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "11645704839d621068537cdfeeaad37b",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12fdbe9cc34d2a101302560fb0013133",
+      "value": "12fdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4bc0c308c3592250ad36b9ff05013195",
+      "value": "4bc0c308c3592250ad36b9ff05013195"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "445a3ab383703e50ba267000feaad33a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:27",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/170a3a73c3b0321066d9bdb4e4013192",
+      "value": "170a3a73c3b0321066d9bdb4e4013192"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4bc0c308c3592250ad36b9ff05013195",
+      "value": "4bc0c308c3592250ad36b9ff05013195"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:28",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "8c5af27f8338fa50185f7000feaad374",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:28",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/170a3a73c3b0321066d9bdb4e4013192",
+      "value": "170a3a73c3b0321066d9bdb4e4013192"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6b4e6f96c320f210ad36b9ff050131ba",
+      "value": "6b4e6f96c320f210ad36b9ff050131ba"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-10-31 22:12:55",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "4d4dd937c3787290ad36b9ff0501319d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-10-31 22:12:55",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/183d5937c3787290ad36b9ff05013191",
+      "value": "183d5937c3787290ad36b9ff05013191"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/71fd7e9cc34d2a101302560fb001316a",
+      "value": "71fd7e9cc34d2a101302560fb001316a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:40",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "20749b04839d621068537cdfeeaad343",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:40",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1afdbe9cc34d2a101302560fb001312f",
+      "value": "1afdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "95645704839d621068537cdfeeaad39d",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1afdbe9cc34d2a101302560fb001312f",
+      "value": "1afdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:44",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "e574db04839d621068537cdfeeaad3e6",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:44",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1afdbe9cc34d2a101302560fb001312f",
+      "value": "1afdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:42",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "55f3e57fc3892e501302560fb0013119",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:42",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "a0f3657fc3892e501302560fb00131b6",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:39",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/42745f04839d621068537cdfeeaad310",
+      "value": "42745f04839d621068537cdfeeaad310"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:48",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/cb5592603751200032ff8c00dfbe5d17",
+      "value": "cb5592603751200032ff8c00dfbe5d17"
+    },
+    "sys_id": "ae745f04839d621068537cdfeeaad380",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:48",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "8864d304839d621068537cdfeeaad368",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:21",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4fc0c308c3592250ad36b9ff05013196",
+      "value": "4fc0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:29",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "285afe3fc3f0b290ad36b9ff05013195",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:29",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/270afe7383743e5039717000feaad371",
+      "value": "270afe7383743e5039717000feaad371"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4fc0c308c3592250ad36b9ff05013196",
+      "value": "4fc0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:30",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "605a72b3c3b0321066d9bdb4e40131d8",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:30",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/270afe7383743e5039717000feaad371",
+      "value": "270afe7383743e5039717000feaad371"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4fc0c308c3592250ad36b9ff05013196",
+      "value": "4fc0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:30",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "6c5a72b3c3b0321066d9bdb4e40131fd",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:30",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/270afe7383743e5039717000feaad371",
+      "value": "270afe7383743e5039717000feaad371"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:29",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "06e3617fc3892e501302560fb0013165",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:29",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c3c0c308c3592250ad36b9ff05013196",
+      "value": "c3c0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:28",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "105a367f8338fa50185f7000feaad30a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:28",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2f0a3a3f8338fa50185f7000feaad343",
+      "value": "2f0a3a3f8338fa50185f7000feaad343"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c3c0c308c3592250ad36b9ff05013196",
+      "value": "c3c0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:28",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "885afe7347bcb21085733525d36d43db",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:28",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2f0a3a3f8338fa50185f7000feaad343",
+      "value": "2f0a3a3f8338fa50185f7000feaad343"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c3c0c308c3592250ad36b9ff05013196",
+      "value": "c3c0c308c3592250ad36b9ff05013196"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:29",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a45a7ab383703e50ba267000feaad33f",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:29",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2f0a3a3f8338fa50185f7000feaad343",
+      "value": "2f0a3a3f8338fa50185f7000feaad343"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:47",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/72e003db0b032200639be0d425673aa1",
+      "value": "72e003db0b032200639be0d425673aa1"
+    },
+    "sys_id": "9af3297fc3892e501302560fb00131c5",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:47",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/300e72dcc34d2a101302560fb00131d6",
+      "value": "300e72dcc34d2a101302560fb00131d6"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:47",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/72e003db0b032200639be0d425673aa1",
+      "value": "72e003db0b032200639be0d425673aa1"
+    },
+    "sys_id": "92f3297fc3892e501302560fb00131c7",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:47",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/300e72dcc34d2a101302560fb00131d6",
+      "value": "300e72dcc34d2a101302560fb00131d6"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff05013198",
+      "value": "43c0c308c3592250ad36b9ff05013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:33",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "915ab2b3c3b0321066d9bdb4e4013137",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:33",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/330a3a3f8338fa50185f7000feaad393",
+      "value": "330a3a3f8338fa50185f7000feaad393"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff05013198",
+      "value": "43c0c308c3592250ad36b9ff05013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:33",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "955a367f8338fa50185f7000feaad3bb",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:33",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/330a3a3f8338fa50185f7000feaad393",
+      "value": "330a3a3f8338fa50185f7000feaad393"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff0501318b",
+      "value": "8bc0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:08",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "033abe73c3b0321066d9bdb4e401310e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:08",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/360abe7383743e5039717000feaad3f9",
+      "value": "360abe7383743e5039717000feaad3f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff0501318b",
+      "value": "8bc0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:09",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "2b3a3ab383743e5039717000feaad3fc",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:09",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/360abe7383743e5039717000feaad3f9",
+      "value": "360abe7383743e5039717000feaad3f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff0501318b",
+      "value": "8bc0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:08",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "db3a3ab383743e5039717000feaad3cf",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:08",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/360abe7383743e5039717000feaad3f9",
+      "value": "360abe7383743e5039717000feaad3f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a1fd7e9cc34d2a101302560fb0013146",
+      "value": "a1fd7e9cc34d2a101302560fb0013146"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-05-02 13:42:14",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "bd075249c3d526901302560fb0013173",
+    "sys_updated_by": "vbardakov@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-05-02 13:42:14",
+    "percent_outage": "",
+    "sys_created_by": "vbardakov@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/380eb2dcc34d2a101302560fb0013100",
+      "value": "380eb2dcc34d2a101302560fb0013100"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/83c0c308c3592250ad36b9ff0501318e",
+      "value": "83c0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:12",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "584abefb8338fa50185f7000feaad3c2",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:12",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3a0afe7383743e5039717000feaad326",
+      "value": "3a0afe7383743e5039717000feaad326"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/83c0c308c3592250ad36b9ff0501318e",
+      "value": "83c0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:13",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a84a7ab383743e5039717000feaad34d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:13",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3a0afe7383743e5039717000feaad326",
+      "value": "3a0afe7383743e5039717000feaad326"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/83c0c308c3592250ad36b9ff0501318e",
+      "value": "83c0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:13",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ac4a7e3fc3f0b290ad36b9ff0501315a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:13",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3a0afe7383743e5039717000feaad326",
+      "value": "3a0afe7383743e5039717000feaad326"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013199",
+      "value": "07c0c308c3592250ad36b9ff05013199"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:35",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "4e5a327fc3f0b290ad36b9ff05013189",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:35",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3b0a3a73c3b0321066d9bdb4e4013198",
+      "value": "3b0a3a73c3b0321066d9bdb4e4013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013199",
+      "value": "07c0c308c3592250ad36b9ff05013199"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:35",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "f95a367f8338fa50185f7000feaad3cc",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:35",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3b0a3a73c3b0321066d9bdb4e4013198",
+      "value": "3b0a3a73c3b0321066d9bdb4e4013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a1fd7e9cc34d2a101302560fb0013146",
+      "value": "a1fd7e9cc34d2a101302560fb0013146"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-05-02 13:42:14",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "b1075249c3d526901302560fb0013175",
+    "sys_updated_by": "vbardakov@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-05-02 13:42:14",
+    "percent_outage": "",
+    "sys_created_by": "vbardakov@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/3c0eb2dcc34d2a101302560fb0013111",
+      "value": "3c0eb2dcc34d2a101302560fb0013111"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a50336488309be5039717000feaad3ac",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff05013198",
+      "value": "43c0c308c3592250ad36b9ff05013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "61037ec4c301b21066d9bdb4e401319f",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff0501319b",
+      "value": "43c0c308c3592250ad36b9ff0501319b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6b4e6f96c320f210ad36b9ff050131ba",
+      "value": "6b4e6f96c320f210ad36b9ff050131ba"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-10-31 22:12:58",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "ed4d1d37c3787290ad36b9ff0501312c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-10-31 22:12:58",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/443d5937c3787290ad36b9ff0501316a",
+      "value": "443d5937c3787290ad36b9ff0501316a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "fc037ec4c301b21066d9bdb4e4013145",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/443d5937c3787290ad36b9ff0501316a",
+      "value": "443d5937c3787290ad36b9ff0501316a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "950332484741761085733525d36d43be",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/47c0c308c3592250ad36b9ff05013194",
+      "value": "47c0c308c3592250ad36b9ff05013194"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a1fd7e9cc34d2a101302560fb0013146",
+      "value": "a1fd7e9cc34d2a101302560fb0013146"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-05-02 13:42:14",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "35075249c3d526901302560fb0013176",
+    "sys_updated_by": "vbardakov@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-05-02 13:42:14",
+    "percent_outage": "",
+    "sys_created_by": "vbardakov@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/490eb2dcc34d2a101302560fb0013116",
+      "value": "490eb2dcc34d2a101302560fb0013116"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "f9037a40c3013690ad36b9ff05013178",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4bc0c308c3592250ad36b9ff05013195",
+      "value": "4bc0c308c3592250ad36b9ff05013195"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013190",
+      "value": "8bc0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:18",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "3d4a727f8338fa50185f7000feaad38c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:18",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4f0a767347bcb21085733525d36d43d0",
+      "value": "4f0a767347bcb21085733525d36d43d0"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013190",
+      "value": "8bc0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:18",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a14abe7347bcb21085733525d36d4309",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:18",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4f0a767347bcb21085733525d36d43d0",
+      "value": "4f0a767347bcb21085733525d36d43d0"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013190",
+      "value": "8bc0c308c3592250ad36b9ff05013190"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ad4afe73c3b0321066d9bdb4e40131c9",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:17",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4f0a767347bcb21085733525d36d43d0",
+      "value": "4f0a767347bcb21085733525d36d43d0"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "01037a40c3013690ad36b9ff0501311d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/4fc0c308c3592250ad36b9ff05013196",
+      "value": "4fc0c308c3592250ad36b9ff05013196"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/71fd7e9cc34d2a101302560fb001316a",
+      "value": "71fd7e9cc34d2a101302560fb001316a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:40",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "64749b04839d621068537cdfeeaad342",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:40",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/52fdbe9cc34d2a101302560fb001312f",
+      "value": "52fdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "59645704839d621068537cdfeeaad39c",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/52fdbe9cc34d2a101302560fb001312f",
+      "value": "52fdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:44",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "a974db04839d621068537cdfeeaad3e5",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:44",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/52fdbe9cc34d2a101302560fb001312f",
+      "value": "52fdbe9cc34d2a101302560fb001312f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "9d645704839d621068537cdfeeaad389",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/56fdbe9cc34d2a101302560fb0013134",
+      "value": "56fdbe9cc34d2a101302560fb0013134"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:43",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "5174db04839d621068537cdfeeaad3d4",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:43",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/56fdbe9cc34d2a101302560fb0013134",
+      "value": "56fdbe9cc34d2a101302560fb0013134"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/e1fd7e9cc34d2a101302560fb0013134",
+      "value": "e1fd7e9cc34d2a101302560fb0013134"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "18749b04839d621068537cdfeeaad331",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:39",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/56fdbe9cc34d2a101302560fb0013134",
+      "value": "56fdbe9cc34d2a101302560fb0013134"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013189",
+      "value": "8bc0c308c3592250ad36b9ff05013189"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "563a3e7347bcb21085733525d36d431b",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013189",
+      "value": "8bc0c308c3592250ad36b9ff05013189"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "963af6b383743e5039717000feaad38e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013189",
+      "value": "8bc0c308c3592250ad36b9ff05013189"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a63a36b383703e50ba267000feaad3cd",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013189",
+      "value": "8bc0c308c3592250ad36b9ff05013189"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ea3af6b383743e5039717000feaad3b4",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013188",
+      "value": "8fc0c308c3592250ad36b9ff05013188"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "0e3a36b383703e50ba267000feaad3b5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013188",
+      "value": "8fc0c308c3592250ad36b9ff05013188"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "353a36b383703e50ba267000feaad31e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013188",
+      "value": "8fc0c308c3592250ad36b9ff05013188"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "463afe3f8338fa50185f7000feaad323",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/5e0a767347bcb21085733525d36d43c1",
+      "value": "5e0a767347bcb21085733525d36d43c1"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff0501318b",
+      "value": "03c0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:07",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "433a7e73c3b0321066d9bdb4e40131f5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:07",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/660a3a73c3b0321066d9bdb4e401311b",
+      "value": "660a3a73c3b0321066d9bdb4e401311b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff0501318b",
+      "value": "03c0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:07",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "873a3e3fc3f0b290ad36b9ff050131b0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:07",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/660a3a73c3b0321066d9bdb4e401311b",
+      "value": "660a3a73c3b0321066d9bdb4e401311b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/03c0c308c3592250ad36b9ff0501318b",
+      "value": "03c0c308c3592250ad36b9ff0501318b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:07",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "8f3a3ab383743e5039717000feaad31c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:07",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/660a3a73c3b0321066d9bdb4e401311b",
+      "value": "660a3a73c3b0321066d9bdb4e401311b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:01:48",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "62023a488309be50ba267000feaad356",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:01:48",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/66e1f64083cd7e50185f7000feaad359",
+      "value": "66e1f64083cd7e50185f7000feaad359"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318a",
+      "value": "87c0c308c3592250ad36b9ff0501318a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "263a3e7347bcb21085733525d36d432f",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6a0ab63fc3f0b290ad36b9ff0501317e",
+      "value": "6a0ab63fc3f0b290ad36b9ff0501317e"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318a",
+      "value": "87c0c308c3592250ad36b9ff0501318a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "663a7e73c3b0321066d9bdb4e40131b5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6a0ab63fc3f0b290ad36b9ff0501317e",
+      "value": "6a0ab63fc3f0b290ad36b9ff0501317e"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318a",
+      "value": "87c0c308c3592250ad36b9ff0501318a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "7a3a76b383703e50ba267000feaad309",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6a0ab63fc3f0b290ad36b9ff0501317e",
+      "value": "6a0ab63fc3f0b290ad36b9ff0501317e"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013199",
+      "value": "cfc0c308c3592250ad36b9ff05013199"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:36",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "825a767f8338fa50185f7000feaad349",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:36",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7b0a7e7383703e50ba267000feaad3cb",
+      "value": "7b0a7e7383703e50ba267000feaad3cb"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013199",
+      "value": "cfc0c308c3592250ad36b9ff05013199"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:36",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "8a5ab2b3c3b0321066d9bdb4e40131c6",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:36",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7b0a7e7383703e50ba267000feaad3cb",
+      "value": "7b0a7e7383703e50ba267000feaad3cb"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013199",
+      "value": "cfc0c308c3592250ad36b9ff05013199"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:37",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "9a5abeb383743e5039717000feaad33e",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:37",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7b0a7e7383703e50ba267000feaad3cb",
+      "value": "7b0a7e7383703e50ba267000feaad3cb"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:47",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/72e003db0b032200639be0d425673aa1",
+      "value": "72e003db0b032200639be0d425673aa1"
+    },
+    "sys_id": "96f3297fc3892e501302560fb00131c2",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:47",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7c0e72dcc34d2a101302560fb00131ed",
+      "value": "7c0e72dcc34d2a101302560fb00131ed"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff0501318c",
+      "value": "07c0c308c3592250ad36b9ff0501318c"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:10",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "373a76b383703e50ba267000feaad37c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:10",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7e0ab63fc3f0b290ad36b9ff050131bf",
+      "value": "7e0ab63fc3f0b290ad36b9ff050131bf"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff0501318c",
+      "value": "07c0c308c3592250ad36b9ff0501318c"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:10",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "3f3a76b383703e50ba267000feaad374",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:10",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7e0ab63fc3f0b290ad36b9ff050131bf",
+      "value": "7e0ab63fc3f0b290ad36b9ff050131bf"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff0501318c",
+      "value": "07c0c308c3592250ad36b9ff0501318c"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:09",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "eb3abe73c3b0321066d9bdb4e401312a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:09",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/7e0ab63fc3f0b290ad36b9ff050131bf",
+      "value": "7e0ab63fc3f0b290ad36b9ff050131bf"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/18841344839d621068537cdfeeaad35e",
+      "value": "18841344839d621068537cdfeeaad35e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:55",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "5c841344839d621068537cdfeeaad35e",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:55",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/800e32dcc34d2a101302560fb00131c2",
+      "value": "800e32dcc34d2a101302560fb00131c2"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff0501319b",
+      "value": "43c0c308c3592250ad36b9ff0501319b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:38",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "2e5abeb383743e5039717000feaad361",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:38",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/801a7e7383703e50ba267000feaad3de",
+      "value": "801a7e7383703e50ba267000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff0501319b",
+      "value": "43c0c308c3592250ad36b9ff0501319b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "365a327fc3f0b290ad36b9ff050131d7",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:39",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/801a7e7383703e50ba267000feaad3de",
+      "value": "801a7e7383703e50ba267000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/43c0c308c3592250ad36b9ff0501319b",
+      "value": "43c0c308c3592250ad36b9ff0501319b"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:38",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "6a5a72b347bcb21085733525d36d4331",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:38",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/801a7e7383703e50ba267000feaad3de",
+      "value": "801a7e7383703e50ba267000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013191",
+      "value": "07c0c308c3592250ad36b9ff05013191"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:19",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "4e4af6b383703e50ba267000feaad351",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:19",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/830afe7383743e5039717000feaad36b",
+      "value": "830afe7383743e5039717000feaad36b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/07c0c308c3592250ad36b9ff05013191",
+      "value": "07c0c308c3592250ad36b9ff05013191"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:19",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "8e4abe3fc3f0b290ad36b9ff05013142",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:19",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/830afe7383743e5039717000feaad36b",
+      "value": "830afe7383743e5039717000feaad36b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:01",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "d403fa084741761085733525d36d43cd",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:01",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/83c0c308c3592250ad36b9ff0501318e",
+      "value": "83c0c308c3592250ad36b9ff0501318e"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "cd0332484741761085733525d36d43a0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/83c0c308c3592250ad36b9ff05013193",
+      "value": "83c0c308c3592250ad36b9ff05013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "55e3ed3fc3892e501302560fb00131db",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:26",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12fdbe9cc34d2a101302560fb0013133",
+      "value": "12fdbe9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "0b641b04839d621068537cdfeeaad34f",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1afdbe9cc34d2a101302560fb001312f",
+      "value": "1afdbe9cc34d2a101302560fb001312f"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "53641b04839d621068537cdfeeaad362",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/1bfdfe9cc34d2a101302560fb00131fc",
+      "value": "1bfdfe9cc34d2a101302560fb00131fc"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:36",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "ebe3257fc3892e501302560fb001312c",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:36",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:30",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "96649704839d621068537cdfeeaad3b4",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:30",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/52fdbe9cc34d2a101302560fb001312f",
+      "value": "52fdbe9cc34d2a101302560fb001312f"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "97641b04839d621068537cdfeeaad361",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/56fdbe9cc34d2a101302560fb0013134",
+      "value": "56fdbe9cc34d2a101302560fb0013134"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "4b641b04839d621068537cdfeeaad351",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/93fdfe9cc34d2a101302560fb00131f9",
+      "value": "93fdfe9cc34d2a101302560fb00131f9"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:33",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "fa64d704839d621068537cdfeeaad3c5",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:33",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9efdbe9cc34d2a101302560fb0013133",
+      "value": "9efdbe9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "8f641b04839d621068537cdfeeaad350",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "55e3ed3fc3892e501302560fb00131d8",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:26",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "5de3ed3fc3892e501302560fb00131dc",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:26",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d6fdbe9cc34d2a101302560fb0013133",
+      "value": "d6fdbe9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:34",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "c3641b04839d621068537cdfeeaad350",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:34",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/dbfdfe9cc34d2a101302560fb00131f8",
+      "value": "dbfdfe9cc34d2a101302560fb00131f8"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:36",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "ebe3257fc3892e501302560fb0013129",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:36",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/dffdfe9cc34d2a101302560fb00131fc",
+      "value": "dffdfe9cc34d2a101302560fb00131fc"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:36",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "e3e3257fc3892e501302560fb001312e",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:36",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/e1fd7e9cc34d2a101302560fb0013134",
+      "value": "e1fd7e9cc34d2a101302560fb0013134"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:30",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5f985e0ec0a8010e00a9714f2a172815",
+      "value": "5f985e0ec0a8010e00a9714f2a172815"
+    },
+    "sys_id": "1e649704839d621068537cdfeeaad3b5",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:30",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0fc0c308c3592250ad36b9ff0501318e",
+      "value": "0fc0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:14",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "284a7e7347bcb21085733525d36d438f",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:14",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/870afa7383703e50ba267000feaad33a",
+      "value": "870afa7383703e50ba267000feaad33a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0fc0c308c3592250ad36b9ff0501318e",
+      "value": "0fc0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:15",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "744afe73c3b0321066d9bdb4e4013157",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:15",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/870afa7383703e50ba267000feaad33a",
+      "value": "870afa7383703e50ba267000feaad33a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0fc0c308c3592250ad36b9ff0501318e",
+      "value": "0fc0c308c3592250ad36b9ff0501318e"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:14",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "f44ab6b383703e50ba267000feaad32b",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:14",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/870afa7383703e50ba267000feaad33a",
+      "value": "870afa7383703e50ba267000feaad33a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6b4e6f96c320f210ad36b9ff050131ba",
+      "value": "6b4e6f96c320f210ad36b9ff050131ba"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-10-31 22:13:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "ae4d9173837cba50185f7000feaad329",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-10-31 22:13:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:24",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "0defe2048309be50ba267000feaad3b2",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:24",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "15efae408309be5039717000feaad394",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "1defae408309be5039717000feaad3e5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:26",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "28ef6ec8c3cdf290ad36b9ff050131a4",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "2cefaa0c838d7e50185f7000feaad39c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:23",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "30efe2048309be50ba267000feaad364",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:23",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "3bdf6a00c301b21066d9bdb4e4013131",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:23",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "3cef2e804741761085733525d36d4373",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:23",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:24",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "3cef6ec8c3cdf290ad36b9ff050131b5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:24",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:19",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "3fdf6ec8c3cdf290ad36b9ff05013162",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:19",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "54ef6ec8c3cdf290ad36b9ff0501319c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "54efa2048309be50ba267000feaad3fc",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:23",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "60efae408309be5039717000feaad335",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:23",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:19",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "6fdfea804741761085733525d36d43ae",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:19",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:24",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "74efee40c301b21066d9bdb4e40131a4",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:24",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "84efa2048309be50ba267000feaad384",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "84efaa0c838d7e50185f7000feaad307",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "89efee40c301b21066d9bdb4e40131ba",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "8def2e804741761085733525d36d43cb",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "9cefea00c301b21066d9bdb4e40131a1",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:23",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "b0efae408309be5039717000feaad33d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:23",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "c4ef2e408309be5039717000feaad3eb",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:24",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "cdefaa0c838d7e50185f7000feaad3ec",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:24",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "d0ef2e804741761085733525d36d4316",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "d5efe2048309be50ba267000feaad3d8",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "dcefe2048309be50ba267000feaad313",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "ddef2e804741761085733525d36d43db",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "e4efee40c301b21066d9bdb4e4013177",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:24",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "f8ef2e804741761085733525d36d439c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:24",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 22:52:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/{link=https://mobiz.service-now.",
+      "value": "{link=https://mobiz.service-now."
+    },
+    "sys_id": "fbdfea804741761085733525d36d43c4",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 22:52:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:01",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "dc03b60483cd7e50185f7000feaad31d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:01",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318a",
+      "value": "87c0c308c3592250ad36b9ff0501318a"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a8033ec4c301b21066d9bdb4e40131e0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318f",
+      "value": "87c0c308c3592250ad36b9ff0501318f"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff0501319a",
+      "value": "0bc0c308c3592250ad36b9ff0501319a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:37",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "965a767f8338fa50185f7000feaad3ae",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:37",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/881a32b383743e5039717000feaad37b",
+      "value": "881a32b383743e5039717000feaad37b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff0501319a",
+      "value": "0bc0c308c3592250ad36b9ff0501319a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:37",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ae5a767f8338fa50185f7000feaad3b5",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:37",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/881a32b383743e5039717000feaad37b",
+      "value": "881a32b383743e5039717000feaad37b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:01",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "9403320483cd7e50185f7000feaad367",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:01",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013189",
+      "value": "8bc0c308c3592250ad36b9ff05013189"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "70037ec4c301b21066d9bdb4e401310d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff0501318b",
+      "value": "8bc0c308c3592250ad36b9ff0501318b"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a4037a40c3013690ad36b9ff05013104",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8bc0c308c3592250ad36b9ff05013190",
+      "value": "8bc0c308c3592250ad36b9ff05013190"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318f",
+      "value": "87c0c308c3592250ad36b9ff0501318f"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:15",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "3c4a7e7347bcb21085733525d36d43b0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:15",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8f0af63f8338fa50185f7000feaad3de",
+      "value": "8f0af63f8338fa50185f7000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318f",
+      "value": "87c0c308c3592250ad36b9ff0501318f"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:15",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "4d4afe73c3b0321066d9bdb4e40131a0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:15",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8f0af63f8338fa50185f7000feaad3de",
+      "value": "8f0af63f8338fa50185f7000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff0501318f",
+      "value": "87c0c308c3592250ad36b9ff0501318f"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:16",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "c14a7e7347bcb21085733525d36d43eb",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:16",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8f0af63f8338fa50185f7000feaad3de",
+      "value": "8f0af63f8338fa50185f7000feaad3de"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "21037a40c3013690ad36b9ff0501314c",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013188",
+      "value": "8fc0c308c3592250ad36b9ff05013188"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "9903fec88309be50ba267000feaad39d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff0501318c",
+      "value": "8fc0c308c3592250ad36b9ff0501318c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a803b60483cd7e50185f7000feaad34a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013191",
+      "value": "8fc0c308c3592250ad36b9ff05013191"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/71fd7e9cc34d2a101302560fb001316a",
+      "value": "71fd7e9cc34d2a101302560fb001316a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:38",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "88745b04839d621068537cdfeeaad38f",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:38",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/93fdfe9cc34d2a101302560fb00131f9",
+      "value": "93fdfe9cc34d2a101302560fb00131f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "4864d304839d621068537cdfeeaad38c",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:22",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/93fdfe9cc34d2a101302560fb00131f9",
+      "value": "93fdfe9cc34d2a101302560fb00131f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c2745f04839d621068537cdfeeaad319",
+      "value": "c2745f04839d621068537cdfeeaad319"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:48",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/cb5592603751200032ff8c00dfbe5d17",
+      "value": "cb5592603751200032ff8c00dfbe5d17"
+    },
+    "sys_id": "2e745f04839d621068537cdfeeaad3a2",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:48",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/93fdfe9cc34d2a101302560fb00131f9",
+      "value": "93fdfe9cc34d2a101302560fb00131f9"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/6b4e6f96c320f210ad36b9ff050131ba",
+      "value": "6b4e6f96c320f210ad36b9ff050131ba"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-10-31 22:13:03",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "724d9173837cba50185f7000feaad377",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-10-31 22:13:03",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/983d5937c3787290ad36b9ff05013197",
+      "value": "983d5937c3787290ad36b9ff05013197"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013191",
+      "value": "8fc0c308c3592250ad36b9ff05013191"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "124ab27f8338fa50185f7000feaad340",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9b0a7e7383703e50ba267000feaad382",
+      "value": "9b0a7e7383703e50ba267000feaad382"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013191",
+      "value": "8fc0c308c3592250ad36b9ff05013191"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "8e4a32b3c3b0321066d9bdb4e4013119",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9b0a7e7383703e50ba267000feaad382",
+      "value": "9b0a7e7383703e50ba267000feaad382"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff05013191",
+      "value": "8fc0c308c3592250ad36b9ff05013191"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:20",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "d24af6b383703e50ba267000feaad372",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:20",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9b0a7e7383703e50ba267000feaad382",
+      "value": "9b0a7e7383703e50ba267000feaad382"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "51645704839d621068537cdfeeaad389",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9efdbe9cc34d2a101302560fb0013133",
+      "value": "9efdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:43",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "1574db04839d621068537cdfeeaad3d3",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:43",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9efdbe9cc34d2a101302560fb0013133",
+      "value": "9efdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/e1fd7e9cc34d2a101302560fb0013134",
+      "value": "e1fd7e9cc34d2a101302560fb0013134"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "d8749b04839d621068537cdfeeaad330",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:39",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/9efdbe9cc34d2a101302560fb0013133",
+      "value": "9efdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/47c0c308c3592250ad36b9ff05013194",
+      "value": "47c0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "1b4afe7347bcb21085733525d36d4341",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a30ab63fc3f0b290ad36b9ff050131dc",
+      "value": "a30ab63fc3f0b290ad36b9ff050131dc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/47c0c308c3592250ad36b9ff05013194",
+      "value": "47c0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:25",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "e34afe3fc3f0b290ad36b9ff0501311b",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:25",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a30ab63fc3f0b290ad36b9ff050131dc",
+      "value": "a30ab63fc3f0b290ad36b9ff050131dc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/47c0c308c3592250ad36b9ff05013194",
+      "value": "47c0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "eb4a32b3c3b0321066d9bdb4e40131e6",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:26",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a30ab63fc3f0b290ad36b9ff050131dc",
+      "value": "a30ab63fc3f0b290ad36b9ff050131dc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/71fd7e9cc34d2a101302560fb001316a",
+      "value": "71fd7e9cc34d2a101302560fb001316a"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:31",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "aee3a17fc3892e501302560fb0013124",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:31",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "0b545304839d621068537cdfeeaad375",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:17",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/93fdfe9cc34d2a101302560fb00131f9",
+      "value": "93fdfe9cc34d2a101302560fb00131f9"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:52",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "5f749f04839d621068537cdfeeaad3ec",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:52",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/dbfdfe9cc34d2a101302560fb00131f8",
+      "value": "dbfdfe9cc34d2a101302560fb00131f8"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:52",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "d7749f04839d621068537cdfeeaad3eb",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:52",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/a5fd7e9cc34d2a101302560fb0013127",
+      "value": "a5fd7e9cc34d2a101302560fb0013127"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:01:48",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "b60232c48309be5039717000feaad3d4",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:01:48",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/aae1fa848309be5039717000feaad3dc",
+      "value": "aae1fa848309be5039717000feaad3dc"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c7c0c308c3592250ad36b9ff05013197",
+      "value": "c7c0c308c3592250ad36b9ff05013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:31",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "015afe3fc3f0b290ad36b9ff0501319d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:31",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/af0a3a3f8338fa50185f7000feaad38c",
+      "value": "af0a3a3f8338fa50185f7000feaad38c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c7c0c308c3592250ad36b9ff05013197",
+      "value": "c7c0c308c3592250ad36b9ff05013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:32",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "1d5a7eb383743e5039717000feaad30a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:32",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/af0a3a3f8338fa50185f7000feaad38c",
+      "value": "af0a3a3f8338fa50185f7000feaad38c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c7c0c308c3592250ad36b9ff05013197",
+      "value": "c7c0c308c3592250ad36b9ff05013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:32",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "415a367f8338fa50185f7000feaad3a2",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:32",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/af0a3a3f8338fa50185f7000feaad38c",
+      "value": "af0a3a3f8338fa50185f7000feaad38c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c7c0c308c3592250ad36b9ff05013197",
+      "value": "c7c0c308c3592250ad36b9ff05013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:31",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "745ab2b3c3b0321066d9bdb4e4013105",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:31",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/af0a3a3f8338fa50185f7000feaad38c",
+      "value": "af0a3a3f8338fa50185f7000feaad38c"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff0501318c",
+      "value": "8fc0c308c3592250ad36b9ff0501318c"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:11",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "004a327f8338fa50185f7000feaad32f",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:11",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/b60af63f8338fa50185f7000feaad3ae",
+      "value": "b60af63f8338fa50185f7000feaad3ae"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/8fc0c308c3592250ad36b9ff0501318c",
+      "value": "8fc0c308c3592250ad36b9ff0501318c"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:11",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "b73a3e7347bcb21085733525d36d43d0",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:11",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/b60af63f8338fa50185f7000feaad3ae",
+      "value": "b60af63f8338fa50185f7000feaad3ae"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/12f3297fc3892e501302560fb00131b6",
+      "value": "12f3297fc3892e501302560fb00131b6"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-05-02 13:42:07",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "cc079e09c3d526901302560fb00131c7",
+    "sys_updated_by": "vbardakov@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-05-02 13:42:07",
+    "percent_outage": "",
+    "sys_created_by": "vbardakov@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:17",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "8b545304839d621068537cdfeeaad379",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:17",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/dffdfe9cc34d2a101302560fb00131fc",
+      "value": "dffdfe9cc34d2a101302560fb00131fc"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:51",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "5f749f04839d621068537cdfeeaad3ca",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:51",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/e1fd7e9cc34d2a101302560fb0013134",
+      "value": "e1fd7e9cc34d2a101302560fb0013134"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-28 12:46:31",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "e6e3a17fc3892e501302560fb0013135",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-28 12:46:31",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c1fd3e9cc34d2a101302560fb0013198",
+      "value": "c1fd3e9cc34d2a101302560fb0013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:05",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ad03320c8309be50ba267000feaad300",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:05",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/c3c0c308c3592250ad36b9ff05013196",
+      "value": "c3c0c308c3592250ad36b9ff05013196"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:04",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "09037ec4c301b21066d9bdb4e401318b",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:04",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cbc0c308c3592250ad36b9ff05013198",
+      "value": "cbc0c308c3592250ad36b9ff05013198"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:02",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "7c033ec4c301b21066d9bdb4e40131ec",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:02",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013194",
+      "value": "cfc0c308c3592250ad36b9ff05013194"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/87c0c308c3592250ad36b9ff05013186",
+      "value": "87c0c308c3592250ad36b9ff05013186"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 23:06:06",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "a50332484741761085733525d36d43de",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 23:06:06",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013199",
+      "value": "cfc0c308c3592250ad36b9ff05013199"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff05013192",
+      "value": "0bc0c308c3592250ad36b9ff05013192"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "664ab27f8338fa50185f7000feaad34d",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30a7e7383703e50ba267000feaad395",
+      "value": "d30a7e7383703e50ba267000feaad395"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff05013192",
+      "value": "0bc0c308c3592250ad36b9ff05013192"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:21",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "6e4abe7347bcb21085733525d36d434a",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:21",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30a7e7383703e50ba267000feaad395",
+      "value": "d30a7e7383703e50ba267000feaad395"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0bc0c308c3592250ad36b9ff05013192",
+      "value": "0bc0c308c3592250ad36b9ff05013192"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:22",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ba4abe3fc3f0b290ad36b9ff050131a8",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:22",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30a7e7383703e50ba267000feaad395",
+      "value": "d30a7e7383703e50ba267000feaad395"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013194",
+      "value": "cfc0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "3b4a72b3c3b0321066d9bdb4e4013113",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:26",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30ab67347bcb21085733525d36d4330",
+      "value": "d30ab67347bcb21085733525d36d4330"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013194",
+      "value": "cfc0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "b34af27f8338fa50185f7000feaad357",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:27",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30ab67347bcb21085733525d36d4330",
+      "value": "d30ab67347bcb21085733525d36d4330"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/cfc0c308c3592250ad36b9ff05013194",
+      "value": "cfc0c308c3592250ad36b9ff05013194"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-11-01 04:59:26",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/5599a965c0a8010e00da3b58b113d70e",
+      "value": "5599a965c0a8010e00da3b58b113d70e"
+    },
+    "sys_id": "ff4a3ab383703e50ba267000feaad314",
+    "sys_updated_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "port": "",
+    "sys_created_on": "2025-11-01 04:59:26",
+    "percent_outage": "",
+    "sys_created_by": "SVC.Mobiz.Integration.TableAPI.PROD",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d30ab67347bcb21085733525d36d4330",
+      "value": "d30ab67347bcb21085733525d36d4330"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/0dfd3e9cc34d2a101302560fb0013197",
+      "value": "0dfd3e9cc34d2a101302560fb0013197"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:43",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5",
+      "value": "1a9cb166f1571100a92eb60da2bce5c5"
+    },
+    "sys_id": "5974db04839d621068537cdfeeaad3d2",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:43",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d6fdbe9cc34d2a101302560fb0013133",
+      "value": "d6fdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/2dfd7e9cc34d2a101302560fb0013133",
+      "value": "2dfd7e9cc34d2a101302560fb0013133"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:39",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "10749b04839d621068537cdfeeaad330",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:39",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d6fdbe9cc34d2a101302560fb0013133",
+      "value": "d6fdbe9cc34d2a101302560fb0013133"
+    }
+  },
+  {
+    "connection_strength": "always",
+    "parent": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/85fd3e9cc34d2a101302560fb0013193",
+      "value": "85fd3e9cc34d2a101302560fb0013193"
+    },
+    "sys_mod_count": "0",
+    "sys_updated_on": "2025-04-29 15:36:27",
+    "sys_tags": "",
+    "type": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_rel_type/55c95bf6c0a8010e0118ec7056ebc54d",
+      "value": "55c95bf6c0a8010e0118ec7056ebc54d"
+    },
+    "sys_id": "5d645704839d621068537cdfeeaad37b",
+    "sys_updated_by": "okhudan@mobizinc.com",
+    "port": "",
+    "sys_created_on": "2025-04-29 15:36:27",
+    "percent_outage": "",
+    "sys_created_by": "okhudan@mobizinc.com",
+    "child": {
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/d6fdbe9cc34d2a101302560fb0013133",
+      "value": "d6fdbe9cc34d2a101302560fb0013133"
+    }
+  }
+]

@@ -174,6 +174,9 @@ async function testEscalation() {
   console.log('   // Step 16: Check for escalation (non-BAU cases)');
   console.log('   if (config.escalationEnabled) {');
   console.log('     try {');
+  console.log('       // Fetch full case details to get display names');
+  console.log('       const fullCase = await serviceNowClient.getCaseBySysId(webhook.sys_id);');
+  console.log('       ');
   console.log('       const escalationService = getEscalationService();');
   console.log('       const escalated = await escalationService.checkAndEscalate({');
   console.log('         caseNumber: webhook.case_number,');
@@ -188,7 +191,8 @@ async function testEscalation() {
   console.log('         },');
   console.log('         assignedTo: webhook.assigned_to,');
   console.log('         assignmentGroup: webhook.assignment_group,');
-  console.log('         companyName: webhook.account_id,');
+  console.log('         companyName: fullCase?.accountName || fullCase?.company,');
+  console.log('         contactName: fullCase?.contactName || fullCase?.callerId,');
   console.log('       });');
   console.log('');
   console.log('       if (escalated) {');

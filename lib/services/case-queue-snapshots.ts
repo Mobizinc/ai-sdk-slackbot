@@ -1,4 +1,3 @@
-import { config } from "../config";
 import { ConnectionPool } from "mssql";
 import { sql as drizzleSql, desc, eq } from "drizzle-orm";
 
@@ -101,12 +100,11 @@ async function ensureCaseQueueSnapshotTable(db: DrizzleDb) {
 }
 
 function parseAzureSqlUrl(rawUrl?: string): ParseResult {
-  const configuredUrl = config.azureSqlDatabaseUrl || rawUrl;
-  if (!configuredUrl) {
+  if (!rawUrl) {
     throw new Error("AZURE_SQL_DATABASE_URL environment variable is not set");
   }
 
-  const normalized = configuredUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
+  const normalized = rawUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
   let parsed: URL;
   try {
     parsed = new URL(normalized);
@@ -133,7 +131,7 @@ function parseAzureSqlUrl(rawUrl?: string): ParseResult {
   const connectionTimeoutSeconds =
     params.get("Connection Timeout") ?? params.get("connectiontimeout");
 
-  const connectionConfig: SqlConnectionConfig = {
+  const config: SqlConnectionConfig = {
     user: user || undefined,
     password: password || undefined,
     server,
@@ -153,16 +151,16 @@ function parseAzureSqlUrl(rawUrl?: string): ParseResult {
   if (connectionTimeoutSeconds) {
     const timeoutMs = Number(connectionTimeoutSeconds) * 1000;
     if (!Number.isNaN(timeoutMs) && timeoutMs > 0) {
-      connectionConfig.connectionTimeout = timeoutMs;
+      config.connectionTimeout = timeoutMs;
     }
   }
 
-  return { config: connectionConfig };
+  return { config };
 }
 
 async function queryAzureCaseQueue(): Promise<CaseQueueRow[]> {
-  const { config: sqlConfig } = parseAzureSqlUrl();
-  const pool = new ConnectionPool(sqlConfig as any);
+  const { config } = parseAzureSqlUrl(process.env.AZURE_SQL_DATABASE_URL);
+  const pool = new ConnectionPool(config as any);
   await pool.connect();
 
   try {

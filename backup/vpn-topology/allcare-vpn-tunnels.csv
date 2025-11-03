@@ -1,0 +1,65 @@
+Tunnel Name,Remote Gateway IP,Remote Firewall,Remote Firewall Sys_ID,Local Networks,Remote Networks,Encryption,IKE Version,Comments
+AZ1 to BF Wan1,12.221.86.154,ACM-FPA-BF-FW01,8bc0c308c3592250ad36b9ff05013189,,,aes256-sha256,2,VPN: To FPA Bakersfield
+AZ1 to BF Wan2,173.198.109.78,NOT FOUND,,,,aes256-sha256,2,VPN: To FPA Bakersfield
+AZ1 to BKY Wan1,12.0.178.106,ACM-FPA-BKY-FW01,87c0c308c3592250ad36b9ff0501318a,,,aes256-sha256,2,VPN: To FPA Berkley
+AZ1 to BKY Wan2,50.197.180.221,NOT FOUND,,,,aes256-sha256,2,VPN: To FPA Berkley
+AZ1 to ELA Wan1,12.24.255.106,ACM-FPA-ELA-FW01,83c0c308c3592250ad36b9ff0501318e,,,aes256-sha256,2,VPN: To FPA East LA
+AZ1 to ELA Wan2,76.53.94.242,NOT FOUND,,,,aes256-sha256,2,VPN: To FPA East LA
+AZ1 to FSO Wan1,12.159.136.82,ACM-FPA-FSO-FW01,0fc0c308c3592250ad36b9ff0501318e,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Fresno
+AZ1 to FSO Wan2,74.93.20.169,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Fresno
+AZ1 to GLE Wan1,12.221.86.138,ACM-FPA-GLE-FW01,87c0c308c3592250ad36b9ff0501318f,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Glendale
+AZ1 to GLE Wan2,66.214.40.110,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Glendale
+AZ1 to LAN Wan1,47.179.4.218,ACM-FPA-LAN-FW01,8bc0c308c3592250ad36b9ff05013190,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Lancaster
+AZ1 to LAN Wan2,76.53.79.42,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Lancaster
+AZ1 to MDS Wan1,12.4.168.110,ACM-FPA-MDS-FW01,8fc0c308c3592250ad36b9ff05013191,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Modesto
+AZ1 to MDS Wan2,71.27.119.213,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Modesto
+AZ1 to SA Wan1,12.221.126.162,ACM-FPA-SA-FW01,0fc0c308c3592250ad36b9ff05013193,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Santa Ana
+AZ1 to SA Wan2,76.53.126.230,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Santa Ana
+AZ1 to SM Wan1,47.176.77.246,ACM-FPA-SM-FW01,cfc0c308c3592250ad36b9ff05013194,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Santa Monica
+AZ1 to SM Wan2,76.53.20.106,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Santa Monica
+AZ1 to CP Wan1,12.17.33.2,ACM-FPA-CP-FW01,8bc0c308c3592250ad36b9ff0501318b,,,aes256-sha256,2,VPN: To FPA Canoga Park
+AZ1 to CP Wan2,69.75.0.218,NOT FOUND,,,,aes256-sha256,2,VPN: To FPA Canoga Park
+AZ1 to LB Wan1,47.176.104.238,ACM-FPA-LB-FW01,07c0c308c3592250ad36b9ff05013191,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Long Beach
+AZ1 to MH Wan1,47.179.13.210,ACM-FPA-MH-FW01,0bc0c308c3592250ad36b9ff05013192,,,aes256-sha256,2,VPN: To FPA Mission Hills
+AZ1 to MH Wan2,173.197.80.182,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To FPA Mission Hills
+AZ1 to TOR Wan1,47.179.4.70,ACM-FPA-TOR-FW01,4fc0c308c3592250ad36b9ff05013196,,,aes256-sha256,2,VPN: To Torrance
+AZ1 to TOR Wan2,64.183.32.102,NOT FOUND,,,,aes256-sha256,2,VPN: To Torrance
+AZ1 to HQ Wan1,47.179.22.78,ACM-HQ-FW01,443d5937c3787290ad36b9ff0501316a,,,aes256gcm-prfsha512,2,VPN: To Headquarters
+AZ1 to HQ Wan2,76.53.213.134,NOT FOUND,,,,aes256gcm-prfsha512,2,VPN: To Headquarters
+AZ1 to CW,64.88.177.100,NOT FOUND,,,,aes256-sha256,2,VPN: to 3rd Party Clearwave
+AZ1 to DocASAP,108.166.18.180,NOT FOUND,,,,3des-sha1,1,
+AZ1 to Lab Corp,12.39.198.49,NOT FOUND,,,,3des-sha1,1,
+AZ1 to ECJ Wan1,12.0.137.138,ACM-FPA-ECJ-FW01,0bc0c308c3592250ad36b9ff0501318d,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To El Cajon
+AZ1 to ECJ Wan2,98.186.228.82,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: To El Cajon
+AZ1 to LB Wan2,104.254.5.242,NOT FOUND,,,,aes256-sha256,2,VPN: To Long Beach
+AZ1 to IGW Wan1,12.23.10.178,ACM-FPA-IGW-FW01,03c0c308c3592250ad36b9ff05013190,,,aes256-sha256,2,VPN: To Inglewood
+AZ1 to IGW Wan2,64.191.124.178,NOT FOUND,,,,aes256-sha256,2,VPN: To Inglewood
+AZ1 to DNY Wan1,47.176.243.18,NOT FOUND,,,,aes256-sha256,2,VPN: To Downey
+AZ1 to DNY Wan2,64.63.149.222,ACM-FPA-DNY-FW01,8fc0c308c3592250ad36b9ff0501318c,,,aes256-sha256,2,VPN: To Downey
+AZ1 to OXD Wan1,47.176.3.142,ACM-FPA-OXD-FW01,83c0c308c3592250ad36b9ff05013193,,,aes256-sha256,2,VPN: To Oxnard
+AZ1 to OXD Wan2,47.178.22.2,NOT FOUND,,,,aes256-sha256,2,VPN: To Oxnard
+AZ1 to WC Wan1,47.179.2.38,ACM-FPA-WC-FW01,cbc0c308c3592250ad36b9ff05013198,,,aes256-sha256,2,VPN: To West Covina
+AZ1 to WC Wan2,66.214.38.138,NOT FOUND,,,,aes256-sha256,2,VPN: To West Covina
+AZ1 to DLA Wan1,12.41.109.26,ACM-FPA-DLA-FW01,07c0c308c3592250ad36b9ff0501318c,,,aes256-sha256,2,VPN: To Downtown LA
+AZ1 to DLA Wan2,99.57.181.1,NOT FOUND,,,,aes256-sha256,2,VPN: To Downtown LA
+AZ1 to SB Wan1,47.176.244.234,ACM-FPA-SB-FW01,47c0c308c3592250ad36b9ff05013194,,,aes256-sha256,2,VPN: To San Bernardino
+AZ1 to SB Wan2,72.34.90.186,NOT FOUND,,,,aes256-sha256,2,VPN: To San Bernardino
+AZ1 to CNA Wan1,98.154.112.62,NOT FOUND,,,,aes256-sha256,2,VPN: To Corona
+AZ1 to CNA Wan2,74.62.25.238,ACM-FPA-CNA-FW01,03c0c308c3592250ad36b9ff0501318b,,,aes256-sha256,2,VPN: To Corona
+AZ1 to TMC Wan1,47.177.154.66,ACM-FPA-TMC-FW01,c3c0c308c3592250ad36b9ff05013196,,,aes256-sha256,2,VPN: To Temecula
+AZ1 to TMC Wan2,76.53.201.58,NOT FOUND,,,,aes256-sha256,2,VPN: To Temecula
+AZ1 to UPL Wan1,3.4.5.6,NOT FOUND,,,,aes256-sha256,2,VPN: To Upland
+AZ1 to UPL Wan2,76.53.85.14,ACM-FPA-UPL-FW01,43c0c308c3592250ad36b9ff05013198,,,aes256-sha256,2,VPN: To Upland
+AZ CSD HSP Wan1,47.51.6.98,NOT FOUND,,,,aes256-sha256,2,
+AZ1 to RVS wan2,137.27.240.254,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,VPN: AZ1 to RVS wan2 (Created by VPN wizard)
+AZ HDG HSP Wan1,66.215.82.74,ACM-HDG-HSP-FW01,07c0c308c3592250ad36b9ff05013199,,,aes256-sha256,2,
+AZ CSD HSP-Wan2,35.131.122.26,ACM-CSD-HSP-FW01,8fc0c308c3592250ad36b9ff05013188,,,aes256-sha256,2,
+AZ HDG PD Wan1,47.176.246.82,ACM-HDG-PD-FW01,cfc0c308c3592250ad36b9ff05013199,,,aes256-sha256,2,
+AZ HDG PD Wan2,76.53.57.134,NOT FOUND,,,,aes256-sha256,2,
+AZ HDG RC Wan1,47.176.245.154,ACM-HDG-RC-FW01,0bc0c308c3592250ad36b9ff0501319a,,,aes256-sha256,2,
+AZ HDG RC Wan2,47.181.229.228,NOT FOUND,,,,aes256-sha256,2,
+AZ HDG RM Wan1,47.176.243.166,ACM-HDG-RM-FW01,43c0c308c3592250ad36b9ff0501319b,,,aes256-sha256,2,
+AZ HDG RM Wan2,76.53.7.22,NOT FOUND,,,,aes256-sha256,2,
+AZ1 to TUL WAN1,50.189.15.185,NOT FOUND,,,,aes256-sha256,2,VPN: AZ1 to TUL WAN1
+AZ1 to TUL WAN2,32.143.28.146,NOT FOUND,,,,"aes128-sha256, aes256-sha256, aes128gcm-prfsha256, aes256gcm-prfsha384, chacha20poly1305-prfsha256",2,
+AZ1 to STK Wan1,50.250.165.61,ACM-FPA-STKTN-FW01,4bc0c308c3592250ad36b9ff05013195,,,aes256-sha256,2,

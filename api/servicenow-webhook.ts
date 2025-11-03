@@ -23,6 +23,8 @@ import {
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
+import { withLangSmithTrace } from '../lib/observability';
+import { parseServiceNowPayload } from '../lib/utils/servicenow-payload';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -86,166 +88,10 @@ function validateRequest(request: Request, payload: string): boolean {
 }
 
 /**
- * Fix invalid escape sequences in JSON strings
- *
- * ServiceNow may send paths like "L:\" which contain backslashes that aren't
- * properly escaped for JSON. This function escapes backslashes that aren't
- * part of valid JSON escape sequences.
- *
- * Valid JSON escape sequences: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
- */
-function fixInvalidEscapeSequences(payload: string): string {
-  // Replace backslashes that are NOT followed by valid escape characters
-  // Valid: ", \, /, b, f, n, r, t, u (for unicode)
-  // This regex finds backslashes NOT followed by these valid characters
-  return payload.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
-}
-
-/**
- * Sanitize payload by removing problematic control characters
- * Keeps properly escaped newlines, tabs, and carriage returns
- * Removes other ASCII control characters that can break JSON.parse()
- */
-function sanitizePayload(payload: string): string {
-  // Step 1: Fix invalid escape sequences (e.g., "L:\" -> "L:\\")
-  let sanitized = fixInvalidEscapeSequences(payload);
-
-  // Step 2: Escape literal newlines, carriage returns, and tabs that are not already escaped
-  sanitized = sanitized
-    .replace(/(?<!\\)\n/g, '\\n')
-    .replace(/(?<!\\)\r/g, '\\r')
-    .replace(/(?<!\\)\t/g, '\\t');
-
-  // Step 3: Remove other problematic control characters and unicode separators
-  return sanitized
-    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-    .replace(/[\u2028\u2029]/g, '');
-}
-
-function removeBom(payload: string): string {
-  return payload.replace(/^\uFEFF/, '');
-}
-
-function looksLikeJson(text: string): boolean {
-  const trimmed = text.trim();
-  return (
-    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-    (trimmed.startsWith('[') && trimmed.endsWith(']'))
-  );
-}
-
-function isProbablyBase64(text: string): boolean {
-  const trimmed = text.trim();
-  if (!trimmed || trimmed.length % 4 !== 0) return false;
-  if (/[^A-Za-z0-9+/=\r\n]/.test(trimmed)) return false;
-  // Do not treat actual JSON as base64
-  if (trimmed.includes('{') || trimmed.includes('"')) return false;
-  return true;
-}
-
-function decodeFormEncodedPayload(payload: string): string | null {
-  const trimmed = payload.trim();
-  if (!trimmed) return null;
-
-  try {
-    if (trimmed.includes('=')) {
-      const params = new URLSearchParams(trimmed);
-      const possibleKeys = ['payload', 'body', 'data', 'json'];
-      for (const key of possibleKeys) {
-        const value = params.get(key);
-        if (value) {
-          return value;
-        }
-      }
-    }
-
-    if (/^%7B/i.test(trimmed) || trimmed.includes('%7B')) {
-      return decodeURIComponent(trimmed);
-    }
-  } catch (error) {
-    console.warn('[Webhook] Failed to decode form-encoded payload:', error);
-  }
-
-  return null;
-}
-
-function decodeBase64Payload(payload: string): string | null {
-  if (!isProbablyBase64(payload)) {
-    return null;
-  }
-
-  try {
-    const decoded = Buffer.from(payload.trim(), 'base64').toString('utf8');
-    return decoded;
-  } catch (error) {
-    console.warn('[Webhook] Failed to decode base64 payload:', error);
-    return null;
-  }
-}
-
-function parseWebhookPayload(rawPayload: string): unknown {
-  const attempts: Array<{ description: string; value: () => string | null }> = [
-    {
-      description: 'trimmed payload',
-      value: () => removeBom(rawPayload).trim(),
-    },
-    {
-      description: 'sanitized payload',
-      value: () => sanitizePayload(removeBom(rawPayload)),
-    },
-    {
-      description: 'form-encoded payload',
-      value: () => decodeFormEncodedPayload(rawPayload),
-    },
-    {
-      description: 'base64-decoded payload',
-      value: () => decodeBase64Payload(rawPayload),
-    },
-    {
-      description: 'sanitized base64 payload',
-      value: () => {
-        const decoded = decodeBase64Payload(rawPayload);
-        return decoded ? sanitizePayload(decoded) : null;
-      },
-    },
-  ];
-
-  const errors: Error[] = [];
-
-  for (const attempt of attempts) {
-    const candidate = attempt.value();
-    if (!candidate) continue;
-
-    if (!looksLikeJson(candidate)) {
-      continue;
-    }
-
-    try {
-      const parsed = JSON.parse(candidate);
-      if (Object.keys(parsed as Record<string, unknown>).length === 0) {
-        continue;
-      }
-      if (attempt.description !== 'trimmed payload') {
-        console.info(`[Webhook] Parsed payload using ${attempt.description}`);
-      }
-      return parsed;
-    } catch (error) {
-      errors.push(error as Error);
-    }
-  }
-
-  const finalError = errors[errors.length - 1];
-  if (finalError) {
-    throw finalError;
-  }
-  throw new Error('Unable to parse webhook payload');
-}
-
-/**
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
-async function postImpl(request: Request) {
+const postImpl = withLangSmithTrace(async (request: Request) => {
   const startTime = Date.now();
 
   try {
@@ -272,7 +118,7 @@ async function postImpl(request: Request) {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      const parsedPayload = parseWebhookPayload(payload);
+      const parsedPayload = parseServiceNowPayload(payload);
 
       const validationResult = validateServiceNowWebhook(parsedPayload);
 
@@ -417,7 +263,15 @@ async function postImpl(request: Request) {
       { status: 500 }
     );
   }
-}
+}, {
+  name: "servicenow_webhook_handler",
+  runType: "chain",
+  tags: {
+    component: "api",
+    operation: "webhook",
+    service: "servicenow",
+  },
+});
 
 export const POST = postImpl;
 

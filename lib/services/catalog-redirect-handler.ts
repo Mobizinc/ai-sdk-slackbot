@@ -7,10 +7,12 @@
 import type { ServiceNowCatalogItem } from '../tools/servicenow';
 import type { HRRequestType, HRDetectionResult } from './hr-request-detector';
 import { serviceNowClient } from '../tools/servicenow';
+import { closeIncidentsForCase } from './incident-sync-service';
 import { getHRRequestDetector } from './hr-request-detector';
 import { getClientSettingsRepository } from '../db/repositories/client-settings-repository';
 import type { ClientSettings, NewCatalogRedirectLog } from '../db/schema';
 import { config as appConfig } from '../config';
+import { createSystemContext } from '../infrastructure/servicenow-context';
 
 export interface RedirectConfig {
   enabled: boolean;
@@ -367,9 +369,12 @@ export class CatalogRedirectHandler {
 
       result.messageGenerated = message;
 
+      // Create ServiceNow context for system operation (deterministic routing)
+      const snContext = createSystemContext('catalog-redirect');
+
       // Add work note to ServiceNow
       try {
-        await serviceNowClient.addCaseWorkNote(input.caseSysId, message);
+        await serviceNowClient.addCaseWorkNote(input.caseSysId, message, true, snContext);
         result.workNoteAdded = true;
         console.log(`[CatalogRedirect] Added work note to ${input.caseNumber}`);
       } catch (error) {
@@ -381,14 +386,24 @@ export class CatalogRedirectHandler {
       // Close the case if auto-close is enabled
       if (config.autoCloseEnabled) {
         try {
-          await serviceNowClient.updateCase(input.caseSysId, {
-            state: config.closeState,
-            close_code: config.closeCode,
-            close_notes: `Automatically closed - HR request must be submitted via catalog. See work notes for details.`,
-          });
+          await serviceNowClient.updateCase(
+            input.caseSysId,
+            {
+              state: config.closeState,
+              close_code: config.closeCode,
+              close_notes: `Automatically closed - HR request must be submitted via catalog. See work notes for details.`,
+            },
+            snContext,
+          );
           result.caseClosed = true;
           console.log(
             `[CatalogRedirect] Closed case ${input.caseNumber} with state: ${config.closeState}`
+          );
+
+          await closeIncidentsForCase(
+            input.caseSysId,
+            `Case ${input.caseNumber} closed after catalog redirect.`,
+            snContext,
           );
         } catch (error) {
           console.error(`[CatalogRedirect] Failed to close case:`, error);
@@ -448,10 +463,13 @@ export class CatalogRedirectHandler {
   ): Promise<ServiceNowCatalogItem[]> {
     const items: ServiceNowCatalogItem[] = [];
 
+    // Create ServiceNow context for system operation (deterministic routing)
+    const snContext = createSystemContext('catalog-redirect');
+
     // Try to fetch each suggested catalog item by name
     for (const name of suggestedNames) {
       try {
-        const item = await serviceNowClient.getCatalogItemByName(name);
+        const item = await serviceNowClient.getCatalogItemByName(name, snContext);
         if (item && item.active) {
           items.push(item);
         }
@@ -463,11 +481,14 @@ export class CatalogRedirectHandler {
     // If no items found by name, try keyword search
     if (items.length === 0) {
       try {
-        const keywordItems = await serviceNowClient.getCatalogItems({
-          keywords: [requestType.replace('_', ' '), 'HR', 'employee'],
-          active: true,
-          limit: 3,
-        });
+        const keywordItems = await serviceNowClient.getCatalogItems(
+          {
+            keywords: [requestType.replace('_', ' '), 'HR', 'employee'],
+            active: true,
+            limit: 3,
+          },
+          snContext,
+        );
         items.push(...keywordItems);
       } catch (error) {
         console.error(`[CatalogRedirect] Failed to search catalog items:`, error);

@@ -1,0 +1,32 @@
+{
+  "customer": {
+    "name": "Allcare Medical Management",
+    "full_name": "Allcare Medical Management, Inc.",
+    "servicenow_company_sys_id": "TBD - Will be queried automatically"
+  },
+  "fortimanager": {
+    "url": "https://52.143.126.83",
+    "username": "api-svc",
+    "notes": "Credentials stored in .env.local as FORTIMANAGER_*"
+  },
+  "servicenow_mapping": {
+    "target_table": "cmdb_ci_ip_firewall",
+    "company_field": "company",
+    "service_offering": "Network Management",
+    "relationship_type": "Contains::Contained by"
+  },
+  "discovery_settings": {
+    "filter_by_os_type": "fos",
+    "include_offline_devices": true,
+    "fetch_interfaces": true,
+    "export_formats": ["json", "csv"]
+  },
+  "notes": [
+    "This configuration is for Allcare Medical Management FortiManager integration",
+    "FortiManager manages Allcare's FortiGate firewall devices",
+    "Credentials are stored securely in .env.local",
+    "Discovery script will query all managed FortiGate devices",
+    "CI creation script will create firewalls in ServiceNow CMDB",
+    "Service linking script will link firewalls to Network Management service"
+  ]
+}

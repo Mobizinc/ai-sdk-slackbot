@@ -102,8 +102,10 @@ We implement a **3-tier caching strategy** for case classification:
 ### 1. Install Dependencies
 
 ```bash
-pnpm install @anthropic-ai/sdk@^0.38.0
+pnpm install @anthropic-ai/sdk@^0.67.0
 ```
+
+**Note:** SDK was upgraded from 0.38.0 to 0.67.0 on October 28, 2025 to fix tool validation errors and support latest Anthropic API features.
 
 ### 2. Configure Environment Variables
 
@@ -162,16 +164,16 @@ formatUsageMetrics(usage): string
 ### Modified Files
 
 #### `lib/model-provider.ts`
-- Added priority-based provider selection
+- **Anthropic-only architecture** (AI SDK completely removed)
 - Exported `anthropic` and `anthropicModel` for direct usage
-- Maintained `modelProvider` for backwards compatibility
-- Added `getActiveProvider()` helper
+- Exported `getActiveProvider()` and `getActiveModelId()` helpers
+- **Removed:** `modelProvider`, AI Gateway, OpenAI fallbacks
 
 #### `lib/services/case-classifier.ts`
 - Added cache metrics to `CaseClassification` interface
 - Added 9 prompt building helpers (categories, instructions, examples, etc.)
 - Implemented `classifyCaseWithCaching()` method with 3 cache breakpoints
-- Updated `classifyCase()` with routing logic (Anthropic → AI Gateway → OpenAI)
+- **Uses direct Anthropic SDK** with prompt caching (no fallback routing)
 
 #### `.env.example`
 - Added Anthropic API configuration section (marked RECOMMENDED)
@@ -266,23 +268,26 @@ Cost: $0.0289
 
 ## Backwards Compatibility
 
-The migration maintains **100% backwards compatibility**:
+The migration is **100% complete** as of commit `4db7664`:
 
-✅ **Services still using AI SDK:**
-- KB article generation
-- Quality analyzer
-- Resolution summary
-- These will continue using `modelProvider` (AI Gateway or OpenAI fallback)
+✅ **All Services Use Direct Anthropic SDK:**
+- Main bot (via lib/agent/orchestrator.ts)
+- KB article generation (lib/agent/tools/knowledge-base.ts)
+- Case classification (lib/services/case-classifier.ts)
+- Intelligent assistance (lib/services/intelligent-assistant.ts)
+- All interactions traced via LangSmith wrapSDK()
 
-✅ **Gradual Migration Path:**
-- Only case classification uses Anthropic caching initially
-- Other services can migrate one-by-one
-- No breaking changes to existing code
+✅ **Single SDK Architecture:**
+- Direct Anthropic SDK (@anthropic-ai/sdk) only
+- No AI SDK dependencies
+- No fallback chains or tiered routing
+- Simplified error handling via Anthropic retry logic
 
-✅ **Fallback Chain:**
-```
-Anthropic fails → Try AI Gateway → Try OpenAI → Fallback classification
-```
+✅ **Clean Migration:**
+- Legacy lib/generate-response.ts (1,429 lines) removed
+- Modular tool system in lib/agent/tools/* (15 tools)
+- Zero AI SDK packages in dependencies
+- Complete LangSmith observability integration
 
 ## Migration Checklist
 
@@ -312,6 +317,76 @@ If issues occur, rollback is simple:
 2. **System automatically falls back** to AI Gateway or OpenAI
 
 3. **No code changes needed** - routing logic handles it
+
+## SDK Upgrade: 0.38.0 → 0.67.0
+
+**Date:** October 28, 2025
+**Status:** ✅ Complete
+
+### Breaking Changes
+
+1. **Tool Type Format:**
+   - **Before:** `type: "tool"`
+   - **After:** `type: "custom"`
+   - **Fix:** Automatically updated in `lib/services/anthropic-chat.ts`
+
+2. **Tool Input Schema:**
+   - **Before:** `inputSchema: Record<string, unknown>` (no type field required)
+   - **After:** `inputSchema` must have `type` field (e.g., `type: "object"`)
+   - **Fix:** Added runtime fallback that defaults to `type: "object"` if missing
+
+3. **ToolDefinition Interface:**
+   ```typescript
+   // Old interface (0.38.0)
+   export interface ToolDefinition {
+     name: string;
+     description: string;
+     inputSchema: Record<string, unknown>;
+   }
+
+   // New interface (0.67.0)
+   export interface ToolDefinition {
+     name: string;
+     description: string;
+     inputSchema: {
+       type: string;
+       properties?: Record<string, unknown>;
+       required?: string[];
+       [key: string]: unknown;
+     };
+   }
+   ```
+
+### What Changed Between Versions
+
+- **Messages Model Re-org:** Internal type reorganization (no breaking API changes for us)
+- **Tool Schema Tightening:** Stricter validation for tool input schemas
+- **New Beta Helpers:** `beta.messages.toolRunner` available (not adopted yet)
+- **Revised Streaming Types:** Updated streaming response types (we don't use streaming)
+
+### Migration Impact
+
+- ✅ Zero downtime - backward compatible
+- ✅ All core tests passing
+- ✅ Runtime fallback ensures existing tools continue to work
+- ✅ Build successful with no TypeScript errors
+- ⚠️ Future tools must include `type` field in `inputSchema`
+
+### Files Changed
+
+1. **package.json** - SDK version updated
+2. **pnpm-lock.yaml** - Dependencies regenerated
+3. **lib/services/anthropic-chat.ts:**
+   - Updated `ToolDefinition` interface
+   - Added runtime fallback for missing `type` field
+   - Changed tool type from "tool" to "custom"
+
+### Testing
+
+- Core SDK tests: ✅ Passing
+- Multimodal content: ✅ Passing
+- Tool validation: ✅ Fixed
+- Build: ✅ Success
 
 ## Performance Benchmarks
 

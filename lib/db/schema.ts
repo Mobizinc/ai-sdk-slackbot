@@ -747,3 +747,122 @@ export const caseEscalations = pgTable(
 
 export type CaseEscalation = typeof caseEscalations.$inferSelect;
 export type NewCaseEscalation = typeof caseEscalations.$inferInsert;
+
+/**
+ * Interactive States Table
+ * Stores state for interactive Slack components (modals, buttons, reactions)
+ * Enables persistence across app restarts and provides audit trail
+ *
+ * Use cases:
+ * - KB approval workflows
+ * - Context update proposals
+ * - Multi-step modal wizards
+ * - Any interactive component that needs state persistence
+ */
+export const interactiveStates = pgTable(
+  "interactive_states",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // State identification
+    type: text("type").notNull(), // 'kb_approval', 'context_update', 'modal_wizard', etc.
+    // Slack message identification
+    channelId: text("channel_id").notNull(),
+    messageTs: text("message_ts").notNull(),
+    threadTs: text("thread_ts"), // Optional thread context
+    // State data
+    payload: jsonb("payload").notNull().$type<Record<string, any>>(), // Flexible payload for different state types
+    status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected', 'completed', 'expired'
+    // Lifecycle tracking
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // Auto-cleanup after this time
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    processedBy: text("processed_by"), // Slack user_id who processed
+    // Metadata
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    errorMessage: text("error_message"),
+  },
+  (table) => ({
+    // Composite index for quick lookups
+    channelMessageIdx: uniqueIndex("idx_interactive_channel_message").on(table.channelId, table.messageTs),
+    typeIdx: index("idx_interactive_type").on(table.type),
+    statusIdx: index("idx_interactive_status").on(table.status),
+    expiresAtIdx: index("idx_interactive_expires_at").on(table.expiresAt),
+    createdAtIdx: index("idx_interactive_created_at").on(table.createdAt),
+    // Composite for finding pending states by type
+    typePendingIdx: index("idx_interactive_type_pending").on(table.type, table.status),
+  })
+);
+
+export type InteractiveState = typeof interactiveStates.$inferSelect;
+export type NewInteractiveState = typeof interactiveStates.$inferInsert;
+
+/**
+ * Incident Enrichment States Table
+ * Tracks incident enrichment workflow for automatic CI matching and metadata enhancement
+ *
+ * Workflow stages:
+ * - created: Incident added to watchlist
+ * - notes_analyzed: Work notes analyzed for entities
+ * - ci_matched: CI matched with confidence >70%
+ * - clarification_pending: CI confidence <70%, awaiting Slack response
+ * - enriched: CI linked and incident updated
+ * - completed: Final enrichment complete, ready for removal
+ */
+export const incidentEnrichmentStates = pgTable(
+  "incident_enrichment_states",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Incident identification
+    incidentSysId: text("incident_sys_id").notNull(),
+    incidentNumber: text("incident_number").notNull(),
+    caseSysId: text("case_sys_id"),
+    caseNumber: text("case_number"),
+    // Enrichment workflow
+    enrichmentStage: text("enrichment_stage").notNull().default("created"), // created | notes_analyzed | ci_matched | clarification_pending | enriched | completed
+    matchedCis: jsonb("matched_cis").$type<Array<{
+      sys_id: string;
+      name: string;
+      class: string;
+      confidence: number;
+      source: "inventory" | "cmdb" | "manual";
+      matched_at?: string;
+    }>>().default([]).notNull(),
+    extractedEntities: jsonb("extracted_entities").$type<{
+      ip_addresses?: string[];
+      hostnames?: string[];
+      edge_names?: string[];
+      error_messages?: string[];
+      system_names?: string[];
+      account_numbers?: string[];
+    }>().default({}).notNull(),
+    confidenceScores: jsonb("confidence_scores").$type<{
+      overall?: number;
+      ci_match?: number;
+      entity_extraction?: number;
+    }>().default({}).notNull(),
+    // Clarification workflow
+    clarificationRequestedAt: timestamp("clarification_requested_at", { withTimezone: true }),
+    clarificationSlackTs: text("clarification_slack_ts"), // Slack message timestamp for tracking
+    // Lifecycle tracking
+    enrichmentAttempts: integer("enrichment_attempts").notNull().default(0),
+    lastWorkNoteAt: timestamp("last_work_note_at", { withTimezone: true }),
+    lastProcessedAt: timestamp("last_processed_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // Metadata
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+  },
+  (table) => ({
+    // Unique index on incident_sys_id (one enrichment state per incident)
+    incidentSysIdIdx: uniqueIndex("idx_enrichment_incident_sys_id").on(table.incidentSysId),
+    caseSysIdIdx: index("idx_enrichment_case_sys_id").on(table.caseSysId),
+    enrichmentStageIdx: index("idx_enrichment_stage").on(table.enrichmentStage),
+    lastProcessedIdx: index("idx_enrichment_last_processed").on(table.lastProcessedAt),
+    createdAtIdx: index("idx_enrichment_created_at").on(table.createdAt),
+    // Composite index for cron job queries (find incidents needing enrichment)
+    stageProcessedIdx: index("idx_enrichment_stage_processed").on(table.enrichmentStage, table.lastProcessedAt),
+  })
+);
+
+export type IncidentEnrichmentState = typeof incidentEnrichmentStates.$inferSelect;
+export type NewIncidentEnrichmentState = typeof incidentEnrichmentStates.$inferInsert;

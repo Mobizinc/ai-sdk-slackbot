@@ -3,8 +3,8 @@
  * Classifies ServiceNow cases into categories using AI with similar case and KB article context
  */
 
-import { generateText } from '../instrumented-ai';
-import { modelProvider, getActiveModelId, anthropic, anthropicModel } from '../model-provider';
+import { AnthropicChatService } from './anthropic-chat';
+import { anthropic, anthropicModel } from '../model-provider';
 import { getAnthropicClient, calculateCost as calculateAnthropicCost, formatUsageMetrics, calculateCacheHitRate } from '../anthropic-provider';
 import type Anthropic from '@anthropic-ai/sdk';
 import { getBusinessContextService, type BusinessEntityContext } from './business-context-service';
@@ -15,7 +15,6 @@ import { getCaseIntelligenceService } from './case-intelligence';
 import { getEntityStoreService, type DiscoveredEntity } from './entity-store';
 import { getCaseClassificationRepository } from '../db/repositories/case-classification-repository';
 import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
-import { config } from '../config';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
 
@@ -43,12 +42,12 @@ export interface TechnicalEntities {
 }
 
 export interface BusinessIntelligence {
-  project_scope_detected: boolean;
+  project_scope_detected?: boolean;
   project_scope_reason?: string;
   client_technology?: string;
   client_technology_context?: string;
   related_entities?: string[];
-  outside_service_hours: boolean;
+  outside_service_hours?: boolean;
   service_hours_note?: string;
   executive_visibility?: boolean;
   executive_visibility_reason?: string;
@@ -682,7 +681,7 @@ Important: Return ONLY the JSON object, no additional text.
 
     // Pattern analysis
     const currentClientName = (businessContext?.entityName || caseData.company_name || '').toLowerCase();
-    const systemic_pattern_days = config.systemicPatternWithinDays || parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+    const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
 
@@ -948,7 +947,7 @@ Important: Return ONLY the JSON object, no additional text.
       );
 
       // Extract text content from response
-      const textContent = response.content.find(block => block.type === 'text');
+      const textContent = response.content.find((block: Anthropic.Messages.ContentBlock) => block.type === 'text');
       if (!textContent || textContent.type !== 'text') {
         throw new Error('No text content in Anthropic response');
       }
@@ -1033,7 +1032,6 @@ Important: Return ONLY the JSON object, no additional text.
     } = options || {};
 
     const startTime = Date.now();
-
     // Store case data for mismatch logging
     this.currentCaseData = caseData;
 
@@ -1092,121 +1090,78 @@ Important: Return ONLY the JSON object, no additional text.
       kbArticles
     );
 
-    // Use AI Gateway via model provider
-    const model = modelProvider.languageModel("chat-model");
-
-    // Log prompt size for performance analysis
-    const promptSize = prompt.length;
-    const promptLines = prompt.split('\n').length;
-    console.log(
-      `[CaseClassifier] Prompt prepared for case ${caseData.case_number}: ` +
-      `${promptSize.toLocaleString()} chars, ${promptLines} lines`
-    );
-
-    // Create AbortController with 120s timeout to prevent hanging
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.warn(`[CaseClassifier] AI call timeout (120s) for case ${caseData.case_number}`);
-      abortController.abort();
-    }, 120000); // 120 seconds
-
     try {
-      const aiCallStart = Date.now();
-      const activeModel = getActiveModelId();
+      const chatService = AnthropicChatService.getInstance();
+      const chatStart = Date.now();
       console.log(
-        `[CaseClassifier] Starting AI classification for case ${caseData.case_number} | ` +
-        `Model: ${activeModel} | Provider: AI Gateway (ai-gateway.vercel.sh)`
+        `[CaseClassifier] Using Anthropic chat fallback for case ${caseData.case_number}`,
       );
 
-      const result = await generateText({
-        model,
-        prompt,
-        temperature: 0.1, // Low temperature for consistent classification
-        abortSignal: abortController.signal, // Add timeout signal
-        // Note: Sonnet 4.5 has 200K context window, no maxTokens needed
-        // Output will be complete based on prompt complexity
+      const response = await chatService.send({
+        messages: [
+          {
+            role: "system",
+            content: this.buildSystemInstructions(),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        maxSteps: 3,
       });
 
-      const aiCallDuration = Date.now() - aiCallStart;
-      const usage = result.usage as any;
-      console.log(
-        `[CaseClassifier] AI call completed in ${aiCallDuration}ms for case ${caseData.case_number} | ` +
-        `Tokens: ${usage?.promptTokens || 0} in / ${usage?.completionTokens || 0} out | ` +
-        `Finish: ${result.finishReason || 'unknown'}`
-      );
-      clearTimeout(timeoutId);
-
-      // Parse the JSON response
-      const classificationText = result.text.trim();
-
-      // Log AI response for debugging (truncate if too long)
-      if (classificationText.length > 2000) {
-        console.log(
-          `[CaseClassifier] AI response for ${caseData.case_number} (truncated): ` +
-          classificationText.substring(0, 2000) + '... [+' +
-          (classificationText.length - 2000) + ' more chars]'
-        );
-      } else {
-        console.log(
-          `[CaseClassifier] AI response for ${caseData.case_number}:\n${classificationText}`
-        );
+      const chatDuration = Date.now() - chatStart;
+      const text = response.outputText ?? extractAnthropicText(response.message);
+      if (!text) {
+        throw new Error("Anthropic chat response did not include text output");
       }
 
-      // Try to extract JSON from the response
-      const jsonMatch = classificationText.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in classification response');
+        throw new Error("No JSON found in classification response (Anthropic chat)");
       }
 
       const classification = JSON.parse(jsonMatch[0]);
-
-      // Log parsed classification for visibility
-      console.log(
-        `[CaseClassifier] Parsed classification for ${caseData.case_number}: ` +
-        `${classification.category}` +
-        `${classification.subcategory ? ` > ${classification.subcategory}` : ''}` +
-        ` (${Math.round((classification.confidence_score || 0) * 100)}% confidence)`
-      );
-
-      // Validate and normalize the classification
       const validatedClassification = await this.validateClassification(classification);
 
-      // Add metadata from AI SDK response
-      const processingTime = Date.now() - startTime;
-
-      // Extract token usage (using type assertion due to SDK type definitions)
-      const promptTokens = usage?.promptTokens || 0;
-      const completionTokens = usage?.completionTokens || 0;
+      const usage = response.usage;
+      if (usage) {
+        console.log(
+          `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number} | ` +
+            `Input: ${usage.input_tokens} | Output: ${usage.output_tokens}`,
+        );
+      } else {
+        console.log(
+          `[CaseClassifier] Anthropic chat call completed in ${chatDuration}ms for case ${caseData.case_number}`,
+        );
+      }
 
       return {
         ...validatedClassification,
-        // Token usage from AI SDK
-        token_usage_input: promptTokens,
-        token_usage_output: completionTokens,
-        total_tokens: promptTokens + completionTokens,
-        // Model info
-        model_used: result.finishReason || 'unknown',
-        llm_provider: 'ai-gateway', // Using Vercel AI Gateway
-        // Context
+        token_usage_input: usage?.input_tokens,
+        token_usage_output: usage?.output_tokens,
+        total_tokens:
+          (usage?.input_tokens ?? 0) + (usage?.output_tokens ?? 0),
+        model_used: anthropicModel ?? "anthropic",
+        llm_provider: "anthropic",
         similar_cases: similarCases,
         kb_articles: kbArticles,
         similar_cases_count: similarCases.length,
         kb_articles_count: kbArticles.length,
       };
-
     } catch (error) {
-      clearTimeout(timeoutId); // Clean up timeout on error
-
-      // Check if error is due to timeout/abort
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error(`[CaseClassifier] AI call aborted (timeout) for case ${caseData.case_number}`);
-      } else {
-        console.error('[CaseClassifier] Classification failed:', error);
-      }
-
-      // Fallback classification
-      return this.getFallbackClassification(caseData);
+      console.warn(
+        `[CaseClassifier] Anthropic chat fallback failed for ${caseData.case_number}, falling back to AI Gateway/OpenAI:`,
+        error,
+      );
     }
+
+    // All Anthropic methods failed - use fallback classification
+    console.error(
+      `[CaseClassifier] All Anthropic classification methods failed for ${caseData.case_number}, using fallback`
+    );
+    return this.getFallbackClassification(caseData);
   }
 
   /**
@@ -1271,7 +1226,7 @@ Important: Return ONLY the JSON object, no additional text.
 
       // Pattern analysis: Count cases from same client using BOTH same_client flag AND name matching
       // ALSO filter by recency - only count cases from last 14 days for systemic detection
-      const systemic_pattern_days = config.systemicPatternWithinDays || parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
+      const systemic_pattern_days = parseInt(process.env.SYSTEMIC_PATTERN_WITHIN_DAYS || "14");
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - systemic_pattern_days);
 
@@ -1743,7 +1698,7 @@ Important: Return ONLY the JSON object, no additional text.
           });
         }
 
-        console.warn(
+      console.warn(
           `[CaseClassifier] AI suggested invalid INCIDENT category: "${originalIncidentCategory}" ` +
           `(confidence: ${Math.round((classification.confidence_score || 0) * 100)}%) - ` +
           `defaulting to "Application Support" | ` +
@@ -1878,4 +1833,15 @@ export function getCaseClassifier(): CaseClassifier {
     classifier = new CaseClassifier();
   }
   return classifier;
+}
+
+function extractAnthropicText(message: any): string | undefined {
+  if (!message?.content) return undefined;
+  const blocks = Array.isArray(message.content) ? message.content : [message.content];
+  const text = blocks
+    .filter((block: any) => block?.type === 'text')
+    .map((block: any) => block.text ?? '')
+    .join('\n')
+    .trim();
+  return text || undefined;
 }

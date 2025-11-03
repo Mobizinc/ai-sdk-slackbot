@@ -1,11 +1,17 @@
 /**
  * Anthropic API Provider
  * Direct Anthropic SDK client with prompt caching support
+ *
+ * LangSmith Tracing Integration:
+ * - wrapSDK automatically integrates with AsyncLocalStorage context from traceable wrappers
+ * - When called within a traced function (e.g., withLangSmithTrace), Anthropic calls
+ *   will appear as child spans in the trace hierarchy
+ * - The wrapper respects existing trace context and does NOT create orphaned root traces
  */
 
-import Anthropic from "@anthropic-ai/sdk";
-import { wrapSDK } from "langsmith/wrappers";
-import { config } from "./config";
+import Anthropic from '@anthropic-ai/sdk';
+import { wrapSDK } from 'langsmith/wrappers';
+import { config } from './config';
 
 // Singleton client instance
 let anthropicClient: Anthropic | null = null;
@@ -16,7 +22,7 @@ let anthropicClientWrapped = false;
  */
 export function getAnthropicClient(): Anthropic {
   if (!anthropicClient) {
-    const apiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY || "";
+    const apiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY || '';
 
     if (!apiKey) {
       throw new Error(
@@ -44,11 +50,25 @@ export function getAnthropicClient(): Anthropic {
 }
 
 function shouldWrapWithLangSmith(): boolean {
-  const tracingEnabled =
-    config.langsmithTracingEnabled ||
-    (process.env.LANGSMITH_TRACING ?? "").toLowerCase() === "true";
   const hasApiKey = !!(config.langsmithApiKey || process.env.LANGSMITH_API_KEY?.trim());
-  return tracingEnabled && hasApiKey;
+
+  // Tracing is enabled by default when an API key is present
+  // Both config flag and env var must allow tracing (neither can be explicitly false)
+  const configAllowsTracing = config.langsmithTracingEnabled !== false;
+  const envAllowsTracing = (process.env.LANGSMITH_TRACING ?? 'true').toLowerCase() === 'true';
+  const tracingEnabled = configAllowsTracing && envAllowsTracing;
+
+  const shouldWrap = tracingEnabled && hasApiKey;
+
+  if (hasApiKey && !tracingEnabled) {
+    console.log('[LangSmith] API key present but tracing disabled (LANGSMITH_TRACING=false)');
+  } else if (!hasApiKey && tracingEnabled) {
+    console.warn('[LangSmith] Tracing enabled but LANGSMITH_API_KEY not set - tracing disabled');
+  } else if (!shouldWrap) {
+    console.log('[LangSmith] Tracing disabled (no API key or explicitly disabled)');
+  }
+
+  return shouldWrap;
 }
 
 function wrapAnthropicWithLangSmith(client: Anthropic): Anthropic {

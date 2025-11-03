@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CmdbReconciliationRepository } from "../lib/db/repositories/cmdb-reconciliation-repository";
 import { getDb } from "../lib/db/client";
 import { cmdbReconciliationResults } from "../lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 // Mock the database client
 vi.mock("../lib/db/client");
@@ -104,7 +104,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.select.mockReturnValue(mockSelect);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.getByCaseNumber(caseNumber);
 
@@ -141,7 +141,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.update.mockReturnValue(mockUpdate);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.updateWithMatch(id, matchData);
 
@@ -179,7 +179,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.update.mockReturnValue(mockUpdate);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.updateWithChildTask(id, taskData);
 
@@ -211,7 +211,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.update.mockReturnValue(mockUpdate);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.markAsSkipped(id, reason);
 
@@ -243,7 +243,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.update.mockReturnValue(mockUpdate);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.markAsAmbiguous(id, details);
 
@@ -274,7 +274,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.select.mockReturnValue(mockSelect);
-      (eq as unknown as vi.Mock).mockReturnValue("mock_eq_condition");
+      (eq as any).mockReturnValue("mock_eq_condition");
 
       const result = await repository.getCaseStatistics(caseNumber);
 
@@ -327,7 +327,7 @@ describe("CmdbReconciliationRepository", () => {
       };
 
       mockDb.select.mockReturnValue(mockSelect);
-      vi.mocked(eq).mockReturnValue("mock_eq_condition");
+      vi.mocked(eq).mockReturnValue("mock_eq_condition" as any);
 
       const result = await repository.getUnmatchedEntities(limit);
 

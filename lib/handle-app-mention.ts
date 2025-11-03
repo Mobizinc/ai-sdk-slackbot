@@ -1,32 +1,101 @@
 import type { AppMentionEvent } from "./slack-event-types";
-import { client, getThread } from "./slack-utils";
-import { generateResponse } from "./generate-response";
+import { getSlackMessagingService } from "./services/slack-messaging";
+import { generateResponse } from "./agent";
 import { getContextManager } from "./context-manager";
 import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
+import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
+
+const slackMessaging = getSlackMessagingService();
 
 const updateStatusUtil = async (
   initialStatus: string,
   event: AppMentionEvent,
 ) => {
-  const initialMessage = await client.chat.postMessage({
+  // Create initial message with dedicated status block
+  const initialMessage = await slackMessaging.postMessage({
     channel: event.channel,
-    thread_ts: event.thread_ts ?? event.ts,
-    text: initialStatus,
+    threadTs: event.thread_ts ?? event.ts,
+    text: "Processing your request...",
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: "_Processing your request..._"
+        }
+      },
+      {
+        type: "context",
+        block_id: "status_block",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `⏳ ${initialStatus}`
+          }
+        ]
+      }
+    ]
   });
 
   if (!initialMessage || !initialMessage.ts)
     throw new Error("Failed to post initial message");
 
-  const updateMessage = async (status: string) => {
-    await client.chat.update({
+  const statusEmojis: Record<string, string> = {
+    'is thinking...': '⏳',
+    'thinking': '⏳',
+    'calling-tool': '🔧',
+    'is looking up': '🔍',
+    'is searching': '🔎',
+    'is fetching': '📥',
+    'analyzing': '🧠',
+    'is gathering': '📊',
+  };
+
+  // Non-destructive status update - only updates the status block
+  const updateStatus = async (status: string) => {
+    // Find matching emoji
+    const emojiKey = Object.keys(statusEmojis).find(key => status.includes(key)) || '';
+    const emoji = statusEmojis[emojiKey] || '⚙️';
+
+    await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
-      text: status,
+      text: "Processing your request...",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "_Processing your request..._"
+          }
+        },
+        {
+          type: "context",
+          block_id: "status_block",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `${emoji} ${status}`
+            }
+          ]
+        }
+      ]
     });
   };
-  return updateMessage;
+
+  // Destructive final update - replaces entire message with final content
+  const setFinalMessage = async (text: string, blocks?: any[]) => {
+    await slackMessaging.updateMessage({
+      channel: event.channel,
+      ts: initialMessage.ts as string,
+      text,
+      blocks,
+    });
+  };
+
+  return { updateStatus, setFinalMessage };
 };
 
 export async function handleNewAppMention(
@@ -40,7 +109,7 @@ export async function handleNewAppMention(
   }
 
   const { thread_ts, channel } = event;
-  const updateMessage = await updateStatusUtil("is thinking...", event);
+  const { updateStatus, setFinalMessage } = await updateStatusUtil("is thinking...", event);
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:
@@ -56,18 +125,21 @@ export async function handleNewAppMention(
     console.log(`[App Mention] Detected triage command for case ${caseNumber}`);
 
     try {
-      await updateMessage(`is triaging case ${caseNumber}...`);
+      await updateStatus(`is triaging case ${caseNumber}...`);
 
       // Fetch case from ServiceNow
       if (!serviceNowClient.isConfigured()) {
-        await updateMessage("ServiceNow integration is not configured. Cannot triage cases.");
+        await setFinalMessage("ServiceNow integration is not configured. Cannot triage cases.");
         return;
       }
 
-      const caseDetails = await serviceNowClient.getCase(caseNumber);
+      // Extract context for deterministic feature flag routing
+      const context = getServiceNowContextFromEvent(event);
+
+      const caseDetails = await serviceNowClient.getCase(caseNumber, context);
 
       if (!caseDetails) {
-        await updateMessage(`Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`);
+        await setFinalMessage(`Case ${caseNumber} not found in ServiceNow. Please verify the case number is correct.`);
         return;
       }
 
@@ -158,12 +230,12 @@ export async function handleNewAppMention(
       }
       response += `_`;
 
-      await updateMessage(response);
+      await setFinalMessage(response);
       return;
 
     } catch (error) {
       console.error(`[App Mention] Triage failed for ${caseNumber}:`, error);
-      await updateMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await setFinalMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
       return;
     }
   }
@@ -171,15 +243,15 @@ export async function handleNewAppMention(
   // If not a triage command, proceed with normal AI response
   let result: string;
   if (thread_ts) {
-    const messages = await getThread(channel, thread_ts, botUserId);
-    result = await generateResponse(messages, updateMessage, {
+    const messages = await slackMessaging.getThread(channel, thread_ts, botUserId);
+    result = await generateResponse(messages, updateStatus, {
       channelId: channel,
       threadTs: thread_ts,
     });
   } else {
     result = await generateResponse(
       [{ role: "user", content: event.text }],
-      updateMessage,
+      updateStatus,
       {
         channelId: channel,
         threadTs: thread_ts ?? event.ts,
@@ -187,7 +259,73 @@ export async function handleNewAppMention(
     );
   }
 
-  await updateMessage(result);
+  // Check if result contains Block Kit data (JSON-encoded response)
+  try {
+    const parsed = JSON.parse(result);
+    if (parsed._blockKitData) {
+      console.log('[Handler] Block Kit data detected, formatting with Block Kit');
+
+      const blockKitModule = await import("./formatters/servicenow-block-kit");
+
+      // Handle both case and incident Block Kit data
+      if (parsed._blockKitData.type === "incident_detail") {
+        // Use pre-generated blocks from incident formatter
+        const incidentBlocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
+
+        // Get LLM's full text response (with Microsoft Learn guidance, etc.)
+        const llmResponse = parsed.text || result;
+
+        // Per Gemini: Put LLM text INSIDE Block Kit as first section block
+        // This allows text + blocks to display together in Slack
+        const combinedBlocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: llmResponse
+            }
+          },
+          { type: "divider" },
+          ...incidentBlocks
+        ];
+
+        const fallbackText = `Incident ${parsed._blockKitData.incidentData?.number}: ${parsed._blockKitData.incidentData?.short_description}`;
+
+        console.log('[Handler] Rendering incident Block Kit with LLM response');
+        console.log('[Handler] Incident data:', {
+          number: parsed._blockKitData.incidentData?.number,
+          llmTextLength: llmResponse?.length,
+          incidentBlockCount: incidentBlocks?.length,
+          totalBlockCount: combinedBlocks.length,
+          blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
+        });
+        console.log('[Handler] Combined blocks preview:', JSON.stringify(combinedBlocks.slice(0, 2), null, 2));
+
+        // Send combined blocks with LLM text as first block
+        await setFinalMessage(fallbackText, combinedBlocks);
+      } else if (parsed._blockKitData.type === "case_detail") {
+        // Use existing case formatting
+        const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
+          includeJournal: true,
+          journalEntries: parsed._blockKitData.journalEntries,
+          maxJournalEntries: 3,
+        });
+        const fallbackText = blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData);
+
+        console.log('[Handler] Rendering case Block Kit');
+        await setFinalMessage(fallbackText, blocks);
+      } else {
+        // Unknown type, fallback to text
+        console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
+        await setFinalMessage(parsed.text || result);
+      }
+    } else {
+      await setFinalMessage(parsed.text || result);
+    }
+  } catch {
+    // Not JSON or no Block Kit data - use as plain text
+    await setFinalMessage(result);
+  }
 
   // After responding, check for case numbers and trigger intelligent workflow
   const contextManager = getContextManager();
@@ -208,11 +346,14 @@ export async function handleNewAppMention(
       // Check if case is resolved
       const context = contextManager.getContextSync(caseNumber, actualThreadTs);
 
+      // Extract ServiceNow context for feature flag routing
+      const snContext = getServiceNowContextFromEvent(event);
+
       // Check ServiceNow state
       let isResolvedInServiceNow = false;
       if (serviceNowClient.isConfigured()) {
         try {
-          const caseDetails = await serviceNowClient.getCase(caseNumber);
+          const caseDetails = await serviceNowClient.getCase(caseNumber, snContext);
           if (caseDetails?.state?.toLowerCase().includes("closed") ||
               caseDetails?.state?.toLowerCase().includes("resolved")) {
             isResolvedInServiceNow = true;

@@ -25,115 +25,42 @@
  * 6. Return classification with metadata
  */
 
-import type {
-  ServiceNowCaseWebhook,
-  CaseClassificationRequest,
-  CaseClassificationResult,
-  SimilarCaseResult,
-  KBArticleResult,
-} from "../schemas/servicenow-webhook";
+import type { ServiceNowCaseWebhook } from "../schemas/servicenow-webhook";
 import { getCaseClassificationRepository } from "../db/repositories/case-classification-repository";
 import { getWorkflowRouter } from "./workflow-router";
 import { getCaseClassifier } from "./case-classifier";
-import { createAzureSearchClient } from "./azure-search-client";
-import { formatWorkNote } from "./work-note-formatter";
 import { getCategorySyncService } from "./servicenow-category-sync";
 import { getCmdbReconciliationService } from "./cmdb-reconciliation";
 import { getCatalogRedirectHandler } from "./catalog-redirect-handler";
 import { getEscalationService } from "./escalation-service";
 import { config } from "../config";
-import type { NewCaseClassificationInbound, NewCaseClassificationResults, NewCaseDiscoveredEntities } from "../db/schema";
 
-export interface CaseTriageOptions {
-  /**
-   * Enable classification caching
-   * If true, checks for existing classification before running LLM
-   */
-  enableCaching?: boolean;
+// Import from extracted modules
+import type { CaseTriageOptions, CaseTriageResult } from "./case-triage/types";
+import { TriageStorage } from "./case-triage/storage";
+import { TriageCache } from "./case-triage/cache";
+import { enrichClassificationContext } from "./case-triage/retrieval";
+import { handleRecordTypeSuggestion } from "./case-triage/incident-handler";
+import { formatWorkNote } from "./case-triage/formatters";
+import { getClassificationConfig, IDEMPOTENCY_WINDOW_MINUTES } from "./case-triage/constants";
+import { createTriageSystemContext } from "./case-triage/context";
 
-  /**
-   * Enable similar case search
-   * If true, fetches similar cases from Azure AI Search for context
-   */
-  enableSimilarCases?: boolean;
-
-  /**
-   * Enable KB article search
-   * If true, fetches relevant KB articles for context
-   */
-  enableKBArticles?: boolean;
-
-  /**
-   * Enable business context enrichment
-   * If true, enriches prompts with company-specific context
-   */
-  enableBusinessContext?: boolean;
-
-  /**
-   * Enable workflow routing
-   * If true, uses WorkflowRouter to determine classification approach
-   */
-  enableWorkflowRouting?: boolean;
-
-  /**
-   * Enable ServiceNow work note writing
-   * If true, writes classification results back to ServiceNow
-   */
-  writeToServiceNow?: boolean;
-
-  /**
-   * Enable catalog redirect for HR requests
-   * If true, automatically redirects misrouted HR requests to catalog items
-   */
-  enableCatalogRedirect?: boolean;
-
-  /**
-   * Max retry attempts for classification
-   */
-  maxRetries?: number;
-}
-
-export interface CaseTriageResult {
-  caseNumber: string;
-  caseSysId: string;
-  workflowId: string;
-  classification: CaseClassificationResult;
-  similarCases: SimilarCaseResult[];
-  kbArticles: KBArticleResult[];
-  servicenowUpdated: boolean;
-  updateError?: string;
-  processingTimeMs: number;
-  entitiesDiscovered: number;
-  cmdbReconciliation?: any; // TODO: Import proper type from cmdb-reconciliation
-  cached: boolean;
-  cacheReason?: string;
-  // ITSM record type fields
-  incidentCreated: boolean;
-  incidentNumber?: string;
-  incidentSysId?: string;
-  incidentUrl?: string;
-  problemCreated: boolean;
-  problemNumber?: string;
-  problemSysId?: string;
-  problemUrl?: string;
-  recordTypeSuggestion?: {
-    type: string;
-    is_major_incident: boolean;
-    reasoning: string;
-  };
-  // Catalog redirect fields
-  catalogRedirected: boolean;
-  catalogRedirectReason?: string;
-  catalogItemsProvided?: number;
-}
+// Re-export types for backward compatibility
+export type { CaseTriageOptions, CaseTriageResult } from "./case-triage/types";
+export { TriageStorage, TriageCache };
 
 export class CaseTriageService {
   private repository = getCaseClassificationRepository();
   private workflowRouter = getWorkflowRouter();
   private classifier = getCaseClassifier();
-  private azureSearchClient = createAzureSearchClient();
   private categorySyncService = getCategorySyncService();
   private catalogRedirectHandler = getCatalogRedirectHandler();
+  private cmdbReconciliationService = getCmdbReconciliationService();
+
+
+  // Module instances
+  private storage = new TriageStorage(this.repository);
+  private cache = new TriageCache(this.repository);
 
   /**
    * Execute complete case triage workflow
@@ -146,51 +73,42 @@ export class CaseTriageService {
   ): Promise<CaseTriageResult> {
     const startTime = Date.now();
 
-    // Default options (matching original behavior)
-    const {
-      enableCaching = true,
-      enableSimilarCases = true,
-      enableKBArticles = true,
-      enableBusinessContext = true,
-      enableWorkflowRouting = true,
-      writeToServiceNow = config.caseClassificationWriteNotes,
-      enableCatalogRedirect = config.catalogRedirectEnabled,
-      maxRetries = config.caseClassificationMaxRetries,
-    } = options;
+    // Create ServiceNow context for system operation (deterministic routing)
+    const snContext = createTriageSystemContext();
+
+    // Get full configuration with defaults
+    const fullConfig = getClassificationConfig(options, config);
 
     console.log(`[Case Triage] Starting triage for case ${webhook.case_number}`);
 
     try {
       // Step 0: Idempotency check - return existing result if processed recently
       // This prevents duplicate work if QStash retries after partial success
-      if (enableCaching) {
-        const recentResult = await this.checkRecentClassification(
+      if (fullConfig.enableCaching) {
+        const idempotencyResult = await this.cache.checkIdempotency(
           webhook.case_number,
-          5 // minutes
+          IDEMPOTENCY_WINDOW_MINUTES
         );
 
-        if (recentResult) {
+        if (idempotencyResult.hit) {
           const processingTime = Date.now() - startTime;
           console.log(
-            `[Case Triage] Idempotency check: ${webhook.case_number} was processed ` +
-            `${Math.round((Date.now() - recentResult.classifiedAt.getTime()) / 1000)}s ago - ` +
+            `[Case Triage] Idempotency HIT for ${webhook.case_number} - ` +
             `returning cached result (${processingTime}ms)`
           );
 
           return {
-            ...recentResult,
-            cached: true,
-            cacheReason: "Recently processed - idempotency guard (prevents duplicate work from retries)",
+            ...idempotencyResult.data!,
             processingTimeMs: processingTime,
           };
         }
       }
 
       // Step 1: Record inbound payload
-      const inboundId = await this.recordInboundPayload(webhook);
+      const inboundId = await this.storage.recordInbound(webhook);
 
       // Step 2: Determine workflow routing
-      const workflowDecision = enableWorkflowRouting
+      const workflowDecision = fullConfig.enableWorkflowRouting
         ? this.workflowRouter.determineWorkflow({
             assignmentGroup: webhook.assignment_group,
             category: webhook.category,
@@ -207,16 +125,15 @@ export class CaseTriageService {
           `(rule matched: ${workflowDecision.ruleMatched})`
       );
 
-      // Step 3: Check classification cache
-      if (enableCaching) {
-        const cachedResult = await this.checkClassificationCache(
-          webhook.case_number,
-          workflowDecision.workflowId,
-          webhook.assignment_group,
-          webhook.assignment_group_sys_id
-        );
+      // Step 3: Check workflow cache
+      if (fullConfig.enableCaching) {
+        const cacheResult = await this.cache.checkWorkflowCache({
+          caseNumber: webhook.case_number,
+          workflowId: workflowDecision.workflowId,
+          assignmentGroup: webhook.assignment_group || null,
+        });
 
-        if (cachedResult) {
+        if (cacheResult.hit) {
           // Mark inbound as processed (using cached result)
           if (inboundId) {
             await this.repository.markPayloadAsProcessed(
@@ -227,85 +144,35 @@ export class CaseTriageService {
 
           const processingTime = Date.now() - startTime;
           console.log(
-            `[Case Triage] Using cached classification for ${webhook.case_number} ` +
-              `(${processingTime}ms saved)`
+            `[Case Triage] Workflow cache HIT for ${webhook.case_number} - ` +
+              `returning cached result (${processingTime}ms)`
           );
 
           return {
-            ...cachedResult,
-            cached: true,
-            cacheReason: "Existing classification found for case + workflow + assignment group",
+            ...cacheResult.data!,
             processingTimeMs: processingTime,
           };
         }
       }
 
-      // Step 4: Fetch ServiceNow categories from database cache (TABLE-SPECIFIC for dual categorization)
-      const categoriesStart = Date.now();
-      const categoriesData = await this.categorySyncService.getCategoriesForClassifier(
-        13 // maxAgeHours
-      );
-      const categoriesTime = Date.now() - categoriesStart;
-
-      if (categoriesData.isStale) {
-        console.warn('[Case Triage] Categories are stale - consider running sync');
-      }
-
-      console.log(
-        `[Case Triage] Using categories from ${categoriesData.tablesCovered.length}/2 ITSM tables: ` +
-        `Cases (${categoriesData.caseCategories.length} categories), ` +
-        `Incidents (${categoriesData.incidentCategories.length} categories) (${categoriesTime}ms)`
+      // Step 4-6: Enrich classification context (categories + application services)
+      const enrichment = await enrichClassificationContext(
+        webhook,
+        this.categorySyncService,
+        snContext
       );
 
-      // Step 5: Convert webhook to classification request
-      const classificationRequest = this.webhookToClassificationRequest(webhook);
-
-      // Note: Similar cases and KB articles are fetched by the classifier internally
-      // The classifier uses the new Azure Search client with vector search and MSP attribution
-
-      // Step 6: Set real ServiceNow categories in classifier (TABLE-SPECIFIC)
+      // Set categories in classifier (supports dual categorization for Incident creation)
       this.classifier.setCategories(
-        categoriesData.caseCategories,
-        categoriesData.incidentCategories,
-        categoriesData.caseSubcategories,
-        categoriesData.incidentSubcategories
+        enrichment.categories.data.caseCategories,
+        enrichment.categories.data.incidentCategories,
+        enrichment.categories.data.caseSubcategories,
+        enrichment.categories.data.incidentSubcategories
       );
 
-      // Step 6.5: Fetch company-specific application services (dynamic, scales for all clients)
-      if (webhook.company) {
-        try {
-          const { serviceNowClient } = await import("../tools/servicenow");
-          const applicationsStart = Date.now();
-          const companyApplications = await serviceNowClient.getApplicationServicesForCompany({
-            companySysId: webhook.company,
-            parentServiceOffering: "Application Administration",
-            limit: 100
-          });
-          const applicationsTime = Date.now() - applicationsStart;
-
-          if (companyApplications.length > 0) {
-            this.classifier.setApplicationServices(companyApplications);
-            console.log(
-              `[Case Triage] Loaded ${companyApplications.length} application services ` +
-              `for company ${webhook.account_id || webhook.company} (${applicationsTime}ms)`
-            );
-          } else {
-            console.log(
-              `[Case Triage] No application services found for company ${webhook.account_id || webhook.company} ` +
-              `- using generic application list in prompt`
-            );
-          }
-        } catch (error) {
-          console.warn(
-            `[Case Triage] Failed to fetch application services for company ${webhook.company}:`,
-            error
-          );
-          // Continue with classification - classifier will use generic fallback
-        }
-      } else {
-        console.log(
-          `[Case Triage] No company sys_id available - using generic application list in prompt`
-        );
+      // Set application services if found
+      if (enrichment.applicationServices.length > 0) {
+        this.classifier.setApplicationServices(enrichment.applicationServices);
       }
 
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
@@ -313,7 +180,7 @@ export class CaseTriageService {
       let classificationResult: any | null = null;
       let lastError: Error | null = null;
 
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      for (let attempt = 1; attempt <= fullConfig.maxRetries; attempt++) {
         try {
           classificationResult = await this.classifier.classifyCaseEnhanced({
             case_number: webhook.case_number,
@@ -331,18 +198,18 @@ export class CaseTriageService {
 
           if (classificationResult) {
             console.log(
-              `[Case Triage] Classification successful on attempt ${attempt}/${maxRetries}`
+              `[Case Triage] Classification successful on attempt ${attempt}/${fullConfig.maxRetries}`
             );
             break;
           }
         } catch (error) {
           lastError = error as Error;
           console.warn(
-            `[Case Triage] Classification attempt ${attempt}/${maxRetries} failed:`,
+            `[Case Triage] Classification attempt ${attempt}/${fullConfig.maxRetries} failed:`,
             error
           );
 
-          if (attempt < maxRetries) {
+          if (attempt < fullConfig.maxRetries) {
             // Exponential backoff
             const backoffMs = Math.pow(2, attempt) * 1000;
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
@@ -361,7 +228,7 @@ export class CaseTriageService {
         }
 
         throw new Error(
-          `Classification failed after ${maxRetries} attempts: ${lastError?.message}`
+          `Classification failed after ${fullConfig.maxRetries} attempts: ${lastError?.message}`
         );
       }
 
@@ -370,24 +237,14 @@ export class CaseTriageService {
       // Step 9: Format work note
       const workNoteContent = formatWorkNote(classificationResult);
 
-      // DECLARE ITSM tracking variables early (before Step 11)
-      let incidentCreated = false;
-      let incidentNumber: string | undefined;
-      let incidentSysId: string | undefined;
-      let incidentUrl: string | undefined;
-      let problemCreated = false;
-      let problemNumber: string | undefined;
-      let problemSysId: string | undefined;
-      let problemUrl: string | undefined;
-
       // Step 10: Write to ServiceNow (if enabled)
       let servicenowUpdated = false;
       let updateError: string | undefined;
 
-      if (writeToServiceNow) {
+      if (fullConfig.writeToServiceNow) {
         try {
           const { serviceNowClient } = await import("../tools/servicenow");
-          await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNoteContent);
+          await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNoteContent, true, snContext);
           servicenowUpdated = true;
           console.log(`[Case Triage] Work note written to ServiceNow for ${webhook.case_number}`);
         } catch (error) {
@@ -399,23 +256,16 @@ export class CaseTriageService {
       // Step 11: Store classification result
       const processingTime = Date.now() - startTime;
 
-      await this.storeClassificationResult({
+      await this.storage.saveClassification({
         caseNumber: webhook.case_number,
         workflowId: workflowDecision.workflowId,
         classification: classificationResult,
         processingTimeMs: processingTime,
         servicenowUpdated,
-        // ITSM record tracking (for idempotency)
-        incidentNumber,
-        incidentSysId,
-        incidentUrl,
-        problemNumber,
-        problemSysId,
-        problemUrl,
       });
 
       // Step 12: Store discovered entities
-      const entitiesStored = await this.storeDiscoveredEntities(
+      const entitiesStored = await this.storage.saveEntities(
         webhook.case_number,
         webhook.sys_id,
         classificationResult
@@ -423,10 +273,9 @@ export class CaseTriageService {
 
       // Step 12.5: CMDB Reconciliation (if enabled)
       let cmdbReconciliationResults = null;
-      if (config.cmdbReconciliationEnabled) {
+      if (fullConfig.cmdbReconciliationEnabled) {
         try {
-          const cmdbService = getCmdbReconciliationService();
-          cmdbReconciliationResults = await cmdbService.reconcileEntities({
+          cmdbReconciliationResults = await this.cmdbReconciliationService.reconcileEntities({
             caseNumber: webhook.case_number,
             caseSysId: webhook.sys_id,
             entities: classificationResult.technical_entities || {
@@ -451,279 +300,34 @@ export class CaseTriageService {
       }
 
       // Step 13: Check record type suggestion and auto-create Incident/Problem if needed
-      if (classificationResult.record_type_suggestion) {
-        const suggestion = classificationResult.record_type_suggestion;
+      let incidentCreated = false;
+      let incidentNumber: string | undefined;
+      let incidentSysId: string | undefined;
+      let incidentUrl: string | undefined;
+      let problemCreated = false;
+      let problemNumber: string | undefined;
+      let problemSysId: string | undefined;
+      let problemUrl: string | undefined;
 
-        console.log(
-          `[Case Triage] Record type suggested: ${suggestion.type}` +
-            `${suggestion.type === "Incident" ? ` (Major: ${suggestion.is_major_incident})` : ""}`
-        );
+      const incidentHandling = await handleRecordTypeSuggestion({
+        suggestion: classificationResult.record_type_suggestion,
+        classificationResult,
+        webhook,
+        snContext,
+      });
 
-        // Create Incident for service disruptions
-        if (suggestion.type === 'Incident') {
-          // ASSIGNMENT GROUP FILTER: Only create incidents for allowed groups
-          if (!webhook.assignment_group || !config.incidentCreationAllowedGroups.includes(webhook.assignment_group)) {
-            console.log(
-              `[Case Triage] Skipping incident creation for ${webhook.case_number} - ` +
-              `assignment group "${webhook.assignment_group || 'undefined'}" not in allowed list: ` +
-              `[${config.incidentCreationAllowedGroups.join(", ")}]`
-            );
-          } else {
-            try {
-              const { serviceNowClient } = await import("../tools/servicenow");
+      if (incidentHandling.incidentCreated) {
+        incidentCreated = true;
+        incidentNumber = incidentHandling.incidentNumber;
+        incidentSysId = incidentHandling.incidentSysId;
+        incidentUrl = incidentHandling.incidentUrl;
+      }
 
-              // IDEMPOTENCY CHECK: Does incident already exist for this case?
-              const existingIncident = await serviceNowClient.getIncidentByParentCase(
-                webhook.sys_id
-              );
-
-            if (existingIncident) {
-              console.log(
-                `[Case Triage] Incident already exists: ${existingIncident.number} ` +
-                `(created from previous run) - skipping creation`
-              );
-
-              // Return existing incident info (don't create duplicate)
-              incidentCreated = false; // Was created previously, not in THIS run
-              incidentNumber = existingIncident.number;
-              incidentSysId = existingIncident.sys_id;
-              incidentUrl = existingIncident.url;
-            } else {
-              // DUAL CATEGORIZATION: Use incident-specific category if provided, otherwise fall back to case category
-              const incidentCategory =
-                classificationResult.incident_category || classificationResult.category;
-              const incidentSubcategory =
-                classificationResult.incident_subcategory || classificationResult.subcategory;
-
-              console.log(
-                `[Case Triage] Creating Incident with category: ${incidentCategory}` +
-                  `${incidentSubcategory ? ` > ${incidentSubcategory}` : ""}` +
-                  `${classificationResult.incident_category ? " (incident-specific)" : " (fallback to case category)"}`
-              );
-
-              // SERVICE OFFERING LINKING: Query ServiceNow for Service Offering sys_id
-              let businessServiceSysId = webhook.business_service; // Default to webhook value
-              if (classificationResult.service_offering) {
-                try {
-                  console.log(
-                    `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
-                  );
-                  const serviceOffering = await serviceNowClient.getServiceOffering(
-                    classificationResult.service_offering
-                  );
-                  if (serviceOffering) {
-                    businessServiceSysId = serviceOffering.sys_id;
-                    console.log(
-                      `[Case Triage] Linked Service Offering: ${serviceOffering.name} (${serviceOffering.sys_id})`
-                    );
-                  } else {
-                    console.warn(
-                      `[Case Triage] Service Offering "${classificationResult.service_offering}" not found in ServiceNow`
-                    );
-                  }
-                } catch (error) {
-                  console.error(`[Case Triage] Failed to lookup Service Offering:`, error);
-                  // Continue with incident creation even if Service Offering lookup fails
-                }
-              }
-
-              // Create Incident record with full company/context information
-              const incidentResult = await serviceNowClient.createIncidentFromCase({
-              caseSysId: webhook.sys_id,
-              caseNumber: webhook.case_number,
-              category: incidentCategory,
-              subcategory: incidentSubcategory,
-              shortDescription: webhook.short_description,
-              description: webhook.description,
-              urgency: webhook.urgency,
-              priority: webhook.priority,
-              callerId: webhook.caller_id,
-              assignmentGroup: webhook.assignment_group,
-              assignedTo: webhook.assigned_to,
-              isMajorIncident: suggestion.is_major_incident,
-              // Company/Account context (prevents orphaned incidents)
-              company: webhook.company,
-              account: webhook.account || webhook.account_id,
-              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
-              location: webhook.location,
-              // Contact information
-              contact: webhook.contact,
-              contactType: webhook.contact_type,
-              openedBy: webhook.opened_by,
-              // Technical context
-              cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
-              // Multi-tenancy / Domain separation
-              sysDomain: webhook.sys_domain,
-              sysDomainPath: webhook.sys_domain_path,
-              });
-
-              incidentCreated = true;
-              incidentNumber = incidentResult.incident_number;
-              incidentSysId = incidentResult.incident_sys_id;
-              incidentUrl = incidentResult.incident_url;
-
-              // Update case with incident reference (bidirectional link)
-              // This makes the incident appear in "Related Records > Incident" tab
-              await serviceNowClient.updateCase(webhook.sys_id, {
-                incident: incidentSysId,
-              });
-
-              // Add work note to parent Case
-              const workNote =
-                `🚨 ${suggestion.is_major_incident ? 'MAJOR ' : ''}INCIDENT CREATED\n\n` +
-                `Incident: ${incidentNumber}\n` +
-                `Reason: ${suggestion.reasoning}\n\n` +
-                `Category: ${classificationResult.category}` +
-                `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ""}\n\n` +
-                `${suggestion.is_major_incident ? "⚠️ MAJOR INCIDENT - Immediate escalation required\n\n" : ""}` +
-                `Link: ${incidentUrl}`;
-
-              await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
-
-              console.log(
-                `[Case Triage] Created ${suggestion.is_major_incident ? 'MAJOR ' : ''}` +
-                `Incident ${incidentNumber} from Case ${webhook.case_number}`
-              );
-            }
-          } catch (error) {
-            console.error("[Case Triage] Failed to create Incident:", error);
-            // Don't fail the entire triage - log error but continue
-          }
-          }
-        } else if (suggestion.type === 'Problem') {
-          // ASSIGNMENT GROUP FILTER: Only create problems for allowed groups
-          if (!webhook.assignment_group || !config.incidentCreationAllowedGroups.includes(webhook.assignment_group)) {
-            console.log(
-              `[Case Triage] Skipping problem creation for ${webhook.case_number} - ` +
-              `assignment group "${webhook.assignment_group || 'undefined'}" not in allowed list: ` +
-              `[${config.incidentCreationAllowedGroups.join(", ")}]`
-            );
-          } else {
-            // Create Problem for root cause analysis
-            try {
-              const { serviceNowClient } = await import('../tools/servicenow');
-
-              // IDEMPOTENCY CHECK: Does problem already exist for this case?
-              const existingProblem = await serviceNowClient.getProblemByParentCase(
-                webhook.sys_id
-              );
-
-            if (existingProblem) {
-              console.log(
-                `[Case Triage] Problem already exists: ${existingProblem.number} ` +
-                `(created from previous run) - skipping creation`
-              );
-
-              // Return existing problem info (don't create duplicate)
-              problemCreated = false; // Was created previously, not in THIS run
-              problemNumber = existingProblem.number;
-              problemSysId = existingProblem.sys_id;
-              problemUrl = existingProblem.url;
-            } else {
-              // DUAL CATEGORIZATION: Use incident-specific category if provided, otherwise fall back to case category
-              const problemCategory = classificationResult.incident_category || classificationResult.category;
-              const problemSubcategory = classificationResult.incident_subcategory || classificationResult.subcategory;
-
-              console.log(
-                `[Case Triage] Creating Problem with category: ${problemCategory}` +
-                `${problemSubcategory ? ` > ${problemSubcategory}` : ''}` +
-                `${classificationResult.incident_category ? ' (incident-specific)' : ' (fallback to case category)'}`
-              );
-
-              // SERVICE OFFERING LINKING: Query ServiceNow for Service Offering sys_id
-              let businessServiceSysId = webhook.business_service; // Default to webhook value
-              if (classificationResult.service_offering) {
-                try {
-                  console.log(
-                    `[Case Triage] Looking up Service Offering: "${classificationResult.service_offering}"`
-                  );
-                  const serviceOffering = await serviceNowClient.getServiceOffering(
-                    classificationResult.service_offering
-                  );
-                  if (serviceOffering) {
-                    businessServiceSysId = serviceOffering.sys_id;
-                    console.log(
-                      `[Case Triage] Linked Service Offering: ${serviceOffering.name} (${serviceOffering.sys_id})`
-                    );
-                  } else {
-                    console.warn(
-                      `[Case Triage] Service Offering "${classificationResult.service_offering}" not found in ServiceNow`
-                    );
-                  }
-                } catch (error) {
-                  console.error(`[Case Triage] Failed to lookup Service Offering:`, error);
-                  // Continue with problem creation even if Service Offering lookup fails
-                }
-              }
-
-              // Create Problem record with full company/context information
-              const problemResult = await serviceNowClient.createProblemFromCase({
-              caseSysId: webhook.sys_id,
-              caseNumber: webhook.case_number,
-              category: problemCategory,
-              subcategory: problemSubcategory,
-              shortDescription: webhook.short_description,
-              description: webhook.description,
-              urgency: webhook.urgency,
-              priority: webhook.priority,
-              callerId: webhook.caller_id,
-              assignmentGroup: webhook.assignment_group,
-              assignedTo: webhook.assigned_to,
-              firstReportedBy: webhook.sys_id, // Reference to the Case that first reported this problem
-              // Company/Account context (prevents orphaned problems)
-              company: webhook.company,
-              account: webhook.account || webhook.account_id,
-              businessService: businessServiceSysId, // Use looked-up Service Offering sys_id
-              location: webhook.location,
-              // Contact information
-              contact: webhook.contact,
-              contactType: webhook.contact_type,
-              openedBy: webhook.opened_by,
-              // Technical context
-              cmdbCi: webhook.cmdb_ci || webhook.configuration_item,
-              // Multi-tenancy / Domain separation
-              sysDomain: webhook.sys_domain,
-              sysDomainPath: webhook.sys_domain_path,
-              });
-
-              problemCreated = true;
-              problemNumber = problemResult.problem_number;
-              problemSysId = problemResult.problem_sys_id;
-              problemUrl = problemResult.problem_url;
-
-              // Update case with problem reference (bidirectional link)
-              // This makes the problem appear in "Related Records > Problem" tab
-              await serviceNowClient.updateCase(webhook.sys_id, {
-                problem: problemSysId
-              });
-
-              // Add work note to parent Case
-              const workNote =
-                `🔍 PROBLEM CREATED\n\n` +
-                `Problem: ${problemNumber}\n` +
-                `Reason: ${suggestion.reasoning}\n\n` +
-                `Category: ${classificationResult.category}` +
-                `${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}\n\n` +
-                `Link: ${problemUrl}`;
-
-              await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote);
-
-              console.log(
-                `[Case Triage] Created Problem ${problemNumber} from Case ${webhook.case_number}`
-              );
-            }
-          } catch (error) {
-            console.error('[Case Triage] Failed to create Problem:', error);
-            // Don't fail the entire triage - log error but continue
-          }
-          }
-        } else if (suggestion.type === 'Change') {
-          // Log but don't auto-create (Changes require CAB approval)
-          console.log(
-            `[Case Triage] Change suggested for ${webhook.case_number} - ` +
-              `manual Change Management process required`
-          );
-        }
+      if (incidentHandling.problemCreated) {
+        problemCreated = true;
+        problemNumber = incidentHandling.problemNumber;
+        problemSysId = incidentHandling.problemSysId;
+        problemUrl = incidentHandling.problemUrl;
       }
 
       // Step 14: Check for catalog redirect (HR requests submitted incorrectly)
@@ -731,7 +335,7 @@ export class CaseTriageService {
       let catalogRedirectReason: string | undefined;
       let catalogItemsProvided = 0;
 
-      if (enableCatalogRedirect && !incidentCreated && !problemCreated) {
+      if (fullConfig.enableCatalogRedirect && !incidentCreated && !problemCreated) {
         try {
           console.log(`[Case Triage] Checking catalog redirect for ${webhook.case_number}`);
 
@@ -774,11 +378,13 @@ export class CaseTriageService {
         );
       }
 
-      // Step 16: Check for escalation (non-BAU cases)
-      if (config.escalationEnabled) {
+      // Step 16: Check for business intelligence escalation (non-BAU cases)
+      if (classificationResult.business_intelligence) {
         try {
+          const { getEscalationService } = await import('./escalation-service');
           const escalationService = getEscalationService();
-          const escalated = await escalationService.checkAndEscalate({
+
+          await escalationService.checkAndEscalate({
             caseNumber: webhook.case_number,
             caseSysId: webhook.sys_id,
             classification: classificationResult,
@@ -791,22 +397,22 @@ export class CaseTriageService {
             },
             assignedTo: webhook.assigned_to,
             assignmentGroup: webhook.assignment_group,
-            companyName: webhook.account_id,
+            companyName: webhook.account_id, // Use account_id as company name
           });
 
-          if (escalated) {
-            console.log(`[Case Triage] Case ${webhook.case_number} escalated to Slack`);
-          }
+          console.log(`[Case Triage] Escalation check completed for ${webhook.case_number}`);
         } catch (error) {
-          console.error("[Case Triage] Escalation failed:", error);
+          console.error(`[Case Triage] Escalation failed for ${webhook.case_number}:`, error);
+          // Don't fail the entire triage - log error but continue
         }
       }
 
       // Log timing breakdown for performance analysis
-      const storageTime = Date.now() - startTime - classificationTime - categoriesTime;
+      const retrievalTime = enrichment.categories.fetchTimeMs + enrichment.applicationsFetchTimeMs;
+      const storageTime = Date.now() - startTime - classificationTime - retrievalTime;
       console.log(
         `[Case Triage] Timing breakdown: ` +
-        `categories=${categoriesTime}ms, classification=${classificationTime}ms, ` +
+        `retrieval=${retrievalTime}ms, classification=${classificationTime}ms, ` +
         `storage/updates=${storageTime}ms, total=${processingTime}ms`
       );
 
@@ -853,380 +459,6 @@ export class CaseTriageService {
     }
   }
 
-  /**
-   * Record inbound webhook payload to database
-   *
-   * Original: api/app/services/classification_store.py:record_inbound_case
-   */
-  private async recordInboundPayload(webhook: ServiceNowCaseWebhook): Promise<number | null> {
-    try {
-      const inboundData: NewCaseClassificationInbound = {
-        caseNumber: webhook.case_number,
-        caseSysId: webhook.sys_id,
-        rawPayload: webhook as any,
-        routingContext: {
-          assignmentGroup: webhook.assignment_group,
-          assignedTo: webhook.assigned_to,
-          category: webhook.category,
-          subcategory: webhook.subcategory,
-          priority: webhook.priority,
-          state: webhook.state,
-        },
-      };
-
-      await this.repository.saveInboundPayload(inboundData);
-
-      // Get the inserted record to return its ID
-      const unprocessed = await this.repository.getUnprocessedPayload(webhook.case_number);
-      return unprocessed?.id || null;
-    } catch (error) {
-      console.error("[Case Triage] Failed to record inbound payload:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if case was classified very recently (idempotency guard)
-   *
-   * This is separate from the workflow/assignment-based cache check.
-   * It prevents duplicate work when QStash retries after a partial success.
-   *
-   * Returns classification if created within the specified time window.
-   */
-  private async checkRecentClassification(
-    caseNumber: string,
-    withinMinutes: number
-  ): Promise<(CaseTriageResult & { classifiedAt: Date }) | null> {
-    try {
-      const latestResult = await this.repository.getLatestClassificationResult(caseNumber);
-
-      if (!latestResult) {
-        return null;
-      }
-
-      // Check if classification is recent
-      const ageMs = Date.now() - latestResult.createdAt.getTime();
-      const ageMinutes = ageMs / 60000;
-
-      if (ageMinutes > withinMinutes) {
-        return null; // Too old for idempotency guard
-      }
-
-      console.log(
-        `[Case Triage] Recent classification found for ${caseNumber} ` +
-        `(${Math.round(ageMinutes * 60)}s ago)`
-      );
-
-      const cachedClassification = latestResult.classificationJson as any;
-
-      return {
-        caseNumber,
-        caseSysId: (cachedClassification as any).sys_id || "",
-        workflowId: latestResult.workflowId,
-        classification: cachedClassification,
-        similarCases: ((cachedClassification as any).similar_cases || []) as SimilarCaseResult[],
-        kbArticles: ((cachedClassification as any).kb_articles || []) as KBArticleResult[],
-        servicenowUpdated: latestResult.servicenowUpdated,
-        processingTimeMs: latestResult.processingTimeMs,
-        entitiesDiscovered: latestResult.entitiesCount,
-        cached: true,
-        incidentCreated: false, // Was created in previous run, not THIS run
-        incidentNumber: latestResult.incidentNumber ?? undefined,
-        incidentSysId: latestResult.incidentSysId ?? undefined,
-        incidentUrl: latestResult.incidentUrl ?? undefined,
-        problemCreated: false, // Was created in previous run, not THIS run
-        problemNumber: latestResult.problemNumber ?? undefined,
-        problemSysId: latestResult.problemSysId ?? undefined,
-        problemUrl: latestResult.problemUrl ?? undefined,
-        catalogRedirected: false,
-        recordTypeSuggestion: (cachedClassification as any).record_type_suggestion,
-        classifiedAt: latestResult.createdAt,
-      };
-    } catch (error) {
-      console.error("[Case Triage] Error checking recent classification:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if classification exists in cache
-   *
-   * Cache key: case_number + workflow_id + assignment_group
-   * Returns cached result if:
-   * - Previous classification exists for same case + workflow
-   * - Assignment group hasn't changed (re-routing invalidates cache)
-   *
-   * Original: api/app/routers/webhooks.py:436-454
-   */
-  private async checkClassificationCache(
-    caseNumber: string,
-    workflowId: string,
-    assignmentGroup?: string,
-    assignmentGroupSysId?: string
-  ): Promise<CaseTriageResult | null> {
-    try {
-      const latestResult = await this.repository.getLatestClassificationResult(caseNumber);
-
-      if (!latestResult) {
-        return null;
-      }
-
-      // Check if workflow matches
-      if (latestResult.workflowId !== workflowId) {
-        console.log(
-          `[Case Triage] Cache miss - workflow changed: ${latestResult.workflowId} → ${workflowId}`
-        );
-        return null;
-      }
-
-      // Check if assignment group matches (from routing_context)
-      const cachedRouting = latestResult.classificationJson as any;
-      const cachedAssignmentGroup = cachedRouting.assignment_group;
-      const cachedAssignmentGroupSysId = cachedRouting.assignment_group_sys_id;
-
-      if (
-        assignmentGroup &&
-        cachedAssignmentGroup &&
-        cachedAssignmentGroup !== assignmentGroup
-      ) {
-        console.log(
-          `[Case Triage] Cache miss - assignment group changed: ${cachedAssignmentGroup} → ${assignmentGroup}`
-        );
-        return null;
-      }
-
-      if (
-        assignmentGroupSysId &&
-        cachedAssignmentGroupSysId &&
-        cachedAssignmentGroupSysId !== assignmentGroupSysId
-      ) {
-        console.log(
-          `[Case Triage] Cache miss - assignment group sys_id changed: ${cachedAssignmentGroupSysId} → ${assignmentGroupSysId}`
-        );
-        return null;
-      }
-
-      // Cache hit - return cached result
-      console.log(
-        `[Case Triage] Cache HIT for ${caseNumber} + ${workflowId} (classified at: ${latestResult.createdAt})`
-      );
-
-      const cachedClassification = latestResult.classificationJson as any;
-
-      return {
-        caseNumber,
-        caseSysId: cachedRouting.sys_id || "",
-        workflowId: latestResult.workflowId,
-        classification: cachedClassification,
-        similarCases: (cachedRouting.similar_cases || []) as SimilarCaseResult[],
-        kbArticles: (cachedRouting.kb_articles || []) as KBArticleResult[],
-        servicenowUpdated: latestResult.servicenowUpdated,
-        processingTimeMs: latestResult.processingTimeMs,
-        entitiesDiscovered: latestResult.entitiesCount,
-        cached: true,
-        cacheReason: "Previous classification found for same case + workflow + assignment",
-        // ITSM record type fields from DB (not from cached classification)
-        incidentCreated: false, // Was created in previous run, not THIS run
-        incidentNumber: latestResult.incidentNumber ?? undefined,
-        incidentSysId: latestResult.incidentSysId ?? undefined,
-        incidentUrl: latestResult.incidentUrl ?? undefined,
-        problemCreated: false, // Was created in previous run, not THIS run
-        problemNumber: latestResult.problemNumber ?? undefined,
-        problemSysId: latestResult.problemSysId ?? undefined,
-        problemUrl: latestResult.problemUrl ?? undefined,
-        recordTypeSuggestion: cachedClassification.record_type_suggestion,
-        // Catalog redirect fields (cached results don't trigger new redirects)
-        catalogRedirected: false,
-        catalogItemsProvided: 0,
-      };
-    } catch (error) {
-      console.error("[Case Triage] Error checking cache:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Store classification result to database
-   *
-   * Original: api/app/services/classification_store.py:record_classification_result
-   */
-  private async storeClassificationResult(data: {
-    caseNumber: string;
-    workflowId: string;
-    classification: any;
-    processingTimeMs: number;
-    servicenowUpdated: boolean;
-    incidentNumber?: string;
-    incidentSysId?: string;
-    incidentUrl?: string;
-    problemNumber?: string;
-    problemSysId?: string;
-    problemUrl?: string;
-  }): Promise<void> {
-    try {
-      const resultData: NewCaseClassificationResults = {
-        caseNumber: data.caseNumber,
-        workflowId: data.workflowId,
-        classificationJson: data.classification,
-        tokenUsage: {
-          promptTokens: data.classification.token_usage_input || 0,
-          completionTokens: data.classification.token_usage_output || 0,
-          totalTokens: data.classification.total_tokens || 0,
-        },
-        cost: this.calculateCost(data.classification),
-        provider: data.classification.llm_provider || "unknown",
-        model: data.classification.model_used || "unknown",
-        processingTimeMs: data.processingTimeMs,
-        servicenowUpdated: data.servicenowUpdated,
-        entitiesCount: 0, // Will be updated after entity storage
-        similarCasesCount: data.classification.similar_cases_count || 0,
-        kbArticlesCount: data.classification.kb_articles_count || 0,
-        businessIntelligenceDetected: !!(
-          data.classification.business_intelligence?.project_scope_detected ||
-          data.classification.business_intelligence?.executive_visibility ||
-          data.classification.business_intelligence?.compliance_impact ||
-          data.classification.business_intelligence?.financial_impact
-        ),
-        confidenceScore: data.classification.confidence_score || 0,
-        retryCount: 0,
-        // Service Portfolio Classification (NEW)
-        serviceOffering: data.classification.service_offering,
-        applicationService: data.classification.application_service,
-        // ITSM Record Creation Tracking (NEW - for idempotency)
-        incidentNumber: data.incidentNumber,
-        incidentSysId: data.incidentSysId,
-        incidentUrl: data.incidentUrl,
-        problemNumber: data.problemNumber,
-        problemSysId: data.problemSysId,
-        problemUrl: data.problemUrl,
-      };
-
-      await this.repository.saveClassificationResult(resultData);
-
-      console.log(`[Case Triage] Stored classification result for ${data.caseNumber}`);
-    } catch (error) {
-      console.error("[Case Triage] Failed to store classification result:", error);
-      // Don't throw - classification succeeded, storage is secondary
-    }
-  }
-
-  /**
-   * Store discovered entities to database
-   *
-   * Original: api/app/routers/webhooks.py:104-196
-   */
-  private async storeDiscoveredEntities(
-    caseNumber: string,
-    caseSysId: string,
-    classification: any
-  ): Promise<number> {
-    if (!classification.technical_entities) {
-      return 0;
-    }
-
-    try {
-      const entities: NewCaseDiscoveredEntities[] = [];
-
-      // Map technical_entities to individual entity records
-      const entityTypeMapping: Record<string, string> = {
-        ip_addresses: "IP_ADDRESS",
-        systems: "SYSTEM",
-        users: "USER",
-        software: "SOFTWARE",
-        error_codes: "ERROR_CODE",
-        network_devices: "NETWORK_DEVICE",
-      };
-
-      for (const [entityCategory, entityList] of Object.entries(
-        classification.technical_entities
-      )) {
-        const entityType = entityTypeMapping[entityCategory];
-        if (!entityType || !Array.isArray(entityList)) {
-          continue;
-        }
-
-        for (const entityValue of entityList) {
-          entities.push({
-            caseNumber,
-            caseSysId,
-            entityType,
-            entityValue: String(entityValue).substring(0, 500), // Truncate to column limit
-            confidence: classification.confidence_score || 0.5,
-            status: "discovered",
-            source: "llm",
-            metadata: {},
-          });
-        }
-      }
-
-      if (entities.length === 0) {
-        return 0;
-      }
-
-      await this.repository.saveDiscoveredEntities(entities);
-
-      const entityTypeCounts = entities.reduce((acc, e) => {
-        acc[e.entityType] = (acc[e.entityType] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      console.log(
-        `[Case Triage] Stored ${entities.length} entities for ${caseNumber}:`,
-        entityTypeCounts
-      );
-
-      return entities.length;
-    } catch (error) {
-      console.error("[Case Triage] Failed to store entities:", error);
-      return 0;
-    }
-  }
-
-  /**
-   * Calculate cost based on token usage
-   *
-   * Original: api/app/services/case_classifier.py:1209-1262
-   */
-  private calculateCost(classification: any): number {
-    const promptTokens = classification.token_usage_input || 0;
-    const completionTokens = classification.token_usage_output || 0;
-
-    // Simple cost calculation - adjust based on actual pricing
-    // These are approximate costs for GPT-4o-mini / Claude Haiku
-    const promptCostPer1K = 0.003;
-    const completionCostPer1K = 0.004;
-
-    const promptCost = (promptTokens / 1000) * promptCostPer1K;
-    const completionCost = (completionTokens / 1000) * completionCostPer1K;
-
-    return promptCost + completionCost;
-  }
-
-  /**
-   * Convert ServiceNow webhook payload to classification request format
-   */
-  private webhookToClassificationRequest(
-    webhook: ServiceNowCaseWebhook
-  ): CaseClassificationRequest {
-    return {
-      case_number: webhook.case_number,
-      sys_id: webhook.sys_id,
-      short_description: webhook.short_description,
-      description: webhook.description,
-      priority: webhook.priority,
-      urgency: webhook.urgency,
-      current_category: webhook.category,
-      company: webhook.company,
-      company_name: webhook.account_id, // Use account_id as company_name if available
-      assignment_group: webhook.assignment_group,
-      assignment_group_sys_id: webhook.assignment_group_sys_id,
-      routing_context: webhook.routing_context,
-    };
-  }
-
-  /**
-   * Get triage statistics
-   */
   async getTriageStats(days: number = 7): Promise<{
     totalCases: number;
     averageProcessingTime: number;
@@ -1275,13 +507,15 @@ export class CaseTriageService {
     };
 
     // Test Azure Search
-    if (this.azureSearchClient) {
-      try {
-        const testResult = await this.azureSearchClient.testConnection();
+    try {
+      const { createAzureSearchClient } = await import("./azure-search-client");
+      const azureSearchClient = createAzureSearchClient();
+      if (azureSearchClient) {
+        const testResult = await azureSearchClient.testConnection();
         results.azureSearch = testResult.success;
-      } catch (error) {
-        console.error("[Case Triage] Azure Search test failed:", error);
       }
+    } catch (error) {
+      console.error("[Case Triage] Azure Search test failed:", error);
     }
 
     // Test Database
