@@ -19,7 +19,8 @@ const markdownReplacements: Array<{ pattern: RegExp; replacement: string }> = [
 ];
 
 export function formatMessage(params: FormatMessageParams): string {
-  params.updateStatus?.("formatting");
+  // Don't call updateStatus here - it causes race conditions with the final Block Kit message
+  // The handler will update the message with the final content
 
   let formatted = params.text.trim();
 
@@ -27,6 +28,5 @@ export function formatMessage(params: FormatMessageParams): string {
     formatted = formatted.replace(pattern, replacement);
   }
 
-  params.updateStatus?.("sent");
   return formatted;
 }
