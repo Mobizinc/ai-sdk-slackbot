@@ -270,26 +270,39 @@ export async function handleNewAppMention(
       // Handle both case and incident Block Kit data
       if (parsed._blockKitData.type === "incident_detail") {
         // Use pre-generated blocks from incident formatter
-        const blocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
+        const incidentBlocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
 
-        // Use LLM's full text response (with Microsoft Learn guidance, etc.)
-        // NOT the short fallback text - that's only for notifications
+        // Get LLM's full text response (with Microsoft Learn guidance, etc.)
         const llmResponse = parsed.text || result;
+
+        // Per Gemini: Put LLM text INSIDE Block Kit as first section block
+        // This allows text + blocks to display together in Slack
+        const combinedBlocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: llmResponse
+            }
+          },
+          { type: "divider" },
+          ...incidentBlocks
+        ];
+
+        const fallbackText = `Incident ${parsed._blockKitData.incidentData?.number}: ${parsed._blockKitData.incidentData?.short_description}`;
 
         console.log('[Handler] Rendering incident Block Kit with LLM response');
         console.log('[Handler] Incident data:', {
           number: parsed._blockKitData.incidentData?.number,
-          hasBlocks: !!blocks,
-          blockCount: blocks?.length,
-          hasLLMText: !!llmResponse,
           llmTextLength: llmResponse?.length,
-          blockTypes: blocks?.map((b: any) => b.type).join(', ')
+          incidentBlockCount: incidentBlocks?.length,
+          totalBlockCount: combinedBlocks.length,
+          blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
         });
-        console.log('[Handler] LLM response preview:', llmResponse?.substring(0, 200));
-        console.log('[Handler] Incident Block Kit structure:', JSON.stringify(blocks?.slice(0, 2), null, 2));
+        console.log('[Handler] Combined blocks preview:', JSON.stringify(combinedBlocks.slice(0, 2), null, 2));
 
-        // Send LLM's full response as text + Block Kit blocks below it
-        await setFinalMessage(llmResponse, blocks);
+        // Send combined blocks with LLM text as first block
+        await setFinalMessage(fallbackText, combinedBlocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Use existing case formatting
         const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
