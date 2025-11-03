@@ -135,9 +135,27 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
 
       webhookData = validationResult.data!;
     } catch (error) {
-      console.error('[Webhook] Failed to parse webhook payload:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[Webhook] Failed to parse webhook payload:', errorMessage);
+
+      // Extract useful error details for the response
+      const errorDetails: Record<string, any> = {
+        message: errorMessage,
+        payloadLength: payload?.length || 0,
+      };
+
+      // Check if error message contains position information
+      const positionMatch = errorMessage.match(/position (\d+)/);
+      if (positionMatch) {
+        errorDetails.errorPosition = parseInt(positionMatch[1], 10);
+        errorDetails.hint = 'Check the JSON syntax around the specified position';
+      }
+
       return Response.json(
-        { error: 'Invalid JSON payload' },
+        {
+          error: 'Invalid JSON payload',
+          details: errorDetails,
+        },
         { status: 400 }
       );
     }

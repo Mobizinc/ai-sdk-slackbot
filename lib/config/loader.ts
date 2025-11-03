@@ -58,10 +58,12 @@ async function loadAndApplyConfig(): Promise<ConfigValueMap> {
   try {
     const overrides = await loadOverridesFromDatabase();
     applyOverrides(config, overrides);
-    initialized = true;
+    console.log(`[Config] Loaded ${overrides.size} config overrides from database`);
   } catch (error) {
     console.error("[Config] Failed to load overrides from database:", error);
+    console.log("[Config] Falling back to environment variables and defaults");
   } finally {
+    initialized = true;
     loadPromise = null;
   }
   return config;
@@ -71,6 +73,7 @@ async function loadOverridesFromDatabase(): Promise<RawOverrides> {
   const overrides: RawOverrides = new Map();
 
   if (!getDb()) {
+    console.log("[Config] Database not configured, using environment variables only");
     return overrides;
   }
 
@@ -81,7 +84,8 @@ async function loadOverridesFromDatabase(): Promise<RawOverrides> {
         overrides.set(key, value);
       }
     } catch (error) {
-      console.warn(`[Config] Unable to fetch app setting for key "${key}":`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`[Config] Unable to fetch app setting for key "${key}": ${errorMessage}`);
     }
   }
 
