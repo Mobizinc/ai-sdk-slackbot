@@ -41,6 +41,9 @@ importers:
       exa-js:
         specifier: ^1.4.10
         version: 1.4.10
+      jsonrepair:
+        specifier: ^3.13.1
+        version: 3.13.1
       langsmith:
         specifier: ^0.3.74
         version: 0.3.74(@opentelemetry/api@1.9.0)(openai@6.2.0(zod@3.25.76))
@@ -2989,6 +2992,10 @@ packages:
 
   json5@1.0.2:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
+    hasBin: true
+
+  jsonrepair@3.13.1:
+    resolution: {integrity: sha512-WJeiE0jGfxYmtLwBTEk8+y/mYcaleyLXWaqp5bJu0/ZTSeG0KQq/wWQ8pmnkKenEdN6pdnn6QtcoSUkbqDHWNw==}
     hasBin: true
 
   jsonwebtoken@9.0.2:
@@ -7072,6 +7079,8 @@ snapshots:
   json5@1.0.2:
     dependencies:
       minimist: 1.2.8
+
+  jsonrepair@3.13.1: {}
 
   jsonwebtoken@9.0.2:
     dependencies:
