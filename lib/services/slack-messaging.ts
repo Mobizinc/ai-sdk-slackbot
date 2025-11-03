@@ -120,11 +120,30 @@ export class SlackMessagingService {
         const updateParams: any = {
           channel: options.channel,
           ts: options.ts,
-          text: options.text,
         };
 
-        if (options.blocks) {
+        // When blocks are present, they should be the primary content
+        // Text is only used as fallback for notifications/search
+        if (options.blocks && options.blocks.length > 0) {
+          // Validate blocks before sending
+          for (let i = 0; i < options.blocks.length; i++) {
+            const block = options.blocks[i];
+            if (!block.type) {
+              console.error(`[Slack Messaging] Block ${i} missing required 'type' field:`, block);
+              throw new Error(`Invalid block at index ${i}: missing 'type' field`);
+            }
+          }
+
           updateParams.blocks = options.blocks;
+          // Include text as fallback if provided
+          if (options.text) {
+            updateParams.text = options.text;
+          }
+
+          console.log(`[Slack Messaging] Updating message with ${options.blocks.length} Block Kit blocks`);
+        } else {
+          // Text-only message
+          updateParams.text = options.text || "Message sent";
         }
 
         await this.client.chat.update(updateParams);
@@ -155,7 +174,13 @@ export class SlackMessagingService {
         }
 
         // Not a race condition or max retries reached
-        console.error(`[Slack Messaging] Failed to update message after ${attempt} attempts:`, error);
+        console.error(`[Slack Messaging] Failed to update message after ${attempt} attempts:`, {
+          error: error?.data?.error || error?.message,
+          errorDetails: error?.data,
+          hadBlocks: !!options.blocks,
+          blockCount: options.blocks?.length || 0,
+          textPreview: options.text?.substring(0, 100),
+        });
         throw error;
       }
     }
