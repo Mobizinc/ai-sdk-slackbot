@@ -629,8 +629,8 @@ function buildIncidentServiceNowLink(incidentNumber: string, sysId?: string): st
  * (Required for notifications, search, and accessibility)
  */
 export function generateIncidentFallbackText(incidentData: ServiceNowCase): string {
-  const incidentNumber = incidentData.number || "Unknown";
-  const shortDesc = incidentData.short_description || "No description";
+  const incidentNumber = extractDisplayValue(incidentData.number) || "Unknown";
+  const shortDesc = extractDisplayValue(incidentData.short_description) || "No description";
   const state = extractDisplayValue(incidentData.state);
   const priority = extractDisplayValue(incidentData.priority);
 

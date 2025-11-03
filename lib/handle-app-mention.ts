@@ -206,19 +206,25 @@ export async function handleNewAppMention(
       if (parsed._blockKitData.type === "incident_detail") {
         // Use pre-generated blocks from incident formatter
         const blocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
-        const fallbackText = parsed._blockKitData.fallbackText || blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData);
 
-        console.log('[Handler] Rendering incident Block Kit');
+        // Use LLM's full text response (with Microsoft Learn guidance, etc.)
+        // NOT the short fallback text - that's only for notifications
+        const llmResponse = parsed.text || result;
+
+        console.log('[Handler] Rendering incident Block Kit with LLM response');
         console.log('[Handler] Incident data:', {
           number: parsed._blockKitData.incidentData?.number,
           hasBlocks: !!blocks,
           blockCount: blocks?.length,
-          hasFallback: !!fallbackText,
+          hasLLMText: !!llmResponse,
+          llmTextLength: llmResponse?.length,
           blockTypes: blocks?.map((b: any) => b.type).join(', ')
         });
+        console.log('[Handler] LLM response preview:', llmResponse?.substring(0, 200));
         console.log('[Handler] Incident Block Kit structure:', JSON.stringify(blocks?.slice(0, 2), null, 2));
 
-        await updateMessage(fallbackText, blocks);
+        // Send LLM's full response as text + Block Kit blocks below it
+        await updateMessage(llmResponse, blocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Use existing case formatting
         const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
