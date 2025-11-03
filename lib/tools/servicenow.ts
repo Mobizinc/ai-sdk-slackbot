@@ -244,7 +244,19 @@ export interface ServiceNowIncidentResult {
   number: string;
   sys_id: string;
   short_description: string;
+  description?: string;
   state?: string;
+  priority?: string;
+  assigned_to?: string;
+  assignment_group?: string;
+  company?: string;
+  caller_id?: string;
+  category?: string;
+  subcategory?: string;
+  business_service?: string;
+  cmdb_ci?: string;
+  sys_created_on?: string;
+  sys_updated_on?: string;
   url: string;
 }
 

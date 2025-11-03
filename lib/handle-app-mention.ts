@@ -200,17 +200,32 @@ export async function handleNewAppMention(
     if (parsed._blockKitData) {
       console.log('[Handler] Block Kit data detected, formatting with Block Kit');
 
-      const { formatCaseAsBlockKit, generateCaseFallbackText } = await import("./formatters/servicenow-block-kit");
+      const blockKitModule = await import("./formatters/servicenow-block-kit");
 
-      const blocks = formatCaseAsBlockKit(parsed._blockKitData.caseData, {
-        includeJournal: true,
-        journalEntries: parsed._blockKitData.journalEntries,
-        maxJournalEntries: 3,
-      });
+      // Handle both case and incident Block Kit data
+      if (parsed._blockKitData.type === "incident_detail") {
+        // Use pre-generated blocks from incident formatter
+        const blocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
+        const fallbackText = parsed._blockKitData.fallbackText || blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData);
 
-      const fallbackText = generateCaseFallbackText(parsed._blockKitData.caseData);
+        console.log('[Handler] Rendering incident Block Kit');
+        await updateMessage(fallbackText, blocks);
+      } else if (parsed._blockKitData.type === "case_detail") {
+        // Use existing case formatting
+        const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
+          includeJournal: true,
+          journalEntries: parsed._blockKitData.journalEntries,
+          maxJournalEntries: 3,
+        });
+        const fallbackText = blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData);
 
-      await updateMessage(fallbackText, blocks);
+        console.log('[Handler] Rendering case Block Kit');
+        await updateMessage(fallbackText, blocks);
+      } else {
+        // Unknown type, fallback to text
+        console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
+        await updateMessage(parsed.text || result);
+      }
     } else {
       await updateMessage(parsed.text || result);
     }

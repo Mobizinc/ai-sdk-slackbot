@@ -437,6 +437,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 rawData: formatted?.rawData,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
+                _blockKitData: {
+                  type: "incident_detail",
+                  incidentData: formatted?.rawData,
+                  blocks: formatted?.blocks,
+                  fallbackText: formatted?.fallbackText,
+                },
               };
             }
           }
@@ -444,6 +450,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           return {
             summary: formatted?.summary,
             rawData: formatted?.rawData,
+            _blockKitData: {
+              type: "incident_detail",
+              incidentData: formatted?.rawData,
+              blocks: formatted?.blocks,
+              fallbackText: formatted?.fallbackText,
+            },
           };
         }
 

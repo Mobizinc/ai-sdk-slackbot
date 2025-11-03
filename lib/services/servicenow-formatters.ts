@@ -12,6 +12,7 @@ import type {
   ServiceNowCaseSummary,
   ServiceNowConfigurationItem,
 } from "../tools/servicenow";
+import { formatIncidentAsBlockKit, generateIncidentFallbackText } from "../formatters/servicenow-block-kit";
 
 // ============================================================================
 // Constants
@@ -258,17 +259,17 @@ export function formatCaseSummaryText(
 }
 
 /**
- * Formats incident data into structured sections
+ * Formats incident data into structured sections with Block Kit support
  *
- * Returns both a formatted summary for quick context and raw data for deep analysis.
- * Sections: Summary, Current State, References
+ * Returns formatted summary for LLM context, Block Kit blocks for Slack UI,
+ * and raw data for deep analysis.
  *
  * @param incident - ServiceNow incident record
- * @returns Object with summary (formatted text) and rawData (full incident)
+ * @returns Object with summary (formatted text), blocks (Block Kit), and rawData
  */
 export function formatIncidentForLLM(
   incident: ServiceNowIncidentResult,
-): { summary: string; rawData: ServiceNowIncidentResult } | null {
+): { summary: string; blocks: any[]; fallbackText: string; rawData: ServiceNowIncidentResult } | null {
   const summary = sanitizeCaseText(incident.short_description);
   const state = sanitizeCaseText(incident.state);
 
@@ -276,37 +277,106 @@ export function formatIncidentForLLM(
 
   // Summary section
   if (summary) {
-    sections.push("Summary", summary);
+    sections.push("*Summary*", summary);
   }
 
-  // Current State section
+  // Current State section - Enhanced with more details
   const currentStateParts: string[] = [];
   if (state) currentStateParts.push(`Status: ${state}`);
+  if (incident.priority) currentStateParts.push(`Priority: ${sanitizeCaseText(incident.priority)}`);
+  if (incident.assigned_to) {
+    currentStateParts.push(`Assigned: ${sanitizeCaseText(incident.assigned_to)}`);
+  } else {
+    currentStateParts.push("Assigned: Unassigned");
+  }
 
   if (currentStateParts.length > 0) {
-    sections.push("Current State", currentStateParts.join(" | "));
+    sections.push("*Current State*", currentStateParts.join(" | "));
+  }
+
+  // Metadata section - timestamps and company
+  const metaParts: string[] = [];
+  if (incident.sys_created_on) {
+    const createdDate = formatTimestamp(incident.sys_created_on);
+    metaParts.push(`Created: ${createdDate}`);
+  }
+  if (incident.sys_updated_on) {
+    const updatedDate = formatTimestamp(incident.sys_updated_on);
+    metaParts.push(`Updated: ${updatedDate}`);
+  }
+  if (incident.company) {
+    metaParts.push(`Company: ${sanitizeCaseText(incident.company)}`);
+  }
+  if (metaParts.length > 0) {
+    sections.push(metaParts.join(" | "));
+  }
+
+  // Task Details section
+  const taskDetails: string[] = [];
+  if (incident.category) taskDetails.push(`Category: ${sanitizeCaseText(incident.category)}`);
+  if (incident.subcategory) taskDetails.push(`Subcategory: ${sanitizeCaseText(incident.subcategory)}`);
+  if (incident.business_service) taskDetails.push(`Service: ${sanitizeCaseText(incident.business_service)}`);
+  if (incident.cmdb_ci) taskDetails.push(`Affected CI: ${sanitizeCaseText(incident.cmdb_ci)}`);
+  if (incident.caller_id) taskDetails.push(`Caller: ${sanitizeCaseText(incident.caller_id)}`);
+
+  if (taskDetails.length > 0) {
+    sections.push("*Task Details*", taskDetails.join("\n"));
+  }
+
+  // Full description (for LLM deep analysis)
+  if (incident.description) {
+    const desc = sanitizeCaseText(incident.description);
+    if (desc) {
+      sections.push("*Detailed Description*", desc);
+    }
   }
 
   // References section
   const referenceLines: string[] = [];
   if (incident.number && incident.url) {
-    referenceLines.push(`• <${incident.url}|${incident.number}>`);
+    referenceLines.push(`<${incident.url}|${incident.number}>`);
   } else if (incident.number) {
-    referenceLines.push(`• ${incident.number}`);
+    referenceLines.push(incident.number);
   }
 
   if (referenceLines.length > 0) {
-    sections.push("References", referenceLines.join("\n"));
+    sections.push("*Reference*", referenceLines.join("\n"));
   }
 
   if (sections.length === 0) {
     return null;
   }
 
+  // Generate Block Kit blocks for Slack UI
+  const blocks = formatIncidentAsBlockKit(incident as any);
+  const fallbackText = generateIncidentFallbackText(incident as any);
+
   return {
     summary: sections.join("\n\n"),
+    blocks,
+    fallbackText,
     rawData: incident,
   };
+}
+
+/**
+ * Format timestamp to human-readable format
+ */
+function formatTimestamp(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return isoString;
+  }
 }
 
 /**

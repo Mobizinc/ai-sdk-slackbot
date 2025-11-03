@@ -388,3 +388,251 @@ export function generateCaseFallbackText(caseData: ServiceNowCase): string {
 
   return `Case ${caseNumber}: ${shortDesc} | Status: ${state} | Priority: ${priority}`;
 }
+
+/**
+ * Format incident details into Slack Block Kit blocks
+ * Similar to formatCaseAsBlockKit but for incident records
+ *
+ * @param incidentData - ServiceNow incident object
+ * @param options - Formatting options (journal entries, limits)
+ * @returns Array of Block Kit blocks (max 50 blocks per message)
+ */
+export function formatIncidentAsBlockKit(
+  incidentData: ServiceNowCase,
+  options: FormatCaseBlocksOptions = {},
+): any[] {
+  const blocks: any[] = [];
+
+  const incidentNumber = extractDisplayValue(incidentData.number);
+  const sysId = extractDisplayValue(incidentData.sys_id);
+  const shortDesc = extractDisplayValue(incidentData.short_description) || "No description";
+
+  // Header section with incident number
+  blocks.push({
+    type: "header",
+    text: {
+      type: "plain_text",
+      text: `Incident ${incidentNumber}`,
+      emoji: true,
+    },
+  });
+
+  // Short description (prominent)
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*${shortDesc}*`,
+    },
+  });
+
+  // Status row: State | Priority | Assigned To | Group
+  const stateText = formatState(incidentData.state);
+  const priorityText = formatPriority(incidentData.priority);
+  const assignedToText = extractDisplayValue(incidentData.assigned_to);
+  const groupText = extractDisplayValue(incidentData.assignment_group);
+
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Status:*\n${stateText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Priority:*\n${priorityText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Assigned To:*\n${assignedToText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Group:*\n${groupText}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Details section
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Caller:*\n${extractDisplayValue(incidentData.caller_id)}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Company:*\n${extractDisplayValue(incidentData.company)}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Category:*\n${extractDisplayValue(incidentData.category)}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Subcategory:*\n${extractDisplayValue(incidentData.subcategory)}`,
+      },
+    ],
+  });
+
+  // Additional incident-specific details
+  if (incidentData.business_service || incidentData.cmdb_ci) {
+    blocks.push({
+      type: "section",
+      fields: [
+        {
+          type: "mrkdwn",
+          text: `*Business Service:*\n${extractDisplayValue(incidentData.business_service)}`,
+        },
+        {
+          type: "mrkdwn",
+          text: `*Affected CI:*\n${extractDisplayValue(incidentData.cmdb_ci)}`,
+        },
+      ],
+    });
+  }
+
+  // Timestamps
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `Opened: ${formatDate(incidentData.opened_at || incidentData.sys_created_on)} | Updated: ${formatDate(incidentData.updated_on || incidentData.sys_updated_on)}`,
+      },
+    ],
+  });
+
+  // Description (if present)
+  if (incidentData.description) {
+    const description = String(incidentData.description);
+    const maxDescLength = 2000;
+    const truncatedDesc =
+      description.length > maxDescLength
+        ? `${description.substring(0, maxDescLength)}...\n\n_[Description truncated - view full details in ServiceNow]_`
+        : description;
+
+    blocks.push({ type: "divider" });
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Description:*\n${truncatedDesc}`,
+      },
+    });
+  }
+
+  // Journal entries (Latest Activity)
+  if (options.includeJournal && options.journalEntries && options.journalEntries.length > 0) {
+    blocks.push({ type: "divider" });
+
+    const totalEntries = options.journalEntries.length;
+    const maxEntries = Math.min(options.maxJournalEntries || 3, totalEntries, 3);
+
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Latest Activity:* (showing ${maxEntries} of ${totalEntries})`,
+      },
+    });
+
+    for (let i = 0; i < maxEntries; i++) {
+      const entry = options.journalEntries[i];
+      const formattedEntry = formatJournalEntry(entry, i);
+
+      blocks.push({
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: formattedEntry,
+          },
+        ],
+      });
+    }
+
+    if (totalEntries > maxEntries) {
+      blocks.push({
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `_+${totalEntries - maxEntries} more ${totalEntries - maxEntries === 1 ? "entry" : "entries"} available in ServiceNow_`,
+          },
+        ],
+      });
+    }
+  }
+
+  blocks.push({ type: "divider" });
+
+  // Action buttons
+  const serviceNowUrl = buildIncidentServiceNowLink(incidentNumber, sysId);
+
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Open in ServiceNow",
+          emoji: true,
+        },
+        url: serviceNowUrl,
+        action_id: "open_servicenow_incident",
+      },
+    ],
+  });
+
+  // Verify block count (Slack limit: 50 blocks per message)
+  if (blocks.length > 50) {
+    console.warn(
+      `[Block Kit] Generated ${blocks.length} blocks, exceeding Slack limit (50). Truncating...`,
+    );
+    return blocks.slice(0, 50);
+  }
+
+  return blocks;
+}
+
+/**
+ * Build ServiceNow deep link URL for incidents
+ */
+function buildIncidentServiceNowLink(incidentNumber: string, sysId?: string): string {
+  const instanceUrl =
+    (config.servicenowInstanceUrl as string | undefined) ||
+    (config.servicenowUrl as string | undefined) ||
+    process.env.SERVICENOW_INSTANCE_URL ||
+    process.env.SERVICENOW_URL;
+
+  if (!instanceUrl) {
+    return `https://servicenow.com/incident/${incidentNumber}`;
+  }
+
+  const baseUrl = instanceUrl.replace(/\/$/, "");
+
+  if (sysId) {
+    return `${baseUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`;
+  }
+
+  return `${baseUrl}/incident_list.do?sysparm_query=number=${incidentNumber}`;
+}
+
+/**
+ * Generate fallback text for incident Block Kit message
+ * (Required for notifications, search, and accessibility)
+ */
+export function generateIncidentFallbackText(incidentData: ServiceNowCase): string {
+  const incidentNumber = incidentData.number || "Unknown";
+  const shortDesc = incidentData.short_description || "No description";
+  const state = extractDisplayValue(incidentData.state);
+  const priority = extractDisplayValue(incidentData.priority);
+
+  return `Incident ${incidentNumber}: ${shortDesc} | Status: ${state} | Priority: ${priority}`;
+}
