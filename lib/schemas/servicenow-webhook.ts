@@ -6,6 +6,62 @@
 import { z } from "zod";
 
 /**
+ * Helper transformer for ServiceNow display_value objects.
+ * ServiceNow often sends references as objects with display_value, value, and link fields.
+ * This transformer normalizes them to just the display_value (human-readable text).
+ */
+const displayValueTransformer = z.union([
+  z.string(),
+  z.object({
+    display_value: z.string(),
+    value: z.string(),
+    link: z.string().optional(),
+  }),
+  z.object({
+    display_value: z.string(),
+    value: z.string().optional(),
+    link: z.string().optional(),
+  }),
+  z.object({
+    value: z.string(),
+    link: z.string().optional(),
+  }),
+]).transform((val) => {
+  if (typeof val === 'string') return val;
+  if ('display_value' in val) return val.display_value;
+  return val.value || '';
+});
+
+/**
+ * Transformer for optional display_value fields.
+ * Handles null/undefined values and applies displayValueTransformer.
+ */
+const optionalDisplayValueTransformer = z.union([
+  z.string(),
+  z.object({
+    display_value: z.string(),
+    value: z.string(),
+    link: z.string().optional(),
+  }),
+  z.object({
+    display_value: z.string(),
+    value: z.string().optional(),
+    link: z.string().optional(),
+  }),
+  z.object({
+    value: z.string(),
+    link: z.string().optional(),
+  }),
+  z.null(),
+  z.undefined(),
+]).transform((val) => {
+  if (!val) return undefined;
+  if (typeof val === 'string') return val;
+  if ('display_value' in val) return val.display_value;
+  return val.value || undefined;
+}).optional();
+
+/**
  * ServiceNow Case Webhook Schema
  * Inbound webhook payload from ServiceNow when a new case is created or updated
  *
@@ -17,31 +73,31 @@ export const ServiceNowCaseWebhookSchema = z.object({
   sys_id: z.string().describe("ServiceNow case sys_id"),
   short_description: z.string().describe("Brief case description"),
 
-  // Optional fields
+  // Optional fields with display_value transformers
   description: z.string().optional().describe("Detailed case description"),
   priority: z.string().optional().describe("Case priority (1-5)"),
   urgency: z.string().optional().describe("Case urgency"),
   impact: z.string().optional().describe("Case impact"),
-  category: z.string().optional().describe("Current case category"),
-  subcategory: z.string().optional().describe("Current case subcategory"),
-  state: z.string().optional().describe("Case state"),
-  assignment_group: z.string().optional().describe("Assigned group"),
+  category: optionalDisplayValueTransformer.describe("Current case category"),
+  subcategory: optionalDisplayValueTransformer.describe("Current case subcategory"),
+  state: optionalDisplayValueTransformer.describe("Case state"),
+  assignment_group: optionalDisplayValueTransformer.describe("Assigned group"),
   assignment_group_sys_id: z.string().optional().describe("Assigned group sys_id"),
-  assigned_to: z.string().optional().describe("Assigned user"),
-  caller_id: z.string().optional().describe("Case caller/requester"),
-  contact: z.string().optional().describe("Customer contact sys_id"),
+  assigned_to: optionalDisplayValueTransformer.describe("Assigned user"),
+  caller_id: optionalDisplayValueTransformer.describe("Case caller/requester"),
+  contact: optionalDisplayValueTransformer.describe("Customer contact sys_id"),
   contact_type: z.string().optional().describe("How case was created"),
-  company: z.string().optional().describe("Customer company sys_id"),
+  company: optionalDisplayValueTransformer.describe("Customer company sys_id"),
   account_id: z.string().optional().describe("Customer account sys_id"),
   account: z.string().optional().describe("Customer account sys_id (alternative field)"),
-  location: z.string().optional().describe("Physical location sys_id"),
+  location: optionalDisplayValueTransformer.describe("Physical location sys_id"),
   opened_at: z.coerce.date().optional().describe("Case creation timestamp"),
-  opened_by: z.string().optional().describe("User who opened the case"),
+  opened_by: optionalDisplayValueTransformer.describe("User who opened case"),
 
-  // Additional metadata
-  configuration_item: z.string().optional().describe("Related CI from CMDB"),
-  cmdb_ci: z.string().optional().describe("Related CI from CMDB (actual ServiceNow field name)"),
-  business_service: z.string().optional().describe("Related business service"),
+  // Additional metadata with display_value transformers
+  configuration_item: optionalDisplayValueTransformer.describe("Related CI from CMDB"),
+  cmdb_ci: optionalDisplayValueTransformer.describe("Related CI from CMDB (actual ServiceNow field name)"),
+  business_service: optionalDisplayValueTransformer.describe("Related business service"),
   additional_comments: z.string().optional().describe("Additional notes"),
 
   // Multi-tenancy / Domain separation

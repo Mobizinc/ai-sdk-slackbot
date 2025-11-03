@@ -1,0 +1,7 @@
+{
+  "case_number": "CASE001006",
+  "sys_id": "sys_id_12345678901234567895",
+  "short_description": "Missing comma in JSON",
+  "description": "User reports issues",
+  "priority": "2"
+}

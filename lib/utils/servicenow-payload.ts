@@ -143,8 +143,8 @@ export function normalizeQuotes(payload: string): string {
  */
 export function removeNullCharacters(payload: string): string {
   return payload
-    // Remove NULL bytes
-    .replace(/\u0000/g, '')
+    // Remove NULL bytes and other control characters
+    .replace(/[\u0000-\u001F]/g, '')  // Remove all control characters (0x00-0x1F)
     // Remove other problematic unicode control characters
     .replace(/[\uFFFD]/g, '')  // Replacement character (invalid UTF-8)
     .replace(/[\uFEFF]/g, '');  // Zero-width no-break space (BOM handled separately)
@@ -233,11 +233,12 @@ export function sanitizeServiceNowPayload(payload: string): string {
   // 2. Normalize smart quotes → straight quotes (CRITICAL for Word/Outlook copy-paste)
   sanitized = normalizeQuotes(sanitized);
 
-  // 3. Remove NULL characters and dangerous unicode
-  sanitized = removeNullCharacters(sanitized);
-
-  // 4. Escape control characters inside JSON string values (newlines, tabs, etc.)
+  // 3. Escape control characters inside JSON string values FIRST (before removing them!)
+  // This converts literal \n → \\n so they won't be removed by next step
   sanitized = escapeControlCharsInStrings(sanitized);
+
+  // 4. Remove NULL characters and dangerous unicode (only affects chars outside strings now)
+  sanitized = removeNullCharacters(sanitized);
 
   // 5. Fix invalid escape sequences (like L:\)
   sanitized = fixInvalidEscapeSequences(sanitized);
