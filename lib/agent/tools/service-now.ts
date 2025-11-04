@@ -14,7 +14,6 @@ import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
 import { normalizeCaseId, findMatchingCaseNumber } from "../../utils/case-number-normalizer";
 import {
-  formatCaseSummaryText,
   formatIncidentForLLM,
   formatJournalEntriesForLLM,
   formatSearchResultsForLLM,
@@ -385,24 +384,10 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             const caseRecord = await serviceNowClient.getCase(normalizedCaseNumber, snContext);
             if (caseRecord) {
               console.log(`[ServiceNow] Found ${normalizedCaseNumber} in case table (fallback from incident)`);
-              const formattedFallback = formatCaseSummaryText(caseRecord, []);
-              if (formattedFallback) {
-                return {
-                  summary: formattedFallback.summary,
-                  rawData: formattedFallback.rawData,
-                  _blockKitData: {
-                    type: "case_detail",
-                    caseData: caseRecord,
-                    journalEntries: [],
-                  },
-                };
-              }
-
+              // Return raw case data for LLM to analyze directly
               return {
-                rawData: {
-                  case: caseRecord,
-                  journals: [],
-                },
+                case: caseRecord,
+                journals: [],
                 _blockKitData: {
                   type: "case_detail",
                   caseData: caseRecord,
@@ -529,13 +514,10 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             );
 
             if (imageBlocks.length > 0) {
-              // Format case data even when attachments are present
-              const formatted = formatCaseSummaryText(caseRecord, journalEntries);
-
-              // Return with special _attachments marker for runner to handle
+              // Return raw case data with attachments for LLM to analyze
               return {
-                summary: formatted?.summary,
-                rawData: formatted?.rawData,
+                case: caseRecord,
+                journals: journalEntries,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
                 _blockKitData: {
@@ -547,12 +529,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             }
           }
 
-          // Format case data with summary + rawData structure
-          const formatted = formatCaseSummaryText(caseRecord, journalEntries);
-
+          // Return raw case data for LLM to analyze directly
+          // Block Kit formatting happens separately in the handler
           return {
-            summary: formatted?.summary,
-            rawData: formatted?.rawData,
+            case: caseRecord,
+            journals: journalEntries,
             _blockKitData: {
               type: "case_detail",
               caseData: caseRecord,
