@@ -310,10 +310,38 @@ export async function handleNewAppMention(
           journalEntries: parsed._blockKitData.journalEntries,
           maxJournalEntries: 3,
         });
+
+        // Get LLM's full text response (with analysis, root cause guidance, etc.)
+        const llmResponse = parsed.text || result;
+
+        // Put LLM text INSIDE Block Kit as first section block
+        // This allows text + blocks to display together in Slack
+        const combinedBlocks = [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: llmResponse
+            }
+          },
+          { type: "divider" },
+          ...blocks
+        ];
+
         const fallbackText = blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData);
 
-        console.log('[Handler] Rendering case Block Kit');
-        await setFinalMessage(fallbackText, blocks);
+        console.log('[Handler] Rendering case Block Kit with LLM response');
+        console.log('[Handler] Case data:', {
+          number: parsed._blockKitData.caseData?.number,
+          llmTextLength: llmResponse?.length,
+          caseBlockCount: blocks?.length,
+          totalBlockCount: combinedBlocks.length,
+          blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
+        });
+        console.log('[Handler] Combined blocks preview:', JSON.stringify(combinedBlocks.slice(0, 2), null, 2));
+
+        // Send combined blocks with LLM text as first block
+        await setFinalMessage(fallbackText, combinedBlocks);
       } else {
         // Unknown type, fallback to text
         console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
