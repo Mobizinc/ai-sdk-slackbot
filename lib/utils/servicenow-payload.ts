@@ -28,8 +28,87 @@ export function fixInvalidEscapeSequences(payload: string): string {
  */
 export function removeTrailingCommas(payload: string): string {
   return payload
-    .replace(/,(\s*[}\]])/g, "$1")
-    .replace(/,(\s*)$/gm, "$1");
+    .replace(/,(\s*[}\]])/g, "$1");
+}
+
+/**
+ * Escape control characters inside JSON string values.
+ * ServiceNow often sends unescaped newlines/tabs inside string values.
+ * Enhanced to handle unicode escapes and nested structures.
+ */
+export function escapeControlCharsInStrings(payload: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  let nestingDepth = 0; // Track {[({ nesting for better context
+
+  for (let i = 0; i < payload.length; i++) {
+    const char = payload[i];
+    const charCode = char.charCodeAt(0);
+
+    // Track nesting depth when not in strings
+    if (!inString && !escaped) {
+      if (char === '{' || char === '[') {
+        nestingDepth++;
+      } else if (char === '}' || char === ']') {
+        nestingDepth--;
+      }
+    }
+
+    // Track if we're inside a string (between unescaped quotes)
+    if (char === '"' && !escaped) {
+      inString = !inString;
+      result += char;
+      continue;
+    }
+
+    // Track escape sequences
+    if (char === '\\' && !escaped) {
+      // Check if this is a unicode escape sequence (\uXXXX)
+      if (i + 5 < payload.length && payload[i + 1] === 'u') {
+        const unicodeHex = payload.substring(i + 2, i + 6);
+        // If it's a valid unicode escape, keep it as-is
+        if (/^[0-9a-fA-F]{4}$/.test(unicodeHex)) {
+          result += payload.substring(i, i + 6); // \uXXXX
+          i += 5; // Skip the unicode sequence
+          continue;
+        }
+      }
+
+      escaped = true;
+      result += char;
+      continue;
+    }
+
+    // If we're inside a string, escape control characters
+    if (inString && !escaped) {
+      // Escape common control characters
+      if (char === '\n') {
+        result += '\\n';
+      } else if (char === '\r') {
+        result += '\\r';
+      } else if (char === '\t') {
+        result += '\\t';
+      } else if (char === '\b') {
+        result += '\\b';
+      } else if (char === '\f') {
+        result += '\\f';
+      } else if (charCode < 0x20 || charCode === 0x7F) {
+        // Other control characters - convert to unicode escape
+        const hex = charCode.toString(16).padStart(4, '0');
+        result += `\\u${hex}`;
+      } else {
+        result += char;
+      }
+    } else {
+      result += char;
+    }
+
+    // Reset escape flag for next character
+    escaped = false;
+  }
+
+  return result;
 }
 
 /**
@@ -42,17 +121,137 @@ export function fixUnescapedQuotes(payload: string): string {
 }
 
 /**
- * Remove unescaped control characters that break JSON.parse(),
- * while keeping properly escaped newlines/tabs/carriage returns.
+ * Normalize smart quotes to straight quotes.
+ * Converts curly quotes from Word/Outlook to standard JSON quotes.
+ * This is the #1 cause of ServiceNow webhook failures per community forums.
+ */
+export function normalizeQuotes(payload: string): string {
+  return payload
+    // Smart double quotes → straight quotes
+    .replace(/[\u201C\u201D]/g, '"')  // " " → "
+    // Smart single quotes → straight quotes
+    .replace(/[\u2018\u2019]/g, "'")  // ' ' → '
+    // Double prime → straight quote (less common)
+    .replace(/\u2033/g, '"')  // ″ → "
+    // Single prime → straight quote (less common)
+    .replace(/\u2032/g, "'");  // ′ → '
+}
+
+/**
+ * Remove NULL characters and other dangerous unicode.
+ * ServiceNow may send \u0000 (NULL) characters that cause parsing issues.
+ */
+export function removeNullCharacters(payload: string): string {
+  return payload
+    // Remove NULL bytes and other control characters
+    .replace(/[\u0000-\u001F]/g, '')  // Remove all control characters (0x00-0x1F)
+    // Remove other problematic unicode control characters
+    .replace(/[\uFFFD]/g, '')  // Replacement character (invalid UTF-8)
+    .replace(/[\uFEFF]/g, '');  // Zero-width no-break space (BOM handled separately)
+}
+
+/**
+ * Fix missing commas between JSON fields.
+ * ServiceNow script bugs sometimes cause missing commas like:
+ * "field1": "value1"\n"field2": "value2"
+ */
+export function fixMissingCommas(payload: string): string {
+  // Add comma between a closing quote and opening quote on different lines
+  // Match: "value"<whitespace including newlines>"nextField"
+  // Replace with: "value","nextField"
+  return payload.replace(/"(\s*\n\s*)"(\w+)":/g, '",\n  "$2":');
+}
+
+/**
+ * Attempt to fix incomplete JSON payloads (truncated by network/size limits).
+ * This is a best-effort recovery - adds missing closing braces/brackets.
+ */
+export function fixIncompletePayload(payload: string): string {
+  const trimmed = payload.trim();
+
+  // Count opening and closing braces/brackets
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const char = trimmed[i];
+
+    // Track string boundaries
+    if (char === '"' && !escaped) {
+      inString = !inString;
+    }
+
+    // Track escape sequences
+    escaped = (char === '\\' && !escaped);
+
+    // Count braces/brackets when not in strings
+    if (!inString) {
+      if (char === '{') braceDepth++;
+      else if (char === '}') braceDepth--;
+      else if (char === '[') bracketDepth++;
+      else if (char === ']') bracketDepth--;
+    }
+  }
+
+  // If incomplete, try to close it
+  let fixed = trimmed;
+
+  // Close any unclosed strings
+  if (inString) {
+    fixed += '"';
+  }
+
+  // Close unclosed brackets
+  while (bracketDepth > 0) {
+    fixed += ']';
+    bracketDepth--;
+  }
+
+  // Close unclosed braces
+  while (braceDepth > 0) {
+    fixed += '}';
+    braceDepth--;
+  }
+
+  return fixed;
+}
+
+/**
+ * Sanitize ServiceNow payload by fixing common JSON issues.
+ * This is the main sanitization function that applies multiple fixes.
+ *
+ * Order matters! Each sanitizer assumes previous ones succeeded.
  */
 export function sanitizeServiceNowPayload(payload: string): string {
-  let sanitized = fixInvalidEscapeSequences(payload);
-  // Remove control characters first
-  sanitized = sanitized
-    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "")
-    .replace(/[\u2028\u2029]/g, "");
-  // Then fix trailing commas (after control chars are removed)
+  let sanitized = payload;
+
+  // 1. Remove BOM (done in parseServiceNowPayload, but safe to repeat)
+  sanitized = removeBom(sanitized);
+
+  // 2. Normalize smart quotes → straight quotes (CRITICAL for Word/Outlook copy-paste)
+  sanitized = normalizeQuotes(sanitized);
+
+  // 3. Escape control characters inside JSON string values FIRST (before removing them!)
+  // This converts literal \n → \\n so they won't be removed by next step
+  sanitized = escapeControlCharsInStrings(sanitized);
+
+  // 4. Remove NULL characters and dangerous unicode (only affects chars outside strings now)
+  sanitized = removeNullCharacters(sanitized);
+
+  // 5. Fix invalid escape sequences (like L:\)
+  sanitized = fixInvalidEscapeSequences(sanitized);
+
+  // 6. Remove trailing commas before closing braces/brackets
   sanitized = removeTrailingCommas(sanitized);
+
+  // 7. Fix missing commas between fields
+  sanitized = fixMissingCommas(sanitized);
+
+  // 8. Attempt to fix incomplete JSON (last resort)
+  sanitized = fixIncompletePayload(sanitized);
+
   return sanitized;
 }
 

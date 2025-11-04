@@ -1,0 +1,14 @@
+{
+  "incident_number": "INC001001",
+  "incident_sys_id": "inc_sys_id_12345678901234567890",
+  "state": "In Progress",
+  "state_label": "In Progress",
+  "work_notes": "Initial investigation started. User has been contacted for more details.",
+  "comments": "User reported system slowdown in the afternoon.",
+  "close_notes": "",
+  "close_code": "",
+  "resolved_at": "",
+  "hold_reason": "",
+  "hold_until": "",
+  "parent_case_sys_id": ""
+}

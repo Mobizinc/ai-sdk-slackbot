@@ -1,0 +1,46 @@
+{
+  "case_number": "CASE001001",
+  "sys_id": "sys_id_12345678901234567890",
+  "short_description": "User cannot access email",
+  "description": "User reports that they are unable to access their company email account. They receive an error message when trying to login to Outlook Web Access.",
+  "priority": "2",
+  "urgency": "2",
+  "impact": "2",
+  "category": "Software",
+  "subcategory": "Email",
+  "state": "In Progress",
+  "assignment_group": {
+    "display_value": "IT Support",
+    "value": "group_id_123",
+    "link": "https://company.service-now.com/sys_user_group.do?sys_id=group_id_123"
+  },
+  "assigned_to": {
+    "display_value": "John Doe",
+    "value": "user_id_456",
+    "link": "https://company.service-now.com/sys_user.do?sys_id=user_id_456"
+  },
+  "caller_id": {
+    "display_value": "Jane Smith",
+    "value": "caller_id_789",
+    "link": "https://company.service-now.com/sys_user.do?sys_id=caller_id_789"
+  },
+  "company": "company_id_001",
+  "account_id": "Acme Corporation",
+  "opened_at": "2025-01-15 10:30:00",
+  "configuration_item": {
+    "display_value": "Email Service",
+    "value": "ci_email_001",
+    "link": "https://company.service-now.com/cmdb_ci.do?sys_id=ci_email_001"
+  },
+  "business_service": {
+    "display_value": "IT Services",
+    "value": "bs_it_001",
+    "link": "https://company.service-now.com/cmdb_ci_service.do?sys_id=bs_it_001"
+  },
+  "contact_type": "Self-service",
+  "location": {
+    "display_value": "Main Office",
+    "value": "location_main",
+    "link": "https://company.service-now.com/cmn_location.do?sys_id=location_main"
+  }
+}

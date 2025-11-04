@@ -43,6 +43,7 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "exa-js": "^1.4.10",
+    "jsonrepair": "^3.13.1",
     "langsmith": "^0.3.74",
     "mssql": "^11.0.0",
     "openai": "^6.2.0",

@@ -25,6 +25,7 @@ import {
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 import { withLangSmithTrace } from '../lib/observability';
 import { parseServiceNowPayload } from '../lib/utils/servicenow-payload';
+import { ServiceNowParser } from '../lib/utils/servicenow-parser';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -34,6 +35,8 @@ const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
 const ENABLE_CLASSIFICATION = process.env.ENABLE_CASE_CLASSIFICATION === 'true';
 // Async triage is ON by default - explicitly set to 'false' to disable
 const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
+// Use new ServiceNowParser with advanced JSON handling (default to true)
+const USE_NEW_PARSER = process.env.SERVICENOW_USE_NEW_PARSER !== 'false';
 
 /**
  * Validate webhook request
@@ -118,7 +121,38 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
     // Parse and validate payload with Zod schema
     let webhookData: ServiceNowCaseWebhook;
     try {
-      const parsedPayload = parseServiceNowPayload(payload);
+      let parsedPayload: unknown;
+      
+      if (USE_NEW_PARSER) {
+        // Use new ServiceNowParser with advanced JSON handling
+        const parser = new ServiceNowParser();
+        const parseResult = parser.parse(payload);
+        
+        if (!parseResult.success) {
+          console.error('[Webhook] New parser failed:', parseResult.error?.message);
+          return Response.json(
+            {
+              error: 'Failed to parse payload',
+              details: parseResult.error?.message,
+              strategy: parseResult.strategy,
+            },
+            { status: 400 }
+          );
+        }
+        
+        parsedPayload = parseResult.data;
+        
+        // Log parsing metrics for monitoring
+        console.log('[Webhook] Parser metrics:', parseResult.metadata);
+        
+        // Log warnings for debugging
+        if (parseResult.warnings && parseResult.warnings.length > 0) {
+          console.warn('[Webhook] Parser warnings:', parseResult.warnings);
+        }
+      } else {
+        // Use legacy parser
+        parsedPayload = parseServiceNowPayload(payload);
+      }
 
       const validationResult = validateServiceNowWebhook(parsedPayload);
 

@@ -1,0 +1,7 @@
+{
+  "case_number": "CASE001005",
+  "sys_id": "sys_id_12345678901234567894",
+  "short_description": "Control characters in text",
+  "description": "Error message: \u0000Invalid login\u0001 attempt detected",
+  "priority": "2"
+}
