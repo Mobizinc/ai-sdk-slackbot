@@ -82,9 +82,22 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
       queryParts.push(`u_environment=${criteria.environment}`);
     }
 
-    if (queryParts.length === 0) {
-      throw new Error("At least one search criterion must be provided for CMDB search.");
+    if (criteria.operationalStatus) {
+      queryParts.push(`operational_status=${criteria.operationalStatus}`);
     }
+
+    if (criteria.location) {
+      queryParts.push(`location LIKE ${criteria.location}`);
+    }
+
+    if (queryParts.length === 0) {
+      throw new Error("At least one search criterion must be provided for CMDB search. Broad queries require additional filters (location, environment, owner group).");
+    }
+
+    // Limit maximum results to prevent overly broad queries
+    const limit = criteria.limit ?? 10;
+    const maxLimit = 50;
+    const effectiveLimit = Math.min(limit, maxLimit);
 
     const query = queryParts.join("^");
 
@@ -93,7 +106,7 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
       {
         sysparm_query: query,
         sysparm_display_value: "all",
-        sysparm_limit: criteria.limit ?? 25,
+        sysparm_limit: effectiveLimit,
       },
     );
 

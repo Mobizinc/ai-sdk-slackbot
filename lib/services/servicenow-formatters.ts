@@ -498,13 +498,18 @@ export function formatSearchResultsForLLM(
  * Formats configuration items (CMDB) into structured list
  *
  * Returns both a formatted summary for quick context and raw data for deep analysis.
- * Sections: Summary (count), Latest Activity (items with key fields), Context
+ * Sections: Summary (count), Latest Activity (items with key fields), Relationships (if provided), Context
  *
  * @param items - Array of configuration items
+ * @param options - Optional formatting options including relationships map
  * @returns Object with summary (formatted text) and rawData (full items array)
  */
 export function formatConfigurationItemsForLLM(
   items: ServiceNowConfigurationItem[],
+  options?: {
+    relationships?: Map<string, ServiceNowConfigurationItem[]>;
+    includeRelationships?: boolean;
+  },
 ): { summary: string; rawData: ServiceNowConfigurationItem[] } | null {
   if (items.length === 0) {
     return {
@@ -550,6 +555,29 @@ export function formatConfigurationItemsForLLM(
   });
 
   sections.push("Latest Activity", itemLines.join("\n"));
+
+  // Relationships section - show first-level relationships for each CI
+  if (options?.includeRelationships && options?.relationships && options.relationships.size > 0) {
+    const relationshipLines: string[] = [];
+
+    for (const item of topItems) {
+      const relatedCIs = options.relationships.get(item.sys_id);
+      if (relatedCIs && relatedCIs.length > 0) {
+        relationshipLines.push(`\n${item.name}:`);
+        relatedCIs.slice(0, 5).forEach(relatedCI => {
+          const relType = relatedCI.sys_class_name || "Related to";
+          relationshipLines.push(`  → ${relatedCI.name} (${relType})`);
+        });
+        if (relatedCIs.length > 5) {
+          relationshipLines.push(`  ... and ${relatedCIs.length - 5} more`);
+        }
+      }
+    }
+
+    if (relationshipLines.length > 0) {
+      sections.push("Relationships", relationshipLines.join("\n"));
+    }
+  }
 
   // Context section - if showing subset
   if (items.length > topItems.length) {

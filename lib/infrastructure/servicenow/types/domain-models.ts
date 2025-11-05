@@ -320,5 +320,7 @@ export interface CISearchCriteria {
   sysId?: string;
   ownerGroup?: string;
   environment?: string;
+  operationalStatus?: string;
+  location?: string;
   limit?: number;
 }

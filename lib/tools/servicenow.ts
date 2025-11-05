@@ -1260,10 +1260,20 @@ export class ServiceNowClient {
   }
 
   public async searchConfigurationItems(
-    input: { name?: string; ipAddress?: string; sysId?: string; limit?: number },
+    input: {
+      name?: string;
+      ipAddress?: string;
+      sysId?: string;
+      className?: string;
+      operationalStatus?: string;
+      location?: string;
+      ownerGroup?: string;
+      environment?: string;
+      limit?: number;
+    },
     context?: ServiceNowContext,
   ): Promise<ServiceNowConfigurationItem[]> {
-    const limit = input.limit ?? 5;
+    const limit = input.limit ?? 10;
 
     const useNewPath = featureFlags.useServiceNowRepositories({
       userId: context?.userId,
@@ -1275,6 +1285,11 @@ export class ServiceNowClient {
       name: input.name,
       ipAddress: input.ipAddress,
       sysId: input.sysId,
+      className: input.className,
+      operationalStatus: input.operationalStatus,
+      location: input.location,
+      ownerGroup: input.ownerGroup,
+      environment: input.environment,
       featureEnabled: useNewPath,
       userId: context?.userId,
       channelId: context?.channelId,
@@ -1287,6 +1302,11 @@ export class ServiceNowClient {
           name: input.name,
           ipAddress: input.ipAddress,
           sysId: input.sysId,
+          className: input.className,
+          operationalStatus: input.operationalStatus,
+          location: input.location,
+          ownerGroup: input.ownerGroup,
+          environment: input.environment,
           limit,
         };
 
@@ -1342,9 +1362,29 @@ export class ServiceNowClient {
       }
     }
 
+    if (input.className) {
+      queryGroups.push(`sys_class_name=${input.className}`);
+    }
+
+    if (input.operationalStatus) {
+      queryGroups.push(`operational_status=${input.operationalStatus}`);
+    }
+
+    if (input.location) {
+      queryGroups.push(`locationLIKE${input.location}`);
+    }
+
+    if (input.ownerGroup) {
+      queryGroups.push(`ownerLIKE${input.ownerGroup}`);
+    }
+
+    if (input.environment) {
+      queryGroups.push(`u_environment=${input.environment}`);
+    }
+
     if (!queryGroups.length) {
       throw new Error(
-        "Provide at least one of: name, ipAddress, or sysId to search configuration items.",
+        "At least one search criterion must be provided: name, ipAddress, sysId, className, location, ownerGroup, environment, or operationalStatus.",
       );
     }
 
@@ -1391,6 +1431,128 @@ export class ServiceNowClient {
         url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowConfigurationItem;
     });
+  }
+
+  public async getCIRelationships(
+    input: {
+      ciSysId: string;
+      relationshipType?: string;
+      limit?: number;
+    },
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowConfigurationItem[]> {
+    const limit = input.limit ?? 50;
+    const maxLimit = 100;
+    const effectiveLimit = Math.min(limit, maxLimit);
+
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getCIRelationships using ${useNewPath ? "NEW" : "OLD"} path`, {
+      ciSysId: input.ciSysId,
+      relationshipType: input.relationshipType,
+      limit: effectiveLimit,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const cmdbRepo = this.getCmdbRepo();
+        const relatedCIs = await cmdbRepo.getRelatedCIs(
+          input.ciSysId,
+          input.relationshipType,
+        );
+
+        // Limit results
+        const limitedCIs = relatedCIs.slice(0, effectiveLimit);
+
+        return limitedCIs.map((item) => ({
+          sys_id: item.sysId,
+          name: item.name,
+          sys_class_name: item.className,
+          fqdn: item.fqdn,
+          host_name: item.hostName,
+          ip_addresses: item.ipAddresses,
+          owner_group: item.ownerGroup,
+          support_group: item.supportGroup,
+          location: item.location,
+          environment: item.environment,
+          status: item.status,
+          description: item.description,
+          url: item.url,
+        }));
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          ciSysId: input.ciSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // fall through to legacy implementation
+      }
+    }
+
+    // Legacy implementation - direct API call
+    const queryParts = [`parent=${input.ciSysId}^ORchild=${input.ciSysId}`];
+
+    if (input.relationshipType) {
+      queryParts.push(`type.name=${input.relationshipType}`);
+    }
+
+    const query = queryParts.join("^");
+
+    const data = await request<{
+      result: Array<Record<string, any>>;
+    }>(
+      `/api/now/table/cmdb_rel_ci?sysparm_query=${encodeURIComponent(
+        query,
+      )}&sysparm_display_value=all&sysparm_limit=${effectiveLimit}`,
+    );
+
+    const relationships = data.result ?? [];
+
+    // Extract related CI sys_ids (get the "other" CI in each relationship)
+    const relatedCISysIds = relationships
+      .map((rel) => {
+        const parentSysId = extractDisplayValue(rel.parent);
+        const childSysId = extractDisplayValue(rel.child);
+        return parentSysId === input.ciSysId ? childSysId : parentSysId;
+      })
+      .filter(Boolean);
+
+    // Deduplicate sys_ids
+    const uniqueSysIds = Array.from(new Set(relatedCISysIds));
+
+    // Fetch full CI details for each related CI (with circular reference protection)
+    const relatedCIs: ServiceNowConfigurationItem[] = [];
+    const visitedSysIds = new Set<string>([input.ciSysId]); // Track visited to prevent circular references
+
+    for (const sysId of uniqueSysIds.slice(0, effectiveLimit)) {
+      if (visitedSysIds.has(sysId)) {
+        console.log(`[ServiceNow] Skipping circular reference to CI: ${sysId}`);
+        continue;
+      }
+
+      try {
+        visitedSysIds.add(sysId);
+        const ciResults = await this.searchConfigurationItems(
+          { sysId, limit: 1 },
+          context,
+        );
+
+        if (ciResults.length > 0) {
+          relatedCIs.push(ciResults[0]);
+        }
+      } catch (error) {
+        console.warn(`[ServiceNow] Failed to fetch related CI ${sysId}:`, error);
+        // Continue with other relationships
+      }
+    }
+
+    return relatedCIs;
   }
 
   public async searchCustomerCases(

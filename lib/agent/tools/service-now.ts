@@ -48,6 +48,7 @@ export type ServiceNowToolInput = {
     | "getCaseJournal"
     | "searchKnowledge"
     | "searchConfigurationItem"
+    | "getCIRelationships"
     | "searchCases";
   number?: string;
   caseSysId?: string;
@@ -56,6 +57,12 @@ export type ServiceNowToolInput = {
   ciName?: string;
   ipAddress?: string;
   ciSysId?: string;
+  ciClassName?: string;
+  ciOperationalStatus?: string;
+  ciLocation?: string;
+  ciOwnerGroup?: string;
+  ciEnvironment?: string;
+  relationshipType?: string;
   accountName?: string;
   companyName?: string;
   priority?: string;
@@ -80,6 +87,7 @@ const serviceNowInputSchema = z
       "getCaseJournal",
       "searchKnowledge",
       "searchConfigurationItem",
+      "getCIRelationships",
       "searchCases",
     ]),
     number: z
@@ -114,6 +122,30 @@ const serviceNowInputSchema = z
       .string()
       .optional()
       .describe("Exact sys_id of the configuration item to retrieve."),
+    ciClassName: z
+      .string()
+      .optional()
+      .describe("CI class/type filter (e.g., 'cmdb_ci_server' for servers, 'cmdb_ci_netgear' for network devices, 'cmdb_ci_appl' for applications, 'cmdb_ci_computer' for computers)."),
+    ciOperationalStatus: z
+      .string()
+      .optional()
+      .describe("Operational status filter (e.g., '1' for Operational, '2' for Non-Operational, '6' for Retired)."),
+    ciLocation: z
+      .string()
+      .optional()
+      .describe("Location filter for CIs (e.g., datacenter name, city, or location partial match)."),
+    ciOwnerGroup: z
+      .string()
+      .optional()
+      .describe("Owner/support group filter for CIs (partial match on group name)."),
+    ciEnvironment: z
+      .string()
+      .optional()
+      .describe("Environment filter (e.g., 'production', 'development', 'staging', 'test')."),
+    relationshipType: z
+      .string()
+      .optional()
+      .describe("CMDB relationship type filter for getCIRelationships action (e.g., 'Depends On', 'Supports', 'Runs on', 'Hosted on'). If not specified, returns all relationships."),
     accountName: z
       .string()
       .optional()
@@ -284,8 +316,18 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'getIncident' / 'getCase': Fetch specific ticket BY NUMBER (number parameter REQUIRED)\n" +
       "- 'getCaseJournal': Get comment history (requires caseSysId)\n" +
       "- 'searchKnowledge': Find KB articles (requires query)\n" +
-      "- 'searchConfigurationItem': CMDB lookup (requires ciName, ipAddress, or ciSysId)\n" +
+      "- 'searchConfigurationItem': CMDB lookup - search for CIs by name, IP, class, location, environment, status, or owner group\n" +
+      "- 'getCIRelationships': Get related CIs for a specific CI (requires ciSysId, optional relationshipType filter)\n" +
       "- 'searchCases': Advanced filtering when you DON'T have an exact number (use filters: companyName, priority, state, assignmentGroup, etc.)\n\n" +
+      "**Natural Language Query Examples for searchConfigurationItem:**\n" +
+      "- 'server PROD-WEB-01' → ciName: 'PROD-WEB-01', ciClassName: 'cmdb_ci_server'\n" +
+      "- 'CIs in Chicago' → ciLocation: 'Chicago'\n" +
+      "- 'production servers' → ciEnvironment: 'production', ciClassName: 'cmdb_ci_server'\n" +
+      "- 'network devices for Network Ops' → ciClassName: 'cmdb_ci_netgear', ciOwnerGroup: 'Network Ops'\n" +
+      "- '10.50.10.25' → ipAddress: '10.50.10.25'\n" +
+      "- 'operational servers in production' → ciClassName: 'cmdb_ci_server', ciEnvironment: 'production', ciOperationalStatus: '1'\n" +
+      "- 'all CIs owned by Platform team' → ciOwnerGroup: 'Platform'\n" +
+      "- 'non-operational devices' → ciOperationalStatus: '2'\n\n" +
       "**When to Use Each:**\n" +
       "- Use getCase/getIncident ONLY when user provides a specific case number\n" +
       "- Use searchCases when filtering by customer, status, or other criteria without a specific number\n\n" +
@@ -306,6 +348,12 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       ciName,
       ipAddress,
       ciSysId,
+      ciClassName,
+      ciOperationalStatus,
+      ciLocation,
+      ciOwnerGroup,
+      ciEnvironment,
+      relationshipType,
       accountName,
       companyName,
       priority,
@@ -616,9 +664,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
         }
 
         if (action === "searchConfigurationItem") {
-          if (!ciName && !ipAddress && !ciSysId) {
+          if (!ciName && !ipAddress && !ciSysId && !ciClassName && !ciLocation && !ciOwnerGroup && !ciEnvironment && !ciOperationalStatus) {
             throw new Error(
-              "Provide ciName, ipAddress, or ciSysId to search for a configuration item.",
+              "At least one search criterion must be provided: ciName, ipAddress, ciSysId, ciClassName, ciLocation, ciOwnerGroup, ciEnvironment, or ciOperationalStatus.",
             );
           }
 
@@ -629,6 +677,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               name: ciName,
               ipAddress,
               sysId: ciSysId,
+              className: ciClassName,
+              operationalStatus: ciOperationalStatus,
+              location: ciLocation,
+              ownerGroup: ciOwnerGroup,
+              environment: ciEnvironment,
               limit: limit ?? 10,
             },
             snContext,
@@ -639,6 +692,33 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           return {
             summary: formatted?.summary,
             rawData: formatted?.rawData,
+          };
+        }
+
+        if (action === "getCIRelationships") {
+          if (!ciSysId) {
+            throw new Error(
+              "ciSysId is required to get CI relationships. Use searchConfigurationItem first to find the CI and get its sys_id.",
+            );
+          }
+
+          updateStatus?.(`is fetching CI relationships...`);
+
+          const relatedCIs = (await serviceNowClient.getCIRelationships(
+            {
+              ciSysId,
+              relationshipType,
+              limit: limit ?? 50,
+            },
+            snContext,
+          )) ?? [];
+
+          const formatted = formatConfigurationItemsForLLM(relatedCIs);
+
+          return {
+            summary: formatted?.summary,
+            rawData: formatted?.rawData,
+            relationshipCount: relatedCIs.length,
           };
         }
 

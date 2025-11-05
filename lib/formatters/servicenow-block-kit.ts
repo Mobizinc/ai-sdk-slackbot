@@ -636,3 +636,278 @@ export function generateIncidentFallbackText(incidentData: ServiceNowCase): stri
 
   return `Incident ${incidentNumber}: ${shortDesc} | Status: ${state} | Priority: ${priority}`;
 }
+
+/**
+ * Configuration Item Block Kit Formatter
+ */
+
+interface ConfigurationItem {
+  sys_id: string;
+  name: string;
+  sys_class_name?: string;
+  fqdn?: string;
+  host_name?: string;
+  ip_addresses: string[];
+  owner_group?: string;
+  support_group?: string;
+  location?: string;
+  environment?: string;
+  status?: string;
+  description?: string;
+  url?: string;
+}
+
+interface FormatCIBlocksOptions {
+  includeRelationships?: boolean;
+  relatedCIs?: ConfigurationItem[];
+  maxRelatedCIs?: number;
+}
+
+/**
+ * Status emoji mapping for CIs
+ */
+const CI_STATUS_EMOJI: Record<string, string> = {
+  "operational": "✅",
+  "non-operational": "❌",
+  "under maintenance": "🔧",
+  "retired": "⚫",
+  "1": "✅", // Operational
+  "2": "❌", // Non-Operational
+  "6": "⚫", // Retired
+};
+
+/**
+ * Environment emoji mapping
+ */
+const ENV_EMOJI: Record<string, string> = {
+  "production": "🔴",
+  "staging": "🟡",
+  "development": "🟢",
+  "test": "🔵",
+  "prod": "🔴",
+  "dev": "🟢",
+};
+
+/**
+ * Format CI status with emoji
+ */
+function formatCIStatus(status: any): string {
+  const displayValue = extractDisplayValue(status).toLowerCase();
+  const emoji = CI_STATUS_EMOJI[displayValue] || "⚪";
+  return `${emoji} ${extractDisplayValue(status)}`;
+}
+
+/**
+ * Format environment with emoji
+ */
+function formatEnvironment(environment: any): string {
+  const displayValue = extractDisplayValue(environment).toLowerCase();
+  const emoji = ENV_EMOJI[displayValue] || "⚪";
+  return `${emoji} ${extractDisplayValue(environment)}`;
+}
+
+/**
+ * Build ServiceNow deep link URL for CI
+ */
+function buildCIServiceNowLink(ciName: string, sysId?: string): string {
+  const instanceUrl =
+    (config.servicenowInstanceUrl as string | undefined) ||
+    (config.servicenowUrl as string | undefined) ||
+    process.env.SERVICENOW_INSTANCE_URL ||
+    process.env.SERVICENOW_URL;
+
+  if (!instanceUrl) {
+    return `https://servicenow.com/cmdb/${ciName}`;
+  }
+
+  const baseUrl = instanceUrl.replace(/\/$/, "");
+
+  if (sysId) {
+    return `${baseUrl}/nav_to.do?uri=cmdb_ci.do?sys_id=${sysId}`;
+  }
+
+  return `${baseUrl}/cmdb_ci_list.do?sysparm_query=name=${encodeURIComponent(ciName)}`;
+}
+
+/**
+ * Format Configuration Item into Slack Block Kit blocks
+ *
+ * @param ciData - Configuration Item object
+ * @param options - Formatting options (relationships, limits)
+ * @returns Array of Block Kit blocks
+ */
+export function formatCIAsBlockKit(
+  ciData: ConfigurationItem,
+  options: FormatCIBlocksOptions = {},
+): any[] {
+  const blocks: any[] = [];
+
+  const ciName = ciData.name || "Unknown CI";
+  const className = ciData.sys_class_name || "Configuration Item";
+  const sysId = ciData.sys_id;
+
+  // Header section with CI name
+  blocks.push({
+    type: "header",
+    text: {
+      type: "plain_text",
+      text: `${ciName}`,
+      emoji: true,
+    },
+  });
+
+  // CI Type (class name)
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*Type:* ${className}`,
+    },
+  });
+
+  // Status row: Status | Environment | Owner | Location
+  const statusText = ciData.status ? formatCIStatus(ciData.status) : "Not specified";
+  const envText = ciData.environment ? formatEnvironment(ciData.environment) : "Not specified";
+  const ownerText = ciData.owner_group || "Not assigned";
+  const locationText = ciData.location || "Not specified";
+
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Status:*\n${statusText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Environment:*\n${envText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Owner Group:*\n${ownerText}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Location:*\n${locationText}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Technical Details section
+  const technicalFields = [];
+
+  if (ciData.fqdn) {
+    technicalFields.push({
+      type: "mrkdwn",
+      text: `*FQDN:*\n${ciData.fqdn}`,
+    });
+  }
+
+  if (ciData.host_name) {
+    technicalFields.push({
+      type: "mrkdwn",
+      text: `*Hostname:*\n${ciData.host_name}`,
+    });
+  }
+
+  if (ciData.ip_addresses && ciData.ip_addresses.length > 0) {
+    technicalFields.push({
+      type: "mrkdwn",
+      text: `*IP Addresses:*\n${ciData.ip_addresses.join(", ")}`,
+    });
+  }
+
+  if (ciData.support_group) {
+    technicalFields.push({
+      type: "mrkdwn",
+      text: `*Support Group:*\n${ciData.support_group}`,
+    });
+  }
+
+  if (technicalFields.length > 0) {
+    blocks.push({
+      type: "section",
+      fields: technicalFields,
+    });
+    blocks.push({ type: "divider" });
+  }
+
+  // Description (if available)
+  if (ciData.description) {
+    let desc = String(ciData.description).trim();
+    if (desc.length > 300) {
+      desc = desc.substring(0, 297) + "...";
+    }
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Description:*\n${desc}`,
+      },
+    });
+    blocks.push({ type: "divider" });
+  }
+
+  // Relationships section (collapsible)
+  if (options.includeRelationships && options.relatedCIs && options.relatedCIs.length > 0) {
+    const maxRelated = options.maxRelatedCIs || 5;
+    const relatedCIs = options.relatedCIs.slice(0, maxRelated);
+
+    const relationshipText = relatedCIs
+      .map((related) => {
+        const relatedName = related.name || "Unknown";
+        const relatedType = related.sys_class_name || "CI";
+        return `• ${relatedName} _(${relatedType})_`;
+      })
+      .join("\n");
+
+    const remainingCount = options.relatedCIs.length - maxRelated;
+    const footer = remainingCount > 0 ? `\n_...and ${remainingCount} more_` : "";
+
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Related CIs (${options.relatedCIs.length}):*\n${relationshipText}${footer}`,
+      },
+    });
+    blocks.push({ type: "divider" });
+  }
+
+  // Action buttons (View in ServiceNow)
+  const ciUrl = ciData.url || buildCIServiceNowLink(ciName, sysId);
+
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "View in ServiceNow",
+          emoji: true,
+        },
+        url: ciUrl,
+        action_id: "view_ci_in_servicenow",
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+/**
+ * Generate fallback text for CI Block Kit message
+ * (Required for notifications, search, and accessibility)
+ */
+export function generateCIFallbackText(ciData: ConfigurationItem): string {
+  const ciName = ciData.name || "Unknown";
+  const className = ciData.sys_class_name || "CI";
+  const status = ciData.status || "Unknown status";
+  const environment = ciData.environment || "";
+
+  const envPart = environment ? ` | Env: ${environment}` : "";
+  return `CI: ${ciName} | Type: ${className} | Status: ${status}${envPart}`;
+}
