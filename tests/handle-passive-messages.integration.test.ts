@@ -34,6 +34,18 @@ const contextManagerMock = {
   removeStaleContexts: vi.fn(),
 };
 
+// Mock action objects outside of mock functions
+const mockAddToContextAction = {
+  addMessageFromEvent: vi.fn(),
+  getContext: vi.fn(),
+  addMessageToCase: vi.fn(),
+  updateChannelInfo: vi.fn(),
+  markAssistancePosted: vi.fn(),
+  markResolutionNotified: vi.fn(),
+  resetResolutionFlag: vi.fn(),
+  findContextsForThread: vi.fn(),
+};
+
 // Set up mocks before importing the modules under test
 vi.mock("@slack/web-api", () => ({
   WebClient: vi.fn().mockImplementation(() => ({
@@ -121,25 +133,16 @@ vi.mock("../lib/passive/actions/post-assistance", () => ({
   __setPostAssistanceAction: vi.fn(),
 }));
 
-vi.mock("../lib/passive/actions/add-to-context", () => {
-  const mockAddToContextAction = {
-    addMessageFromEvent: vi.fn(),
-    getContext: vi.fn(),
-    addMessageToCase: vi.fn(),
-    updateChannelInfo: vi.fn(),
-    markAssistancePosted: vi.fn(),
-    markResolutionNotified: vi.fn(),
-    resetResolutionFlag: vi.fn(),
-    findContextsForThread: vi.fn(),
-  };
-  
-  return {
-    AddToContextAction: vi.fn().mockImplementation(() => mockAddToContextAction),
-    getAddToContextAction: vi.fn().mockReturnValue(mockAddToContextAction),
-    __resetAddToContextAction: vi.fn(),
-    __setAddToContextAction: vi.fn(),
-  };
-});
+vi.mock("../lib/passive/actions/add-to-context", () => ({
+  AddToContextAction: vi.fn().mockImplementation(() => mockAddToContextAction),
+  getAddToContextAction: vi.fn().mockReturnValue(mockAddToContextAction),
+  __resetAddToContextAction: vi.fn(),
+  __setAddToContextAction: vi.fn(),
+}));
+
+// Import mocked modules
+import { getAddToContextAction } from "../lib/passive/actions/add-to-context";
+import { getPostAssistanceAction } from "../lib/passive/actions/post-assistance";
 
 // Now import the modules under test
 import {

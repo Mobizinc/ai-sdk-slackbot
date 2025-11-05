@@ -1,0 +1,58 @@
+{
+  "projects": [
+    {
+      "id": "ai-sdk-slackbot-001",
+      "name": "AI SDK Slackbot",
+      "status": "active",
+      "githubUrl": "https://github.com/Mobizinc/ai-sdk-slackbot",
+      "summary": "Build an AI-powered Slack bot with natural language capabilities.",
+      "background": "We're enhancing our internal Slack bot to handle complex queries and automate workflows using Vercel's AI SDK.",
+      "techStack": [
+        "TypeScript",
+        "Node.js",
+        "Vercel AI SDK",
+        "Slack API",
+        "Anthropic"
+      ],
+      "skillsRequired": [
+        "TypeScript/JavaScript",
+        "REST APIs",
+        "Async programming"
+      ],
+      "skillsNiceToHave": [
+        "AI/LLM experience",
+        "Slack Bot development",
+        "Git/GitHub"
+      ],
+      "difficultyLevel": "intermediate",
+      "estimatedHours": "5-10 hrs/week",
+      "learningOpportunities": [
+        "AI integration patterns",
+        "Event-driven architecture",
+        "TypeScript best practices",
+        "Working with LLM APIs"
+      ],
+      "openTasks": [
+        "Add project onboarding feature",
+        "Implement interview system",
+        "Create mentor matching logic"
+      ],
+      "mentor": {
+        "slackUserId": "U12345678",
+        "name": "Senior Dev Name"
+      },
+      "interview": {
+        "generator": {
+          "model": "claude-3-haiku-20240307",
+          "questionCount": 6,
+          "styleGuidance": "Focus on real-world engineering experience, ability to learn quickly, and collaboration style."
+        },
+        "scoringPrompt": "Evaluate the candidate for onboarding to the AI SDK Slackbot project. Keep bias checks in mind and focus on actionable recommendations."
+      },
+      "maxCandidates": 2,
+      "postedDate": "2025-11-04T10:00:00Z",
+      "expiresDate": "2025-11-18T10:00:00Z",
+      "channelId": "C12345678"
+    }
+  ]
+}

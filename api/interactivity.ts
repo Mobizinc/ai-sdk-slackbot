@@ -48,6 +48,10 @@ import {
   type KnownBlock,
   type ModalView,
 } from "../lib/utils/message-styling";
+import { enqueueBackgroundTask } from "../lib/background-tasks";
+import { ProjectActions } from "../lib/projects/posting";
+import { getProjectById } from "../lib/projects/catalog";
+import { sendProjectLearnMore, startInterviewSession } from "../lib/projects/interview-session";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -156,6 +160,49 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
     // Handle incident enrichment CI selection buttons
     if (actionId.startsWith("select_ci_") || actionId === "skip_ci") {
       await handleIncidentEnrichmentAction(actionId, value, payload);
+    }
+
+    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE) {
+      const parsed = (() => {
+        try {
+          return JSON.parse(value || "{}");
+        } catch (error) {
+          console.error("[Project Interactivity] Failed to parse action value", error);
+          return null;
+        }
+      })();
+
+      if (!parsed?.projectId) {
+        console.warn("[Project Interactivity] Missing project id in action payload");
+        continue;
+      }
+
+      const project = getProjectById(parsed.projectId);
+      if (!project) {
+        console.warn(`[Project Interactivity] Project not found: ${parsed.projectId}`);
+        continue;
+      }
+
+      if (actionId === ProjectActions.INTEREST) {
+        enqueueBackgroundTask(
+          startInterviewSession({
+            project,
+            userId: payload.user.id,
+            userName: payload.user.name,
+            initiatedBy: payload.user.id,
+            sourceMessageTs: payload.message?.ts,
+          }),
+        );
+      }
+
+      if (actionId === ProjectActions.LEARN_MORE) {
+        enqueueBackgroundTask(
+          sendProjectLearnMore({
+            project,
+            userId: payload.user.id,
+          }),
+        );
+      }
     }
   }
 }

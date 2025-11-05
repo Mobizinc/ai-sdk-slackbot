@@ -797,6 +797,40 @@ export type InteractiveState = typeof interactiveStates.$inferSelect;
 export type NewInteractiveState = typeof interactiveStates.$inferInsert;
 
 /**
+ * Project Interview Archive
+ * Persists completed interview transcripts and scoring metadata for analytics and mentor review.
+ */
+export const projectInterviews = pgTable(
+  "project_interviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    candidateSlackId: text("candidate_slack_id").notNull(),
+    mentorSlackId: text("mentor_slack_id"),
+    answers: jsonb("answers").$type<Array<Record<string, any>>>().notNull(),
+    questions: jsonb("questions").$type<Array<Record<string, any>>>().notNull(),
+    scoringPrompt: text("scoring_prompt"),
+    matchScore: integer("match_score").notNull(),
+    matchSummary: text("match_summary").notNull(),
+    recommendedTasks: jsonb("recommended_tasks").$type<string[]>().default([]).notNull(),
+    concerns: text("concerns"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    questionSource: text("question_source").notNull().default("default"),
+    generatorModel: text("generator_model"),
+  },
+  (table) => ({
+    projectIdx: index("idx_project_interviews_project").on(table.projectId),
+    candidateIdx: index("idx_project_interviews_candidate").on(table.candidateSlackId),
+    completedIdx: index("idx_project_interviews_completed_at").on(table.completedAt),
+  }),
+);
+
+export type ProjectInterview = typeof projectInterviews.$inferSelect;
+export type NewProjectInterview = typeof projectInterviews.$inferInsert;
+
+/**
  * Incident Enrichment States Table
  * Tracks incident enrichment workflow for automatic CI matching and metadata enhancement
  *

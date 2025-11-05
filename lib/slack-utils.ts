@@ -59,7 +59,21 @@ export const verifyRequest = async ({
   rawBody: string;
 }) => {
   const validRequest = await isValidSlackRequest({ request, rawBody });
-  if (!validRequest || requestType !== "event_callback") {
+  if (!validRequest) {
     return new Response("Invalid request", { status: 400 });
   }
+
+  const allowedRequestTypes = new Set([
+    "event_callback",
+    "interactivity",
+    "command",
+    "shortcut",
+    "url_verification",
+  ]);
+
+  if (!allowedRequestTypes.has(requestType)) {
+    console.warn(`[Slack] Unexpected request type received: ${requestType}`);
+  }
+
+  return undefined;
 };

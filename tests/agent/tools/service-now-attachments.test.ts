@@ -76,8 +76,10 @@ describe("ServiceNow Tool - Attachment Handling", () => {
       });
 
       expect(result).toMatchObject({
-        summary: expect.any(String),
-        rawData: expect.objectContaining({
+        case: mockCase,
+        journals: [],
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
           case: mockCase,
         }),
       });
@@ -109,8 +111,10 @@ describe("ServiceNow Tool - Attachment Handling", () => {
       });
 
       expect(result).toMatchObject({
-        summary: expect.any(String),
-        rawData: expect.objectContaining({
+        case: mockCase,
+        journals: [],
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
           case: mockCase,
         }),
       });
@@ -162,7 +166,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
       );
       expect(serviceNowClient.downloadAttachment).toHaveBeenCalledWith("attach_1");
 
-      expect(result.rawData?.case).toEqual(mockCase);
+      expect(result.case).toEqual(mockCase);
       expect(result._attachmentBlocks).toBeDefined();
       expect(result._attachmentBlocks).toHaveLength(1);
       expect(result._attachmentBlocks[0].type).toBe("image");
@@ -227,8 +231,10 @@ describe("ServiceNow Tool - Attachment Handling", () => {
       });
 
       expect(result).toMatchObject({
-        summary: expect.any(String),
-        rawData: expect.objectContaining({
+        case: mockCase,
+        journals: [],
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
           case: mockCase,
         }),
       });
@@ -260,7 +266,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         includeAttachments: true,
       });
 
-      expect(result.rawData.case).toEqual(mockCase);
+      expect(result.case).toEqual(mockCase);
       // Attachment processing failed, so no blocks
       expect(result._attachmentBlocks).toBeUndefined();
     });
@@ -311,7 +317,7 @@ describe("ServiceNow Tool - Attachment Handling", () => {
         "inc_123",
         3
       );
-      expect(result.rawData.incident).toEqual(mockIncident);
+      expect(result.incident).toEqual(mockIncident);
       expect(result._attachmentBlocks).toBeDefined();
       expect(result._attachmentCount).toBe(1);
     });

@@ -17,6 +17,7 @@
 import { getDb } from "../db/client";
 import { interactiveStates, type InteractiveState, type NewInteractiveState } from "../db/schema";
 import { eq, and, lt, desc, gt } from "drizzle-orm";
+import type { InterviewSessionState } from "../projects/types";
 
 /**
  * KB Approval State Payload
@@ -89,6 +90,7 @@ export type StatePayloadByType = {
   modal_wizard: ModalWizardStatePayload;
   stale_ticket_workflow: StaleTicketWorkflowStatePayload;
   case_search: CaseSearchStatePayload;
+  project_interview: InterviewSessionState;
 };
 
 /**
@@ -164,6 +166,39 @@ export class InteractiveStateManager {
       .select()
       .from(interactiveStates)
       .where(and(...conditions))
+      .limit(1);
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
+  }
+
+  /**
+   * Get the most recent pending state for a channel (useful for DM flows)
+   */
+  async getStateByChannel<T extends keyof StatePayloadByType>(
+    channelId: string,
+    type: T
+  ): Promise<(InteractiveState & { payload: StatePayloadByType[T] }) | null> {
+    const db = getDb();
+    if (!db) {
+      return null;
+    }
+
+    const results = await db
+      .select()
+      .from(interactiveStates)
+      .where(
+        and(
+          eq(interactiveStates.channelId, channelId),
+          eq(interactiveStates.type, type),
+          eq(interactiveStates.status, "pending"),
+          gt(interactiveStates.expiresAt, new Date())
+        )
+      )
+      .orderBy(desc(interactiveStates.createdAt))
       .limit(1);
 
     if (results.length === 0) {

@@ -312,6 +312,21 @@ If needed, can add `/triage [case_number]` slash command:
 
 ---
 
+## 🚀 Project Onboarding Command
+
+Slash command: `/project-post [project-id]`
+
+- Posts a formatted project card to the configured channel (defaults to the channel the command runs in).
+- Uses `api/commands/project-post.ts` and Slack signature verification from `lib/slack-utils.ts`.
+- Project definitions live in `data/projects.json` and load through `lib/projects/catalog.ts` (including per-project interview question packs, optional Claude Haiku 4.5 generators, and scoring prompts).
+- Slack actions:
+  - `project_button_interest` – starts the DM-based interview via `lib/projects/interview-session.ts`.
+  - `project_button_learn_more` – sends project background details to the interested user.
+- Mentor notifications and AI match scoring are handled in `lib/projects/interview-session.ts` with Anthropic via `lib/projects/matching-service.ts`.
+- Ensure the Slack app has the slash command and interactive components pointed at the deployed endpoints before launch.
+
+---
+
 ## 🎯 Success Criteria: ✅ MET
 
 - ✅ Natural language triage in AI Assistant

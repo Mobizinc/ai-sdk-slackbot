@@ -12,6 +12,7 @@ import { handlePassiveMessage } from "../lib/handle-passive-messages";
 import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
+import { handleInterviewResponse } from "../lib/projects/interview-session";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -68,7 +69,16 @@ export async function POST(request: Request) {
         messageEvent.bot_id !== botUserId
       ) {
         enqueueBackgroundTask(
-          assistantManager.handleUserMessage(messageEvent, botUserId),
+          (async () => {
+            try {
+              const handled = await handleInterviewResponse(messageEvent);
+              if (!handled) {
+                await assistantManager.handleUserMessage(messageEvent, botUserId);
+              }
+            } catch (error) {
+              console.error("[Events] Error handling direct message", error);
+            }
+          })(),
         );
       }
 

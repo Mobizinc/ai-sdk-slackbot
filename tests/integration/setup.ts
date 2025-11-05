@@ -24,12 +24,14 @@ if (!process.env.ANTHROPIC_API_KEY) {
   process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
 }
 
-// For ServiceNow, use placeholder values that will be overridden by real credentials
-// if the developer has them configured
-if (!process.env.SERVICENOW_INSTANCE_URL && !process.env.SERVICENOW_URL) {
-  process.env.SERVICENOW_INSTANCE_URL = "https://example.service-now.com";
-  process.env.SERVICENOW_USERNAME = "test-user";
-  process.env.SERVICENOW_PASSWORD = "test-password";
+// For ServiceNow, only set placeholder values if explicitly marked as mock
+// Don't set them automatically to avoid interfering with integration test detection
+if (process.env.USE_MOCK_SERVICENOW === "true") {
+  if (!process.env.SERVICENOW_INSTANCE_URL && !process.env.SERVICENOW_URL) {
+    process.env.SERVICENOW_INSTANCE_URL = "https://example.service-now.com";
+    process.env.SERVICENOW_USERNAME = "test-user";
+    process.env.SERVICENOW_PASSWORD = "test-password";
+  }
 }
 
 // Mark as integration test to configure MSW properly

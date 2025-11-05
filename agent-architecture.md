@@ -192,7 +192,7 @@ flowchart TD
     T -->|reads| S
     T -->|invoke| DA[Discovery Agent]
     DA -->|context pack| CA[Classification Agent]
-    CA -->|structured classification| T
+  CA -->|structured classification| T
     K -->|reads| S
     E -->|reads| S
 
@@ -213,3 +213,94 @@ flowchart TD
         C -->|feedback & alerts| X
     end
 ```
+
+---
+
+## Architectural Analysis & Future Considerations
+
+This section outlines open questions and areas for further definition identified during a review of the architecture. These points should be considered before implementing new, complex features.
+
+- **Human-in-the-Loop (HITL) & Correction Workflows**  
+  _Resolution:_ Flagged artifacts land in `interactive_states` today; we will expose an operator slash command (`/review-latest`) that surfaces pending states (KB approvals, project interviews, supervisor rejections). Operators can approve/reject in-channel, and we will extend the existing admin UI with a review dashboard that reads from `interactive_states` and the new `project_interviews` archive. Supervisor escalations remain immutable until a human explicitly replays or overrides them.
+
+- **Conversational State Management**  
+  _Resolution:_ The Interactive State Manager now owns transient workflow progress (e.g., `project_interview` sessions). Each workflow defines a state payload schema, expiry window, and resume handlers. For longer journeys we will compose this with the modal wizard or a lightweight finite-state machine (FSM) helper so every multi-turn flow stores deterministic checkpoints outside the raw transcript.
+
+- **Orchestrator Scalability**  
+  _Resolution:_ Introduce a registry-driven router: every specialist agent registers its capability signature (intent keywords, required context, cost/latency hints). The orchestrator consults this registry at runtime rather than a hard-coded map. Agents such as the Project Interview emit completion events (`project_interview.completed`) that the orchestrator can subscribe to for follow-up routing (mentor tasks, analytics). This keeps the orchestrator thin and pluggable.
+
+- **Asynchronous Task User Experience**  
+  _Resolution:_ Long-running tasks enqueue background work via `enqueueBackgroundTask` and immediately post/update status blocks through `SlackMessagingService` (using the helper introduced for app mentions). Each async workflow must emit a “working…” message, stream intermediate checkpoints when available, and send a final summary. DM-based interviews already follow this pattern; future flows will reuse the same status-update utility.
+
+- **Configuration Management**  
+  _Resolution:_ Move feature configuration into versioned JSON + Zod schemas (see project catalog/interview packs). The `config` module will be extended with a central loader that merges environment configs, database overrides (via `app_settings`), and per-feature JSON data. Feature flags and model selections become declarative entries, enabling safe runtime toggles without redeploying.
+
+## Project Interview Agent
+
+This specialist agent powers the "Project Onboarding & Interview" flow that begins when a user clicks **🚀 I'm Interested** on a project posting.
+
+- **Purpose**  
+  Automate the first-contact interview for internal project candidates, gather structured answers, and generate an AI-assisted match report for mentors.
+
+- **Trigger**  
+  Fired directly from Slack interactivity (`project_button_interest`) inside `api/interactivity.ts`. The current implementation bypasses the orchestrator for latency reasons, but emits state and telemetry hooks that an orchestrator can subscribe to in a later phase.
+
+- **Inputs**  
+  - Project metadata from `lib/projects/catalog.ts` (validated against `data/projects.json`).  
+  - Candidate Slack user id / profile provided by the interaction payload.  
+  - Interview question pack defined in `lib/projects/interview-session.ts` – either static JSON or dynamically generated via Claude Haiku 4.5 using `lib/projects/question-generator.ts`.  
+  - Optional mentor routing info embedded in the project definition.
+
+- **State Management**  
+  - Uses `InteractiveStateManager` with the new `project_interview` type backed by the `interactive_states` table.  
+  - Stores progress (`currentStep`, collected answers, startedAt) and expires sessions after 12 hours to avoid zombie interviews.  
+  - DM channels are the state key so we gracefully resume if the function cold-starts mid-interview.
+
+- **Flow**  
+  1. `startInterviewSession` opens a DM via `SlackMessagingService`, posts the first question, and records state.  
+  2. If the project opts into dynamic interviews, `question-generator.ts` calls Claude Haiku 4.5 with project background + tech stack to build a tailored question set, which is cached with the session state.  
+  3. Incoming DM messages are intercepted in `api/events.ts` before the regular assistant pipeline.  
+  4. Each answer updates the persisted payload and streams the next question until complete.  
+  5. On completion, answers are evaluated with Anthropic (`scoreInterviewAgainstProject`) to produce a score, summary, and recommended starter tasks. Errors fall back to a manual-review message.
+
+- **Outputs**  
+  - Candidate DM recap that includes the provisional match score and any recommended next steps.  
+  - Mentor notification (DM) containing the full transcript, scoring summary, and suggested starter work items.  
+  - Interactive state marked `completed`, leaving an audit trail for operators or future replay tooling.
+
+- **Future-Ready Hooks**  
+  - Wire the emitted `project_interview.completed` event into the orchestrator or workflow router to trigger downstream automation (mentor assignments, dashboards).  
+  - Build analytics/reporting on top of the new `project_interviews` table so mentors can review historical matches and success rates.  
+  - Maintain per-project question packs and scoring prompts in JSON/Zod configuration to enable project-specific interview tuning without code changes.  
+  - Extend mentor notifications to create tasks/issues automatically once orchestration policies are defined.
+
+## Project Stand-Up Agent (Proposed)
+
+- **Purpose**  
+  Automate recurring stand-ups/check-ins for active projects, keeping mentors and contributors aligned without manual coordination.
+
+- **Triggers & Cadence**  
+  - Scheduled via Vercel cron or Upstash QStash; cadence per project stored in configuration (`project_standup_settings`).  
+  - Manual kick-off using `/project-standup run [project-id]` for ad-hoc stand-ups.
+
+- **Inputs**  
+  - Project catalog metadata (channel, mentor, interview results)  
+  - Accepted roster pulled from `project_interviews` (status = `accepted`) plus optional ServiceNow SPM epics or GitHub project membership  
+  - Stand-up configuration (participant roles, cadence, question template, escalation rules)
+
+- **Workflow**  
+  1. **Roster Sync:** Resolve active participants (mentors, juniors) via DB lookups and external integrations.  
+  2. **Prompt Phase:** DM each participant with a structured check-in (yesterday/today/blockers). Use `InteractiveStateManager` with a new `project_standup` payload type to track responses.  
+  3. **Aggregation:** Persist answers in `project_standups` table (project_id, participant, responses, blockers flagged).  
+  4. **Summary Delivery:** Post consolidated update to the project channel with open tasks (ServiceNow/GitHub), blockers, and unanswered participants.  
+  5. **Escalations:** If blockers persist or participants miss N stand-ups, notify mentors/product owners and enqueue follow-up tasks.
+
+- **State & Persistence**  
+  - `project_standups` table (standup_id, project_id, scheduled_at, summary, status)  
+  - `project_standup_responses` table (standup_id, participant_id, answers, submitted_at, blocker_flag)  
+  - Extend `project_interviews` with roster status to indicate who is actively participating.
+
+- **Future Extensions**  
+  - Integrate ServiceNow SPM and GitHub to automatically sync open items, link updates to actual issues, and track time-to-resolution.  
+  - Support multi-team cadences and external stakeholders.  
+  - Feed stand-up summaries into analytics dashboards for engagement metrics and blocker tracking.
