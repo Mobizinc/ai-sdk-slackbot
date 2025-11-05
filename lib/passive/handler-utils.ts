@@ -41,7 +41,8 @@ export function isDelegationMessage(event: GenericMessageEvent): boolean {
   const text = event.text || '';
   const textLower = text.toLowerCase();
   
-  // Check if message mentions another user (delegation indicator)
+  // Check if message mentions any user (delegation indicator)
+  // Note: Bot mentions are already filtered out in shouldSkipMessage()
   const hasMention = /<@[UW][A-Z0-9]+>/i.test(text);
   
   // Delegation phrases
