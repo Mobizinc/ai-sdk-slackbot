@@ -6,6 +6,7 @@ const updateChannelInfo = vi.fn();
 const markAssistancePosted = vi.fn();
 const findContextsForThread = vi.fn();
 const resetResolutionFlag = vi.fn();
+const markResolutionNotified = vi.fn();
 
 const executeAssistance = vi.fn();
 const shouldTriggerKBWorkflow = vi.fn();
@@ -21,6 +22,7 @@ vi.mock("../../lib/passive/actions/add-to-context", () => ({
     markAssistancePosted,
     findContextsForThread,
     resetResolutionFlag,
+    markResolutionNotified,
   }),
 }));
 
@@ -53,7 +55,7 @@ vi.mock("../../lib/services/channel-info", () => ({
   getChannelInfo: (...args: unknown[]) => getChannelInfo(...args),
 }));
 
-const utils = require("../../lib/passive/handler-utils");
+import * as utils from "../../lib/passive/handler-utils";
 
 const baseEvent = {
   type: "message",
@@ -73,6 +75,7 @@ describe("handler utils", () => {
     executeAssistance.mockReset();
     findContextsForThread.mockReset();
     resetResolutionFlag.mockReset();
+    markResolutionNotified.mockReset();
     shouldTriggerKBWorkflow.mockReset();
     triggerWorkflow.mockReset();
     handleUserResponse.mockReset();
@@ -87,9 +90,71 @@ describe("handler utils", () => {
     expect(utils.shouldSkipMessage(baseEvent, "BOT")).toBe(false);
   });
 
+  describe("isDelegationMessage", () => {
+    it("detects delegation when user mentions someone and uses delegation phrases", () => {
+      const delegationEvent = {
+        ...baseEvent,
+        text: "Hello <@U022JVDPVCJ>, please take a look at the cases [SCS0050219]",
+      };
+      expect(utils.isDelegationMessage(delegationEvent)).toBe(true);
+    });
+
+    it("detects 'can you review' delegation", () => {
+      const delegationEvent = {
+        ...baseEvent,
+        text: "<@U123456> can you review SCS0001234?",
+      };
+      expect(utils.isDelegationMessage(delegationEvent)).toBe(true);
+    });
+
+    it("detects 'please check' delegation", () => {
+      const delegationEvent = {
+        ...baseEvent,
+        text: "Hey <@U123456>, please check SCS0001234",
+      };
+      expect(utils.isDelegationMessage(delegationEvent)).toBe(true);
+    });
+
+    it("does not detect delegation without mention", () => {
+      const workEvent = {
+        ...baseEvent,
+        text: "I'm working on SCS0001234, please take a look at the logs",
+      };
+      expect(utils.isDelegationMessage(workEvent)).toBe(false);
+    });
+
+    it("does not detect delegation without delegation phrases", () => {
+      const workEvent = {
+        ...baseEvent,
+        text: "<@U123456> I fixed SCS0001234",
+      };
+      expect(utils.isDelegationMessage(workEvent)).toBe(false);
+    });
+
+    it("detects various delegation phrases with mentions", () => {
+      const phrases = [
+        "please review",
+        "can you check",
+        "take a look at",
+        "could you review",
+        "please handle",
+        "assigning",
+      ];
+
+      phrases.forEach(phrase => {
+        const event = {
+          ...baseEvent,
+          text: `<@U123456> ${phrase} SCS0001234`,
+        };
+        expect(utils.isDelegationMessage(event)).toBe(true);
+      });
+    });
+  });
+
   it("processCaseDetection posts assistance when context is new", async () => {
     getContext.mockReturnValue({ hasPostedAssistance: false });
     executeAssistance.mockResolvedValue(true);
+    getChannelInfo.mockResolvedValue({ channelName: "test" });
 
     await utils.processCaseDetection(baseEvent, "SCS0001111");
 
