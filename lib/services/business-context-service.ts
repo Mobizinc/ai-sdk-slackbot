@@ -240,6 +240,52 @@ export class BusinessContextService {
   }
 
   /**
+   * Get business context for a Slack channel.
+   * Tries to find business entity by Slack channelId first, then falls back to channel name.
+   * CRITICAL: This enables automatic client detection based on which Slack channel the message is in.
+   */
+  async getContextForSlackChannel(
+    channelId: string,
+    channelName?: string
+  ): Promise<BusinessEntityContext | null> {
+    // Try by channelId first (most reliable)
+    try {
+      const dbContext = await this.repository.findBySlackChannelId(channelId);
+
+      if (dbContext) {
+        console.log(`✅ [Business Context] Auto-detected from Slack channel ID: ${channelId} → ${dbContext.entityName}`);
+
+        const context = this.buildContextFromDbRecord(dbContext);
+        this.storeContextInCache(context);
+        return context;
+      }
+    } catch (error) {
+      console.warn(`[Business Context] Slack channel ID lookup failed for "${channelId}":`, error);
+    }
+
+    // Fallback to channel name if provided
+    if (channelName) {
+      try {
+        const dbContext = await this.repository.findBySlackChannelName(channelName);
+
+        if (dbContext) {
+          console.log(`✅ [Business Context] Auto-detected from Slack channel name: ${channelName} → ${dbContext.entityName}`);
+
+          const context = this.buildContextFromDbRecord(dbContext);
+          this.storeContextInCache(context);
+          return context;
+        }
+      } catch (error) {
+        console.warn(`[Business Context] Slack channel name lookup failed for "${channelName}":`, error);
+      }
+    }
+
+    // Not found - channel not mapped to any business entity
+    console.log(`ℹ️  [Business Context] Slack channel not mapped: ${channelId}${channelName ? ` (${channelName})` : ''}`);
+    return null;
+  }
+
+  /**
    * Refresh cache entry for an entity by refetching from DB
    */
   async refreshContext(entityName: string): Promise<BusinessEntityContext | null> {
