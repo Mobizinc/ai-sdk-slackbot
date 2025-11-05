@@ -38,10 +38,11 @@ const caseDetectionDebouncer = new CaseDetectionDebouncer();
  * so the bot should not intervene with assistance.
  */
 export function isDelegationMessage(event: GenericMessageEvent): boolean {
-  const text = event.text?.toLowerCase() || '';
+  const text = event.text || '';
+  const textLower = text.toLowerCase();
   
   // Check if message mentions another user (delegation indicator)
-  const hasMention = /<@[UW][A-Z0-9]+>/i.test(event.text || '');
+  const hasMention = /<@[UW][A-Z0-9]+>/i.test(text);
   
   // Delegation phrases
   const delegationPhrases = [
@@ -59,7 +60,7 @@ export function isDelegationMessage(event: GenericMessageEvent): boolean {
     'assigned to',
   ];
   
-  const hasDelegationPhrase = delegationPhrases.some(phrase => text.includes(phrase));
+  const hasDelegationPhrase = delegationPhrases.some(phrase => textLower.includes(phrase));
   
   // If message mentions someone AND has delegation language, it's delegation
   if (hasMention && hasDelegationPhrase) {
