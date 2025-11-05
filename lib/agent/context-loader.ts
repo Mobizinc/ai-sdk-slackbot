@@ -111,7 +111,7 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
 
     if (userTranscript.length > 0) {
       const similarCases = await searchFacade.searchSimilarCases(userTranscript, {
-        clientId: companyName,
+        clientId: metadata.companyName as string | undefined,
         topK: 3,
       });
 
