@@ -49,6 +49,32 @@
         },
         "scoringPrompt": "Evaluate the candidate for onboarding to the AI SDK Slackbot project. Keep bias checks in mind and focus on actionable recommendations."
       },
+      "standup": {
+        "enabled": true,
+        "channelId": "C12345678",
+        "schedule": {
+          "frequency": "weekdays",
+          "timeUtc": "16:00"
+        },
+        "participants": ["U12345678"],
+        "includeMentor": true,
+        "includeAcceptedCandidates": true,
+        "questions": [
+          {
+            "id": "yesterday",
+            "prompt": "What did you work on since the last check-in?"
+          },
+          {
+            "id": "today",
+            "prompt": "What do you plan to accomplish before the next check-in?"
+          },
+          {
+            "id": "blockers",
+            "prompt": "Do you have any blockers or need support?",
+            "helper": "If none, reply with \"none\"."
+          }
+        ]
+      },
       "maxCandidates": 2,
       "postedDate": "2025-11-04T10:00:00Z",
       "expiresDate": "2025-11-18T10:00:00Z",

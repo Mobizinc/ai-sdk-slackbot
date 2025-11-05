@@ -52,6 +52,8 @@ import { enqueueBackgroundTask } from "../lib/background-tasks";
 import { ProjectActions } from "../lib/projects/posting";
 import { getProjectById } from "../lib/projects/catalog";
 import { sendProjectLearnMore, startInterviewSession } from "../lib/projects/interview-session";
+import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
+import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -204,6 +206,21 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
         );
       }
     }
+
+    if (actionId === StandupActions.OPEN_MODAL) {
+      const { channel_id: actionChannelId, message_ts: messageTs } = payload.container || {};
+
+      if (!actionChannelId || !messageTs) {
+        console.warn("[Standup] Missing container metadata for stand-up modal open");
+        continue;
+      }
+
+      await openStandupModal({
+        triggerId: payload.trigger_id,
+        channelId: actionChannelId,
+        messageTs,
+      });
+    }
   }
 }
 
@@ -220,6 +237,8 @@ async function handleViewSubmission(payload: any): Promise<void> {
     await handleCreateProjectSubmission(payload);
   } else if (callbackId === "reassign_case_modal") {
     await handleReassignSubmission(payload);
+  } else if (callbackId === StandupCallbackIds.MODAL) {
+    await handleStandupModalSubmission(payload);
   } else {
     console.warn(`[Interactivity] Unknown view submission: ${callbackId}`);
   }

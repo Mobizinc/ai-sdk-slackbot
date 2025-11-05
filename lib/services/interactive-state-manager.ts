@@ -17,7 +17,7 @@
 import { getDb } from "../db/client";
 import { interactiveStates, type InteractiveState, type NewInteractiveState } from "../db/schema";
 import { eq, and, lt, desc, gt } from "drizzle-orm";
-import type { InterviewSessionState } from "../projects/types";
+import type { InterviewSessionState, StandupSessionState } from "../projects/types";
 
 /**
  * KB Approval State Payload
@@ -91,6 +91,7 @@ export type StatePayloadByType = {
   stale_ticket_workflow: StaleTicketWorkflowStatePayload;
   case_search: CaseSearchStatePayload;
   project_interview: InterviewSessionState;
+  project_standup: StandupSessionState;
 };
 
 /**

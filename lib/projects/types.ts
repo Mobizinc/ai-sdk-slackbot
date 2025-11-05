@@ -20,6 +20,41 @@ export const interviewConfigSchema = z.object({
   scoringPrompt: z.string().optional(),
 });
 
+export const standupQuestionSchema = z.object({
+  id: z.string().min(1, "Stand-up question id is required"),
+  prompt: z.string().min(1, "Stand-up question prompt is required"),
+  helper: z.string().optional(),
+});
+
+export type StandupQuestion = z.infer<typeof standupQuestionSchema>;
+
+export const standupScheduleSchema = z.object({
+  frequency: z.enum(["daily", "weekdays", "weekly"]),
+  timeUtc: z.string().regex(/^\d{2}:\d{2}$/, "Time must be HH:MM in UTC"),
+  dayOfWeek: z.number().int().min(0).max(6).optional(), // for weekly cadence (0=Sunday)
+});
+
+export const standupConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  channelId: z.string().optional(),
+  schedule: standupScheduleSchema,
+  participants: z.array(z.string()).default([]),
+  includeMentor: z.boolean().default(true),
+  includeAcceptedCandidates: z.boolean().default(true),
+  questions: z.array(standupQuestionSchema).default([]),
+  collectionWindowMinutes: z.number().int().min(15).max(720).default(120),
+});
+
+export type StandupConfig = z.infer<typeof standupConfigSchema>;
+
+export interface StandupSessionState {
+  standupId: string;
+  projectId: string;
+  participantId: string;
+  questions: StandupQuestion[];
+  startedAt: string;
+}
+
 export const projectSchema = z.object({
   id: z.string().min(1, "Project id is required"),
   name: z.string().min(1, "Project name is required"),
@@ -41,6 +76,7 @@ export const projectSchema = z.object({
     })
     .optional(),
   interview: interviewConfigSchema.optional(),
+  standup: standupConfigSchema.optional(),
   maxCandidates: z.number().int().positive().optional(),
   postedDate: z.string().optional(),
   expiresDate: z.string().optional(),

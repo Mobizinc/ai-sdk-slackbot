@@ -134,6 +134,13 @@
       "when": 1762381184642,
       "tag": "0018_lumpy_post",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1762381891614,
+      "tag": "0019_real_psynapse",
+      "breakpoints": true
     }
   ]
 }

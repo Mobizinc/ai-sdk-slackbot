@@ -327,6 +327,18 @@ Slash command: `/project-post [project-id]`
 
 ---
 
+## 🔁 Project Stand-Up Command
+
+Slash command: `/project-standup run [project-id]`
+
+- Triggers an immediate stand-up for the specified project, regardless of the scheduled cadence.
+- Stand-up cadences are configured per project via `data/projects.json` and interpreted by `lib/projects/standup-service.ts`.
+- Automated hourly cron (`/api/cron/project-standups`) dispatches prompts and posts summaries to the configured Slack channel.
+- Participant responses are collected via modal (`lib/projects/standup-responses.ts`) and persisted in `project_standups` / `project_standup_responses` tables for analytics.
+- Extend the roster by updating project stand-up settings (static participants, mentor inclusion, or accepted interview candidates).
+
+---
+
 ## 🎯 Success Criteria: ✅ MET
 
 - ✅ Natural language triage in AI Assistant
