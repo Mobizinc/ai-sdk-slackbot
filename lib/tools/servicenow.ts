@@ -104,6 +104,19 @@ function extractDisplayValue(field: any): string {
   return String(field);
 }
 
+/**
+ * Extract sys_id (value) from ServiceNow reference field
+ * Prioritizes the value (sys_id) over display_value for reference fields
+ */
+function extractSysId(field: any): string {
+  if (!field) return "";
+  if (typeof field === "string") return field;
+  // For reference fields returned with sysparm_display_value=all, extract the value (sys_id)
+  if (typeof field === "object" && field.value) return field.value;
+  if (typeof field === "object" && field.display_value) return field.display_value;
+  return String(field);
+}
+
 function normalizeIpAddresses(field: any): string[] {
   if (!field) return [];
   if (Array.isArray(field)) {
@@ -438,8 +451,9 @@ export class ServiceNowClient {
       assignment_group: extractDisplayValue(raw.assignment_group),
       assigned_to: extractDisplayValue(raw.assigned_to),
       opened_by: extractDisplayValue(raw.opened_by),
-      caller_id: extractDisplayValue(raw.caller_id),
-      submitted_by: extractDisplayValue(raw.submitted_by),
+      // Extract sys_id for caller_id (not display value) for incident creation
+      caller_id: extractSysId(raw.caller_id),
+      submitted_by: extractSysId(raw.submitted_by),
       url: `${config.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${extractDisplayValue(
         raw.sys_id,
       )}`,
@@ -553,11 +567,32 @@ export class ServiceNowClient {
 
   public async searchCustomerCases(
     input: {
-      accountName?: string;
-      companyName?: string;
-      query?: string;
-      limit?: number;
-      activeOnly?: boolean;
+      // Client/Company identification (hybrid matching)
+      accountName?: string;           // Fuzzy match on account name
+      accountSysId?: string;          // Exact match by account sys_id
+      companyName?: string;           // Fuzzy match on company name
+      companySysId?: string;          // Exact match by company sys_id
+
+      // Assignment group filtering
+      assignmentGroup?: string;       // Filter by assignment group name
+      assignmentGroupSysId?: string;  // Exact match by assignment group sys_id
+      assignmentGroupCompany?: string; // Filter by assignment group's parent company (e.g., "Mobiz IT")
+      assignedTo?: string;            // Filter by assigned person name
+
+      // Date range filtering
+      openedAfter?: string;           // ISO date string (e.g., "2025-11-01")
+      openedBefore?: string;          // ISO date string
+
+      // Status filtering
+      priority?: string;              // Priority (1-4 or P1-P4)
+      state?: string;                 // State (e.g., "Open", "On Hold", "Closed")
+      category?: string;              // Case category
+      subcategory?: string;           // Case subcategory
+
+      // Legacy parameters
+      query?: string;                 // Fuzzy search in short_description
+      limit?: number;                 // Result limit (default: 5)
+      activeOnly?: boolean;           // Filter to active cases only
     },
   ): Promise<ServiceNowCaseSummary[]> {
     const table = config.caseTable ?? "sn_customerservice_case";
@@ -565,30 +600,104 @@ export class ServiceNowClient {
 
     const queryParts: string[] = ["ORDERBYDESCopened_at"];
 
-    if (input.accountName) {
-      queryParts.push(`account.nameLIKE${input.accountName}`);
+    // Hybrid matching for account: sys_id (exact) > name (exact) > name (fuzzy)
+    if (input.accountSysId) {
+      // Exact match by sys_id (highest priority)
+      queryParts.push(`account=${input.accountSysId}`);
+    } else if (input.accountName) {
+      // Exact name match if no sys_id provided
+      queryParts.push(`account.name=${input.accountName}`);
     }
 
-    if (input.companyName) {
-      queryParts.push(`company.nameLIKE${input.companyName}`);
+    // Hybrid matching for company: sys_id (exact) > name (exact) > name (fuzzy)
+    if (input.companySysId) {
+      // Exact match by sys_id
+      queryParts.push(`company=${input.companySysId}`);
+    } else if (input.companyName) {
+      // Exact name match if no sys_id provided
+      queryParts.push(`company.name=${input.companyName}`);
     }
 
+    // Assignment group filtering (supports Igor's use case)
+    if (input.assignmentGroupSysId) {
+      // Exact assignment group by sys_id
+      queryParts.push(`assignment_group=${input.assignmentGroupSysId}`);
+    } else if (input.assignmentGroup) {
+      // Filter by assignment group name
+      queryParts.push(`assignment_group.name=${input.assignmentGroup}`);
+    }
+
+    // Assignment group company filtering (Igor's requirement)
+    if (input.assignmentGroupCompany) {
+      queryParts.push(`assignment_group.company.name=${input.assignmentGroupCompany}`);
+    }
+
+    // Assigned person filtering
+    if (input.assignedTo) {
+      queryParts.push(`assigned_to.name=${input.assignedTo}`);
+    }
+
+    // Date range filtering
+    if (input.openedAfter) {
+      queryParts.push(`opened_at>=${input.openedAfter}`);
+    }
+    if (input.openedBefore) {
+      queryParts.push(`opened_at<=${input.openedBefore}`);
+    }
+
+    // Priority filtering
+    if (input.priority) {
+      queryParts.push(`priority=${input.priority}`);
+    }
+
+    // State filtering
+    if (input.state) {
+      queryParts.push(`state=${input.state}`);
+    }
+
+    // Category filtering
+    if (input.category) {
+      queryParts.push(`category=${input.category}`);
+    }
+    if (input.subcategory) {
+      queryParts.push(`subcategory=${input.subcategory}`);
+    }
+
+    // Short description query (fuzzy search)
     if (input.query) {
       queryParts.push(`short_descriptionLIKE${input.query}`);
     }
 
+    // Active status filtering
     if (input.activeOnly) {
       queryParts.push("active=true");
     }
 
     const query = queryParts.join("^");
 
+    // Expanded field list to include assignment group info
+    const fields = [
+      "sys_id",
+      "number",
+      "short_description",
+      "priority",
+      "state",
+      "account",
+      "company",
+      "assignment_group",
+      "assigned_to",
+      "opened_at",
+      "sys_updated_on",
+      "category",
+      "subcategory",
+    ].join(",");
+
     const data = await request<{
       result: Array<Record<string, any>>;
     }>(
       `/api/now/table/${table}?sysparm_query=${encodeURIComponent(
         query,
-      )}&sysparm_display_value=all&sysparm_limit=${limit}`,
+      )}&sysparm_display_value=all&sysparm_limit=${limit}&sysparm_fields=${fields}`,
     );
 
     return (data.result ?? []).map((record) => {

@@ -272,6 +272,17 @@ export class CaseTriageService {
         categoriesData.incidentSubcategories
       );
 
+      // Category loading validation (helps debug category issues)
+      console.log(
+        `[Case Triage] Categories loaded: ` +
+        `Cases=${categoriesData.caseCategories.length}, ` +
+        `Incidents=${categoriesData.incidentCategories.length}, ` +
+        `Case Subcategories=${categoriesData.caseSubcategories.length}, ` +
+        `Incident Subcategories=${categoriesData.incidentSubcategories.length}\n` +
+        `  Sample case category: "${categoriesData.caseCategories[0] || 'NONE'}"\n` +
+        `  Sample incident category: "${categoriesData.incidentCategories[0] || 'NONE'}"`
+      );
+
       // Step 6.5: Fetch company-specific application services (dynamic, scales for all clients)
       if (webhook.company) {
         try {
@@ -367,6 +378,15 @@ export class CaseTriageService {
       }
 
       const classificationTime = Date.now() - classificationStart;
+
+      // Classification result validation (helps debug dual categorization)
+      console.log(
+        `[Case Triage] Classification result categories:\n` +
+        `  Case: "${classificationResult.category}"${classificationResult.subcategory ? ` > ${classificationResult.subcategory}` : ''}\n` +
+        `  Incident: "${classificationResult.incident_category || 'FALLBACK TO CASE'}"` +
+        `${classificationResult.incident_subcategory ? ` > ${classificationResult.incident_subcategory}` : ''}\n` +
+        `  Record Type Suggestion: ${classificationResult.record_type_suggestion?.type || 'NONE'}`
+      );
 
       // Step 9: Format work note
       const workNoteContent = formatWorkNote(classificationResult);
@@ -495,6 +515,48 @@ export class CaseTriageService {
               }
             }
 
+            // CALLER ID RESOLUTION: Resolve caller sys_id if webhook sends display value
+            let callerSysId = webhook.caller_id;
+
+            // If caller_id doesn't look like a sys_id (32 chars), fetch from case record
+            if (webhook.caller_id && webhook.caller_id.length !== 32) {
+              try {
+                console.log(
+                  `[Case Triage] caller_id appears to be display value ("${webhook.caller_id}"), ` +
+                  `fetching case record for proper sys_id`
+                );
+
+                const caseRecord = await serviceNowClient.getCaseBySysId(webhook.sys_id);
+                if (caseRecord?.caller_id) {
+                  callerSysId = caseRecord.caller_id;
+                  console.log(`[Case Triage] Resolved caller_id from case: ${callerSysId}`);
+                } else {
+                  console.warn(`[Case Triage] Case record has no caller_id, continuing with webhook value`);
+                }
+              } catch (error) {
+                console.error(`[Case Triage] Failed to fetch case record for caller_id:`, error);
+                // Continue with original webhook value
+              }
+            }
+
+            // FIELD VALIDATION: Warn about potential issues before incident creation
+            const validationWarnings: string[] = [];
+
+            if (!callerSysId || callerSysId.length !== 32) {
+              validationWarnings.push(`caller_id invalid or missing: "${callerSysId}"`);
+            }
+
+            if (!incidentCategory) {
+              validationWarnings.push(`incident category missing`);
+            }
+
+            if (validationWarnings.length > 0) {
+              console.warn(
+                `[Case Triage] Incident creation validation warnings:\n` +
+                validationWarnings.map(w => `  - ${w}`).join('\n')
+              );
+            }
+
             // Create Incident record with full company/context information
             const incidentResult = await serviceNowClient.createIncidentFromCase({
               caseSysId: webhook.sys_id,
@@ -505,7 +567,7 @@ export class CaseTriageService {
               description: webhook.description,
               urgency: webhook.urgency,
               priority: webhook.priority,
-              callerId: webhook.caller_id,
+              callerId: callerSysId,
               assignmentGroup: webhook.assignment_group,
               assignedTo: webhook.assigned_to,
               isMajorIncident: suggestion.is_major_incident,
@@ -550,7 +612,10 @@ export class CaseTriageService {
 
             console.log(
               `[Case Triage] Created ${suggestion.is_major_incident ? 'MAJOR ' : ''}` +
-              `Incident ${incidentNumber} from Case ${webhook.case_number}`
+              `Incident ${incidentNumber} from Case ${webhook.case_number}\n` +
+              `  Caller: ${callerSysId || 'NONE'} ${callerSysId !== webhook.caller_id ? '(resolved from case)' : '(from webhook)'}\n` +
+              `  Category: ${incidentCategory} ${classificationResult.incident_category ? '(incident-specific)' : '(case fallback)'}` +
+              `${incidentSubcategory ? ` > ${incidentSubcategory}` : ''}`
             );
           } catch (error) {
             console.error("[Case Triage] Failed to create Incident:", error);
