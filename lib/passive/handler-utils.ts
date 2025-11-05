@@ -32,6 +32,45 @@ class CaseDetectionDebouncer {
 
 const caseDetectionDebouncer = new CaseDetectionDebouncer();
 
+/**
+ * Detect if a message is delegating work to another user
+ * These patterns indicate the sender is asking someone else to handle the case,
+ * so the bot should not intervene with assistance.
+ */
+export function isDelegationMessage(event: GenericMessageEvent): boolean {
+  const text = event.text || '';
+  const textLower = text.toLowerCase();
+  
+  // Check if message mentions any user (delegation indicator)
+  // Note: Bot mentions are already filtered out in shouldSkipMessage()
+  const hasMention = /<@[UW][A-Z0-9]+>/i.test(text);
+  
+  // Delegation phrases
+  const delegationPhrases = [
+    'please take a look',
+    'can you review',
+    'please review',
+    'please check',
+    'can you check',
+    'take a look at',
+    'could you review',
+    'could you check',
+    'please handle',
+    'can you handle',
+    'assigning',
+    'assigned to',
+  ];
+  
+  const hasDelegationPhrase = delegationPhrases.some(phrase => textLower.includes(phrase));
+  
+  // If message mentions someone AND has delegation language, it's delegation
+  if (hasMention && hasDelegationPhrase) {
+    return true;
+  }
+  
+  return false;
+}
+
 export function shouldSkipMessage(event: GenericMessageEvent, botUserId: string): boolean {
   return !!(
     event.bot_id ||
