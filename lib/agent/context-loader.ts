@@ -45,26 +45,42 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     }
   }
 
-  // Resolve company name from case context or detect from message text
-  let companyName = resolveCompanyName(metadata);
-
-  if (!companyName) {
-    const messageText = input.messages
-      .map((msg) => normalizeContent(msg.content))
-      .join(" ");
-    companyName = await detectCompanyFromMessageText(messageText);
+  // PRIORITY 1: Try channel-based context lookup (most accurate)
+  if (input.channelId) {
+    try {
+      const channelContext = await businessContextService.getContextForSlackChannel(input.channelId);
+      if (channelContext) {
+        metadata.businessContext = channelContext;
+        metadata.companyName = channelContext.entityName;
+        console.log(`✅ [Context Loader] Auto-detected from Slack channel ID: ${input.channelId} → ${channelContext.entityName}`);
+      }
+    } catch (error) {
+      console.warn("[Context Loader] Failed to lookup business context by channel ID:", error);
+    }
   }
 
-  if (companyName) {
-    metadata.companyName = companyName;
-    try {
-      const businessContext = await businessContextService.getContextForCompany(companyName);
-      // Explicitly set businessContext: will be null if not found, or the context object if found
-      metadata.businessContext = businessContext ?? null;
-    } catch (error) {
-      // On error, explicitly set to null
-      metadata.businessContext = null;
-      console.warn("[Context Loader] Failed to load business context:", error);
+  // PRIORITY 2: Resolve company name from case context or detect from message text
+  if (!metadata.businessContext) {
+    let companyName = resolveCompanyName(metadata);
+
+    if (!companyName) {
+      const messageText = input.messages
+        .map((msg) => normalizeContent(msg.content))
+        .join(" ");
+      companyName = await detectCompanyFromMessageText(messageText);
+    }
+
+    if (companyName) {
+      metadata.companyName = companyName;
+      try {
+        const businessContext = await businessContextService.getContextForCompany(companyName);
+        // Explicitly set businessContext: will be null if not found, or the context object if found
+        metadata.businessContext = businessContext ?? null;
+      } catch (error) {
+        // On error, explicitly set to null
+        metadata.businessContext = null;
+        console.warn("[Context Loader] Failed to load business context:", error);
+      }
     }
   }
 
@@ -95,7 +111,7 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
 
     if (userTranscript.length > 0) {
       const similarCases = await searchFacade.searchSimilarCases(userTranscript, {
-        clientId: companyName,
+        clientId: metadata.companyName as string | undefined,
         topK: 3,
       });
 

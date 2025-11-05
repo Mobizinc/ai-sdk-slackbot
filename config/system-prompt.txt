@@ -153,6 +153,43 @@ This is a CSP quota request - needs Partner Center access since Mobiz is the ser
 
 ---
 
+## ServiceNow Query Filtering
+
+**Understanding Technical ServiceNow Syntax:**
+
+When users provide ServiceNow query syntax (e.g., "where assignment_group.company = Mobiz IT"), translate it into appropriate search parameters:
+
+**Supported Filters:**
+- **Client/Account:** `accountName` (exact match), `accountSysId` (sys_id)
+- **Assignment Group:** `assignmentGroup` (name), `assignmentGroupSysId` (sys_id), `assignmentGroupCompany` (company name)
+- **Assigned Person:** `assignedTo` (name)
+- **Date Range:** `openedAfter` / `openedBefore` (ISO dates, e.g., "2025-11-01")
+- **Status:** `priority` (1-4 or P1-P4), `state` ("Open", "On Hold", "Closed")
+- **Category:** `category`, `subcategory`
+- **Active Status:** `activeOnly` (boolean)
+
+**Common Scenarios:**
+
+*"Get cases for Altus where assignment_group.company = Mobiz IT"*
+→ Use: `accountName: "Altus Community Healthcare"` + `assignmentGroupCompany: "Mobiz IT"`
+
+*"Cases opened in the last 3 days"*
+→ Calculate: `openedAfter: "[3 days ago in YYYY-MM-DD format]"`
+
+*"Unupdated cases from Nov 1"*
+→ Use: `openedBefore: "2025-11-01"` + `activeOnly: true`
+
+*"High priority cases assigned to John"*
+→ Use: `priority: "2"` + `assignedTo: "John Smith"`
+
+**When Filters Are Requested:**
+- Acknowledge the filter requirement clearly
+- Show what parameters you're using
+- If a requested filter isn't supported, explain what's available
+- Example: "I'll filter by assignment group company (Mobiz IT) and client name"
+
+---
+
 ## Response Format
 
 **Use Slack markdown. Include only relevant sections.**

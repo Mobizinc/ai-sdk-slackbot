@@ -3,7 +3,7 @@
  * Database operations for business entity contexts
  */
 
-import { eq, and, ilike } from "drizzle-orm";
+import { eq, and, ilike, sql } from "drizzle-orm";
 import {
   businessContexts,
   type BusinessContext,
@@ -72,6 +72,75 @@ export class BusinessContextRepository {
       return null;
     } catch (error) {
       console.error(`[Business Context Repo] Error finding by name or alias "${searchTerm}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Find business context by Slack channel ID
+   * Searches the slackChannels JSONB array for a matching channelId
+   */
+  async findBySlackChannelId(channelId: string): Promise<BusinessContext | null> {
+    const db = getDb();
+    if (!db) return null;
+
+    try {
+      // Query JSONB array for matching channelId
+      // The @> operator checks if the left JSONB contains the right JSONB
+      const results = await db
+        .select()
+        .from(businessContexts)
+        .where(
+          and(
+            sql`${businessContexts.slackChannels}::jsonb @> ${sql.raw(`'[{"channelId": "${channelId}"}]'::jsonb`)}`,
+            eq(businessContexts.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (results[0]) {
+        console.log(`[Business Context Repo] Found by Slack channel ID: ${channelId} → ${results[0].entityName}`);
+      }
+
+      return results[0] || null;
+    } catch (error) {
+      console.error(`[Business Context Repo] Error finding by Slack channelId "${channelId}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Find business context by Slack channel name
+   * Searches the slackChannels JSONB array for a matching channel name
+   */
+  async findBySlackChannelName(channelName: string): Promise<BusinessContext | null> {
+    const db = getDb();
+    if (!db) return null;
+
+    try {
+      // Get all active contexts and search their slackChannels arrays
+      const allContexts = await db
+        .select()
+        .from(businessContexts)
+        .where(eq(businessContexts.isActive, true));
+
+      const channelNameLower = channelName.toLowerCase();
+
+      for (const context of allContexts) {
+        if (context.slackChannels && Array.isArray(context.slackChannels)) {
+          const channelMatch = context.slackChannels.some(
+            (channel: any) => channel.name?.toLowerCase() === channelNameLower
+          );
+          if (channelMatch) {
+            console.log(`[Business Context Repo] Found by Slack channel name: ${channelName} → ${context.entityName}`);
+            return context;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`[Business Context Repo] Error finding by Slack channel name "${channelName}":`, error);
       return null;
     }
   }
