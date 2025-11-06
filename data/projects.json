@@ -2,7 +2,7 @@
   "projects": [
     {
       "id": "ai-sdk-slackbot-001",
-      "name": "AI SDK Slackbot",
+      "name": "Mobiz PeterPool - AI Agents",
       "status": "active",
       "githubUrl": "https://github.com/Mobizinc/ai-sdk-slackbot",
       "githubRepo": "Mobizinc/ai-sdk-slackbot",
