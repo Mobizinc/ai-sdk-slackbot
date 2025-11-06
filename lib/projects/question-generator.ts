@@ -54,7 +54,7 @@ export async function generateInterviewQuestions(options: GenerateQuestionsOptio
   try {
     parsed = JSON.parse(cleaned);
   } catch (error) {
-    throw new Error("Failed to parse generated interview questions JSON", { cause: error });
+    throw new Error(`Failed to parse generated interview questions JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   const result = generatorResponseSchema.parse(parsed);

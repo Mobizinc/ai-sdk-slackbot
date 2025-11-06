@@ -8,3 +8,6 @@ export const StandupCallbackIds = {
 
 export const DEFAULT_STANDUP_COLLECTION_MINUTES = 120;
 export const STANDUP_TRIGGER_WINDOW_MINUTES = 30;
+export const DEFAULT_STANDUP_REMINDER_MINUTES = 30;
+export const DEFAULT_STANDUP_MAX_REMINDERS = 1;
+export const STANDUP_REMINDER_BUFFER_MINUTES = 5;

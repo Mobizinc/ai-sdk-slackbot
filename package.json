@@ -18,6 +18,7 @@
     "db:import-contexts": "tsx scripts/import-business-contexts.ts",
     "db:validate-prod": "tsx scripts/validate-production-migrations.ts",
     "db:emergency-rollback": "tsx scripts/emergency-rollback-migrations.ts",
+    "projects:sync": "tsx scripts/sync-projects-from-json.ts",
     "queue:snapshot": "tsx scripts/pull-case-queue-snapshot.ts",
     "queue:snapshot:dry": "tsx scripts/pull-case-queue-snapshot.ts --dry-run",
     "queue:post": "tsx scripts/post-case-queue-report.ts",

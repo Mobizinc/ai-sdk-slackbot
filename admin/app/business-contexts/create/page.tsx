@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
+
 export default function CreateEntityPage() {
   const router = useRouter()
 

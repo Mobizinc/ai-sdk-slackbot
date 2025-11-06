@@ -1,5 +1,10 @@
 import { getProjectCatalog } from "../../lib/projects/catalog";
-import { getStandupConfig, triggerStandupIfDue, finalizeDueStandups } from "../../lib/projects/standup-service";
+import {
+  getStandupConfig,
+  triggerStandupIfDue,
+  finalizeDueStandups,
+  sendStandupReminders,
+} from "../../lib/projects/standup-service";
 
 function json(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -14,7 +19,7 @@ function json(body: Record<string, unknown>, status = 200): Response {
 async function runStandupCron(): Promise<Response> {
   try {
     const now = new Date();
-    const catalog = getProjectCatalog();
+    const catalog = await getProjectCatalog();
     const triggered: Array<{ projectId: string; standupId: string }> = [];
 
     for (const project of catalog) {
@@ -29,11 +34,13 @@ async function runStandupCron(): Promise<Response> {
       }
     }
 
+    const reminders = await sendStandupReminders(now);
     const finalized = await finalizeDueStandups(now);
 
     return json({
       status: "ok",
       triggered,
+      reminders,
       finalized,
       timestamp: now.toISOString(),
     });

@@ -47,8 +47,8 @@ function normalizeProjectId(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-function formatProjectList(): string {
-  const activeProjects = listActiveProjects();
+async function formatProjectList(): Promise<string> {
+  const activeProjects = await listActiveProjects();
   if (activeProjects.length === 0) {
     return "No active projects are currently configured.";
   }
@@ -63,7 +63,7 @@ function formatProjectList(): string {
 export async function handleProjectPostCommand(payload: SlashCommandPayload): Promise<CommandResult> {
   const rawProjectId = payload.text ?? "";
   const normalizedProjectId = normalizeProjectId(rawProjectId);
-  const activeProjects = listActiveProjects();
+  const activeProjects = await listActiveProjects();
 
   const pickDefaultProject =
     normalizedProjectId.length === 0 && activeProjects.length === 1;
@@ -82,13 +82,14 @@ export async function handleProjectPostCommand(payload: SlashCommandPayload): Pr
     };
   }
 
-  const project = getProjectById(targetProjectId);
+  const project = await getProjectById(targetProjectId);
   if (!project || project.status !== "active") {
+    const projectList = await formatProjectList();
     return {
       status: 200,
       body: {
         response_type: "ephemeral",
-        text: `Project "${rawProjectId || targetProjectId}" is not active or could not be found.\n${formatProjectList()}`,
+        text: `Project "${rawProjectId || targetProjectId}" is not active or could not be found.\n${projectList}`,
       },
     };
   }

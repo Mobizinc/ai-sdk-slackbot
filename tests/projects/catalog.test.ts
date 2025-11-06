@@ -7,12 +7,12 @@ import {
 } from "../../lib/projects/catalog";
 
 describe("Project catalog loader", () => {
-  beforeEach(() => {
-    refreshProjectCatalog();
+  beforeEach(async () => {
+    await refreshProjectCatalog();
   });
 
-  it("loads the project catalog from disk", () => {
-    const catalog = getProjectCatalog();
+  it("loads the project catalog from disk", async () => {
+    const catalog = await getProjectCatalog();
     expect(catalog.length).toBeGreaterThan(0);
     const firstProject = catalog[0];
     expect(firstProject?.interview).toBeDefined();
@@ -23,14 +23,14 @@ describe("Project catalog loader", () => {
     }
   });
 
-  it("returns active projects", () => {
-    const activeProjects = listActiveProjects();
+  it("returns active projects", async () => {
+    const activeProjects = await listActiveProjects();
     expect(activeProjects.every((project) => project.status === "active")).toBe(true);
   });
 
-  it("retrieves a project by id", () => {
-    const activeProjects = listActiveProjects();
-    const project = getProjectById(activeProjects[0]!.id);
+  it("retrieves a project by id", async () => {
+    const activeProjects = await listActiveProjects();
+    const project = await getProjectById(activeProjects[0]!.id);
     expect(project?.name).toBeTruthy();
   });
 });

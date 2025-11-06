@@ -10,6 +10,7 @@ interface StatusMessage {
   text: string
 }
 
+
 export default function ConfigPage() {
   const [config, setConfig] = useState<ConfigValue[]>([])
   const [loading, setLoading] = useState(true)

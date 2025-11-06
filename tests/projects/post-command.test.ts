@@ -26,14 +26,14 @@ import { refreshProjectCatalog, listActiveProjects } from "../../lib/projects/ca
 describe("handleProjectPostCommand", () => {
   const { postProjectOpportunityMock } = mocks;
 
-  beforeEach(() => {
-    refreshProjectCatalog();
+  beforeEach(async () => {
+    await refreshProjectCatalog();
     postProjectOpportunityMock.mockReset();
     __resetProjectPostDedupeCache();
   });
 
   it("posts the default project when only one active project exists", async () => {
-    const activeProjects = listActiveProjects();
+    const activeProjects = await listActiveProjects();
     expect(activeProjects.length).toBeGreaterThan(0);
 
     postProjectOpportunityMock.mockResolvedValue({ ok: true, ts: "123" });

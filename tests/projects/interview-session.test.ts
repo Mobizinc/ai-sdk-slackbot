@@ -37,7 +37,7 @@ vi.mock("../../lib/services/interactive-state-manager", () => ({
 }));
 
 vi.mock("../../lib/projects/catalog", () => ({
-  getProjectById: vi.fn(() => ({
+  getProjectById: vi.fn(async () => ({
     id: "ai-sdk-slackbot-001",
     name: "AI SDK Slackbot",
     status: "active",

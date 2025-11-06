@@ -277,30 +277,53 @@ This specialist agent powers the "Project Onboarding & Interview" flow that begi
 ## Project Stand-Up Agent (Proposed)
 
 - **Purpose**  
-  Automate recurring stand-ups/check-ins for active projects, keeping mentors and contributors aligned without manual coordination.
+  Automate recurring stand-ups/check-ins for active projects, compare planned vs. delivered work, surface dependency risks, and keep mentors and contributors aligned without manual corralling.
 
 - **Triggers & Cadence**  
   - Scheduled via Vercel cron or Upstash QStash; cadence per project stored in configuration (`project_standup_settings`).  
-  - Manual kick-off using `/project-standup run [project-id]` for ad-hoc stand-ups.
+  - Manual kick-off using `/project-standup run [project-id]` for ad-hoc stand-ups or replay/testing.
 
 - **Inputs**  
-  - Project catalog metadata (channel, mentor, interview results)  
-  - Accepted roster pulled from `project_interviews` (status = `accepted`) plus optional ServiceNow SPM epics or GitHub project membership  
-  - Stand-up configuration (participant roles, cadence, question template, escalation rules)
+  - Project catalog metadata (channel, mentor, interview results, dependency hints)  
+  - Accepted roster pulled from `project_interviews` + external rosters (GitHub, SPM teams)  
+  - Stand-up configuration (roles, cadence, adaptive question policies, escalation rules)  
+  - Historical stand-up records (`project_standup_responses`) to recover each participant’s last “planned” work items  
+  - Live work-item state: GitHub issues/PRs, ServiceNow SPM epics/stories, and dependency metadata (assignee, status, blockers, due dates)
 
 - **Workflow**  
-  1. **Roster Sync:** Resolve active participants (mentors, juniors) via DB lookups and external integrations.  
-  2. **Prompt Phase:** DM each participant with a structured check-in (yesterday/today/blockers). Use `InteractiveStateManager` with a new `project_standup` payload type to track responses.  
-  3. **Aggregation:** Persist answers in `project_standups` table (project_id, participant, responses, blockers flagged).  
-  4. **Summary Delivery:** Post consolidated update to the project channel with open tasks (ServiceNow/GitHub), blockers, and unanswered participants.  
-  5. **Escalations:** If blockers persist or participants miss N stand-ups, notify mentors/product owners and enqueue follow-up tasks.
+  1. **Context Harvest (Deterministic):**  
+     - Pre-standup mini-aggregator collects roster, previous responses, and linked work items.  
+     - Computes `planned_vs_actual` deltas (e.g., “planned to complete GH#123 yesterday; still open”).  
+     - Builds dependency graph (who is unblocked by whom) using repo/SPM links and local rules.
+  2. **Adaptive Question Composer:**  
+     - Uses templates + light LLM assistance to tailor prompts per contributor. Examples:  
+       - “Yesterday you planned to finish GH#123, but it’s still in progress—what’s the latest?”  
+       - “You’re targeting Story SPM-45; PR #789 merged that prerequisite. Ready to execute today?”  
+     - Falls back to trio questions when no special context exists.  
+     - Writes the prompt + expected references into the stand-up state record for auditing.
+  3. **Prompt Phase:**  
+     - DM each participant with the composed questions via `InteractiveStateManager` (`project_standup` payload).  
+     - Reminder loop (cron-driven) resends targeted nudges when answers lag, mentioning outstanding items.
+  4. **Response Reconciliation:**  
+     - Persist answers in `project_standup_responses`.  
+     - Run deterministic checks (issue status changes, reopened tickets) and LLM reasoning to detect inconsistencies (“claims finished but ticket still open”).  
+     - Flag discrepancies or new blockers; update dependency graph and notify affected teammates when dependencies resolve.
+  5. **Summary Delivery & Mentoring:**  
+     - Post consolidated channel update: completions vs. plans, new commitments, outstanding blockers, unresolved reminders.  
+     - DM mentors/owners with curated follow-ups (e.g., “Alex still blocked; dependency GH#456 unassigned”).  
+     - Optionally auto-DM teammates when prerequisites now satisfied (“FYI Jamie merged GH#789; you can resume your API migration”).
+  6. **Escalations & Analytics:**  
+     - If blockers persist or plan slippage exceeds thresholds, escalate to orchestrator/supervisor for intervention.  
+     - Record structured deltas for velocity metrics, promise-keeping, recurring blockers, and dependency churn.
 
 - **State & Persistence**  
-  - `project_standups` table (standup_id, project_id, scheduled_at, summary, status)  
-  - `project_standup_responses` table (standup_id, participant_id, answers, submitted_at, blocker_flag)  
-  - Extend `project_interviews` with roster status to indicate who is actively participating.
+  - `project_standups` table (standup_id, project_id, scheduled_at, summary, status, dependency snapshot)  
+  - `project_standup_responses` table (standup_id, participant_id, answers, submitted_at, blocker_flag, reconciled_outcome)  
+  - Stand-up context cache (in DB or Redis) storing per-participant `planned_vs_actual` history for adaptive prompts  
+  - Optional dependency index mapping GitHub/SPM identifiers to contributors and prerequisites
 
 - **Future Extensions**  
-  - Integrate ServiceNow SPM and GitHub to automatically sync open items, link updates to actual issues, and track time-to-resolution.  
-  - Support multi-team cadences and external stakeholders.  
-  - Feed stand-up summaries into analytics dashboards for engagement metrics and blocker tracking.
+  - Tight GitHub/SPM integrations to auto-close loops (e.g., transition cards when participants confirm completion).  
+  - Persona-aware prompting (different tone for mentors vs. contributors, automatic inclusion of newcomers).  
+  - Supervisor policy hooks that validate summaries before posting and auto-generate mentor coaching tasks.  
+  - Analytics dashboards highlighting promise-keeping, unresolved blockers, and cross-project dependency heatmaps.

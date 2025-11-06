@@ -179,7 +179,7 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
         continue;
       }
 
-      const project = getProjectById(parsed.projectId);
+      const project = await getProjectById(parsed.projectId);
       if (!project) {
         console.warn(`[Project Interactivity] Project not found: ${parsed.projectId}`);
         continue;

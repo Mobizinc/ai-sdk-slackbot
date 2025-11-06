@@ -57,12 +57,13 @@ async function handleStandupCommand(payload: CommandPayload): Promise<CommandRes
     return helpResponse("Please provide a project id. Usage: `/project-standup run <project-id>`");
   }
 
-  const project = getProjectById(projectId);
+  const project = await getProjectById(projectId);
   if (!project) {
-    const activeProjects = listActiveProjects()
+    const activeProjects = await listActiveProjects();
+    const formatted = activeProjects
       .map((p) => `• ${p.id} (${p.name})`)
       .join("\n");
-    return helpResponse(`Project \\"${projectId}\\" not found. Active projects:\n${activeProjects}`);
+    return helpResponse(`Project \\"${projectId}\\" not found. Active projects:\n${formatted}`);
   }
 
   const config = getStandupConfig(project);

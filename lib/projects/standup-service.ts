@@ -1,11 +1,14 @@
-import { and, eq, gte, inArray, lt, lte } from "drizzle-orm";
+import { and, eq, gte, gt, inArray, lt, lte } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { projectInterviews, projectStandups, projectStandupResponses, type ProjectStandup } from "../db/schema";
 import {
   DEFAULT_STANDUP_COLLECTION_MINUTES,
+  DEFAULT_STANDUP_MAX_REMINDERS,
+  DEFAULT_STANDUP_REMINDER_MINUTES,
   StandupActions,
   StandupCallbackIds,
   STANDUP_TRIGGER_WINDOW_MINUTES,
+  STANDUP_REMINDER_BUFFER_MINUTES,
 } from "./standup-constants";
 import type { ProjectDefinition, StandupConfig, StandupQuestion, StandupSessionState } from "./types";
 import { getInteractiveStateManager } from "../services/interactive-state-manager";
@@ -49,6 +52,17 @@ interface StandupCreateResult {
 const stateManager = getInteractiveStateManager();
 const slackMessaging = getSlackMessagingService();
 
+type StandupPromptReason = "initial" | "reminder";
+
+interface StandupMetadata {
+  participants?: string[];
+  questions?: StandupQuestion[];
+  schedule?: StandupConfig["schedule"];
+  collectionWindowMinutes?: number;
+  reminderCounts?: Record<string, number>;
+  reminders?: Array<{ sentAt: string; participants: string[] }>;
+}
+
 function normalizeStandupConfig(config?: StandupConfig): StandupConfig | null {
   if (!config || !config.enabled) {
     return null;
@@ -60,6 +74,8 @@ function normalizeStandupConfig(config?: StandupConfig): StandupConfig | null {
     ...config,
     questions,
     collectionWindowMinutes: config.collectionWindowMinutes ?? DEFAULT_STANDUP_COLLECTION_MINUTES,
+    reminderMinutesBeforeDue: config.reminderMinutesBeforeDue ?? DEFAULT_STANDUP_REMINDER_MINUTES,
+    maxReminders: config.maxReminders ?? DEFAULT_STANDUP_MAX_REMINDERS,
   };
 }
 
@@ -151,6 +167,86 @@ async function resolveStandupParticipants(project: ProjectDefinition, config: St
   return Array.from(participantSet);
 }
 
+function parseStandupMetadata(standup: ProjectStandup): StandupMetadata {
+  const raw = (standup.metadata ?? {}) as StandupMetadata | null;
+  const metadata: StandupMetadata = {
+    participants: raw?.participants ?? [],
+    questions: raw?.questions ?? [],
+    schedule: raw?.schedule,
+    collectionWindowMinutes: raw?.collectionWindowMinutes,
+    reminderCounts: raw?.reminderCounts ?? {},
+    reminders: raw?.reminders ?? [],
+  };
+  return metadata;
+}
+
+export function computeReminderRecipients(input: {
+  participants: string[];
+  responded: string[];
+  metadata: StandupMetadata;
+  config: StandupConfig;
+  scheduledFor: Date;
+  collectUntil: Date;
+  now: Date;
+}): string[] {
+  const { participants, responded, metadata, config, scheduledFor, collectUntil, now } = input;
+
+  if (config.maxReminders <= 0) {
+    return [];
+  }
+
+  const remainingMs = collectUntil.getTime() - now.getTime();
+  if (remainingMs <= 0) {
+    return [];
+  }
+
+  const minutesRemaining = remainingMs / (60 * 1000);
+  if (minutesRemaining > (config.reminderMinutesBeforeDue ?? DEFAULT_STANDUP_REMINDER_MINUTES)) {
+    return [];
+  }
+
+  const minutesSinceScheduled = (now.getTime() - scheduledFor.getTime()) / (60 * 1000);
+  if (minutesSinceScheduled < STANDUP_REMINDER_BUFFER_MINUTES) {
+    return [];
+  }
+
+  const reminders = metadata.reminders ?? [];
+  if (reminders.length > 0) {
+    const lastReminder = reminders[reminders.length - 1];
+    const minutesSinceLastReminder =
+      (now.getTime() - new Date(lastReminder.sentAt).getTime()) / (60 * 1000);
+    if (minutesSinceLastReminder < STANDUP_REMINDER_BUFFER_MINUTES) {
+      return [];
+    }
+  }
+
+  const respondedSet = new Set(responded);
+  const reminderCounts = metadata.reminderCounts ?? {};
+
+  return participants.filter((participantId) => {
+    if (respondedSet.has(participantId)) {
+      return false;
+    }
+    const count = reminderCounts[participantId] ?? 0;
+    return count < (config.maxReminders ?? DEFAULT_STANDUP_MAX_REMINDERS);
+  });
+}
+
+async function persistStandupMetadata(standupId: string, metadata: StandupMetadata): Promise<void> {
+  const db = getDb();
+  if (!db) {
+    console.warn("[Standup] Database unavailable; metadata update skipped");
+    return;
+  }
+
+  await db
+    .update(projectStandups)
+    .set({
+      metadata,
+    })
+    .where(eq(projectStandups.id, standupId));
+}
+
 async function insertStandupRecord(project: ProjectDefinition, config: StandupConfig, scheduledFor: Date, participants: string[]): Promise<ProjectStandup | null> {
   const db = getDb();
   if (!db) {
@@ -172,6 +268,8 @@ async function insertStandupRecord(project: ProjectDefinition, config: StandupCo
         questions: config.questions,
         schedule: config.schedule,
         collectionWindowMinutes: config.collectionWindowMinutes,
+        reminderCounts: {},
+        reminders: [],
       },
     })
     .returning();
@@ -216,6 +314,106 @@ async function createStandupRun(project: ProjectDefinition, config: StandupConfi
   };
 }
 
+function buildStandupPromptBlocks(
+  project: ProjectDefinition,
+  standup: ProjectStandup,
+  participantId: string,
+  reason: StandupPromptReason,
+) {
+  const intro =
+    reason === "reminder"
+      ? `⏰ Reminder: Stand-up for *${project.name}* is still waiting on your update, <@${participantId}>.`
+      : `Hey <@${participantId}>! It's time for the *${project.name}* stand-up.`;
+  const context =
+    reason === "reminder"
+      ? "Please share your update before the collection window closes."
+      : "Click the button below to share your update.";
+
+  return [
+    createSectionBlock(intro),
+    createContextBlock(context),
+    createActionsBlock([
+      {
+        text: reason === "reminder" ? "Add update" : "Submit stand-up",
+        actionId: StandupActions.OPEN_MODAL,
+        style: "primary",
+        value: JSON.stringify({
+          standupId: standup.id,
+          projectId: project.id,
+          participantId,
+        }),
+      },
+    ]),
+  ];
+}
+
+async function sendStandupPromptMessage(params: {
+  project: ProjectDefinition;
+  config: StandupConfig;
+  standup: ProjectStandup;
+  participantId: string;
+  reason: StandupPromptReason;
+  reminderCount?: number;
+}): Promise<boolean> {
+  const { project, config, standup, participantId, reason, reminderCount } = params;
+
+  try {
+    const conversation = await slackMessaging.openConversation(participantId);
+    if (!conversation.channelId) {
+      console.warn(`[Standup] Could not open DM with ${participantId}`);
+      return false;
+    }
+
+    const blocks = buildStandupPromptBlocks(project, standup, participantId, reason);
+
+    const message = await slackMessaging.postMessage({
+      channel: conversation.channelId,
+      text:
+        reason === "reminder"
+          ? `Reminder: stand-up update needed for ${project.name}`
+          : `Stand-up check-in for ${project.name}`,
+      blocks,
+    });
+
+    if (!message.ts) {
+      console.warn(`[Standup] Prompt message missing timestamp for ${participantId}`);
+      return false;
+    }
+
+    const payload: StandupSessionState = {
+      standupId: standup.id,
+      projectId: project.id,
+      participantId,
+      questions: config.questions,
+      startedAt: new Date().toISOString(),
+      source: reason,
+      reminderCount,
+    };
+
+    const expiresInHours =
+      Math.ceil((config.collectionWindowMinutes ?? DEFAULT_STANDUP_COLLECTION_MINUTES) / 60) + 1;
+
+    await stateManager.saveState(
+      "project_standup",
+      conversation.channelId,
+      message.ts,
+      payload,
+      {
+        expiresInHours,
+        metadata: {
+          standupId: standup.id,
+          projectId: project.id,
+        },
+      },
+    );
+
+    return true;
+  } catch (error) {
+    console.error(`[Standup] Failed to send ${reason} prompt to ${participantId}`, error);
+    return false;
+  }
+}
+
 async function sendStandupPrompts(
   project: ProjectDefinition,
   config: StandupConfig,
@@ -223,67 +421,129 @@ async function sendStandupPrompts(
   participants: string[],
 ): Promise<void> {
   for (const participantId of participants) {
+    await sendStandupPromptMessage({
+      project,
+      config,
+      standup,
+      participantId,
+      reason: "initial",
+    });
+  }
+}
+
+export async function sendStandupReminders(now: Date): Promise<
+  Array<{ standupId: string; projectId: string; notified: string[] }>
+> {
+  const db = getDb();
+  if (!db) {
+    console.warn("[Standup] Database unavailable; cannot evaluate reminders");
+    return [];
+  }
+
+  const openStandups = await db
+    .select()
+    .from(projectStandups)
+    .where(
+      and(
+        eq(projectStandups.status, "collecting"),
+        lt(projectStandups.scheduledFor, now),
+        gt(projectStandups.collectUntil, now),
+      ),
+    );
+
+  const results: Array<{ standupId: string; projectId: string; notified: string[] }> = [];
+
+  for (const standup of openStandups) {
     try {
-      const conversation = await slackMessaging.openConversation(participantId);
-      if (!conversation.channelId) {
-        console.warn(`[Standup] Could not open DM with ${participantId}`);
+      const project = await fetchProject(standup.projectId);
+      if (!project) {
+        console.warn(`[Standup] Project ${standup.projectId} not found while processing reminders`);
         continue;
       }
 
-      const blocks = [
-        createSectionBlock(`Hey <@${participantId}>! It's time for the *${project.name}* stand-up.`),
-        createContextBlock("Click the button below to share your update."),
-        createActionsBlock([
-          {
-            text: "Submit stand-up",
-            actionId: StandupActions.OPEN_MODAL,
-            style: "primary",
-            value: JSON.stringify({
-              standupId: standup.id,
-              projectId: project.id,
-              participantId,
-            }),
-          },
-        ]),
-      ];
+      const config = getStandupConfig(project);
+      if (!config) {
+        continue;
+      }
 
-      const message = await slackMessaging.postMessage({
-        channel: conversation.channelId,
-        text: `Stand-up check-in for ${project.name}`,
-        blocks,
+      const metadata = parseStandupMetadata(standup);
+      const participants =
+        metadata.participants && metadata.participants.length > 0
+          ? metadata.participants
+          : await resolveStandupParticipants(project, config);
+
+      if (participants.length === 0) {
+        continue;
+      }
+
+      metadata.participants = participants;
+
+      const responses = await db
+        .select({ participant: projectStandupResponses.participantSlackId })
+        .from(projectStandupResponses)
+        .where(eq(projectStandupResponses.standupId, standup.id));
+
+      const responded = responses.map((row) => row.participant);
+
+      const recipients = computeReminderRecipients({
+        participants,
+        responded,
+        metadata,
+        config,
+        scheduledFor: standup.scheduledFor,
+        collectUntil: standup.collectUntil,
+        now,
       });
 
-      if (!message.ts) {
+      if (recipients.length === 0) {
         continue;
       }
 
-      const payload: StandupSessionState = {
+      const reminderCounts = { ...(metadata.reminderCounts ?? {}) };
+      const notified: string[] = [];
+
+      for (const participantId of recipients) {
+        const nextCount = (reminderCounts[participantId] ?? 0) + 1;
+        const success = await sendStandupPromptMessage({
+          project,
+          config,
+          standup,
+          participantId,
+          reason: "reminder",
+          reminderCount: nextCount,
+        });
+
+        if (success) {
+          reminderCounts[participantId] = nextCount;
+          notified.push(participantId);
+        }
+      }
+
+      if (notified.length === 0) {
+        continue;
+      }
+
+      metadata.reminderCounts = reminderCounts;
+      const previousReminders = metadata.reminders ?? [];
+      metadata.reminders = [
+        ...previousReminders,
+        { sentAt: now.toISOString(), participants: notified },
+      ];
+
+      await persistStandupMetadata(standup.id, metadata);
+      standup.metadata = metadata as unknown as Record<string, any>;
+
+      results.push({
         standupId: standup.id,
         projectId: project.id,
-        participantId,
-        questions: config.questions,
-        startedAt: new Date().toISOString(),
-      };
-
-      const expiresInHours = Math.ceil((config.collectionWindowMinutes ?? DEFAULT_STANDUP_COLLECTION_MINUTES) / 60) + 1;
-
-      await stateManager.saveState(
-        "project_standup",
-        conversation.channelId,
-        message.ts,
-        payload,
-        {
-          expiresInHours,
-          metadata: {
-            standupId: standup.id,
-            projectId: project.id,
-          },
-        },
-      );
+        notified,
+      });
     } catch (error) {
-      console.error(`[Standup] Failed to send prompt to ${participantId}`, error);
+      console.error(`[Standup] Failed to send reminders for stand-up ${standup.id}`, error);
     }
   }
+
+  return results;
 }
 
 export async function finalizeDueStandups(now: Date): Promise<number> {
@@ -331,7 +591,7 @@ export async function finalizeDueStandups(now: Date): Promise<number> {
 
 async function fetchProject(projectId: string): Promise<ProjectDefinition | undefined> {
   const projects = await import("./catalog");
-  const catalog = projects.getProjectCatalog();
+  const catalog = await projects.getProjectCatalog();
   return catalog.find((proj) => proj.id === projectId);
 }
 
@@ -407,6 +667,32 @@ async function postStandupSummary(
       .map(({ participant, answers }) => `• <@${participant}> — ${(answers as Record<string, string>).blockers}`)
       .join("\n");
     blocks.push(createSectionBlock(`⚠️ *Blockers*\n${blockerText}`));
+
+    if (project.mentor?.slackUserId) {
+      try {
+        const conversation = await slackMessaging.openConversation(project.mentor.slackUserId);
+        if (conversation.channelId) {
+          await slackMessaging.postMessage({
+            channel: conversation.channelId,
+            text: `Blockers reported in ${project.name} stand-up`,
+            blocks: [
+              createSectionBlock(
+                `⚠️ *${project.name}* stand-up blockers:\n${blockerText}\n\nPlease follow up with the contributor(s).`,
+              ),
+            ],
+          });
+        } else {
+          console.warn(
+            `[Standup] Could not DM mentor ${project.mentor.slackUserId} about blockers for project ${project.id}`,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[Standup] Failed to notify mentor ${project.mentor?.slackUserId} about blockers for stand-up ${standup.id}`,
+          error,
+        );
+      }
+    }
   }
 
   const channelId = config.channelId ?? project.channelId;

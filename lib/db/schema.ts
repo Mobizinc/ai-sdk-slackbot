@@ -800,6 +800,41 @@ export type NewInteractiveState = typeof interactiveStates.$inferInsert;
  * Project Interview Archive
  * Persists completed interview transcripts and scoring metadata for analytics and mentor review.
  */
+export const projects = pgTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    status: text("status").notNull().default("draft"),
+    githubUrl: text("github_url"),
+    summary: text("summary").notNull(),
+    background: text("background"),
+    techStack: jsonb("tech_stack").$type<string[]>().default([]).notNull(),
+    skillsRequired: jsonb("skills_required").$type<string[]>().default([]).notNull(),
+    skillsNiceToHave: jsonb("skills_nice_to_have").$type<string[]>().default([]).notNull(),
+    difficultyLevel: text("difficulty_level"),
+    estimatedHours: text("estimated_hours"),
+    learningOpportunities: jsonb("learning_opportunities").$type<string[]>().default([]).notNull(),
+    openTasks: jsonb("open_tasks").$type<string[]>().default([]).notNull(),
+    mentorSlackUserId: text("mentor_slack_user_id"),
+    mentorName: text("mentor_name"),
+    interviewConfig: jsonb("interview_config").$type<Record<string, any> | null>().default(null),
+    standupConfig: jsonb("standup_config").$type<Record<string, any> | null>().default(null),
+    maxCandidates: integer("max_candidates"),
+    postedDate: timestamp("posted_date", { withTimezone: true }),
+    expiresDate: timestamp("expires_date", { withTimezone: true }),
+    channelId: text("channel_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("idx_projects_status").on(table.status),
+  }),
+);
+
+export type ProjectRecord = typeof projects.$inferSelect;
+export type NewProjectRecord = typeof projects.$inferInsert;
+
 export const projectInterviews = pgTable(
   "project_interviews",
   {

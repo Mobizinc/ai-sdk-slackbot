@@ -308,7 +308,7 @@ export async function handleInterviewResponse(
     return true;
   }
 
-  const project = getProjectById(payload.projectId);
+  const project = await getProjectById(payload.projectId);
   if (!project) {
     await slackMessaging.postMessage({
       channel: event.channel,

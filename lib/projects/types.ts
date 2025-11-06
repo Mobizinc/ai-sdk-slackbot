@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  DEFAULT_STANDUP_COLLECTION_MINUTES,
+  DEFAULT_STANDUP_MAX_REMINDERS,
+  DEFAULT_STANDUP_REMINDER_MINUTES,
+} from "./standup-constants";
 
 export const interviewQuestionSchema = z.object({
   id: z.string().min(1, "Interview question id is required"),
@@ -42,7 +47,19 @@ export const standupConfigSchema = z.object({
   includeMentor: z.boolean().default(true),
   includeAcceptedCandidates: z.boolean().default(true),
   questions: z.array(standupQuestionSchema).default([]),
-  collectionWindowMinutes: z.number().int().min(15).max(720).default(120),
+  collectionWindowMinutes: z
+    .number()
+    .int()
+    .min(15)
+    .max(720)
+    .default(DEFAULT_STANDUP_COLLECTION_MINUTES),
+  reminderMinutesBeforeDue: z
+    .number()
+    .int()
+    .min(5)
+    .max(720)
+    .default(DEFAULT_STANDUP_REMINDER_MINUTES),
+  maxReminders: z.number().int().min(0).max(5).default(DEFAULT_STANDUP_MAX_REMINDERS),
 });
 
 export type StandupConfig = z.infer<typeof standupConfigSchema>;
@@ -53,6 +70,8 @@ export interface StandupSessionState {
   participantId: string;
   questions: StandupQuestion[];
   startedAt: string;
+  source?: "initial" | "reminder";
+  reminderCount?: number;
 }
 
 export const projectSchema = z.object({
