@@ -23,5 +23,3 @@ CREATE TABLE "projects" (
 	"created_at" timestamptz NOT NULL DEFAULT now(),
 	"updated_at" timestamptz NOT NULL DEFAULT now()
 );
-
-CREATE INDEX "idx_projects_status" ON "projects" USING btree ("status");

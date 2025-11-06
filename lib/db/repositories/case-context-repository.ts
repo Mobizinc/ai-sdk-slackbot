@@ -7,6 +7,7 @@ import { eq, and, lt, gte, desc } from "drizzle-orm";
 import { getDb } from "../client";
 import { caseContexts, caseMessages } from "../schema";
 import type { CaseContext as ContextManagerContext, CaseMessage } from "../../context-manager";
+import { withWriteRetry, withQueryRetry } from "../retry-wrapper";
 
 export class CaseContextRepository {
   /**
@@ -20,29 +21,31 @@ export class CaseContextRepository {
     }
 
     try {
-      await db
-        .insert(caseContexts)
-        .values({
-          caseNumber: context.caseNumber,
-          threadTs: context.threadTs,
-          channelId: context.channelId,
-          channelName: context.channelName,
-          isResolved: context.isResolved || false,
-          resolvedAt: context.resolvedAt,
-          detectedAt: context.detectedAt,
-          lastUpdated: context.lastUpdated,
-          notified: context._notified || false,
-        })
-        .onConflictDoUpdate({
-          target: [caseContexts.caseNumber, caseContexts.threadTs],
-          set: {
+      await withWriteRetry(async () => {
+        await db
+          .insert(caseContexts)
+          .values({
+            caseNumber: context.caseNumber,
+            threadTs: context.threadTs,
+            channelId: context.channelId,
             channelName: context.channelName,
             isResolved: context.isResolved || false,
             resolvedAt: context.resolvedAt,
+            detectedAt: context.detectedAt,
             lastUpdated: context.lastUpdated,
             notified: context._notified || false,
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: [caseContexts.caseNumber, caseContexts.threadTs],
+            set: {
+              channelName: context.channelName,
+              isResolved: context.isResolved || false,
+              resolvedAt: context.resolvedAt,
+              lastUpdated: context.lastUpdated,
+              notified: context._notified || false,
+            },
+          });
+      }, `save context for ${context.caseNumber}`);
 
       console.log(`[DB] Saved context for ${context.caseNumber}`);
     } catch (error) {
@@ -62,13 +65,15 @@ export class CaseContextRepository {
     if (!db) return;
 
     try {
-      await db.insert(caseMessages).values({
-        caseNumber,
-        threadTs,
-        userId: message.user,
-        messageText: message.text,
-        messageTimestamp: message.timestamp,
-      });
+      await withWriteRetry(async () => {
+        await db.insert(caseMessages).values({
+          caseNumber,
+          threadTs,
+          userId: message.user,
+          messageText: message.text,
+          messageTimestamp: message.timestamp,
+        });
+      }, `save message for ${caseNumber}`);
 
       console.log(`[DB] Saved message for ${caseNumber}`);
     } catch (error) {
@@ -87,59 +92,61 @@ export class CaseContextRepository {
     if (!db) return undefined;
 
     try {
-      // Load context
-      const contextResult = await db
-        .select()
-        .from(caseContexts)
-        .where(
-          and(
-            eq(caseContexts.caseNumber, caseNumber),
-            eq(caseContexts.threadTs, threadTs)
+      return await withQueryRetry(async () => {
+        // Load context
+        const contextResult = await db
+          .select()
+          .from(caseContexts)
+          .where(
+            and(
+              eq(caseContexts.caseNumber, caseNumber),
+              eq(caseContexts.threadTs, threadTs)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (contextResult.length === 0) {
-        return undefined;
-      }
+        if (contextResult.length === 0) {
+          return undefined;
+        }
 
-      const dbContext = contextResult[0];
+        const dbContext = contextResult[0];
 
-      // Load messages
-      const messagesResult = await db
-        .select()
-        .from(caseMessages)
-        .where(
-          and(
-            eq(caseMessages.caseNumber, caseNumber),
-            eq(caseMessages.threadTs, threadTs)
+        // Load messages
+        const messagesResult = await db
+          .select()
+          .from(caseMessages)
+          .where(
+            and(
+              eq(caseMessages.caseNumber, caseNumber),
+              eq(caseMessages.threadTs, threadTs)
+            )
           )
-        )
-        .orderBy(caseMessages.messageTimestamp);
+          .orderBy(caseMessages.messageTimestamp);
 
-      // Convert to ContextManager format
-      const messages: CaseMessage[] = messagesResult.map((msg) => ({
-        user: msg.userId,
-        text: msg.messageText,
-        timestamp: msg.messageTimestamp,
-        thread_ts: threadTs,
-      }));
+        // Convert to ContextManager format
+        const messages: CaseMessage[] = messagesResult.map((msg) => ({
+          user: msg.userId,
+          text: msg.messageText,
+          timestamp: msg.messageTimestamp,
+          thread_ts: threadTs,
+        }));
 
-      const context: ContextManagerContext = {
-        caseNumber: dbContext.caseNumber,
-        threadTs: dbContext.threadTs,
-        channelId: dbContext.channelId,
-        channelName: dbContext.channelName || undefined,
-        messages,
-        detectedAt: dbContext.detectedAt,
-        lastUpdated: dbContext.lastUpdated,
-        isResolved: dbContext.isResolved,
-        resolvedAt: dbContext.resolvedAt || undefined,
-        _notified: dbContext.notified,
-      };
+        const context: ContextManagerContext = {
+          caseNumber: dbContext.caseNumber,
+          threadTs: dbContext.threadTs,
+          channelId: dbContext.channelId,
+          channelName: dbContext.channelName || undefined,
+          messages,
+          detectedAt: dbContext.detectedAt,
+          lastUpdated: dbContext.lastUpdated,
+          isResolved: dbContext.isResolved,
+          resolvedAt: dbContext.resolvedAt || undefined,
+          _notified: dbContext.notified,
+        };
 
-      console.log(`[DB] Loaded context for ${caseNumber} with ${messages.length} messages`);
-      return context;
+        console.log(`[DB] Loaded context for ${caseNumber} with ${messages.length} messages`);
+        return context;
+      }, `load context for ${caseNumber}`);
     } catch (error) {
       console.error(`[DB] Error loading context for ${caseNumber}:`, error);
       return undefined;
@@ -154,55 +161,57 @@ export class CaseContextRepository {
     if (!db) return [];
 
     try {
-      const cutoffTime = new Date();
-      cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
+      return await withQueryRetry(async () => {
+        const cutoffTime = new Date();
+        cutoffTime.setHours(cutoffTime.getHours() - maxAgeHours);
 
-      const contextsResult = await db
-        .select()
-        .from(caseContexts)
-        .where(gte(caseContexts.lastUpdated, cutoffTime))
-        .orderBy(desc(caseContexts.lastUpdated));
-
-      console.log(`[DB] Loading ${contextsResult.length} active contexts`);
-
-      const contexts: ContextManagerContext[] = [];
-
-      for (const dbContext of contextsResult) {
-        // Load messages for this context
-        const messagesResult = await db
+        const contextsResult = await db
           .select()
-          .from(caseMessages)
-          .where(
-            and(
-              eq(caseMessages.caseNumber, dbContext.caseNumber),
-              eq(caseMessages.threadTs, dbContext.threadTs)
+          .from(caseContexts)
+          .where(gte(caseContexts.lastUpdated, cutoffTime))
+          .orderBy(desc(caseContexts.lastUpdated));
+
+        console.log(`[DB] Loading ${contextsResult.length} active contexts`);
+
+        const contexts: ContextManagerContext[] = [];
+
+        for (const dbContext of contextsResult) {
+          // Load messages for this context
+          const messagesResult = await db
+            .select()
+            .from(caseMessages)
+            .where(
+              and(
+                eq(caseMessages.caseNumber, dbContext.caseNumber),
+                eq(caseMessages.threadTs, dbContext.threadTs)
+              )
             )
-          )
-          .orderBy(caseMessages.messageTimestamp);
+            .orderBy(caseMessages.messageTimestamp);
 
-        const messages: CaseMessage[] = messagesResult.map((msg) => ({
-          user: msg.userId,
-          text: msg.messageText,
-          timestamp: msg.messageTimestamp,
-          thread_ts: dbContext.threadTs,
-        }));
+          const messages: CaseMessage[] = messagesResult.map((msg) => ({
+            user: msg.userId,
+            text: msg.messageText,
+            timestamp: msg.messageTimestamp,
+            thread_ts: dbContext.threadTs,
+          }));
 
-        contexts.push({
-          caseNumber: dbContext.caseNumber,
-          threadTs: dbContext.threadTs,
-          channelId: dbContext.channelId,
-          channelName: dbContext.channelName || undefined,
-          messages,
-          detectedAt: dbContext.detectedAt,
-          lastUpdated: dbContext.lastUpdated,
-          isResolved: dbContext.isResolved,
-          resolvedAt: dbContext.resolvedAt || undefined,
-          _notified: dbContext.notified,
-        });
-      }
+          contexts.push({
+            caseNumber: dbContext.caseNumber,
+            threadTs: dbContext.threadTs,
+            channelId: dbContext.channelId,
+            channelName: dbContext.channelName || undefined,
+            messages,
+            detectedAt: dbContext.detectedAt,
+            lastUpdated: dbContext.lastUpdated,
+            isResolved: dbContext.isResolved,
+            resolvedAt: dbContext.resolvedAt || undefined,
+            _notified: dbContext.notified,
+          });
+        }
 
-      console.log(`[DB] Loaded ${contexts.length} active contexts from database`);
-      return contexts;
+        console.log(`[DB] Loaded ${contexts.length} active contexts from database`);
+        return contexts;
+      }, 'load all active contexts');
     } catch (error) {
       console.error("[DB] Error loading active contexts:", error);
       return [];

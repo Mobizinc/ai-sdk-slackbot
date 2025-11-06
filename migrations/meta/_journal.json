@@ -141,6 +141,27 @@
       "when": 1762381891614,
       "tag": "0019_real_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1763000000000,
+      "tag": "0020_projects_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1763000001000,
+      "tag": "0021_enhanced_standups",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1763000002000,
+      "tag": "0022_projects_github",
+      "breakpoints": true
     }
   ]
 }
