@@ -419,9 +419,12 @@ ${incidentCategoryList}
     return `<instructions>
 Analyze the case in <case_data> and provide:
 1. The most appropriate CASE category from the CASE categories list above
+   - If NONE of the provided CASE categories truly fit, propose a new category prefixed with "NEW: "
+     (example: "NEW: Network Access Control"). Keep names concise and aligned to ServiceNow style.
 2. An optional CASE subcategory (be specific, e.g., "Password Reset", "VPN Access", "Switch Configuration")
 3. **IF AND ONLY IF** record_type_suggestion.type is "Incident" or "Problem":
    - Select the most appropriate INCIDENT category from the INCIDENT categories list
+   - If no INCIDENT category fits, propose one prefixed with "NEW: " using the same rule as above.
    - An optional INCIDENT subcategory
 4. A confidence score between 0.0 and 1.0
 5. A brief reasoning (1-2 sentences) explaining why this category was chosen
@@ -583,9 +586,9 @@ Respond with a JSON object in this exact format:
 
 <json_schema>
 {
-  "category": "exact CASE category name from CASE categories list",
+  "category": "CASE category name. If suggesting a new category, prefix with \\"NEW: \\" (e.g., \\"NEW: Secure File Transfer\\")",
   "subcategory": "specific CASE subcategory or null",
-  "incident_category": "exact INCIDENT category name from INCIDENT categories list (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
+  "incident_category": "INCIDENT category name (if applicable). May also use the \\"NEW: \\" prefix when proposing a new category.",
   "incident_subcategory": "specific INCIDENT subcategory (ONLY if record_type_suggestion.type is 'Incident' or 'Problem', otherwise null)",
   "confidence_score": 0.95,
   "reasoning": "explanation here",
