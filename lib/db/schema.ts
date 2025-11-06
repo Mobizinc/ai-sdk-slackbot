@@ -948,6 +948,34 @@ export const projectInitiationRequests = pgTable(
 export type ProjectInitiationRequest = typeof projectInitiationRequests.$inferSelect;
 export type NewProjectInitiationRequest = typeof projectInitiationRequests.$inferInsert;
 
+export const strategicEvaluations = pgTable(
+  "strategic_evaluations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectName: text("project_name").notNull(),
+    requestedBy: text("requested_by").notNull(),
+    requestedByName: text("requested_by_name"),
+    channelId: text("channel_id"),
+    commandText: text("command_text"),
+    demandRequest: jsonb("demand_request").$type<Record<string, any>>().notNull(),
+    analysis: jsonb("analysis").$type<Record<string, any>>().notNull(),
+    summary: jsonb("summary").$type<Record<string, any>>().notNull(),
+    needsClarification: boolean("needs_clarification").default(false).notNull(),
+    totalScore: integer("total_score"),
+    recommendation: text("recommendation"),
+    confidence: text("confidence"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("idx_strategic_eval_project").on(table.projectName),
+    requestedByIdx: index("idx_strategic_eval_requested_by").on(table.requestedBy),
+    createdAtIdx: index("idx_strategic_eval_created_at").on(table.createdAt),
+  }),
+);
+
+export type StrategicEvaluation = typeof strategicEvaluations.$inferSelect;
+export type NewStrategicEvaluation = typeof strategicEvaluations.$inferInsert;
+
 /**
  * Incident Enrichment States Table
  * Tracks incident enrichment workflow for automatic CI matching and metadata enhancement

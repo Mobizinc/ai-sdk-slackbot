@@ -1,8 +1,16 @@
 import Link from "next/link"
-import { FileText, AlertCircle, TrendingUp, Users } from "lucide-react"
+import { FileText, AlertCircle, TrendingUp, Users, Target } from "lucide-react"
 
 export default function ReportsPage() {
   const reports = [
+    {
+      title: "Strategic Evaluations",
+      description: "Recent project reviews, recommendations, and follow-up actions",
+      icon: Target,
+      href: "/reports/strategic-evaluations",
+      badge: "New",
+      badgeColor: "bg-green-100 text-green-700",
+    },
     {
       title: "Missing Categories",
       description: "AI-suggested categories that don't exist in ServiceNow",

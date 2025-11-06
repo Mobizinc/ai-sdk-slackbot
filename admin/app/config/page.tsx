@@ -312,6 +312,13 @@ export default function ConfigPage() {
           )}
         </div>
 
+        {groups.includes("strategy") && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            Strategic evaluation inputs (pillars, focus regions, key initiatives) live here.
+            Update them before running <code>/project-evaluate</code> so Slack guidance matches leadership priorities.
+          </div>
+        )}
+
         <div className="flex gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />

@@ -348,6 +348,20 @@ Slash command: `/project-initiate draft [project-id] [seed idea]`
 - Returns an ephemeral summary so the requester can review and refine before posting in `#innovationcoe-v2` or updating `data/projects.json`.
 - The generated Block Kit blocks can be used with `postProjectOpportunity` once the project metadata is finalised.
 - Use the recorded request ID for follow-up reviews, mentor edits, or to regenerate with updated seeds.
+## 📊 Project Evaluation Command
+
+Slash command: `/project-evaluate Project Name | Purpose | Business Value | Expected ROI | Timeline | Resources Needed | Team Size | Pillar IDs (comma) | [Industry] | [Partners]`
+
+- Wraps the Strategic Evaluation Agent (demand intelligence pipeline) so teams can request a Mobizinc-specific go/no-go recommendation directly from Slack.
+- Fields are pipe (`|`) separated; pillar IDs should match entries from `SERVICE_PILLARS` (e.g., `cloud-infrastructure, data-ai`). Optional fields (industry, partners) can be omitted.
+- Returns an ephemeral summary including completeness score, key issues/clarifications, and the AI-generated executive summary/next steps.
+- Persists results to `strategic_evaluations`, publishes a `strategic_evaluation.completed` event via `lib/strategy/events.ts`, and records the originating command metadata for downstream automation.
+- Strategy inputs (pillars, focus regions, initiatives, narrative context) are editable in `/admin → Configuration → strategy` and hydrate the prompts under `lib/strategy/config/`.
+- Uses the shared configuration under `lib/strategy/config/` and evaluation helpers in `lib/strategy/evaluation/`.
+- Automatically DMs the requester with a kickoff checklist, outstanding clarifications, and the current stand-up cadence (or setup reminders) so execution teams can act immediately.
+- Posts a project-channel recap (when channel metadata exists) and auto-schedules the first stand-up run if a cadence is configured and no recent stand-up exists.
+- Leadership can review historical results any time in `/admin → Reports → Strategic Evaluations`.
+- Ideal workflow: `/project-initiate` ➜ leadership review ➜ `/project-evaluate` ➜ stand-ups (`/project-standup`) for execution.
 
 ---
 

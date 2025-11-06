@@ -383,8 +383,28 @@ This specialist agent powers the "Project Onboarding & Interview" flow that begi
   4. **Persistence & Sharing:** Store analysis (e.g., `strategic_evaluations` table), post summary to the originating thread, notify mentors/executives, and emit events for orchestrator.  
   5. **Feedback Hooks:** Stand-up and initiation agents consume the evaluation outcomes to ensure execution matches the approved plan.
 
+- **Automation Hooks (Current)**  
+  - `strategic_evaluation.completed` is now consumed inside the platform, DMing the requester with kickoff tasks, outstanding clarifications, and the detected stand-up cadence (or configuration gaps).  
+  - When a project channel is known, the agent posts a recap there for broader visibility and automatically schedules the first stand-up if a cadence exists and no recent run is on record.  
+  - `/admin → Reports → Strategic Evaluations` surfaces the latest recommendations, risk flags, and follow-up actions so leadership can review outcomes asynchronously.  
+  - The follow-up messaging points directly to `/project-standup run <project-id>` and `/project-initiate draft` so leaders can move from approval to execution without hunting for next steps.
+
 - **Future Enhancements**  
   - Auto-generate ServiceNow/GitHub scaffolding when a project is approved.  
   - Scenario modeling (“What if we staff from Bahrain vs. Pakistan?”) using the same rubric.  
   - Portfolio dashboards combining initiation narratives, evaluation ratings, stand-up health, and interview throughput.  
   - Continuous learning loop where stand-up outcomes adjust scoring weights or highlight new risks for future evaluations.
+
+- **Demand Intelligence Module Migration Plan**  
+  - Audit `/internal-projects/PLAN.md`, then reuse the PoC by lifting its prompt packs, scoring heuristics, and clarifier flows into `lib/strategy/` instead of running a separate Next.js app.  
+  - Normalise the extracted helpers behind a thin service (`lib/strategy/demand-intel.ts`) so orchestrator actions, slash commands, and future agents consume the same interface.  
+  - Map the PoC's strategic pillar definitions onto the runtime config keys surfaced in `/admin → Configuration → strategy`, letting leadership tweak priorities without redeploying.  
+  - Keep useful artefacts (sample briefs, evaluation transcripts) as fixtures that seed regression tests and accelerate onboarding for new strategists.  
+  - Capture the migration in a new `docs/strategy/README.md` to document how demand intelligence, initiation, interviews, and stand-ups share context and scoring signals.
+
+- **Next Steps**  
+  1. Attach orchestrator consumers to `strategic_evaluation.completed` so initiation, stand-up, and reporting agents can react automatically (e.g., seed kickoff checklists, schedule the first stand-up).  
+  2. Ship an admin analytics view or Slack Home tab surfacing recent evaluations, scored pillars, and outstanding clarifications to keep leadership informed.  
+  3. Expose a lightweight API/query helper for fetching a project's latest evaluation so `/project-initiate`, mentors, and dashboards can reference the canonical recommendation.  
+  4. Expand automated coverage: unit-test prompt builders/JSON parsing, add integration tests around the slash command parser, and validate persistence/event emission with the Drizzle test harness.  
+  5. Backfill documentation and examples that spell out how to extend the imported demand-intelligence module when new strategic pillars, regions, or accelerators emerge (e.g., beyond the Microsoft KSA initiative).

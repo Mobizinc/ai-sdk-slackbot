@@ -12,6 +12,25 @@ export interface ConfigDefinition {
 export type ConfigKey = keyof typeof CONFIG_DEFINITIONS;
 
 export const CONFIG_DEFINITIONS = {
+  strategyAdditionalContext: {
+    type: "string",
+    default:
+      "We have an active accelerator with Microsoft in Saudi Arabia (KSA) and are prioritising work that deepens that partnership.",
+    group: "strategy",
+    description: "Additional narrative appended to strategic evaluation prompts (editable via admin).",
+  },
+  strategyFocusRegions: {
+    type: "string[]",
+    default: ["Saudi Arabia (KSA)", "North America"],
+    group: "strategy",
+    description: "Regions or markets to emphasise during strategic evaluations.",
+  },
+  strategyKeyInitiatives: {
+    type: "string[]",
+    default: ["Microsoft-led accelerators in KSA", "AI-driven automation and copilots"],
+    group: "strategy",
+    description: "Key initiatives the evaluation agent should reference when recommending projects.",
+  },
   kbGatheringTimeoutHours: {
     envVar: "KB_GATHERING_TIMEOUT_HOURS",
     type: "number",
