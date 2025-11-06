@@ -277,7 +277,7 @@ This specialist agent powers the "Project Onboarding & Interview" flow that begi
 ## Project Stand-Up Agent (Proposed)
 
 - **Purpose**  
-  Automate recurring stand-ups/check-ins for active projects, compare planned vs. delivered work, surface dependency risks, and keep mentors and contributors aligned without manual corralling.
+  Automate recurring stand-ups/check-ins for active projects, compare planned vs. delivered work, surface dependency risks, and keep mentors and contributors aligned without manual corralling once a project is already underway.
 
 - **Triggers & Cadence**  
   - Scheduled via Vercel cron or Upstash QStash; cadence per project stored in configuration (`project_standup_settings`).  
@@ -327,3 +327,64 @@ This specialist agent powers the "Project Onboarding & Interview" flow that begi
   - Persona-aware prompting (different tone for mentors vs. contributors, automatic inclusion of newcomers).  
   - Supervisor policy hooks that validate summaries before posting and auto-generate mentor coaching tasks.  
   - Analytics dashboards highlighting promise-keeping, unresolved blockers, and cross-project dependency heatmaps.
+
+## Project Initiation Agent (Ideation & Launch)
+
+- **Purpose**  
+  Transform a leadership-approved initiative into a polished launch package: narrative, Block Kit announcement, kickoff checklist, and suggested interview/stand-up framing. It never decides which ideas move forward; it operationalises the projects we have already committed to.
+
+- **Current Triggers**  
+  - `/project-initiate draft <project-id> [seed idea]` slash command (manual request).  
+  - Potential future hooks: stand-up signals (persistent blockers), supervisor escalations, or scheduled “portfolio refresh” runs.
+
+- **Inputs in v1**  
+  - Repository artefacts (README, `docs/PROJECT_OVERVIEW.md`, command docs, `package.json`).  
+  - Project metadata from `data/projects.json` (tech stack, mentor, skills).  
+  - Optional seed idea text supplied with the command.  
+  - Deterministic context is embedded into the prompt; no interviews/stand-ups are assumed yet.
+
+- **Workflow (Implemented)**  
+  1. **Request Capture:** Record the draft request in `project_initiation_requests` with requester metadata and seed idea.  
+  2. **Context Harvest:** Read repo/docs files, synthesise feature/skill lists, and assemble a markdown brief for the LLM.  
+  3. **Story Generation:** Call Claude Haiku 4.5 (JSON mode) to produce short pitch, elevator pitch, value props, learning highlights, kickoff checklist, interview themes, stand-up guidance, metrics, and Block Kit structure.  
+  4. **Fallback Handling:** If parsing fails, create a deterministic baseline narrative so we always return a usable draft.  
+  5. **Persistence:** Store the generated output, sources, raw response, and model in `project_initiation_requests`. Emit telemetry for orchestration.  
+  6. **Surface:** Return an ephemeral Slack summary (value props + checklist + metadata). The Block Kit payload is saved with the draft and can be plugged into `postProjectOpportunity` after human review.
+
+- **State & Persistence**  
+  - `project_initiation_requests`: request id, project id, requester, seed idea, context summary, LLM output, sources, raw response, status.  
+  - Draft metadata links forward to interview/stand-up configuration updates once the project entry is amended in `data/projects.json` (or future CMS).  
+  - Event stubs (`project_initiation.completed`) ready for orchestrator hooks, though no downstream consumers exist yet.
+
+- **Future Extensions**  
+  - Auto-populate GitHub/SPM scaffolding (boards, labels, placeholder issues).  
+  - Multi-format exports: long-form Confluence brief, exec summary, internal blog post draft.  
+  - Feedback loop: blend stand-up and interview outcomes back into initiation templates for continuous improvement.  
+  - Broader context harvest (ServiceNow analytics, emerging incidents, competitive insights) to support net-new initiative discovery.
+
+## Strategic Evaluation Agent (Demand Intelligence)
+
+- **Purpose**  
+  Deliver Mobizinc-specific strategic reviews (analyze → clarify → finalize) using codified pillars, historical benchmarks, and weighted scoring. This agent validates the business case after leadership has greenlit an idea and before/while project initiation and execution begin.
+
+- **Integration Plan**  
+  - Lift the reusable business logic from the `demand-request-app` PoC into shared TypeScript modules (config ingestion, prompt builders, historical comparators, scoring).  
+  - Expose the evaluation flow as a dedicated agent/service callable via orchestrator and Slack (e.g., `/project-evaluate`).  
+  - Reuse the existing clarify/analyze/finalize pipeline while integrating responses into our Slack workflows rather than a standalone Next.js UI.
+
+- **Configuration Surface**  
+  - Strategic pillars, partner programs, target markets, scoring rubrics, and evolving context (e.g., new regional focus like the Microsoft KSA accelerator) move into shared config files editable through `/admin`.  
+  - Changing configs should automatically influence prompts and scoring logic without code changes, keeping the agent sensitive to evolving strategy.
+
+- **Workflow Sketch**  
+  1. **Request Intake:** Orchestrator/user submits a project proposal with ROI, timeline, alignment tags.  
+  2. **Clarification Loop:** Agent asks Mobizinc-specific follow-ups, referencing the rubric and current strategic context.  
+  3. **Final Analysis:** Weighted scoring, historical comparisons, resource modeling, risk assessment, partner alignment, market opportunity, executive recommendation.  
+  4. **Persistence & Sharing:** Store analysis (e.g., `strategic_evaluations` table), post summary to the originating thread, notify mentors/executives, and emit events for orchestrator.  
+  5. **Feedback Hooks:** Stand-up and initiation agents consume the evaluation outcomes to ensure execution matches the approved plan.
+
+- **Future Enhancements**  
+  - Auto-generate ServiceNow/GitHub scaffolding when a project is approved.  
+  - Scenario modeling (“What if we staff from Bahrain vs. Pakistan?”) using the same rubric.  
+  - Portfolio dashboards combining initiation narratives, evaluation ratings, stand-up health, and interview throughput.  
+  - Continuous learning loop where stand-up outcomes adjust scoring weights or highlight new risks for future evaluations.

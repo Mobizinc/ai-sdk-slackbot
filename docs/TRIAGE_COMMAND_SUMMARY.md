@@ -339,6 +339,18 @@ Slash command: `/project-standup run [project-id]`
 
 ---
 
+## 🧠 Project Initiation Command
+
+Slash command: `/project-initiate draft [project-id] [seed idea]`
+
+- Creates an AI-assisted launch package for a leadership-approved initiative and stores it in `project_initiation_requests`.
+- Pulls repo/docs context, merges the optional seed idea, and uses Anthropic Haiku to craft a pitch, value props, kickoff checklist, and Block Kit announcement (`lib/projects/initiation-service.ts`).
+- Returns an ephemeral summary so the requester can review and refine before posting in `#innovationcoe-v2` or updating `data/projects.json`.
+- The generated Block Kit blocks can be used with `postProjectOpportunity` once the project metadata is finalised.
+- Use the recorded request ID for follow-up reviews, mentor edits, or to regenerate with updated seeds.
+
+---
+
 ## 🎯 Success Criteria: ✅ MET
 
 - ✅ Natural language triage in AI Assistant

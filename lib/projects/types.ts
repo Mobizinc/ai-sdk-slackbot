@@ -76,6 +76,47 @@ export interface StandupSessionState {
 
 const githubRepoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
+export const projectInitiationOutputSchema = z.object({
+  shortPitch: z.string().min(1),
+  elevatorPitch: z.string().min(1),
+  problemStatement: z.string().min(1),
+  solutionOverview: z.string().min(1),
+  keyValueProps: z.array(z.string()).default([]),
+  learningHighlights: z.array(z.string()).default([]),
+  kickoffChecklist: z.array(z.string()).default([]),
+  standupGuidance: z.array(z.string()).default([]),
+  interviewThemes: z.array(z.string()).default([]),
+  recommendedMetrics: z.array(z.string()).default([]),
+  blockKit: z
+    .object({
+      blocks: z.array(z.any()).default([]),
+      fallbackText: z.string().optional(),
+    })
+    .optional(),
+  notes: z.array(z.string()).default([]),
+});
+
+export type ProjectInitiationOutput = z.infer<typeof projectInitiationOutputSchema>;
+
+export interface ProjectInitiationSource {
+  label: string;
+  excerpt: string;
+  path?: string;
+}
+
+export interface ProjectInitiationDraft {
+  requestId?: string;
+  projectId: string;
+  requestedBy: string;
+  requestedByName?: string;
+  ideaSummary?: string;
+  output: ProjectInitiationOutput;
+  sources: ProjectInitiationSource[];
+  llmModel: string;
+  rawResponse?: string;
+  createdAt: string;
+}
+
 export const projectSchema = z.object({
   id: z.string().min(1, "Project id is required"),
   name: z.string().min(1, "Project name is required"),

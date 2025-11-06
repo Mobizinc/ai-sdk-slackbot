@@ -58,7 +58,11 @@
           "frequency": "weekdays",
           "timeUtc": "15:00"
         },
-        "participants": ["U02DEVTEAM", "U03BOTMAINT", "U04QAENG"],
+        "participants": [
+          "U02DEVTEAM",
+          "U03BOTMAINT",
+          "U04QAENG"
+        ],
         "includeMentor": true,
         "includeAcceptedCandidates": true,
         "questions": [

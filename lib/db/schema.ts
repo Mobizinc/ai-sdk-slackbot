@@ -920,6 +920,34 @@ export const projectStandupResponses = pgTable(
 export type ProjectStandupResponse = typeof projectStandupResponses.$inferSelect;
 export type NewProjectStandupResponse = typeof projectStandupResponses.$inferInsert;
 
+export const projectInitiationRequests = pgTable(
+  "project_initiation_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    requestedBy: text("requested_by").notNull(),
+    requestedByName: text("requested_by_name"),
+    ideaSummary: text("idea_summary"),
+    contextSummary: text("context_summary"),
+    llmModel: text("llm_model"),
+    status: text("status").notNull().default("drafted"),
+    output: jsonb("output").$type<Record<string, any>>().default({}).notNull(),
+    sources: jsonb("sources").$type<Array<Record<string, any>>>().default([]).notNull(),
+    rawResponse: text("raw_response"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("idx_project_initiation_project").on(table.projectId),
+    statusIdx: index("idx_project_initiation_status").on(table.status),
+    requesterIdx: index("idx_project_initiation_requester").on(table.requestedBy),
+  }),
+);
+
+export type ProjectInitiationRequest = typeof projectInitiationRequests.$inferSelect;
+export type NewProjectInitiationRequest = typeof projectInitiationRequests.$inferInsert;
+
 /**
  * Incident Enrichment States Table
  * Tracks incident enrichment workflow for automatic CI matching and metadata enhancement
