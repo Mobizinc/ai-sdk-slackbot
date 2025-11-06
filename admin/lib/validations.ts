@@ -41,4 +41,4 @@ export const businessContextSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
-export type BusinessContextFormData = z.infer<typeof businessContextSchema>
+export type BusinessContextFormData = z.output<typeof businessContextSchema>

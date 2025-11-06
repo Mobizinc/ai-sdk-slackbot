@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm, useFieldArray, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { businessContextSchema, type BusinessContextFormData } from "@/lib/validations"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,8 @@ export function BusinessContextForm({
     control,
     formState: { errors, isSubmitting },
   } = useForm<BusinessContextFormData>({
-    resolver: zodResolver(businessContextSchema) as any,
+    resolver: zodResolver(businessContextSchema) as Resolver<BusinessContextFormData>,
+    mode: "onChange",
     defaultValues: {
       entityName: initialData?.entityName || "",
       entityType: initialData?.entityType || "CLIENT",
