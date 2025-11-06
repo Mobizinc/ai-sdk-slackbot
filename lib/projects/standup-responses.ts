@@ -1,9 +1,10 @@
+import { eq } from "drizzle-orm";
 import { getInteractiveStateManager } from "../services/interactive-state-manager";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import type { StandupQuestion, StandupSessionState } from "./types";
 import { StandupCallbackIds } from "./standup-constants";
 import { getDb } from "../db/client";
-import { projectStandupResponses } from "../db/schema";
+import { projectStandupResponses, projectStandups } from "../db/schema";
 import { createPlainTextInput, createInputBlock, createModalView } from "../utils/message-styling";
 
 const stateManager = getInteractiveStateManager();
@@ -131,7 +132,11 @@ function extractAnswers(values: Record<string, any>, questions: StandupQuestion[
   return result;
 }
 
-async function upsertStandupResponse(standupId: string, participantId: string, answers: Record<string, string>): Promise<void> {
+async function upsertStandupResponse(
+  standupId: string,
+  participantId: string,
+  answers: Record<string, string>,
+): Promise<void> {
   const db = getDb();
   if (!db) {
     console.warn("[Standup] Database unavailable; cannot persist stand-up response");
@@ -141,6 +146,35 @@ async function upsertStandupResponse(standupId: string, participantId: string, a
   const blockerResponse = answers.blockers || "";
   const blockerFlag = blockerResponse.trim().length > 0 && blockerResponse.trim().toLowerCase() !== "none";
 
+  let contextSnapshot: Record<string, any> = {};
+  let insights: Record<string, any> = {};
+
+  try {
+    const [record] = await db
+      .select({ metadata: projectStandups.metadata })
+      .from(projectStandups)
+      .where(eq(projectStandups.id, standupId))
+      .limit(1);
+
+    const metadata = (record?.metadata ?? {}) as Record<string, any>;
+    const participantContexts = (metadata.participantContexts ?? {}) as Record<string, any>;
+    contextSnapshot = participantContexts[participantId] ?? {};
+
+    const issueReferences = Array.isArray(contextSnapshot.issueReferences)
+      ? contextSnapshot.issueReferences
+          .map((ref: any) => (typeof ref === "string" ? ref : ref?.raw))
+          .filter(Boolean)
+      : [];
+
+    insights = {
+      previousPlan: contextSnapshot.previousPlan ?? null,
+      dependencyNotes: contextSnapshot.dependencyNotes ?? [],
+      issueReferences,
+    };
+  } catch (error) {
+    console.error("[Standup] Failed to load stand-up metadata for response insights", error);
+  }
+
   await db
     .insert(projectStandupResponses)
     .values({
@@ -148,6 +182,8 @@ async function upsertStandupResponse(standupId: string, participantId: string, a
       participantSlackId: participantId,
       answers,
       blockerFlag,
+      contextSnapshot,
+      insights,
     })
     .onConflictDoUpdate({
       target: [projectStandupResponses.standupId, projectStandupResponses.participantSlackId],
@@ -155,6 +191,8 @@ async function upsertStandupResponse(standupId: string, participantId: string, a
         answers,
         blockerFlag,
         submittedAt: new Date(),
+        contextSnapshot,
+        insights,
       },
     });
 }

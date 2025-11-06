@@ -74,11 +74,18 @@ export interface StandupSessionState {
   reminderCount?: number;
 }
 
+const githubRepoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+
 export const projectSchema = z.object({
   id: z.string().min(1, "Project id is required"),
   name: z.string().min(1, "Project name is required"),
   status: z.enum(["active", "inactive", "draft", "archived"]).default("draft"),
   githubUrl: z.string().url().optional(),
+  githubRepo: z
+    .string()
+    .regex(githubRepoPattern, "GitHub repo must be in the form owner/repo")
+    .optional(),
+  githubDefaultBranch: z.string().min(1).optional(),
   summary: z.string().min(1, "Project summary is required"),
   background: z.string().optional(),
   techStack: z.array(z.string()).default([]),

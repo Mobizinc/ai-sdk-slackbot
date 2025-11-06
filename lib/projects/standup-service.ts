@@ -21,6 +21,16 @@ import {
   createDivider,
 } from "../utils/message-styling";
 import type { SlackMessagingService } from "../services/slack-messaging";
+import {
+  buildContextSummaryLine,
+  buildStandupParticipantContexts,
+  composeAdaptiveQuestions,
+  type StandupParticipantContext,
+} from "./standup-context";
+
+function truncateText(value: string, maxLength = 140): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
+}
 
 const DEFAULT_STANDUP_QUESTIONS: StandupQuestion[] = [
   {
@@ -61,6 +71,8 @@ interface StandupMetadata {
   collectionWindowMinutes?: number;
   reminderCounts?: Record<string, number>;
   reminders?: Array<{ sentAt: string; participants: string[] }>;
+  participantQuestions?: Record<string, StandupQuestion[]>;
+  participantContexts?: Record<string, StandupParticipantContext>;
 }
 
 function normalizeStandupConfig(config?: StandupConfig): StandupConfig | null {
@@ -176,6 +188,8 @@ function parseStandupMetadata(standup: ProjectStandup): StandupMetadata {
     collectionWindowMinutes: raw?.collectionWindowMinutes,
     reminderCounts: raw?.reminderCounts ?? {},
     reminders: raw?.reminders ?? [],
+    participantQuestions: raw?.participantQuestions ?? {},
+    participantContexts: raw?.participantContexts ?? {},
   };
   return metadata;
 }
@@ -306,7 +320,8 @@ async function createStandupRun(project: ProjectDefinition, config: StandupConfi
     return null;
   }
 
-  await sendStandupPrompts(project, config, standupRecord, participants);
+  const contexts = await buildStandupParticipantContexts(project, participants);
+  await sendStandupPrompts(project, config, standupRecord, participants, contexts);
 
   return {
     standup: standupRecord,
@@ -319,6 +334,7 @@ function buildStandupPromptBlocks(
   standup: ProjectStandup,
   participantId: string,
   reason: StandupPromptReason,
+  contextSummary?: string,
 ) {
   const intro =
     reason === "reminder"
@@ -329,9 +345,13 @@ function buildStandupPromptBlocks(
       ? "Please share your update before the collection window closes."
       : "Click the button below to share your update.";
 
-  return [
-    createSectionBlock(intro),
-    createContextBlock(context),
+  const blocks = [createSectionBlock(intro), createContextBlock(context)];
+
+  if (contextSummary) {
+    blocks.push(createContextBlock(contextSummary));
+  }
+
+  blocks.push(
     createActionsBlock([
       {
         text: reason === "reminder" ? "Add update" : "Submit stand-up",
@@ -344,7 +364,9 @@ function buildStandupPromptBlocks(
         }),
       },
     ]),
-  ];
+  );
+
+  return blocks;
 }
 
 async function sendStandupPromptMessage(params: {
@@ -352,10 +374,12 @@ async function sendStandupPromptMessage(params: {
   config: StandupConfig;
   standup: ProjectStandup;
   participantId: string;
+  questions: StandupQuestion[];
   reason: StandupPromptReason;
+  context?: StandupParticipantContext;
   reminderCount?: number;
 }): Promise<boolean> {
-  const { project, config, standup, participantId, reason, reminderCount } = params;
+  const { project, config, standup, participantId, questions, reason, context, reminderCount } = params;
 
   try {
     const conversation = await slackMessaging.openConversation(participantId);
@@ -364,7 +388,8 @@ async function sendStandupPromptMessage(params: {
       return false;
     }
 
-    const blocks = buildStandupPromptBlocks(project, standup, participantId, reason);
+    const summaryLine = buildContextSummaryLine(context);
+    const blocks = buildStandupPromptBlocks(project, standup, participantId, reason, summaryLine);
 
     const message = await slackMessaging.postMessage({
       channel: conversation.channelId,
@@ -384,7 +409,7 @@ async function sendStandupPromptMessage(params: {
       standupId: standup.id,
       projectId: project.id,
       participantId,
-      questions: config.questions,
+      questions,
       startedAt: new Date().toISOString(),
       source: reason,
       reminderCount,
@@ -419,16 +444,43 @@ async function sendStandupPrompts(
   config: StandupConfig,
   standup: ProjectStandup,
   participants: string[],
+  contexts: Map<string, StandupParticipantContext>,
 ): Promise<void> {
+  const metadata = parseStandupMetadata(standup);
+  const participantQuestions: Record<string, StandupQuestion[]> = {
+    ...(metadata.participantQuestions ?? {}),
+  };
+  const participantContexts: Record<string, StandupParticipantContext> = {
+    ...(metadata.participantContexts ?? {}),
+  };
+
   for (const participantId of participants) {
+    const context = contexts.get(participantId);
+    const adaptiveQuestions = composeAdaptiveQuestions(config.questions, context);
+    participantQuestions[participantId] = adaptiveQuestions;
+    if (context) {
+      participantContexts[participantId] = context;
+    }
+
     await sendStandupPromptMessage({
       project,
       config,
       standup,
       participantId,
+      questions: adaptiveQuestions,
       reason: "initial",
+      context,
     });
   }
+
+  const mergedMetadata: StandupMetadata = {
+    ...metadata,
+    participantQuestions,
+    participantContexts,
+  };
+
+  await persistStandupMetadata(standup.id, mergedMetadata);
+  standup.metadata = mergedMetadata as unknown as Record<string, any>;
 }
 
 export async function sendStandupReminders(now: Date): Promise<
@@ -467,6 +519,14 @@ export async function sendStandupReminders(now: Date): Promise<
       }
 
       const metadata = parseStandupMetadata(standup);
+      const participantQuestions: Record<string, StandupQuestion[]> = {
+        ...(metadata.participantQuestions ?? {}),
+      };
+      const storedContexts = metadata.participantContexts ?? {};
+      const contextMap = new Map<string, StandupParticipantContext>(
+        Object.entries(storedContexts).map(([key, value]) => [key, value]),
+      );
+
       const participants =
         metadata.participants && metadata.participants.length > 0
           ? metadata.participants
@@ -501,16 +561,29 @@ export async function sendStandupReminders(now: Date): Promise<
 
       const reminderCounts = { ...(metadata.reminderCounts ?? {}) };
       const notified: string[] = [];
+      const missingContexts = recipients.filter((participantId) => !contextMap.has(participantId));
+      if (missingContexts.length > 0) {
+        const fetched = await buildStandupParticipantContexts(project, missingContexts);
+        fetched.forEach((context, key) => contextMap.set(key, context));
+      }
 
       for (const participantId of recipients) {
         const nextCount = (reminderCounts[participantId] ?? 0) + 1;
+        const context = contextMap.get(participantId);
+        const adaptiveQuestions =
+          participantQuestions[participantId] ??
+          composeAdaptiveQuestions(config.questions, context);
+        participantQuestions[participantId] = adaptiveQuestions;
+
         const success = await sendStandupPromptMessage({
           project,
           config,
           standup,
           participantId,
+          questions: adaptiveQuestions,
           reason: "reminder",
           reminderCount: nextCount,
+          context,
         });
 
         if (success) {
@@ -529,6 +602,10 @@ export async function sendStandupReminders(now: Date): Promise<
         ...previousReminders,
         { sentAt: now.toISOString(), participants: notified },
       ];
+      metadata.participantContexts = {
+        ...Object.fromEntries(contextMap),
+      };
+      metadata.participantQuestions = participantQuestions;
 
       await persistStandupMetadata(standup.id, metadata);
       standup.metadata = metadata as unknown as Record<string, any>;
@@ -611,6 +688,8 @@ async function postStandupSummary(
       answers: projectStandupResponses.answers,
       blockerFlag: projectStandupResponses.blockerFlag,
       submittedAt: projectStandupResponses.submittedAt,
+      contextSnapshot: projectStandupResponses.contextSnapshot,
+      insights: projectStandupResponses.insights,
     })
     .from(projectStandupResponses)
     .where(eq(projectStandupResponses.standupId, standup.id));
@@ -618,10 +697,26 @@ async function postStandupSummary(
   const metadata = (standup.metadata ?? {}) as {
     participants?: string[];
     questions?: StandupQuestion[];
+    participantQuestions?: Record<string, StandupQuestion[]>;
+    participantContexts?: Record<string, StandupParticipantContext>;
   };
 
   const participants = metadata.participants ?? [];
-  const questions = metadata.questions ?? config.questions;
+  const baseQuestions = metadata.questions ?? config.questions;
+  const participantQuestions = metadata.participantQuestions ?? {};
+  const participantContexts = metadata.participantContexts ?? {};
+
+  const aggregatedQuestions = new Map<string, string>();
+  for (const question of baseQuestions) {
+    aggregatedQuestions.set(question.id, question.prompt);
+  }
+  for (const questionList of Object.values(participantQuestions)) {
+    for (const question of questionList) {
+      if (!aggregatedQuestions.has(question.id)) {
+        aggregatedQuestions.set(question.id, question.prompt);
+      }
+    }
+  }
 
   const respondedSet = new Set(rows.map((row) => row.participant));
   const responders = participants.filter((id) => respondedSet.has(id));
@@ -645,10 +740,13 @@ async function postStandupSummary(
 
   blocks.push(createDivider());
 
-  for (const question of questions) {
+  for (const [questionId, prompt] of aggregatedQuestions) {
     const responses = rows
-      .filter((row) => typeof row.answers === "object" && question.id in row.answers)
-      .map((row) => ({ participant: row.participant, answer: (row.answers as Record<string, string>)[question.id] ?? "" }));
+      .filter((row) => typeof row.answers === "object" && questionId in row.answers)
+      .map((row) => ({
+        participant: row.participant,
+        answer: (row.answers as Record<string, string>)[questionId] ?? "",
+      }));
 
     if (responses.length === 0) {
       continue;
@@ -658,7 +756,7 @@ async function postStandupSummary(
       .map(({ participant, answer }) => `• <@${participant}> — ${answer || "(no response)"}`)
       .join("\n");
 
-    blocks.push(createSectionBlock(`*${question.prompt}*\n${responseText}`));
+    blocks.push(createSectionBlock(`*${prompt}*\n${responseText}`));
   }
 
   const blockers = rows.filter((row) => row.blockerFlag);
@@ -693,6 +791,55 @@ async function postStandupSummary(
         );
       }
     }
+  }
+
+  const followUpLines = rows
+    .map((row) => {
+      const context =
+        participantContexts[row.participant] ??
+        ((row.contextSnapshot ?? {}) as Record<string, any>);
+      const previousPlan = (context?.previousPlan as string | undefined)?.trim();
+      if (!previousPlan) {
+        return null;
+      }
+
+      const answers = row.answers as Record<string, string>;
+      const progressAnswer =
+        answers.plan_followup ??
+        answers.yesterday ??
+        answers["yesterday"] ??
+        answers.today ??
+        "";
+      const normalizedProgress = progressAnswer.trim();
+      const statusLower = normalizedProgress.toLowerCase();
+
+      let statusEmoji = "⏳";
+      if (!normalizedProgress) {
+        statusEmoji = "⏳";
+      } else if (/(done|completed|finished|merged|shipped|resolved)/i.test(statusLower)) {
+        statusEmoji = "✅";
+      } else if (/(blocked|waiting|stuck|pending|hold|issue)/i.test(statusLower)) {
+        statusEmoji = "⚠️";
+      }
+
+      const issueReferences = Array.isArray(context?.issueReferences)
+        ? (context.issueReferences as Array<{ raw?: string }>)
+            .map((ref) => (typeof ref === "string" ? ref : ref?.raw))
+            .filter(Boolean)
+        : [];
+      const issueSummary = issueReferences.length > 0 ? ` (${issueReferences.join(", ")})` : "";
+
+      const progressSummary = normalizedProgress || "no update yet";
+
+      return `${statusEmoji} <@${row.participant}> planned "${truncateText(
+        previousPlan,
+      )}" → ${truncateText(progressSummary)}${issueSummary}`;
+    })
+    .filter((line): line is string => Boolean(line));
+
+  if (followUpLines.length > 0) {
+    blocks.push(createDivider());
+    blocks.push(createSectionBlock(`🔁 *Plan follow-ups*\n${followUpLines.join("\n")}`));
   }
 
   const channelId = config.channelId ?? project.channelId;
