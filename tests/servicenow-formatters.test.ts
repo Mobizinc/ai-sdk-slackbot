@@ -163,10 +163,10 @@ describe("ServiceNow Formatters", () => {
       expect(result.wasTruncated).toBe(true);
     });
 
-    it("should use default maxLength of 1000 when not specified", () => {
-      const text = "x".repeat(1500);
+    it("should use default maxLength of 8000 when not specified", () => {
+      const text = "x".repeat(9000);
       const result = truncateWithEllipsis(text);
-      expect(result.text.length).toBeLessThanOrEqual(1000);
+      expect(result.text.length).toBeLessThanOrEqual(8000);
       expect(result.wasTruncated).toBe(true);
     });
   });
@@ -196,7 +196,7 @@ describe("ServiceNow Formatters", () => {
         element_id: "case2",
         sys_created_on: "2025-01-15T14:30:00Z",
         sys_created_by: "",
-        value: null,
+        value: undefined,
       };
 
       const result = sanitizeJournalEntry(entry);
@@ -206,7 +206,7 @@ describe("ServiceNow Formatters", () => {
     });
 
     it("should truncate long journal entries", () => {
-      const longText = "x".repeat(1500);
+      const longText = "x".repeat(9000);
       const entry: ServiceNowCaseJournalEntry = {
         sys_id: "entry3",
         element: "work_notes",
@@ -217,7 +217,7 @@ describe("ServiceNow Formatters", () => {
       };
 
       const result = sanitizeJournalEntry(entry);
-      expect(result.text.length).toBeLessThanOrEqual(1000);
+      expect(result.text.length).toBeLessThanOrEqual(8000);
       expect(result.text).toContain("...");
       expect(result.wasTruncated).toBe(true);
     });
@@ -331,7 +331,7 @@ describe("ServiceNow Formatters", () => {
           element_id: "case1",
           sys_created_on: "2025-01-15T14:30:00Z",
           sys_created_by: "user",
-          value: null,
+          value: undefined,
         },
         {
           sys_id: "entry2",
@@ -339,7 +339,7 @@ describe("ServiceNow Formatters", () => {
           element_id: "case1",
           sys_created_on: "2025-01-15T14:31:00Z",
           sys_created_by: "user",
-          value: null,
+          value: undefined,
         },
       ];
 
@@ -384,22 +384,22 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatCaseSummaryText(caseRecord, journalEntries);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("VPN connection issue");
-      expect(result).toContain("Current State");
-      expect(result).toContain("Status: Open");
-      expect(result).toContain("Priority: 1");
-      expect(result).toContain("Assigned: John Doe");
-      expect(result).toContain("Latest Activity");
-      expect(result).toContain("tech.support");
-      expect(result).toContain("Investigating VPN logs");
-      expect(result).toContain("Context");
-      expect(result).toContain("User cannot connect to VPN from home");
-      expect(result).toContain("References");
-      expect(result).toContain("CS0001");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("VPN connection issue");
+      expect(result?.summary).toContain("Current State");
+      expect(result?.summary).toContain("Status: Open");
+      expect(result?.summary).toContain("Priority: 1");
+      expect(result?.summary).toContain("Assigned: John Doe");
+      expect(result?.summary).toContain("Latest Activity");
+      expect(result?.summary).toContain("tech.support");
+      expect(result?.summary).toContain("Investigating VPN logs");
+      expect(result?.summary).toContain("Context");
+      expect(result?.summary).toContain("User cannot connect to VPN from home");
+      expect(result?.summary).toContain("References");
+      expect(result?.summary).toContain("CS0001");
     });
 
-    it("should show up to 5 journal entries in Latest Activity", () => {
+    it("should show up to 20 journal entries in Latest Activity", () => {
       const caseRecord: ServiceNowCaseResult = {
         sys_id: "case1",
         number: "CS0001",
@@ -408,7 +408,7 @@ describe("ServiceNow Formatters", () => {
       };
 
       const journalEntries: ServiceNowCaseJournalEntry[] = Array.from(
-        { length: 10 },
+        { length: 25 },
         (_, i) => ({
           sys_id: `j${i}`,
           element: "work_notes",
@@ -421,12 +421,12 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatCaseSummaryText(caseRecord, journalEntries);
 
-      // Should contain first 5 entries
-      expect(result).toContain("Entry 0");
-      expect(result).toContain("Entry 4");
-      // Should not contain 6th+ entries
-      expect(result).not.toContain("Entry 5");
-      expect(result).not.toContain("Entry 9");
+      // Should contain first 20 entries
+      expect(result?.summary).toContain("Entry 0");
+      expect(result?.summary).toContain("Entry 19");
+      // Should not contain 21st+ entries
+      expect(result?.summary).not.toContain("Entry 20");
+      expect(result?.summary).not.toContain("Entry 24");
     });
 
     it("should handle missing optional fields gracefully", () => {
@@ -437,10 +437,10 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatCaseSummaryText(caseRecord, []);
 
-      expect(result).toContain("References");
-      expect(result).toContain("CS0001");
+      expect(result?.summary).toContain("References");
+      expect(result?.summary).toContain("CS0001");
       // Should not have empty sections
-      expect(result).not.toMatch(/Summary\s*\n\s*Current State/);
+      expect(result?.summary).not.toMatch(/Summary\s*\n\s*Current State/);
     });
 
     it("should use account/requester in Context when description is missing", () => {
@@ -455,9 +455,9 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatCaseSummaryText(caseRecord, []);
 
-      expect(result).toContain("Context");
-      expect(result).toContain("Account: Altus Healthcare");
-      expect(result).toContain("Requester: user@example.com");
+      expect(result?.summary).toContain("Context");
+      expect(result?.summary).toContain("Account: Altus Healthcare");
+      expect(result?.summary).toContain("Requester: user@example.com");
     });
 
     it("should deduplicate journal entries", () => {
@@ -490,7 +490,7 @@ describe("ServiceNow Formatters", () => {
       const result = formatCaseSummaryText(caseRecord, journalEntries);
 
       // Should only show one instance due to deduplication
-      const matches = result?.match(/Same text/g);
+      const matches = result?.summary?.match(/Same text/g);
       expect(matches).toHaveLength(1);
     });
 
@@ -517,12 +517,12 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatIncidentForLLM(incident);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("Database connection timeout");
-      expect(result).toContain("Current State");
-      expect(result).toContain("Status: In Progress");
-      expect(result).toContain("References");
-      expect(result).toContain("INC0001");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("Database connection timeout");
+      expect(result?.summary).toContain("Current State");
+      expect(result?.summary).toContain("Status: In Progress");
+      expect(result?.summary).toContain("Reference");
+      expect(result?.summary).toContain("INC0001");
     });
 
     it("should handle missing state", () => {
@@ -535,12 +535,13 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatIncidentForLLM(incident);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("Test incident");
-      expect(result).not.toContain("Current State");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("Test incident");
+      expect(result?.summary).toContain("Current State");
+      expect(result?.summary).toContain("Assigned: Unassigned");
     });
 
-    it("should return null for completely empty incident", () => {
+    it("should return result even for completely empty incident", () => {
       const incident: ServiceNowIncidentResult = {
         sys_id: "inc1",
         number: "",
@@ -549,7 +550,9 @@ describe("ServiceNow Formatters", () => {
       };
 
       const result = formatIncidentForLLM(incident);
-      expect(result).toBe(null);
+      expect(result).not.toBe(null);
+      expect(result?.summary).toContain("Current State");
+      expect(result?.summary).toContain("Assigned: Unassigned");
     });
 
     it("should format reference as link when URL is present", () => {
@@ -562,8 +565,8 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatIncidentForLLM(incident);
 
-      expect(result).toContain("<https://instance.service-now.com");
-      expect(result).toContain("|INC0001>");
+      expect(result?.summary).toContain("<https://instance.service-now.com");
+      expect(result?.summary).toContain("|INC0001>");
     });
   });
 
@@ -590,13 +593,13 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatJournalEntriesForLLM(entries, "CS0001");
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("2 journal entries for CS0001");
-      expect(result).toContain("Latest Activity");
-      expect(result).toContain("user1");
-      expect(result).toContain("First entry");
-      expect(result).toContain("user2");
-      expect(result).toContain("Second entry");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("2 journal entries for CS0001");
+      expect(result?.summary).toContain("Latest Activity");
+      expect(result?.summary).toContain("user1");
+      expect(result?.summary).toContain("First entry");
+      expect(result?.summary).toContain("user2");
+      expect(result?.summary).toContain("Second entry");
     });
 
     it("should return null for empty entries", () => {
@@ -604,7 +607,7 @@ describe("ServiceNow Formatters", () => {
       expect(result).toBe(null);
     });
 
-    it("should limit to 5 entries in Latest Activity", () => {
+    it("should show all entries when less than MAX_JOURNAL_ENTRIES", () => {
       const entries: ServiceNowCaseJournalEntry[] = Array.from(
         { length: 10 },
         (_, i) => ({
@@ -619,11 +622,9 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatJournalEntriesForLLM(entries);
 
-      expect(result).toContain("Entry 0");
-      expect(result).toContain("Entry 4");
-      expect(result).not.toContain("Entry 5");
-      expect(result).toContain("Context");
-      expect(result).toContain("Showing 5 of 10 entries");
+      expect(result?.summary).toContain("Entry 0");
+      expect(result?.summary).toContain("Entry 9");
+      expect(result?.summary).not.toContain("Context");
     });
 
     it("should not show context section when all entries fit", () => {
@@ -640,9 +641,9 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatJournalEntriesForLLM(entries);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("Latest Activity");
-      expect(result).not.toContain("Context");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("Latest Activity");
+      expect(result?.summary).not.toContain("Context");
     });
 
     it("should work without case name", () => {
@@ -659,12 +660,12 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatJournalEntriesForLLM(entries);
 
-      expect(result).toContain("1 journal entries");
-      expect(result).not.toContain("for");
+      expect(result?.summary).toContain("1 journal entries");
+      expect(result?.summary).not.toContain("for");
     });
 
     it("should include truncation indicators for long entries", () => {
-      const longText = "x".repeat(1500);
+      const longText = "x".repeat(9000);
       const entries: ServiceNowCaseJournalEntry[] = [
         {
           sys_id: "j1",
@@ -678,7 +679,7 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatJournalEntriesForLLM(entries);
 
-      expect(result).toContain("[truncated]");
+      expect(result?.summary).toContain("[truncated]");
     });
   });
 
@@ -706,22 +707,22 @@ describe("ServiceNow Formatters", () => {
       const filters = ["account: Altus Healthcare", "priority: 1"];
       const result = formatSearchResultsForLLM(cases, filters, 2);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("Found 2 cases");
-      expect(result).toContain("Current State");
-      expect(result).toContain("Filters: account: Altus Healthcare, priority: 1");
-      expect(result).toContain("Latest Activity");
-      expect(result).toContain("CS0001");
-      expect(result).toContain("VPN issue");
-      expect(result).toContain("[P1]");
-      expect(result).toContain("(Open)");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("Found 2 cases");
+      expect(result?.summary).toContain("Current State");
+      expect(result?.summary).toContain("Filters: account: Altus Healthcare, priority: 1");
+      expect(result?.summary).toContain("Latest Activity");
+      expect(result?.summary).toContain("CS0001");
+      expect(result?.summary).toContain("VPN issue");
+      expect(result?.summary).toContain("[P1]");
+      expect(result?.summary).toContain("(Open)");
     });
 
     it("should return message for no results", () => {
       const result = formatSearchResultsForLLM([], [], 0);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("No cases found");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("No cases found");
     });
 
     it("should limit to 10 results in Latest Activity", () => {
@@ -734,11 +735,11 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatSearchResultsForLLM(cases, [], 20);
 
-      expect(result).toContain("CS0000");
-      expect(result).toContain("CS0009");
-      expect(result).not.toContain("CS0010");
-      expect(result).toContain("Context");
-      expect(result).toContain("Showing top 10 of 20 results");
+      expect(result?.summary).toContain("CS0000");
+      expect(result?.summary).toContain("CS0009");
+      expect(result?.summary).not.toContain("CS0010");
+      expect(result?.summary).toContain("Context");
+      expect(result?.summary).toContain("Showing top 10 of 20 results");
     });
 
     it("should handle cases without URLs", () => {
@@ -747,14 +748,15 @@ describe("ServiceNow Formatters", () => {
           sys_id: "case1",
           number: "CS0001",
           short_description: "Test",
+          url: "",
         },
       ];
 
       const result = formatSearchResultsForLLM(cases, [], 1);
 
-      expect(result).toContain("• CS0001: Test");
-      expect(result).not.toContain("<");
-      expect(result).not.toContain(">");
+      expect(result?.summary).toContain("• CS0001: Test");
+      expect(result?.summary).not.toContain("<");
+      expect(result?.summary).not.toContain(">");
     });
 
     it("should handle missing priority and state", () => {
@@ -769,10 +771,10 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatSearchResultsForLLM(cases, [], 1);
 
-      expect(result).toContain("CS0001");
-      expect(result).toContain("Test");
-      expect(result).not.toContain("[P");
-      expect(result).not.toContain("(");
+      expect(result?.summary).toContain("CS0001");
+      expect(result?.summary).toContain("Test");
+      expect(result?.summary).not.toContain("[P");
+      expect(result?.summary).not.toContain("(");
     });
 
     it("should not show Current State section when no filters applied", () => {
@@ -787,8 +789,8 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatSearchResultsForLLM(cases, [], 1);
 
-      expect(result).not.toContain("Current State");
-      expect(result).not.toContain("Filters:");
+      expect(result?.summary).not.toContain("Current State");
+      expect(result?.summary).not.toContain("Filters:");
     });
   });
 
@@ -817,21 +819,21 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatConfigurationItemsForLLM(items);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("Found 2 configuration items");
-      expect(result).toContain("Latest Activity");
-      expect(result).toContain("prod-web-01");
-      expect(result).toContain("Type: Linux Server");
-      expect(result).toContain("Status: Operational");
-      expect(result).toContain("Env: Production");
-      expect(result).toContain("IPs: 192.168.1.10, 10.0.0.5");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("Found 2 configuration items");
+      expect(result?.summary).toContain("Latest Activity");
+      expect(result?.summary).toContain("prod-web-01");
+      expect(result?.summary).toContain("Type: Linux Server");
+      expect(result?.summary).toContain("Status: Operational");
+      expect(result?.summary).toContain("Env: Production");
+      expect(result?.summary).toContain("IPs: 192.168.1.10, 10.0.0.5");
     });
 
     it("should return message for no items", () => {
       const result = formatConfigurationItemsForLLM([]);
 
-      expect(result).toContain("Summary");
-      expect(result).toContain("No configuration items found");
+      expect(result?.summary).toContain("Summary");
+      expect(result?.summary).toContain("No configuration items found");
     });
 
     it("should limit to 10 items in Latest Activity", () => {
@@ -847,11 +849,11 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatConfigurationItemsForLLM(items);
 
-      expect(result).toContain("server-0");
-      expect(result).toContain("server-9");
-      expect(result).not.toContain("server-10");
-      expect(result).toContain("Context");
-      expect(result).toContain("Showing top 10 of 15 items");
+      expect(result?.summary).toContain("server-0");
+      expect(result?.summary).toContain("server-9");
+      expect(result?.summary).not.toContain("server-10");
+      expect(result?.summary).toContain("Context");
+      expect(result?.summary).toContain("Showing top 10 of 15 items");
     });
 
     it("should handle items without URLs", () => {
@@ -866,8 +868,8 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatConfigurationItemsForLLM(items);
 
-      expect(result).toContain("• test-server");
-      expect(result).not.toContain("<");
+      expect(result?.summary).toContain("• test-server");
+      expect(result?.summary).not.toContain("<");
     });
 
     it("should handle items with minimal metadata", () => {
@@ -882,9 +884,9 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatConfigurationItemsForLLM(items);
 
-      expect(result).toContain("minimal-server");
+      expect(result?.summary).toContain("minimal-server");
       // Should not show empty metadata brackets
-      expect(result).not.toMatch(/\[\s*\]/);
+      expect(result?.summary).not.toMatch(/\[\s*\]/);
     });
 
     it("should handle empty IP addresses array", () => {
@@ -900,8 +902,8 @@ describe("ServiceNow Formatters", () => {
 
       const result = formatConfigurationItemsForLLM(items);
 
-      expect(result).toContain("server");
-      expect(result).not.toContain("IPs:");
+      expect(result?.summary).toContain("server");
+      expect(result?.summary).not.toContain("IPs:");
     });
   });
 });
