@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { GitBranch, ExternalLink, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { apiClient, type ProjectWithRelations } from "@/lib/api-client";
@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+interface GithubFormState {
+  githubUrl: string
+  githubRepo: string
+  githubDefaultBranch: string
+}
+
 export default function GitHubPage() {
   const params = useParams();
   const projectId = params.id as string;
@@ -17,15 +23,13 @@ export default function GitHubPage() {
   const [project, setProject] = useState<ProjectWithRelations | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<GithubFormState>({
+    githubUrl: "",
+    githubRepo: "",
+    githubDefaultBranch: "main",
+  });
 
-  useEffect(() => {
-    if (projectId) {
-      loadProject();
-    }
-  }, [projectId]);
-
-  const loadProject = async () => {
+  const loadProject = useCallback(async () => {
     try {
       const data = await apiClient.getProject(projectId);
       setProject(data);
@@ -38,19 +42,25 @@ export default function GitHubPage() {
       console.error("Failed to load project:", error);
       toast.error("Failed to load project");
     }
-  };
+  }, [projectId]);
 
-  const parseGitHubUrl = (url: string) => {
+  useEffect(() => {
+    if (projectId) {
+      void loadProject();
+    }
+  }, [projectId, loadProject]);
+
+  const parseGitHubUrl = useCallback((url: string) => {
     if (!url) return;
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (match) {
       const [, owner, repo] = match;
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         githubRepo: `${owner}/${repo.replace(/\.git$/, "")}`,
-      });
+      }));
     }
-  };
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -60,7 +70,7 @@ export default function GitHubPage() {
         githubRepo: formData.githubRepo || null,
         githubDefaultBranch: formData.githubDefaultBranch || "main",
       });
-      setProject({ ...project!, ...result.project });
+      setProject((prev) => (prev ? { ...prev, ...result.project } : prev));
       setEditing(false);
       toast.success("GitHub configuration updated");
     } catch (error) {
@@ -103,8 +113,9 @@ export default function GitHubPage() {
               <Input
                 value={formData.githubUrl}
                 onChange={(e) => {
-                  setFormData({ ...formData, githubUrl: e.target.value });
-                  parseGitHubUrl(e.target.value);
+                  const value = e.target.value;
+                  setFormData((prev) => ({ ...prev, githubUrl: value }));
+                  parseGitHubUrl(value);
                 }}
                 placeholder="https://github.com/owner/repo"
               />
@@ -113,7 +124,9 @@ export default function GitHubPage() {
             <FieldGroup label="Repository" description="Owner/repo format">
               <Input
                 value={formData.githubRepo}
-                onChange={(e) => setFormData({ ...formData, githubRepo: e.target.value })}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, githubRepo: e.target.value }))
+                }
                 placeholder="owner/repo"
               />
             </FieldGroup>
@@ -121,7 +134,12 @@ export default function GitHubPage() {
             <FieldGroup label="Default Branch">
               <Input
                 value={formData.githubDefaultBranch}
-                onChange={(e) => setFormData({ ...formData, githubDefaultBranch: e.target.value })}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    githubDefaultBranch: e.target.value,
+                  }))
+                }
                 placeholder="main"
               />
             </FieldGroup>

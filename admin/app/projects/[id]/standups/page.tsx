@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Calendar, Users, Play, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { apiClient, type Standup, type StandupResponse } from "@/lib/api-client";
+import { apiClient, type Standup, type StandupConfig, type StandupResponse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -12,19 +12,13 @@ export default function StandupsPage() {
   const projectId = params.id as string;
 
   const [standups, setStandups] = useState<Standup[]>([]);
-  const [config, setConfig] = useState<Record<string, any> | null>(null);
+  const [config, setConfig] = useState<StandupConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [expandedStandup, setExpandedStandup] = useState<string | null>(null);
   const [standupResponses, setStandupResponses] = useState<Record<string, StandupResponse[]>>({});
 
-  useEffect(() => {
-    if (projectId) {
-      loadStandups();
-    }
-  }, [projectId]);
-
-  const loadStandups = async () => {
+  const loadStandups = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiClient.getProjectStandups(projectId);
@@ -36,7 +30,12 @@ export default function StandupsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadStandups();
+  }, [projectId, loadStandups]);
 
   const handleTriggerStandup = async () => {
     try {
@@ -63,7 +62,7 @@ export default function StandupsPage() {
     if (!standupResponses[standupId]) {
       try {
         const data = await apiClient.getStandupDetails(projectId, standupId);
-        setStandupResponses({ ...standupResponses, [standupId]: data.responses });
+        setStandupResponses((prev) => ({ ...prev, [standupId]: data.responses }));
       } catch (error) {
         console.error("Failed to load standup responses:", error);
         toast.error("Failed to load responses");

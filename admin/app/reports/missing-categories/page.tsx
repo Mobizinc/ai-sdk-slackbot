@@ -1,21 +1,15 @@
 "use client"
 
-
-import { useEffect, useState } from "react"
-import { apiClient } from "@/lib/api-client"
+import { useCallback, useEffect, useState } from "react"
+import { apiClient, type MissingCategoriesResponse, type MissingCategoryDetail, type MissingCategoryCase } from "@/lib/api-client"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { AlertCircle } from "lucide-react"
 
 export default function MissingCategoriesPage() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<MissingCategoriesResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
 
-  useEffect(() => {
-    loadData()
-  }, [days])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const result = await apiClient.getMissingCategories(days)
@@ -25,7 +19,11 @@ export default function MissingCategoriesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [days])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   if (loading) {
     return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
@@ -45,7 +43,7 @@ export default function MissingCategoriesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Missing Categories</h1>
-          <p className="text-gray-600">AI-suggested categories that don't exist in ServiceNow</p>
+          <p className="text-gray-600">AI-suggested categories that don&apos;t exist in ServiceNow</p>
         </div>
         <select
           value={days}
@@ -96,7 +94,7 @@ export default function MissingCategoriesPage() {
 
       {/* Category Details */}
       <div className="space-y-6">
-        {data.categoriesWithDetails.map((cat: any, i: number) => (
+        {data.categoriesWithDetails.map((cat: MissingCategoryDetail, i) => (
           <div key={cat.category} className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -124,7 +122,7 @@ export default function MissingCategoriesPage() {
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">Recent Cases:</p>
               <div className="space-y-2">
-                {cat.cases.map((c: any) => (
+                {cat.cases.map((c: MissingCategoryCase) => (
                   <div key={c.caseNumber} className="border-l-4 border-blue-500 pl-3 py-1">
                     <div className="flex items-center gap-2">
                       <code className="text-sm font-mono">{c.caseNumber}</code>

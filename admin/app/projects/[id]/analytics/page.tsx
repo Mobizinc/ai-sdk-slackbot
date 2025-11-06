@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import {
-  BarChart3,
-  TrendingUp,
-  Users,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Activity,
-} from "lucide-react";
+import { TrendingUp, Users, AlertTriangle, CheckCircle, Clock, Activity } from "lucide-react";
 import { apiClient, type ProjectAnalytics } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -21,13 +13,7 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (projectId) {
-      loadAnalytics();
-    }
-  }, [projectId]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiClient.getProjectAnalytics(projectId);
@@ -38,7 +24,12 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadAnalytics();
+  }, [projectId, loadAnalytics]);
 
   if (loading) {
     return <div className="text-center py-8">Loading analytics...</div>;
@@ -222,22 +213,27 @@ export default function AnalyticsPage() {
         </h2>
 
         <div className="space-y-3">
-          {analytics.timeline.map((event, i) => (
-            <div key={i} className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
-              <div className="mt-1">{getTimelineIcon(event.type)}</div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">{event.description}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(event.timestamp).toLocaleString()}
-                </p>
-                {event.matchScore && (
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">
-                    Match Score: {event.matchScore}
-                  </span>
-                )}
+          {analytics.timeline.map((event, i) => {
+            const rawMatchScore = (event as { matchScore?: unknown }).matchScore
+            const matchScore = typeof rawMatchScore === "number" ? rawMatchScore : null
+
+            return (
+              <div key={i} className="flex items-start gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mt-1">{getTimelineIcon(event.type)}</div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{event.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(event.timestamp).toLocaleString()}
+                  </p>
+                  {matchScore !== null && (
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">
+                      Match Score: {matchScore}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {analytics.timeline.length === 0 && (

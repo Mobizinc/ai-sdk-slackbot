@@ -8,7 +8,6 @@ import { FieldGroup } from "@/components/projects/FieldGroup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
 
@@ -65,22 +64,29 @@ export default function CreateProjectPage() {
   const [learningOppInput, setLearningOppInput] = useState("");
   const [openTaskInput, setOpenTaskInput] = useState("");
 
-  const updateField = (field: keyof ProjectFormData, value: any) => {
-    setFormData({ ...formData, [field]: value });
+  const updateField = <K extends keyof ProjectFormData>(field: K, value: ProjectFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addArrayItem = (field: keyof ProjectFormData, value: string, clearInput: () => void) => {
+  type ProjectArrayField =
+    | "techStack"
+    | "skillsRequired"
+    | "skillsNiceToHave"
+    | "learningOpportunities"
+    | "openTasks";
+
+  const addArrayItem = (field: ProjectArrayField, value: string, clearInput: () => void) => {
     if (!value.trim()) return;
-    const currentArray = formData[field] as string[];
-    updateField(field, [...currentArray, value.trim()]);
+    const currentArray = formData[field];
+    updateField(field, [...currentArray, value.trim()] as ProjectFormData[ProjectArrayField]);
     clearInput();
   };
 
-  const removeArrayItem = (field: keyof ProjectFormData, index: number) => {
-    const currentArray = formData[field] as string[];
+  const removeArrayItem = (field: ProjectArrayField, index: number) => {
+    const currentArray = formData[field];
     updateField(
       field,
-      currentArray.filter((_, i) => i !== index)
+      currentArray.filter((_, i) => i !== index) as ProjectFormData[ProjectArrayField]
     );
   };
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Grid, List, Plus, Loader2 } from "lucide-react";
 import { apiClient, type Project, type ProjectStats, type ProjectFilters } from "@/lib/api-client";
 import { ProjectCard } from "@/components/projects/ProjectCard";
-import { ProjectStatusBadge } from "@/components/projects/ProjectStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -21,11 +20,7 @@ export default function ProjectsPage() {
   const [filters, setFilters] = useState<ProjectFilters>({});
   const [searchInput, setSearchInput] = useState("");
 
-  useEffect(() => {
-    loadProjects();
-  }, [filters]);
-
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiClient.getProjects(filters);
@@ -37,7 +32,11 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
 
   const handleSearch = () => {
     setFilters({ ...filters, search: searchInput || undefined });

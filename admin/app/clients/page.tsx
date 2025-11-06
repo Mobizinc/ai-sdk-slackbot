@@ -2,12 +2,12 @@
 
 
 import { useEffect, useState } from "react"
-import { apiClient } from "@/lib/api-client"
+import { apiClient, type ClientListItem } from "@/lib/api-client"
 import Link from "next/link"
 import { Building2, Settings, CheckCircle, XCircle } from "lucide-react"
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<ClientListItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

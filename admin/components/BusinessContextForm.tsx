@@ -30,7 +30,7 @@ export function BusinessContextForm({
     control,
     formState: { errors, isSubmitting },
   } = useForm<BusinessContextFormData>({
-    resolver: zodResolver(businessContextSchema) as any,
+    resolver: zodResolver(businessContextSchema),
     defaultValues: {
       entityName: initialData?.entityName || "",
       entityType: initialData?.entityType || "CLIENT",
@@ -49,39 +49,39 @@ export function BusinessContextForm({
     },
   })
 
-  const { fields: aliasFields, append: appendAlias, remove: removeAlias } = useFieldArray({
+  const { fields: aliasFields, append: appendAlias, remove: removeAlias } = useFieldArray<BusinessContextFormData, "aliases">({
     control,
-    name: "aliases" as any,
+    name: "aliases",
   })
 
-  const { fields: entityFields, append: appendEntity, remove: removeEntity } = useFieldArray({
+  const { fields: entityFields, append: appendEntity, remove: removeEntity } = useFieldArray<BusinessContextFormData, "relatedEntities">({
     control,
-    name: "relatedEntities" as any,
+    name: "relatedEntities",
   })
 
-  const { fields: companyFields, append: appendCompany, remove: removeCompany } = useFieldArray({
+  const { fields: companyFields, append: appendCompany, remove: removeCompany } = useFieldArray<BusinessContextFormData, "relatedCompanies">({
     control,
-    name: "relatedCompanies" as any,
+    name: "relatedCompanies",
   })
 
-  const { fields: contactFields, append: appendContact, remove: removeContact } = useFieldArray({
+  const { fields: contactFields, append: appendContact, remove: removeContact } = useFieldArray<BusinessContextFormData, "keyContacts">({
     control,
-    name: "keyContacts" as any,
+    name: "keyContacts",
   })
 
-  const { fields: channelFields, append: appendChannel, remove: removeChannel } = useFieldArray({
+  const { fields: channelFields, append: appendChannel, remove: removeChannel } = useFieldArray<BusinessContextFormData, "slackChannels">({
     control,
-    name: "slackChannels" as any,
+    name: "slackChannels",
   })
 
-  const { fields: cmdbFields, append: appendCmdb, remove: removeCmdb } = useFieldArray({
+  const { fields: cmdbFields, append: appendCmdb, remove: removeCmdb } = useFieldArray<BusinessContextFormData, "cmdbIdentifiers">({
     control,
-    name: "cmdbIdentifiers" as any,
+    name: "cmdbIdentifiers",
   })
 
-  const { fields: stewardFields, append: appendSteward, remove: removeSteward } = useFieldArray({
+  const { fields: stewardFields, append: appendSteward, remove: removeSteward } = useFieldArray<BusinessContextFormData, "contextStewards">({
     control,
-    name: "contextStewards" as any,
+    name: "contextStewards",
   })
 
   return (

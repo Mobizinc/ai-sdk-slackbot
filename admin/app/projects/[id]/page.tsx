@@ -1,16 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Save, X, Plus, Trash2 } from "lucide-react";
-import { apiClient, type ProjectWithRelations } from "@/lib/api-client";
+import { X } from "lucide-react";
+import { apiClient, type Project, type ProjectWithRelations } from "@/lib/api-client";
 import { EditableSection } from "@/components/projects/EditableSection";
 import { FieldGroup } from "@/components/projects/FieldGroup";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
+
+type ProjectFormState = Partial<Project>;
+type EditableField =
+  | "name"
+  | "status"
+  | "summary"
+  | "background"
+  | "techStack"
+  | "skillsRequired"
+  | "skillsNiceToHave"
+  | "difficultyLevel"
+  | "estimatedHours"
+  | "learningOpportunities"
+  | "openTasks"
+  | "mentorSlackUserId"
+  | "mentorName";
+
+const extractProjectFields = (item: ProjectWithRelations): Project =>
+  (({ standups, interviews, initiations, evaluations, ...rest }) => rest)(item) as Project;
 
 export default function ProjectOverviewPage() {
   const params = useParams();
@@ -19,48 +37,51 @@ export default function ProjectOverviewPage() {
   const [project, setProject] = useState<ProjectWithRelations | null>(null);
   const [editingSections, setEditingSections] = useState<Record<string, boolean>>({});
   const [savingSection, setSavingSection] = useState<string | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<ProjectFormState>({});
 
-  useEffect(() => {
-    if (projectId) {
-      loadProject();
-    }
-  }, [projectId]);
-
-  const loadProject = async () => {
+  const loadProject = useCallback(async () => {
     try {
       const data = await apiClient.getProject(projectId);
       setProject(data);
-      setFormData(data);
+      setFormData(extractProjectFields(data));
     } catch (error) {
       console.error("Failed to load project:", error);
       toast.error("Failed to load project");
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadProject();
+  }, [projectId, loadProject]);
 
   const startEditing = (section: string) => {
-    setEditingSections({ ...editingSections, [section]: true });
+    setEditingSections((prev) => ({ ...prev, [section]: true }));
   };
 
   const cancelEditing = (section: string) => {
-    setEditingSections({ ...editingSections, [section]: false });
+    setEditingSections((prev) => ({ ...prev, [section]: false }));
     if (project) {
-      setFormData({ ...formData, ...project });
+      setFormData(extractProjectFields(project));
     }
   };
 
-  const saveSection = async (section: string, fields: string[]) => {
+  const saveSection = async (section: string, fields: EditableField[]) => {
     try {
       setSavingSection(section);
-      const updates: any = {};
+      const updates: Partial<Project> = {};
       fields.forEach((field) => {
-        updates[field] = formData[field];
+        const value = formData[field];
+        if (value !== undefined) {
+          (updates as Record<EditableField, Project[EditableField]>)[field] =
+            value as Project[EditableField];
+        }
       });
 
       const result = await apiClient.updateProject(projectId, updates);
-      setProject({ ...project!, ...result.project });
-      setFormData({ ...formData, ...result.project });
-      setEditingSections({ ...editingSections, [section]: false });
+      setProject((prev) => (prev ? { ...prev, ...result.project } : prev));
+      setFormData((prev) => ({ ...prev, ...result.project }));
+      setEditingSections((prev) => ({ ...prev, [section]: false }));
       toast.success("Project updated successfully");
     } catch (error) {
       console.error("Failed to update project:", error);
@@ -70,20 +91,26 @@ export default function ProjectOverviewPage() {
     }
   };
 
-  const updateField = (field: string, value: any) => {
-    setFormData({ ...formData, [field]: value });
+  const updateField = <K extends keyof ProjectFormState>(field: K, value: ProjectFormState[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addArrayItem = (field: string, value: string) => {
+  type ProjectArrayField =
+    | "techStack"
+    | "skillsRequired"
+    | "skillsNiceToHave"
+    | "learningOpportunities"
+    | "openTasks";
+
+  const addArrayItem = (field: ProjectArrayField, value: string) => {
     if (!value.trim()) return;
-    updateField(field, [...(formData[field] || []), value.trim()]);
+    const nextValues = [...((formData[field] as string[] | undefined) ?? []), value.trim()];
+    updateField(field, nextValues);
   };
 
-  const removeArrayItem = (field: string, index: number) => {
-    updateField(
-      field,
-      formData[field].filter((_: any, i: number) => i !== index)
-    );
+  const removeArrayItem = (field: ProjectArrayField, index: number) => {
+    const current = (formData[field] as string[] | undefined) ?? [];
+    updateField(field, current.filter((_, i) => i !== index));
   };
 
   if (!project) {

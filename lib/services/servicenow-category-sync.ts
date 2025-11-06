@@ -88,7 +88,7 @@ export class ServiceNowCategorySyncService {
 
       // Process each choice from ServiceNow
       for (const choice of choices) {
-        const key = `${choice.value}:${choice.dependent_value || ""}`;
+        const key = `${choice.value}:${choice.dependentValue || ""}`;
         processedKeys.add(key);
 
         const existingChoice = existingMap.get(key);
@@ -105,7 +105,7 @@ export class ServiceNowCategorySyncService {
               value: choice.value,
               label: choice.label,
               sequence: choice.sequence,
-              dependentValue: choice.dependent_value || null,
+              dependentValue: choice.dependentValue || null,
             });
             choicesUpdated++;
             console.log(
@@ -119,7 +119,7 @@ export class ServiceNowCategorySyncService {
               value: choice.value,
               label: choice.label,
               sequence: choice.sequence,
-              dependentValue: choice.dependent_value || null,
+              dependentValue: choice.dependentValue || null,
             });
           }
         } else {
@@ -130,7 +130,7 @@ export class ServiceNowCategorySyncService {
             value: choice.value,
             label: choice.label,
             sequence: choice.sequence,
-            dependentValue: choice.dependent_value || null,
+            dependentValue: choice.dependentValue || null,
           });
           choicesAdded++;
           console.log(`[Category Sync] Added: ${choice.value} -> ${choice.label}`);

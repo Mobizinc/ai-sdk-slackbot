@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Administration interface for AI Slack Bot",
 }
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

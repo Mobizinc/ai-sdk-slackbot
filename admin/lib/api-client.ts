@@ -3,6 +3,14 @@
  * Wraps existing API endpoints with type safety
  */
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+type JsonObject = { [key: string]: JsonValue }
+type TimelineEntry = {
+  type: string
+  timestamp: string
+  description: string
+} & Record<string, JsonValue>
+
 export interface BusinessContext {
   id: number
   entityName: string
@@ -97,6 +105,47 @@ export interface QueueStats {
   timestamp: string
 }
 
+export interface CustomCatalogMapping {
+  requestType: string
+  keywords: string[]
+  catalogItemNames: string[]
+  priority: number
+}
+
+export interface ClientSettings {
+  id: number
+  clientId: string
+  clientName: string
+  catalogRedirectEnabled: boolean
+  catalogRedirectConfidenceThreshold: number
+  catalogRedirectAutoClose: boolean
+  supportContactInfo: string | null
+  customCatalogMappings: CustomCatalogMapping[]
+  features: Record<string, boolean>
+  notes: string | null
+  createdBy: string | null
+  updatedBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ClientSettingsUpdate = Partial<Omit<ClientSettings, "id" | "clientId" | "createdAt" | "updatedAt">> & {
+  clientName?: string
+}
+
+export interface ClientListItem {
+  id: number
+  clientId: string
+  clientName: string
+  catalogRedirectEnabled: boolean
+  catalogRedirectConfidenceThreshold: number
+  catalogRedirectAutoClose: boolean
+  supportContactInfo: string | null
+  customMappingsCount: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface StrategicEvaluationSummary {
   id: string
   projectName: string
@@ -133,8 +182,8 @@ export interface Project {
   openTasks: string[]
   mentorSlackUserId: string | null
   mentorName: string | null
-  interviewConfig: Record<string, any> | null
-  standupConfig: Record<string, any> | null
+  interviewConfig: JsonObject | null
+  standupConfig: JsonObject | null
   maxCandidates: number | null
   postedDate: string | null
   expiresDate: string | null
@@ -169,21 +218,21 @@ export interface Standup {
   collectUntil: string
   channelId: string | null
   status: string
-  summary: Record<string, any> | null
+  summary: JsonObject | null
   triggeredAt: string
   completedAt: string | null
   createdAt: string
-  metadata: Record<string, any>
+  metadata: JsonObject
 }
 
 export interface StandupResponse {
   id: string
   standupId: string
   participantSlackId: string
-  answers: Record<string, any>
+  answers: JsonObject
   blockerFlag: boolean
-  contextSnapshot: Record<string, any>
-  insights: Record<string, any>
+  contextSnapshot: JsonObject
+  insights: JsonObject
   submittedAt: string
   createdAt: string
 }
@@ -193,8 +242,8 @@ export interface Interview {
   projectId: string
   candidateSlackId: string
   mentorSlackId: string | null
-  answers: Array<Record<string, any>>
-  questions: Array<Record<string, any>>
+  answers: Array<JsonObject>
+  questions: Array<JsonObject>
   scoringPrompt: string | null
   matchScore: number
   matchSummary: string
@@ -217,10 +266,10 @@ export interface ProjectInitiation {
   contextSummary: string | null
   llmModel: string | null
   status: string
-  output: Record<string, any>
-  sources: Array<Record<string, any>>
+  output: JsonObject
+  sources: Array<JsonObject>
   rawResponse: string | null
-  metadata: Record<string, any>
+  metadata: JsonObject
   createdAt: string
   updatedAt: string
 }
@@ -257,12 +306,82 @@ export interface ProjectAnalytics {
     completedTasks: number
     taskVelocity: number
   }
-  timeline: Array<{
-    type: string
-    timestamp: string
-    description: string
-    [key: string]: any
-  }>
+  timeline: TimelineEntry[]
+}
+
+export interface MissingCategoriesStatistics {
+  totalMismatches: number
+  uniqueCategories: number
+  reviewedCount: number
+  avgConfidence: number
+}
+
+export interface MissingCategoryCase {
+  caseNumber: string
+  confidence: number
+  correctedTo: string
+  description: string
+}
+
+export interface MissingCategoryDetail {
+  category: string
+  subcategories: string[]
+  caseCount: number
+  cases: MissingCategoryCase[]
+}
+
+export interface MissingCategoriesResponse {
+  statistics: MissingCategoriesStatistics
+  topCategories: Array<{ category: string; count: number; avgConfidence: number }>
+  categoriesWithDetails: MissingCategoryDetail[]
+  timeRange: string
+}
+
+export interface CatalogRedirectClientSummary {
+  clientId: string
+  clientName: string
+}
+
+export interface CatalogRedirectKeyword {
+  keyword: string
+  count: number
+}
+
+export interface CatalogRedirectSubmitter {
+  submitter: string
+  count: number
+}
+
+export interface CatalogRedirectByDay {
+  date: string
+  count: number
+}
+
+export interface CatalogRedirectMetrics {
+  totalRedirects: number
+  autoClosedCount: number
+  autoClosedRate: number
+  averageConfidence: number
+  clientName: string
+  redirectsByType?: Record<string, number>
+  redirectsByDay?: CatalogRedirectByDay[]
+  topKeywords?: CatalogRedirectKeyword[]
+  topSubmitters?: CatalogRedirectSubmitter[]
+}
+
+export interface CatalogRedirectStatsResponse {
+  metrics: CatalogRedirectMetrics | CatalogRedirectMetrics[]
+  clients?: CatalogRedirectClientSummary[]
+}
+
+export interface StandupConfig extends JsonObject {
+  cadence?: string
+  time?: string
+  channelId?: string
+  participants?: string[]
+  includeMentor?: boolean
+  includeAcceptedCandidates?: boolean
+  reminderMinutesBeforeDue?: number
 }
 
 const resolveBaseUrl = (): string => {
@@ -387,8 +506,8 @@ class ApiClient {
   }
 
   // Reports
-  async getMissingCategories(days: number = 30) {
-    return this.request<any>(`/api/admin/reports/missing-categories?days=${days}`)
+  async getMissingCategories(days: number = 30): Promise<MissingCategoriesResponse> {
+    return this.request<MissingCategoriesResponse>(`/api/admin/reports/missing-categories?days=${days}`)
   }
 
   async getStrategicEvaluations(limit: number = 20): Promise<{
@@ -398,22 +517,22 @@ class ApiClient {
     return this.request(`/api/admin/reports/strategic-evaluations?limit=${limit}`)
   }
 
-  async getCatalogRedirectStats(clientId?: string, days: number = 30) {
+  async getCatalogRedirectStats(clientId?: string, days: number = 30): Promise<CatalogRedirectStatsResponse> {
     const query = clientId ? `clientId=${clientId}&days=${days}` : `days=${days}`
-    return this.request<any>(`/api/admin/reports/catalog-redirects?${query}`)
+    return this.request<CatalogRedirectStatsResponse>(`/api/admin/reports/catalog-redirects?${query}`)
   }
 
   // Clients
-  async getClients() {
-    return this.request<{ success: boolean; data: any[] }>('/api/admin/clients/route')
+  async getClients(): Promise<{ success: boolean; data: ClientListItem[] }> {
+    return this.request<{ success: boolean; data: ClientListItem[] }>('/api/admin/clients/route')
   }
 
-  async getClientSettings(clientId: string) {
-    return this.request<{ success: boolean; data: any }>(`/api/admin/clients/${clientId}/route`)
+  async getClientSettings(clientId: string): Promise<{ success: boolean; data: ClientSettings }> {
+    return this.request<{ success: boolean; data: ClientSettings }>(`/api/admin/clients/${clientId}/route`)
   }
 
-  async updateClientSettings(clientId: string, settings: any) {
-    return this.request<{ success: boolean; data: any; message: string }>(
+  async updateClientSettings(clientId: string, settings: ClientSettingsUpdate) {
+    return this.request<{ success: boolean; data: ClientSettings | null; message: string }>(
       `/api/admin/clients/${clientId}/route`,
       {
         method: 'PATCH',
@@ -472,7 +591,7 @@ class ApiClient {
   // Project Standups
   async getProjectStandups(projectId: string): Promise<{
     standups: Standup[]
-    config: Record<string, any> | null
+    config: StandupConfig | null
   }> {
     return this.request(`/api/admin/projects/${projectId}/standups`)
   }
@@ -486,8 +605,8 @@ class ApiClient {
 
   async updateStandupConfig(
     projectId: string,
-    config: Record<string, any>
-  ): Promise<{ project: Project; config: Record<string, any> | null }> {
+    config: StandupConfig
+  ): Promise<{ project: Project; config: StandupConfig | null }> {
     return this.request(`/api/admin/projects/${projectId}/standups`, {
       method: 'PATCH',
       body: JSON.stringify({ config }),

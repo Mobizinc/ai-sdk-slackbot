@@ -1,8 +1,8 @@
 "use client"
 
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState, useCallback } from "react"
+import { useParams } from "next/navigation"
 import { apiClient, type BusinessContext } from "@/lib/api-client"
 import Link from "next/link"
 import { ArrowLeft, Edit, Building2, Package, Cloud, Users, MessageSquare, Database, Link as LinkIcon } from "lucide-react"
@@ -14,11 +14,7 @@ export default function EntityDetailPage() {
   const [context, setContext] = useState<BusinessContext | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadEntity()
-  }, [entityName])
-
-  async function loadEntity() {
+  const loadEntity = useCallback(async () => {
     try {
       setLoading(true)
       const all = await apiClient.getBusinessContexts()
@@ -29,7 +25,11 @@ export default function EntityDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [entityName])
+
+  useEffect(() => {
+    loadEntity()
+  }, [loadEntity])
 
   if (loading) {
     return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>

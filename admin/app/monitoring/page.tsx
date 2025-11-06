@@ -1,9 +1,7 @@
 "use client"
 
-
 import { useEffect, useState } from "react"
 import { apiClient, type QueueStats } from "@/lib/api-client"
-import { Activity, Clock, CheckCircle, XCircle } from "lucide-react"
 
 export default function MonitoringPage() {
   const [stats, setStats] = useState<QueueStats | null>(null)
@@ -115,7 +113,7 @@ export default function MonitoringPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <p className="text-sm text-gray-500 mb-1">Today's Classifications</p>
+          <p className="text-sm text-gray-500 mb-1">Today&apos;s Classifications</p>
           <p className="text-3xl font-bold text-gray-900">{stats.stats_24h.total_classifications}</p>
           <p className="text-sm text-gray-500 mt-2">
             Avg Time: {stats.stats_24h.average_processing_time_ms}ms

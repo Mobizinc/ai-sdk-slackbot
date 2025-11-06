@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { apiClient } from "@/lib/api-client"
+import { apiClient, type BusinessContext } from "@/lib/api-client"
 import { BusinessContextForm } from "@/components/BusinessContextForm"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -11,7 +11,7 @@ import { ArrowLeft } from "lucide-react"
 export default function CreateEntityPage() {
   const router = useRouter()
 
-  async function handleSubmit(data: any) {
+  async function handleSubmit(data: Partial<BusinessContext>) {
     try {
       await apiClient.createBusinessContext(data)
       toast.success('Entity created successfully!')

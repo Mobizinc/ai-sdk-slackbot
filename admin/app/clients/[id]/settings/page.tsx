@@ -1,9 +1,9 @@
 "use client"
 
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { apiClient } from "@/lib/api-client"
+import { useEffect, useState, useCallback } from "react"
+import { useParams } from "next/navigation"
+import { apiClient, type ClientSettings, type CustomCatalogMapping } from "@/lib/api-client"
 import { toast } from "sonner"
 import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
@@ -13,18 +13,13 @@ import { Label } from "@/components/ui/label"
 
 export default function ClientSettingsPage() {
   const params = useParams()
-  const router = useRouter()
   const clientId = params.id as string
 
-  const [settings, setSettings] = useState<any>(null)
+  const [settings, setSettings] = useState<ClientSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    loadSettings()
-  }, [clientId])
-
-  async function loadSettings() {
+  const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
       const result = await apiClient.getClientSettings(clientId)
@@ -35,12 +30,31 @@ export default function ClientSettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [clientId])
+
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   async function saveSettings() {
+    if (!settings) return
+
     try {
       setSaving(true)
-      await apiClient.updateClientSettings(clientId, settings)
+      const payload = {
+        clientName: settings.clientName,
+        catalogRedirectEnabled: settings.catalogRedirectEnabled,
+        catalogRedirectConfidenceThreshold: settings.catalogRedirectConfidenceThreshold,
+        catalogRedirectAutoClose: settings.catalogRedirectAutoClose,
+        supportContactInfo: settings.supportContactInfo,
+        customCatalogMappings: settings.customCatalogMappings,
+        features: settings.features,
+        notes: settings.notes,
+        createdBy: settings.createdBy,
+        updatedBy: settings.updatedBy,
+      }
+
+      await apiClient.updateClientSettings(clientId, payload)
       toast.success('Settings saved successfully!')
       await loadSettings()
     } catch (error) {
@@ -89,7 +103,11 @@ export default function ClientSettingsPage() {
                   type="checkbox"
                   id="enabled"
                   checked={settings.catalogRedirectEnabled}
-                  onChange={(e) => setSettings({ ...settings, catalogRedirectEnabled: e.target.checked })}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev ? { ...prev, catalogRedirectEnabled: e.target.checked } : prev
+                    )
+                  }
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                 />
                 <span className="text-sm text-gray-600">
@@ -108,7 +126,16 @@ export default function ClientSettingsPage() {
                   max="1"
                   step="0.05"
                   value={settings.catalogRedirectConfidenceThreshold}
-                  onChange={(e) => setSettings({ ...settings, catalogRedirectConfidenceThreshold: parseFloat(e.target.value) })}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            catalogRedirectConfidenceThreshold: parseFloat(e.target.value),
+                          }
+                        : prev
+                    )
+                  }
                   className="flex-1"
                 />
                 <span className="text-sm font-medium text-gray-900 w-16">
@@ -125,7 +152,11 @@ export default function ClientSettingsPage() {
                   type="checkbox"
                   id="autoClose"
                   checked={settings.catalogRedirectAutoClose}
-                  onChange={(e) => setSettings({ ...settings, catalogRedirectAutoClose: e.target.checked })}
+                  onChange={(e) =>
+                    setSettings((prev) =>
+                      prev ? { ...prev, catalogRedirectAutoClose: e.target.checked } : prev
+                    )
+                  }
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                 />
                 <span className="text-sm text-gray-600">
@@ -139,7 +170,11 @@ export default function ClientSettingsPage() {
               <Input
                 id="contact"
                 value={settings.supportContactInfo || ''}
-                onChange={(e) => setSettings({ ...settings, supportContactInfo: e.target.value })}
+                onChange={(e) =>
+                  setSettings((prev) =>
+                    prev ? { ...prev, supportContactInfo: e.target.value } : prev
+                  )
+                }
                 placeholder="e.g., Altus IT Support"
                 className="mt-2"
               />
@@ -152,7 +187,7 @@ export default function ClientSettingsPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom Catalog Mappings</h3>
           <div className="space-y-4">
             {settings.customCatalogMappings && settings.customCatalogMappings.length > 0 ? (
-              settings.customCatalogMappings.map((mapping: any, idx: number) => (
+              settings.customCatalogMappings.map((mapping: CustomCatalogMapping, idx) => (
                 <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-medium text-gray-900">{mapping.requestType}</h4>
@@ -198,9 +233,11 @@ export default function ClientSettingsPage() {
               {Object.entries(settings.features).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                   <code className="text-sm text-gray-700">{key}</code>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    value ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      value ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
                     {value ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>

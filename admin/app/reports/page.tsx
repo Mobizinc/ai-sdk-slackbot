@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { FileText, AlertCircle, TrendingUp, Users, Target } from "lucide-react"
+import { FileText, AlertCircle, TrendingUp, Target } from "lucide-react"
 
 export default function ReportsPage() {
   const reports = [
@@ -13,7 +13,7 @@ export default function ReportsPage() {
     },
     {
       title: "Missing Categories",
-      description: "AI-suggested categories that don't exist in ServiceNow",
+      description: "AI-suggested categories that do not exist in ServiceNow",
       icon: AlertCircle,
       href: "/reports/missing-categories",
       badge: "New",

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { FileText, Award, TrendingUp, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
-import { apiClient, type ProjectWithRelations, type StrategicEvaluationSummary } from "@/lib/api-client";
+import { apiClient, type ProjectWithRelations } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -12,16 +12,9 @@ export default function InitiationPage() {
   const projectId = params.id as string;
 
   const [project, setProject] = useState<ProjectWithRelations | null>(null);
-  const [expandedDraft, setExpandedDraft] = useState<string | null>(null);
   const [expandedEval, setExpandedEval] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (projectId) {
-      loadProject();
-    }
-  }, [projectId]);
-
-  const loadProject = async () => {
+  const loadProject = useCallback(async () => {
     try {
       const data = await apiClient.getProject(projectId);
       setProject(data);
@@ -29,14 +22,18 @@ export default function InitiationPage() {
       console.error("Failed to load project:", error);
       toast.error("Failed to load project");
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadProject();
+  }, [projectId, loadProject]);
 
   if (!project) {
     return <div className="text-center py-8">Loading...</div>;
   }
 
   const latestDraft = project.initiations[0];
-  const latestEval = project.evaluations[0];
 
   return (
     <div className="space-y-6">
@@ -103,14 +100,21 @@ export default function InitiationPage() {
               <div className="pt-4 border-t border-gray-200">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Sources</h4>
                 <div className="flex flex-wrap gap-2">
-                  {latestDraft.sources.map((source, i) => (
+                  {latestDraft.sources.map((source, i) => {
+                    const label =
+                      typeof (source as { type?: unknown }).type === "string"
+                        ? (source as { type: string }).type
+                        : "Unknown source"
+
+                    return (
                     <span
                       key={i}
                       className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
                     >
-                      {source.type || "Unknown source"}
+                      {label}
                     </span>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
