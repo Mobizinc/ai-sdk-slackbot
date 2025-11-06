@@ -1,6 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "@octokit/rest";
 import { getConfigValue } from "../../config";
+import type { ConfigKey } from "../../config/registry";
 
 interface InstallationToken {
   token: string;
@@ -15,8 +16,10 @@ function normalizePrivateKey(privateKey: string): string {
   return privateKey.replace(/\\n/g, "\n");
 }
 
-function getStringConfigValue(key: "githubAppId" | "githubAppPrivateKey" | "githubInstallationId" | "githubApiBaseUrl"): string | null {
-  const raw = getConfigValue(key);
+type GitHubConfigKey = "githubAppId" | "githubAppPrivateKey" | "githubInstallationId" | "githubApiBaseUrl";
+
+function getStringConfigValue(key: GitHubConfigKey): string | null {
+  const raw = getConfigValue(key as ConfigKey);
   if (typeof raw !== "string") {
     return null;
   }
