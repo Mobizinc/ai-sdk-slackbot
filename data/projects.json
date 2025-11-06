@@ -5,8 +5,10 @@
       "name": "AI SDK Slackbot",
       "status": "active",
       "githubUrl": "https://github.com/Mobizinc/ai-sdk-slackbot",
-      "summary": "Build an AI-powered Slack bot with natural language capabilities.",
-      "background": "We're enhancing our internal Slack bot to handle complex queries and automate workflows using Vercel's AI SDK.",
+      "githubRepo": "Mobizinc/ai-sdk-slackbot",
+      "githubDefaultBranch": "staging",
+      "summary": "Evolve Mobizinc's AI Slackbot with GitHub-aware stand-ups, ServiceNow insights, and production-ready LLM workflows.",
+      "background": "We are iterating on the Mobiz AI Slackbot, delivering GitHub-enriched stand-ups, hardened ServiceNow integrations, and adaptive prompting powered by Vercel's AI SDK and Anthropic models.",
       "techStack": [
         "TypeScript",
         "Node.js",
@@ -33,17 +35,17 @@
         "Working with LLM APIs"
       ],
       "openTasks": [
-        "Add project onboarding feature",
-        "Implement interview system",
-        "Create mentor matching logic"
+        "Ship adaptive GitHub-enriched stand-up flow",
+        "Harden ServiceNow webhook ingestion and validation",
+        "Document GitHub App operational runbook for deployments"
       ],
       "mentor": {
-        "slackUserId": "U12345678",
-        "name": "Senior Dev Name"
+        "slackUserId": "U02DEVTEAM",
+        "name": "AI Platform Lead"
       },
       "interview": {
         "generator": {
-          "model": "claude-3-haiku-20240307",
+          "model": "claude-sonnet-4-5",
           "questionCount": 6,
           "styleGuidance": "Focus on real-world engineering experience, ability to learn quickly, and collaboration style."
         },
@@ -51,12 +53,12 @@
       },
       "standup": {
         "enabled": true,
-        "channelId": "C12345678",
+        "channelId": "C02STANDUPS",
         "schedule": {
           "frequency": "weekdays",
-          "timeUtc": "16:00"
+          "timeUtc": "15:00"
         },
-        "participants": ["U12345678"],
+        "participants": ["U02DEVTEAM", "U03BOTMAINT", "U04QAENG"],
         "includeMentor": true,
         "includeAcceptedCandidates": true,
         "questions": [
@@ -66,7 +68,7 @@
           },
           {
             "id": "today",
-            "prompt": "What do you plan to accomplish before the next check-in?"
+            "prompt": "What do you plan to accomplish before the next check-in, and are there dependencies we should track?"
           },
           {
             "id": "blockers",
@@ -76,9 +78,9 @@
         ]
       },
       "maxCandidates": 2,
-      "postedDate": "2025-11-04T10:00:00Z",
-      "expiresDate": "2025-11-18T10:00:00Z",
-      "channelId": "C12345678"
+      "postedDate": "2025-02-01T10:00:00Z",
+      "expiresDate": "2025-02-28T10:00:00Z",
+      "channelId": "C02STANDUPS"
     }
   ]
 }
