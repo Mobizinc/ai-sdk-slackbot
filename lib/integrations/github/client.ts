@@ -15,19 +15,33 @@ function normalizePrivateKey(privateKey: string): string {
   return privateKey.replace(/\\n/g, "\n");
 }
 
-function getGitHubConfig() {
-  const appId = getConfigValue("githubAppId");
-  const installationId = getConfigValue("githubInstallationId");
-  const privateKey = getConfigValue("githubAppPrivateKey");
-  const apiBaseUrl = getConfigValue("githubApiBaseUrl") || "https://api.github.com";
+function getStringConfigValue(key: "githubAppId" | "githubAppPrivateKey" | "githubInstallationId" | "githubApiBaseUrl"): string | null {
+  const raw = getConfigValue(key);
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
-  if (!appId || !installationId || !privateKey) {
+function getGitHubConfig() {
+  const appId = getStringConfigValue("githubAppId");
+  const installationIdRaw = getStringConfigValue("githubInstallationId");
+  const privateKey = getStringConfigValue("githubAppPrivateKey");
+  const apiBaseUrl = getStringConfigValue("githubApiBaseUrl") ?? "https://api.github.com";
+
+  if (!appId || !installationIdRaw || !privateKey) {
     throw new Error("GitHub App configuration is incomplete. Ensure app id, installation id, and private key are set.");
+  }
+
+  const installationId = Number.parseInt(installationIdRaw, 10);
+  if (!Number.isFinite(installationId)) {
+    throw new Error("GitHub installation id must be a numeric string.");
   }
 
   return {
     appId,
-    installationId: Number(installationId),
+    installationId,
     privateKey: normalizePrivateKey(privateKey),
     apiBaseUrl,
   };
