@@ -11,7 +11,7 @@ interface ProjectCardProps {
     summary: string;
     mentorName?: string | null;
     githubRepo?: string | null;
-    postedDate?: Date | null;
+    postedDate?: string | Date | null;
     techStack?: string[];
   };
   view?: "grid" | "list";

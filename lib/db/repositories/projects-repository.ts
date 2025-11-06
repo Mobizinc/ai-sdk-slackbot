@@ -27,24 +27,28 @@ export async function fetchAllProjects(filters?: ProjectFilters): Promise<Projec
 
   try {
     const conditions = buildProjectFilters(filters);
-    let query = db.select().from(projects);
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    // Build query with all conditions applied
+    const baseQuery = db
+      .select()
+      .from(projects)
+      .$dynamic();
 
-    // Apply ordering
-    query = query.orderBy(sql`${projects.updatedAt} DESC`);
+    const withConditions = conditions.length > 0
+      ? baseQuery.where(and(...conditions))
+      : baseQuery;
 
-    // Apply pagination
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      query = query.offset(filters.offset);
-    }
+    const withOrdering = withConditions.orderBy(sql`${projects.updatedAt} DESC`);
 
-    return await query;
+    const withLimit = filters?.limit
+      ? withOrdering.limit(filters.limit)
+      : withOrdering;
+
+    const finalQuery = filters?.offset
+      ? withLimit.offset(filters.offset)
+      : withLimit;
+
+    return await finalQuery;
   } catch (error) {
     console.error("[ProjectsRepository] Failed to fetch projects", error);
     return [];
@@ -185,13 +189,17 @@ export async function countProjects(filters?: ProjectFilters): Promise<number> {
 
   try {
     const conditions = buildProjectFilters(filters);
-    let query = db.select({ count: count() }).from(projects);
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
+    const baseQuery = db
+      .select({ count: count() })
+      .from(projects)
+      .$dynamic();
 
-    const [result] = await query;
+    const finalQuery = conditions.length > 0
+      ? baseQuery.where(and(...conditions))
+      : baseQuery;
+
+    const [result] = await finalQuery;
     return result?.count ? Number(result.count) : 0;
   } catch (error) {
     console.error("[ProjectsRepository] Failed to count projects", error);

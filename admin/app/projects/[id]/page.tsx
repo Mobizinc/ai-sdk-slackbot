@@ -9,13 +9,7 @@ import { FieldGroup } from "@/components/projects/FieldGroup";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function ProjectOverviewPage() {
@@ -116,17 +110,12 @@ export default function ProjectOverviewPage() {
               />
             </FieldGroup>
             <FieldGroup label="Status" required>
-              <Select value={formData.status} onValueChange={(value) => updateField("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="paused">Paused</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
+              <Select value={formData.status} onChange={(e) => updateField("status", e.target.value)}>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
               </Select>
             </FieldGroup>
             <FieldGroup label="Summary" required>
@@ -229,16 +218,12 @@ export default function ProjectOverviewPage() {
               <FieldGroup label="Difficulty Level">
                 <Select
                   value={formData.difficultyLevel || ""}
-                  onValueChange={(value) => updateField("difficultyLevel", value)}
+                  onChange={(e) => updateField("difficultyLevel", e.target.value)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
+                  <option value="">Select difficulty</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
                 </Select>
               </FieldGroup>
 
