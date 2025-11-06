@@ -113,11 +113,23 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
     const parseResult = parseWebhookPayload(payload, USE_NEW_PARSER);
     if (!parseResult.success) {
       console.error('[Webhook] Parsing failed:', parseResult.error?.message);
+
+      // Treat empty objects as validation errors (422) not parse errors (400)
+      const isEmptyObject = parseResult.data !== undefined &&
+                           typeof parseResult.data === 'object' &&
+                           Object.keys(parseResult.data as Record<string, unknown>).length === 0;
+
+      const statusCode = isEmptyObject ? 422 : 400;
+      const errorType = isEmptyObject ? 'validation_error' : 'parse_error';
+      const errorMessage = isEmptyObject
+        ? 'Invalid webhook payload schema - payload cannot be empty'
+        : parseResult.error?.message || 'Failed to parse payload';
+
       return buildErrorResponse({
-        type: 'parse_error',
-        message: parseResult.error?.message || 'Failed to parse payload',
+        type: errorType,
+        message: errorMessage,
         details: parseResult.metadata,
-        statusCode: 400,
+        statusCode,
       });
     }
 
@@ -138,7 +150,10 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
       return buildErrorResponse({
         type: 'validation_error',
         message: 'Invalid webhook payload schema',
-        details: validationResult.errors,
+        details: {
+          errors: validationResult.errors,
+          issues: validationResult.issues,
+        },
         statusCode: 422,
       });
     }

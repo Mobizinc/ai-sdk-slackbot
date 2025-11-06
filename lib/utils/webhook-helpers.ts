@@ -9,7 +9,8 @@
  * - Response formatting: Success responses, queued responses, error responses
  */
 
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { z } from 'zod';
 import { parseServiceNowPayload } from './servicenow-payload';
 import { ServiceNowParser } from './servicenow-parser';
 import {
@@ -52,6 +53,7 @@ export interface ValidationResult {
   success: boolean;
   data?: ServiceNowCaseWebhook;
   errors?: string[];
+  issues?: z.ZodIssue[];
 }
 
 /**
@@ -124,25 +126,72 @@ export function authenticateWebhookRequest(
     // Invalid URL, continue to next auth method
   }
 
-  // Method 3: HMAC-SHA256 signature verification
-  const signatureHeader = request.headers.get('x-servicenow-signature') ||
-                         request.headers.get('signature') || '';
+  // Method 3: HMAC-SHA256 signature verification (constant-time comparison)
+  let signatureHeader = request.headers.get('x-servicenow-signature') ||
+                        request.headers.get('signature') || '';
 
   if (signatureHeader) {
-    // ServiceNow may send signatures in either hex or base64 format
-    const hexSignature = createHmac('sha256', secret)
+    // Strip algorithm prefix if present (e.g., "sha256=...") to support multiple formats
+    signatureHeader = signatureHeader.replace(/^sha256=/i, '').trim();
+
+    // Detect if the signature is hex or base64 encoded
+    const isHexSignature = /^[a-fA-F0-9]+$/.test(signatureHeader);
+    const isBase64Signature = /^[A-Za-z0-9+/]+={0,2}$/.test(signatureHeader);
+
+    // Compute HMAC in both hex and base64 formats as Buffers
+    const hexSignatureBuffer = createHmac('sha256', secret)
       .update(payload)
       .digest('hex');
 
-    const base64Signature = createHmac('sha256', secret)
+    const base64SignatureBuffer = createHmac('sha256', secret)
       .update(payload)
       .digest('base64');
 
-    if (signatureHeader === hexSignature || signatureHeader === base64Signature) {
-      return {
-        authenticated: true,
-        method: 'hmac-signature',
-      };
+    // Convert provided signature to Buffer for comparison
+    try {
+      let providedBuffer: Buffer;
+      let expectedBuffer: Buffer;
+      let matched = false;
+
+      // Try hex comparison if signature looks like hex
+      if (isHexSignature) {
+        providedBuffer = Buffer.from(signatureHeader, 'hex');
+        expectedBuffer = Buffer.from(hexSignatureBuffer, 'hex');
+
+        // Guard against mismatched lengths
+        if (providedBuffer.length === expectedBuffer.length) {
+          try {
+            matched = timingSafeEqual(providedBuffer, expectedBuffer);
+          } catch {
+            matched = false;
+          }
+        }
+      }
+
+      // Try base64 comparison if not matched and signature looks like base64
+      if (!matched && isBase64Signature) {
+        providedBuffer = Buffer.from(signatureHeader, 'base64');
+        expectedBuffer = Buffer.from(base64SignatureBuffer, 'base64');
+
+        // Guard against mismatched lengths
+        if (providedBuffer.length === expectedBuffer.length) {
+          try {
+            matched = timingSafeEqual(providedBuffer, expectedBuffer);
+          } catch {
+            matched = false;
+          }
+        }
+      }
+
+      if (matched) {
+        return {
+          authenticated: true,
+          method: 'hmac-signature',
+        };
+      }
+    } catch (error) {
+      // Decoding or comparison failed, continue to failed auth
+      console.warn('[Auth] HMAC comparison failed:', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -267,6 +316,7 @@ export function validateWebhook(data: unknown): ValidationResult {
     return {
       success: false,
       errors: result.errors?.map(e => e.message) || ['Validation failed'],
+      issues: result.errors || [],
     };
   }
 
@@ -322,6 +372,10 @@ export function buildTriageSuccessResponse(triageResult: any): Response {
     incident_number: triageResult.incidentNumber,
     incident_sys_id: triageResult.incidentSysId,
     incident_url: triageResult.incidentUrl,
+    problem_created: triageResult.problemCreated,
+    problem_number: triageResult.problemNumber,
+    problem_sys_id: triageResult.problemSysId,
+    problem_url: triageResult.problemUrl,
     record_type_suggestion: triageResult.recordTypeSuggestion,
     // Catalog redirect fields
     catalog_redirected: triageResult.catalogRedirected,
@@ -377,12 +431,14 @@ export function buildQueuedResponse(caseNumber: string): Response {
 export function buildErrorResponse(error: WebhookError): Response {
   const statusCode = error.statusCode || 500;
 
-  return Response.json(
-    {
-      error: error.message,
-      type: error.type,
-      ...(error.details && { details: error.details }),
-    },
-    { status: statusCode }
-  );
+  const responseBody: Record<string, unknown> = {
+    error: error.message,
+    type: error.type,
+  };
+
+  if (error.details) {
+    responseBody.details = error.details;
+  }
+
+  return Response.json(responseBody, { status: statusCode });
 }
