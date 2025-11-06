@@ -116,6 +116,155 @@ export interface StrategicEvaluationSummary {
   demandRequest: Record<string, unknown> | null
 }
 
+// Projects
+export interface Project {
+  id: string
+  name: string
+  status: string
+  githubUrl: string | null
+  summary: string
+  background: string | null
+  techStack: string[]
+  skillsRequired: string[]
+  skillsNiceToHave: string[]
+  difficultyLevel: string | null
+  estimatedHours: string | null
+  learningOpportunities: string[]
+  openTasks: string[]
+  mentorSlackUserId: string | null
+  mentorName: string | null
+  interviewConfig: Record<string, any> | null
+  standupConfig: Record<string, any> | null
+  maxCandidates: number | null
+  postedDate: string | null
+  expiresDate: string | null
+  channelId: string | null
+  githubRepo: string | null
+  githubDefaultBranch: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProjectStats {
+  total: number
+  draft: number
+  active: number
+  paused: number
+  completed: number
+  archived: number
+}
+
+export interface ProjectFilters {
+  status?: string | string[]
+  mentor?: string
+  search?: string
+  limit?: number
+  offset?: number
+}
+
+export interface Standup {
+  id: string
+  projectId: string
+  scheduledFor: string
+  collectUntil: string
+  channelId: string | null
+  status: string
+  summary: Record<string, any> | null
+  triggeredAt: string
+  completedAt: string | null
+  createdAt: string
+  metadata: Record<string, any>
+}
+
+export interface StandupResponse {
+  id: string
+  standupId: string
+  participantSlackId: string
+  answers: Record<string, any>
+  blockerFlag: boolean
+  contextSnapshot: Record<string, any>
+  insights: Record<string, any>
+  submittedAt: string
+  createdAt: string
+}
+
+export interface Interview {
+  id: string
+  projectId: string
+  candidateSlackId: string
+  mentorSlackId: string | null
+  answers: Array<Record<string, any>>
+  questions: Array<Record<string, any>>
+  scoringPrompt: string | null
+  matchScore: number
+  matchSummary: string
+  recommendedTasks: string[]
+  concerns: string | null
+  startedAt: string
+  completedAt: string
+  createdAt: string
+  questionSource: string
+  generatorModel: string | null
+  status: string
+}
+
+export interface ProjectInitiation {
+  id: string
+  projectId: string
+  requestedBy: string
+  requestedByName: string | null
+  ideaSummary: string | null
+  contextSummary: string | null
+  llmModel: string | null
+  status: string
+  output: Record<string, any>
+  sources: Array<Record<string, any>>
+  rawResponse: string | null
+  metadata: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProjectWithRelations extends Project {
+  standups: Standup[]
+  interviews: Interview[]
+  initiations: ProjectInitiation[]
+  evaluations: StrategicEvaluationSummary[]
+}
+
+export interface ProjectAnalytics {
+  projectId: string
+  projectName: string
+  standupAnalytics: {
+    completionRate: number
+    blockerFrequency: number
+    totalStandups: number
+    recentActivity: Array<{
+      id: string
+      scheduledFor: string
+      status: string
+    }>
+  }
+  interviewAnalytics: {
+    total: number
+    avgMatchScore: number
+    conversionRate: number
+    topConcerns: string[]
+  }
+  taskMetrics: {
+    totalTasks: number
+    openTasks: number
+    completedTasks: number
+    taskVelocity: number
+  }
+  timeline: Array<{
+    type: string
+    timestamp: string
+    description: string
+    [key: string]: any
+  }>
+}
+
 const resolveBaseUrl = (): string => {
   const explicit = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
   if (explicit) {
@@ -271,6 +420,96 @@ class ApiClient {
         body: JSON.stringify(settings),
       }
     )
+  }
+
+  // Projects
+  async getProjects(filters?: ProjectFilters): Promise<{
+    projects: Project[]
+    stats: ProjectStats
+    total: number
+  }> {
+    const params = new URLSearchParams()
+    if (filters?.status) {
+      if (Array.isArray(filters.status)) {
+        params.append('status', filters.status.join(','))
+      } else {
+        params.append('status', filters.status)
+      }
+    }
+    if (filters?.mentor) params.append('mentor', filters.mentor)
+    if (filters?.search) params.append('search', filters.search)
+    if (filters?.limit) params.append('limit', filters.limit.toString())
+    if (filters?.offset) params.append('offset', filters.offset.toString())
+
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return this.request(`/api/admin/projects${query}`)
+  }
+
+  async getProject(id: string): Promise<ProjectWithRelations> {
+    return this.request(`/api/admin/projects/${id}`)
+  }
+
+  async createProject(data: Partial<Project>): Promise<{ project: Project }> {
+    return this.request(`/api/admin/projects`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateProject(id: string, data: Partial<Project>): Promise<{ project: Project }> {
+    return this.request(`/api/admin/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteProject(id: string): Promise<{ success: boolean; message: string; id: string }> {
+    return this.request(`/api/admin/projects/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Project Standups
+  async getProjectStandups(projectId: string): Promise<{
+    standups: Standup[]
+    config: Record<string, any> | null
+  }> {
+    return this.request(`/api/admin/projects/${projectId}/standups`)
+  }
+
+  async createStandup(projectId: string, data: Partial<Standup>): Promise<{ standup: Standup }> {
+    return this.request(`/api/admin/projects/${projectId}/standups`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateStandupConfig(
+    projectId: string,
+    config: Record<string, any>
+  ): Promise<{ project: Project; config: Record<string, any> | null }> {
+    return this.request(`/api/admin/projects/${projectId}/standups`, {
+      method: 'PATCH',
+      body: JSON.stringify({ config }),
+    })
+  }
+
+  async getStandupDetails(
+    projectId: string,
+    standupId: string
+  ): Promise<{ standup: Standup; responses: StandupResponse[] }> {
+    return this.request(`/api/admin/projects/${projectId}/standups/${standupId}`)
+  }
+
+  async triggerStandup(projectId: string): Promise<{ standup: Standup; message: string }> {
+    return this.request(`/api/admin/projects/${projectId}/standups/trigger`, {
+      method: 'POST',
+    })
+  }
+
+  // Project Analytics
+  async getProjectAnalytics(projectId: string): Promise<ProjectAnalytics> {
+    return this.request(`/api/admin/projects/${projectId}/analytics`)
   }
 }
 
