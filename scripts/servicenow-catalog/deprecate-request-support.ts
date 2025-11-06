@@ -10,14 +10,21 @@ import { resolve } from 'path';
 
 config({ path: resolve(process.cwd(), '.env.local') });
 
-const SERVICENOW_URL = process.env.SERVICENOW_URL;
-const SERVICENOW_USERNAME = process.env.SERVICENOW_USERNAME;
-const SERVICENOW_PASSWORD = process.env.SERVICENOW_PASSWORD;
+// Check for --dev flag
+const isDevMode = process.argv.includes('--dev');
+
+const SERVICENOW_URL = isDevMode ? process.env.DEV_SERVICENOW_URL : process.env.SERVICENOW_URL;
+const SERVICENOW_USERNAME = isDevMode ? process.env.DEV_SERVICENOW_USERNAME : process.env.SERVICENOW_USERNAME;
+const SERVICENOW_PASSWORD = isDevMode ? process.env.DEV_SERVICENOW_PASSWORD : process.env.SERVICENOW_PASSWORD;
 
 if (!SERVICENOW_URL || !SERVICENOW_USERNAME || !SERVICENOW_PASSWORD) {
   console.error('❌ Missing ServiceNow credentials');
+  console.error(`Mode: ${isDevMode ? 'DEV' : 'PROD'}`);
   process.exit(1);
 }
+
+console.log(`🔧 Mode: ${isDevMode ? 'DEV (mobizdev)' : 'PROD (mobiz)'}`);
+console.log(`🔗 URL: ${SERVICENOW_URL}\n`);
 
 const auth = Buffer.from(`${SERVICENOW_USERNAME}:${SERVICENOW_PASSWORD}`).toString('base64');
 

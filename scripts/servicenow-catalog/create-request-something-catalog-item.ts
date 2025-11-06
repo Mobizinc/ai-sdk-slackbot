@@ -13,14 +13,21 @@ import { resolve } from 'path';
 
 config({ path: resolve(process.cwd(), '.env.local') });
 
-const SERVICENOW_URL = process.env.SERVICENOW_URL;
-const SERVICENOW_USERNAME = process.env.SERVICENOW_USERNAME;
-const SERVICENOW_PASSWORD = process.env.SERVICENOW_PASSWORD;
+// Check for --dev flag
+const isDevMode = process.argv.includes('--dev');
+
+const SERVICENOW_URL = isDevMode ? process.env.DEV_SERVICENOW_URL : process.env.SERVICENOW_URL;
+const SERVICENOW_USERNAME = isDevMode ? process.env.DEV_SERVICENOW_USERNAME : process.env.SERVICENOW_USERNAME;
+const SERVICENOW_PASSWORD = isDevMode ? process.env.DEV_SERVICENOW_PASSWORD : process.env.SERVICENOW_PASSWORD;
 
 if (!SERVICENOW_URL || !SERVICENOW_USERNAME || !SERVICENOW_PASSWORD) {
   console.error('❌ Missing ServiceNow credentials');
+  console.error(`Mode: ${isDevMode ? 'DEV' : 'PROD'}`);
   process.exit(1);
 }
+
+console.log(`🔧 Mode: ${isDevMode ? 'DEV (mobizdev)' : 'PROD (mobiz)'}`);
+console.log(`🔗 URL: ${SERVICENOW_URL}\n`);
 
 const auth = Buffer.from(`${SERVICENOW_USERNAME}:${SERVICENOW_PASSWORD}`).toString('base64');
 
@@ -40,7 +47,7 @@ async function fetchOriginalItem() {
   console.log(`📥 Fetching original catalog item: ${ORIGINAL_ITEM_SYS_ID}`);
 
   const response = await fetch(
-    `${SERVICENOW_URL}/api/now/table/sc_cat_item_producer/${ORIGINAL_ITEM_SYS_ID}`,
+    `${SERVICENOW_URL}/api/now/table/sc_cat_item_producer/${ORIGINAL_ITEM_SYS_ID}?sysparm_fields=name,sc_catalogs,category,table_name,script`,
     {
       headers: {
         'Authorization': `Basic ${auth}`,
@@ -55,11 +62,27 @@ async function fetchOriginalItem() {
 
   const data = await response.json();
   console.log(`✅ Fetched: ${data.result.name}`);
+
+  // Extract category sys_id if it's a reference object
+  if (typeof data.result.category === 'object' && data.result.category.value) {
+    data.result.category = data.result.category.value;
+  }
+
   return data.result;
 }
 
 async function createCatalogItem(originalItem: any) {
   console.log(`\n📝 Creating "Request Something" catalog item...`);
+
+  // Enhance original script to include subcategory handling
+  let enhancedScript = originalItem.script || '';
+  if (enhancedScript.includes('current.setValue(\'category\'')) {
+    // Add subcategory handling after category
+    enhancedScript = enhancedScript.replace(
+      /current\.setValue\('category',\s*category\);/,
+      `current.setValue('category', category);\n\n// Set subcategory (NEW!)\nvar subcategory = producer.subcategory;\nif (subcategory) {\n  current.setValue('subcategory', subcategory);\n}`
+    );
+  }
 
   const newItem = {
     name: 'Request Something',
@@ -68,6 +91,7 @@ async function createCatalogItem(originalItem: any) {
     sc_catalogs: originalItem.sc_catalogs, // Same catalog
     category: originalItem.category, // Same category
     table_name: originalItem.table_name, // sn_customerservice_case
+    script: enhancedScript, // Enhanced script with subcategory
     active: true,
     order: 20, // After "Report a Problem" (order 10)
     sys_class_name: 'sc_cat_item_producer',
@@ -100,7 +124,7 @@ async function fetchOriginalVariables() {
   console.log(`\n📥 Fetching variables from original catalog item...`);
 
   const response = await fetch(
-    `${SERVICENOW_URL}/api/now/table/item_option_new?sysparm_query=cat_item=${ORIGINAL_ITEM_SYS_ID}&sysparm_fields=name,question_text,type,order,mandatory,reference,reference_qual,sys_id&sysparm_limit=100`,
+    `${SERVICENOW_URL}/api/now/table/item_option_new?sysparm_query=cat_item=${ORIGINAL_ITEM_SYS_ID}&sysparm_fields=name,question_text,type,order,mandatory,reference,reference_qual,lookup_table,lookup_value,lookup_label,sys_id&sysparm_limit=100`,
     {
       headers: {
         'Authorization': `Basic ${auth}`,
@@ -119,7 +143,7 @@ async function fetchOriginalVariables() {
 }
 
 async function createVariable(catalogItemSysId: string, variable: any, isNew = false) {
-  const varData = {
+  const varData: any = {
     cat_item: catalogItemSysId,
     name: variable.name,
     question_text: variable.question_text,
@@ -129,6 +153,13 @@ async function createVariable(catalogItemSysId: string, variable: any, isNew = f
     reference: variable.reference || '',
     reference_qual: variable.reference_qual || '',
   };
+
+  // For type 18 (Lookup Select Box), include lookup fields
+  if (variable.type === '18' && variable.lookup_table) {
+    varData.lookup_table = variable.lookup_table;
+    varData.lookup_value = variable.lookup_value || 'value';
+    varData.lookup_label = variable.lookup_label || 'label';
+  }
 
   const response = await fetch(
     `${SERVICENOW_URL}/api/now/table/item_option_new`,
@@ -194,16 +225,42 @@ async function main() {
     const subcategoryVar = {
       name: 'subcategory',
       question_text: 'Request Type',
-      type: '5', // Select Box
+      type: '18', // Lookup Select Box (same as category)
       order: 360, // Right after category (350)
       mandatory: true,
       reference: '',
-      reference_qual: 'javascript:"dependent_value="+current.variables.category',
+      reference_qual: 'javascript:"name=sn_customerservice_case^element=subcategory^dependent_value="+current.variables.category',
+      lookup_table: 'sys_choice',
+      lookup_value: 'value',
+      lookup_label: 'label',
     };
 
     const subcatCreated = await createVariable(newItem.sys_id, subcategoryVar, true);
     if (subcatCreated) {
-      console.log(`  ✅ Created subcategory variable with cascading`);
+      console.log(`  ✅ Created subcategory variable`);
+
+      // PATCH to set reference_qual (ServiceNow doesn't accept JavaScript reference_qual on POST)
+      console.log(`  📝 Setting cascading reference qualifier...`);
+      const patchResponse = await fetch(
+        `${SERVICENOW_URL}/api/now/table/item_option_new/${subcatCreated.sys_id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Basic ${auth}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            reference_qual: subcategoryVar.reference_qual,
+          }),
+        }
+      );
+
+      if (patchResponse.ok) {
+        console.log(`  ✅ Cascading configured successfully`);
+      } else {
+        console.log(`  ⚠️  Warning: Could not set reference_qual, may need manual configuration`);
+      }
     }
 
     console.log('\n' + '='.repeat(60));
