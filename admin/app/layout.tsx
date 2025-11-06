@@ -2,11 +2,9 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/Navigation"
-import { ClientToaster } from "@/components/ClientToaster"
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"] })
-
-export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: "Admin | AI Slack Bot",
@@ -26,7 +24,7 @@ export default function RootLayout({
           <main className="container mx-auto py-8 px-4">
             {children}
           </main>
-          <ClientToaster />
+          <Toaster position="top-right" richColors />
         </div>
       </body>
     </html>
