@@ -312,6 +312,59 @@ If needed, can add `/triage [case_number]` slash command:
 
 ---
 
+## 🚀 Project Onboarding Command
+
+Slash command: `/project-post [project-id]`
+
+- Posts a formatted project card to the configured channel (defaults to the channel the command runs in).
+- Uses `api/commands/project-post.ts` and Slack signature verification from `lib/slack-utils.ts`.
+- Project definitions live in `data/projects.json` and load through `lib/projects/catalog.ts` (including per-project interview question packs, optional Claude Haiku 4.5 generators, and scoring prompts).
+- Slack actions:
+  - `project_button_interest` – starts the DM-based interview via `lib/projects/interview-session.ts`.
+  - `project_button_learn_more` – sends project background details to the interested user.
+- Mentor notifications and AI match scoring are handled in `lib/projects/interview-session.ts` with Anthropic via `lib/projects/matching-service.ts`.
+- Ensure the Slack app has the slash command and interactive components pointed at the deployed endpoints before launch.
+
+---
+
+## 🔁 Project Stand-Up Command
+
+Slash command: `/project-standup run [project-id]`
+
+- Triggers an immediate stand-up for the specified project, regardless of the scheduled cadence.
+- Stand-up cadences are configured per project via `data/projects.json` and interpreted by `lib/projects/standup-service.ts`.
+- Automated hourly cron (`/api/cron/project-standups`) dispatches prompts and posts summaries to the configured Slack channel.
+- Participant responses are collected via modal (`lib/projects/standup-responses.ts`) and persisted in `project_standups` / `project_standup_responses` tables for analytics.
+- Extend the roster by updating project stand-up settings (static participants, mentor inclusion, or accepted interview candidates).
+
+---
+
+## 🧠 Project Initiation Command
+
+Slash command: `/project-initiate draft [project-id] [seed idea]`
+
+- Creates an AI-assisted launch package for a leadership-approved initiative and stores it in `project_initiation_requests`.
+- Pulls repo/docs context, merges the optional seed idea, and uses Anthropic Haiku to craft a pitch, value props, kickoff checklist, and Block Kit announcement (`lib/projects/initiation-service.ts`).
+- Returns an ephemeral summary so the requester can review and refine before posting in `#innovationcoe-v2` or updating `data/projects.json`.
+- The generated Block Kit blocks can be used with `postProjectOpportunity` once the project metadata is finalised.
+- Use the recorded request ID for follow-up reviews, mentor edits, or to regenerate with updated seeds.
+## 📊 Project Evaluation Command
+
+Slash command: `/project-evaluate Project Name | Purpose | Business Value | Expected ROI | Timeline | Resources Needed | Team Size | Pillar IDs (comma) | [Industry] | [Partners]`
+
+- Wraps the Strategic Evaluation Agent (demand intelligence pipeline) so teams can request a Mobizinc-specific go/no-go recommendation directly from Slack.
+- Fields are pipe (`|`) separated; pillar IDs should match entries from `SERVICE_PILLARS` (e.g., `cloud-infrastructure, data-ai`). Optional fields (industry, partners) can be omitted.
+- Returns an ephemeral summary including completeness score, key issues/clarifications, and the AI-generated executive summary/next steps.
+- Persists results to `strategic_evaluations`, publishes a `strategic_evaluation.completed` event via `lib/strategy/events.ts`, and records the originating command metadata for downstream automation.
+- Strategy inputs (pillars, focus regions, initiatives, narrative context) are editable in `/admin → Configuration → strategy` and hydrate the prompts under `lib/strategy/config/`.
+- Uses the shared configuration under `lib/strategy/config/` and evaluation helpers in `lib/strategy/evaluation/`.
+- Automatically DMs the requester with a kickoff checklist, outstanding clarifications, and the current stand-up cadence (or setup reminders) so execution teams can act immediately.
+- Posts a project-channel recap (when channel metadata exists) and auto-schedules the first stand-up run if a cadence is configured and no recent stand-up exists.
+- Leadership can review historical results any time in `/admin → Reports → Strategic Evaluations`.
+- Ideal workflow: `/project-initiate` ➜ leadership review ➜ `/project-evaluate` ➜ stand-ups (`/project-standup`) for execution.
+
+---
+
 ## 🎯 Success Criteria: ✅ MET
 
 - ✅ Natural language triage in AI Assistant

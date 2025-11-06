@@ -81,7 +81,7 @@ describe("ServiceNow Tool", () => {
         "is looking up case SCS0001234 in ServiceNow..."
       );
       expect(result).toMatchObject({
-        rawData: expect.objectContaining({
+        _blockKitData: expect.objectContaining({
           case: mockCase,
         }),
       });
@@ -181,13 +181,12 @@ describe("ServiceNow Tool", () => {
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0007890"); // Fallback to case
       expect(result).toMatchObject({
-        summary: expect.any(String),
-        rawData: expect.objectContaining({
-          case: mockCase,
-        }),
+        case: mockCase,
+        journals: [],
         _blockKitData: expect.objectContaining({
           type: "case_detail",
-          caseData: mockCase,
+          case: mockCase,
+          journalEntries: [],
         }),
       });
     });
@@ -222,8 +221,12 @@ describe("ServiceNow Tool", () => {
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0046363");
       expect(result).toMatchObject({
-        rawData: expect.objectContaining({
+        case: mockCase,
+        journals: [],
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
           case: mockCase,
+          journalEntries: [],
         }),
       });
     });
@@ -279,14 +282,15 @@ describe("ServiceNow Tool", () => {
       // Should normalize to SCS by default
       expect(mockServiceNowClient.getCase).toHaveBeenCalled();
       expect(mockServiceNowClient.getCase.mock.calls[0][0]).toBe("SCS0099999");
-      expect(result).toEqual(
-        expect.objectContaining({
-          summary: expect.any(String),
-          rawData: expect.objectContaining({
-            case: mockCase,
-          }),
+      expect(result).toMatchObject({
+        case: mockCase,
+        journals: [],
+        _blockKitData: expect.objectContaining({
+          type: "case_detail",
+          case: mockCase,
+          journalEntries: [],
         }),
-      );
+      });
     });
 
     it("should default to INC prefix for getIncident when no match", async () => {
@@ -546,7 +550,7 @@ describe("ServiceNow Tool", () => {
       });
 
       expect(result).toEqual({
-        error: "Provide ciName, ipAddress, or ciSysId to search for a configuration item.",
+        error: "At least one search criterion must be provided: ciName, ipAddress, ciSysId, ciClassName, ciLocation, ciOwnerGroup, ciEnvironment, or ciOperationalStatus.",
       });
     });
   });
@@ -589,7 +593,7 @@ describe("ServiceNow Tool", () => {
       );
       expect(result).toEqual({
         summary: expect.any(String),
-        rawData: expect.objectContaining({
+        _blockKitData: expect.objectContaining({
           cases: mockCases,
           total: 2,
         }),

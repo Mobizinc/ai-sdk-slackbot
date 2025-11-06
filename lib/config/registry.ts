@@ -12,6 +12,25 @@ export interface ConfigDefinition {
 export type ConfigKey = keyof typeof CONFIG_DEFINITIONS;
 
 export const CONFIG_DEFINITIONS = {
+  strategyAdditionalContext: {
+    type: "string",
+    default:
+      "We have an active accelerator with Microsoft in Saudi Arabia (KSA) and are prioritising work that deepens that partnership.",
+    group: "strategy",
+    description: "Additional narrative appended to strategic evaluation prompts (editable via admin).",
+  },
+  strategyFocusRegions: {
+    type: "string[]",
+    default: ["Saudi Arabia (KSA)", "North America"],
+    group: "strategy",
+    description: "Regions or markets to emphasise during strategic evaluations.",
+  },
+  strategyKeyInitiatives: {
+    type: "string[]",
+    default: ["Microsoft-led accelerators in KSA", "AI-driven automation and copilots"],
+    group: "strategy",
+    description: "Key initiatives the evaluation agent should reference when recommending projects.",
+  },
   kbGatheringTimeoutHours: {
     envVar: "KB_GATHERING_TIMEOUT_HOURS",
     type: "number",
@@ -179,6 +198,36 @@ export const CONFIG_DEFINITIONS = {
     default: true,
     group: "triage",
     description: "Use LLM-generated Slack content for escalations when available.",
+  },
+  githubAppId: {
+    envVar: "GITHUB_APP_ID",
+    type: "string",
+    default: "",
+    group: "github",
+    description: "GitHub App identifier used for authenticated requests.",
+    sensitive: true,
+  },
+  githubAppPrivateKey: {
+    envVar: "GITHUB_APP_PRIVATE_KEY",
+    type: "string",
+    default: "",
+    group: "github",
+    description: "PEM-formatted private key for the GitHub App.",
+    sensitive: true,
+  },
+  githubInstallationId: {
+    envVar: "GITHUB_INSTALLATION_ID",
+    type: "string",
+    default: "",
+    group: "github",
+    description: "GitHub App installation id used to mint tokens.",
+  },
+  githubApiBaseUrl: {
+    envVar: "GITHUB_API_BASE_URL",
+    type: "string",
+    default: "https://api.github.com",
+    group: "github",
+    description: "Override GitHub API base URL (set for GitHub Enterprise).",
   },
   llmTimeoutMs: {
     envVar: "LLM_TIMEOUT_MS",

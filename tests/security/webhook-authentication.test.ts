@@ -604,9 +604,9 @@ describe("Webhook Authentication Security", () => {
 
       const response = await POST(request);
       
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(422);
       const body = await response.json();
-      expect(body.error).toContain("Invalid JSON payload");
+      expect(body.error).toContain("Invalid webhook payload schema");
     });
   });
 

@@ -10,7 +10,7 @@
 import type { GenericMessageEvent } from '../slack-event-types';
 import { extractCaseNumbers } from './detectors/case-number-extractor';
 import { getTriggerKBWorkflowAction } from './actions/trigger-kb-workflow';
-import { shouldSkipMessage, processCaseDetection, processExistingThread } from './handler-utils';
+import { shouldSkipMessage, processCaseDetection, processExistingThread, isDelegationMessage } from './handler-utils';
 
 // Re-export for index.ts
 export { extractCaseNumbers };
@@ -25,6 +25,12 @@ export async function handlePassiveMessage(
 ): Promise<void> {
   // Skip bot's own messages, empty messages, and @mentions
   if (shouldSkipMessage(event, botUserId)) {
+    return;
+  }
+
+  // Skip delegation messages - user is asking someone else to handle cases
+  if (isDelegationMessage(event)) {
+    console.log('[Passive Handler] Skipping delegation message - not posting assistance');
     return;
   }
 

@@ -97,6 +97,25 @@ export interface QueueStats {
   timestamp: string
 }
 
+export interface StrategicEvaluationSummary {
+  id: string
+  projectName: string
+  createdAt: string
+  requestedBy: string
+  requestedByName: string | null
+  channelId: string | null
+  totalScore: number | null
+  recommendation: string | null
+  confidence: string | null
+  needsClarification: boolean
+  completenessScore: number | null
+  executiveSummary: string | null
+  nextSteps: string[]
+  keyMetrics: string[]
+  clarificationQuestions: string[]
+  demandRequest: Record<string, unknown> | null
+}
+
 const resolveBaseUrl = (): string => {
   const explicit = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
   if (explicit) {
@@ -221,6 +240,13 @@ class ApiClient {
   // Reports
   async getMissingCategories(days: number = 30) {
     return this.request<any>(`/api/admin/reports/missing-categories?days=${days}`)
+  }
+
+  async getStrategicEvaluations(limit: number = 20): Promise<{
+    evaluations: StrategicEvaluationSummary[]
+    count: number
+  }> {
+    return this.request(`/api/admin/reports/strategic-evaluations?limit=${limit}`)
   }
 
   async getCatalogRedirectStats(clientId?: string, days: number = 30) {

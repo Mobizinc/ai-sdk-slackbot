@@ -28,6 +28,9 @@
     },
     "api/cron/enrich-pending-incidents.ts": {
       "maxDuration": 120
+    },
+    "api/cron/project-standups.ts": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -54,6 +57,10 @@
     {
       "path": "/api/cron/enrich-pending-incidents",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/project-standups",
+      "schedule": "0 * * * *"
     }
   ]
 }

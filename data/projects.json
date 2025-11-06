@@ -1,0 +1,90 @@
+{
+  "projects": [
+    {
+      "id": "ai-sdk-slackbot-001",
+      "name": "Mobiz PeterPool - AI Agents",
+      "status": "active",
+      "githubUrl": "https://github.com/Mobizinc/ai-sdk-slackbot",
+      "githubRepo": "Mobizinc/ai-sdk-slackbot",
+      "githubDefaultBranch": "staging",
+      "summary": "Evolve Mobizinc's AI Slackbot with GitHub-aware stand-ups, ServiceNow insights, and production-ready LLM workflows.",
+      "background": "We are iterating on the Mobiz AI Slackbot, delivering GitHub-enriched stand-ups, hardened ServiceNow integrations, and adaptive prompting powered by Vercel's AI SDK and Anthropic models.",
+      "techStack": [
+        "TypeScript",
+        "Node.js",
+        "Vercel AI SDK",
+        "Slack API",
+        "Anthropic"
+      ],
+      "skillsRequired": [
+        "TypeScript/JavaScript",
+        "REST APIs",
+        "Async programming"
+      ],
+      "skillsNiceToHave": [
+        "AI/LLM experience",
+        "Slack Bot development",
+        "Git/GitHub"
+      ],
+      "difficultyLevel": "intermediate",
+      "estimatedHours": "5-10 hrs/week",
+      "learningOpportunities": [
+        "AI integration patterns",
+        "Event-driven architecture",
+        "TypeScript best practices",
+        "Working with LLM APIs"
+      ],
+      "openTasks": [
+        "Ship adaptive GitHub-enriched stand-up flow",
+        "Harden ServiceNow webhook ingestion and validation",
+        "Document GitHub App operational runbook for deployments"
+      ],
+      "mentor": {
+        "slackUserId": "U02DEVTEAM",
+        "name": "AI Platform Lead"
+      },
+      "interview": {
+        "generator": {
+          "model": "claude-sonnet-4-5",
+          "questionCount": 6,
+          "styleGuidance": "Focus on real-world engineering experience, ability to learn quickly, and collaboration style."
+        },
+        "scoringPrompt": "Evaluate the candidate for onboarding to the AI SDK Slackbot project. Keep bias checks in mind and focus on actionable recommendations."
+      },
+      "standup": {
+        "enabled": true,
+        "channelId": "C02STANDUPS",
+        "schedule": {
+          "frequency": "weekdays",
+          "timeUtc": "15:00"
+        },
+        "participants": [
+          "U02DEVTEAM",
+          "U03BOTMAINT",
+          "U04QAENG"
+        ],
+        "includeMentor": true,
+        "includeAcceptedCandidates": true,
+        "questions": [
+          {
+            "id": "yesterday",
+            "prompt": "What did you work on since the last check-in?"
+          },
+          {
+            "id": "today",
+            "prompt": "What do you plan to accomplish before the next check-in, and are there dependencies we should track?"
+          },
+          {
+            "id": "blockers",
+            "prompt": "Do you have any blockers or need support?",
+            "helper": "If none, reply with \"none\"."
+          }
+        ]
+      },
+      "maxCandidates": 2,
+      "postedDate": "2025-02-01T10:00:00Z",
+      "expiresDate": "2025-02-28T10:00:00Z",
+      "channelId": "C02STANDUPS"
+    }
+  ]
+}

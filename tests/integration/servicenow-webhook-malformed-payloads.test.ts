@@ -1,6 +1,6 @@
 /**
  * Integration tests for ServiceNow webhook endpoints with malformed payloads.
- * Tests the new ServiceNowParser integration with feature flag functionality.
+ * Tests the ServiceNowParser's ability to handle various malformed JSON payloads.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,7 +62,6 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
     // Setup default environment
     process.env.ENABLE_CASE_CLASSIFICATION = "true";
     process.env.ENABLE_ASYNC_TRIAGE = "false";
-    process.env.SERVICENOW_USE_NEW_PARSER = "true"; // Enable new parser
 
     // Mock successful triage response
     triageMock.triageCase.mockResolvedValue({
@@ -124,7 +123,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
     vi.restoreAllMocks();
   });
 
-  describe("With New Parser Enabled", () => {
+  describe("ServiceNowParser Integration", () => {
     it("should handle valid payload successfully", async () => {
       const payload = loadFixture('valid', 'complete-case.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
@@ -142,7 +141,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
     });
 
-    it("should handle payload with smart quotes using new parser", async () => {
+    it("should handle payload with smart quotes", async () => {
       const payload = loadFixture('malformed', 'smart-quotes.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -163,7 +162,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageCall.short_description).toBe('Login issues with smart quotes');
     });
 
-    it("should handle payload with trailing commas using new parser", async () => {
+    it("should handle payload with trailing commas", async () => {
       const payload = loadFixture('malformed', 'trailing-comma.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -183,7 +182,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageCall.short_description).toBe('Trailing comma issue');
     });
 
-    it("should handle payload with control characters using new parser", async () => {
+    it("should handle payload with control characters", async () => {
       const payload = loadFixture('malformed', 'control-chars.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -203,7 +202,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageCall.short_description).toBe('Control characters in text');
     });
 
-    it("should handle payload with missing commas using new parser", async () => {
+    it("should handle payload with missing commas", async () => {
       const payload = loadFixture('malformed', 'missing-comma.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -223,7 +222,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageCall.short_description).toBe('Missing comma in JSON');
     });
 
-    it("should handle incomplete payload using new parser", async () => {
+    it("should handle incomplete payload", async () => {
       const payload = loadFixture('malformed', 'incomplete-payload.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -239,7 +238,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
     });
 
-    it("should return error for completely invalid JSON even with new parser", async () => {
+    it("should return error for completely invalid JSON", async () => {
       const invalidPayload = "{ this is not valid json }";
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -256,87 +255,8 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
     });
   });
 
-  describe("With New Parser Disabled (Legacy Behavior)", () => {
-    beforeEach(async () => {
-      process.env.SERVICENOW_USE_NEW_PARSER = "false";
-      await reloadApiModule();
-    });
-
-    it("should handle valid payload with legacy parser", async () => {
-      const payload = loadFixture('valid', 'complete-case.json');
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
-    });
-
-    it("should fail on smart quotes with legacy parser", async () => {
-      const payload = loadFixture('malformed', 'smart-quotes.json');
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(400);
-      
-      const data = await response.json();
-      expect(data.error).toContain("Invalid JSON payload");
-      expect(triageMock.triageCase).not.toHaveBeenCalled();
-    });
-
-    it("should handle trailing commas with legacy parser", async () => {
-      const payload = loadFixture('malformed', 'trailing-comma.json');
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      });
-
-      const response = await POST(request);
-      // Legacy parser can actually handle this case via sanitization
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("Feature Flag Default Behavior", () => {
-    beforeEach(async () => {
-      delete process.env.SERVICENOW_USE_NEW_PARSER; // Remove flag to test default
-      await reloadApiModule();
-    });
-
-    it("should use new parser by default when flag is not set", async () => {
-      const payload = loadFixture('malformed', 'smart-quotes.json');
-      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      });
-
-      const response = await POST(request);
-      expect(response.status).toBe(200);
-      
-      const data = await response.json();
-      expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
-    });
-  });
-
   describe("Error Handling and Logging", () => {
-    it("should log parser metrics when new parser is enabled", async () => {
+    it("should log parser metrics", async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       
       const payload = loadFixture('malformed', 'smart-quotes.json');
@@ -392,7 +312,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
     });
   });
 
-  describe("Performance with New Parser", () => {
+  describe("Performance", () => {
     it("should process malformed payloads within acceptable time", async () => {
       const payloads = [
         loadFixture('malformed', 'smart-quotes.json'),

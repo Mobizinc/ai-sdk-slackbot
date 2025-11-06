@@ -797,6 +797,186 @@ export type InteractiveState = typeof interactiveStates.$inferSelect;
 export type NewInteractiveState = typeof interactiveStates.$inferInsert;
 
 /**
+ * Project Interview Archive
+ * Persists completed interview transcripts and scoring metadata for analytics and mentor review.
+ */
+export const projects = pgTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    status: text("status").notNull().default("draft"),
+    githubUrl: text("github_url"),
+    summary: text("summary").notNull(),
+    background: text("background"),
+    techStack: jsonb("tech_stack").$type<string[]>().default([]).notNull(),
+    skillsRequired: jsonb("skills_required").$type<string[]>().default([]).notNull(),
+    skillsNiceToHave: jsonb("skills_nice_to_have").$type<string[]>().default([]).notNull(),
+    difficultyLevel: text("difficulty_level"),
+    estimatedHours: text("estimated_hours"),
+    learningOpportunities: jsonb("learning_opportunities").$type<string[]>().default([]).notNull(),
+    openTasks: jsonb("open_tasks").$type<string[]>().default([]).notNull(),
+    mentorSlackUserId: text("mentor_slack_user_id"),
+    mentorName: text("mentor_name"),
+    interviewConfig: jsonb("interview_config").$type<Record<string, any> | null>().default(null),
+    standupConfig: jsonb("standup_config").$type<Record<string, any> | null>().default(null),
+    maxCandidates: integer("max_candidates"),
+    postedDate: timestamp("posted_date", { withTimezone: true }),
+    expiresDate: timestamp("expires_date", { withTimezone: true }),
+    channelId: text("channel_id"),
+    githubRepo: text("github_repo"),
+    githubDefaultBranch: text("github_default_branch"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("idx_projects_status").on(table.status),
+  }),
+);
+
+export type ProjectRecord = typeof projects.$inferSelect;
+export type NewProjectRecord = typeof projects.$inferInsert;
+
+export const projectInterviews = pgTable(
+  "project_interviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    candidateSlackId: text("candidate_slack_id").notNull(),
+    mentorSlackId: text("mentor_slack_id"),
+    answers: jsonb("answers").$type<Array<Record<string, any>>>().notNull(),
+    questions: jsonb("questions").$type<Array<Record<string, any>>>().notNull(),
+    scoringPrompt: text("scoring_prompt"),
+    matchScore: integer("match_score").notNull(),
+    matchSummary: text("match_summary").notNull(),
+    recommendedTasks: jsonb("recommended_tasks").$type<string[]>().default([]).notNull(),
+    concerns: text("concerns"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    questionSource: text("question_source").notNull().default("default"),
+    generatorModel: text("generator_model"),
+    status: text("status").notNull().default("completed"),
+  },
+  (table) => ({
+    projectIdx: index("idx_project_interviews_project").on(table.projectId),
+    candidateIdx: index("idx_project_interviews_candidate").on(table.candidateSlackId),
+    completedIdx: index("idx_project_interviews_completed_at").on(table.completedAt),
+    statusIdx: index("idx_project_interviews_status").on(table.status),
+  }),
+);
+
+export type ProjectInterview = typeof projectInterviews.$inferSelect;
+export type NewProjectInterview = typeof projectInterviews.$inferInsert;
+
+export const projectStandups = pgTable(
+  "project_standups",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+    collectUntil: timestamp("collect_until", { withTimezone: true }).notNull(),
+    channelId: text("channel_id"),
+    status: text("status").notNull().default("collecting"),
+    summary: jsonb("summary").$type<Record<string, any> | null>().default(null),
+    triggeredAt: timestamp("triggered_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+  },
+  (table) => ({
+    projectIdx: index("idx_project_standups_project").on(table.projectId),
+    statusIdx: index("idx_project_standups_status").on(table.status),
+    scheduledIdx: index("idx_project_standups_scheduled").on(table.scheduledFor),
+  }),
+);
+
+export type ProjectStandup = typeof projectStandups.$inferSelect;
+export type NewProjectStandup = typeof projectStandups.$inferInsert;
+
+export const projectStandupResponses = pgTable(
+  "project_standup_responses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    standupId: uuid("standup_id").notNull(),
+    participantSlackId: text("participant_slack_id").notNull(),
+    answers: jsonb("answers").$type<Record<string, any>>().notNull(),
+    blockerFlag: boolean("blocker_flag").notNull().default(false),
+    contextSnapshot: jsonb("context_snapshot").$type<Record<string, any>>().notNull().default({}),
+    insights: jsonb("insights").$type<Record<string, any>>().notNull().default({}),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    standupIdx: index("idx_project_standup_responses_standup").on(table.standupId),
+    participantIdx: index("idx_project_standup_responses_participant").on(table.participantSlackId),
+    standupParticipantUnique: uniqueIndex("uniq_project_standup_participant").on(
+      table.standupId,
+      table.participantSlackId,
+    ),
+  }),
+);
+
+export type ProjectStandupResponse = typeof projectStandupResponses.$inferSelect;
+export type NewProjectStandupResponse = typeof projectStandupResponses.$inferInsert;
+
+export const projectInitiationRequests = pgTable(
+  "project_initiation_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    requestedBy: text("requested_by").notNull(),
+    requestedByName: text("requested_by_name"),
+    ideaSummary: text("idea_summary"),
+    contextSummary: text("context_summary"),
+    llmModel: text("llm_model"),
+    status: text("status").notNull().default("drafted"),
+    output: jsonb("output").$type<Record<string, any>>().default({}).notNull(),
+    sources: jsonb("sources").$type<Array<Record<string, any>>>().default([]).notNull(),
+    rawResponse: text("raw_response"),
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    projectIdx: index("idx_project_initiation_project").on(table.projectId),
+    statusIdx: index("idx_project_initiation_status").on(table.status),
+    requesterIdx: index("idx_project_initiation_requester").on(table.requestedBy),
+  }),
+);
+
+export type ProjectInitiationRequest = typeof projectInitiationRequests.$inferSelect;
+export type NewProjectInitiationRequest = typeof projectInitiationRequests.$inferInsert;
+
+export const strategicEvaluations = pgTable(
+  "strategic_evaluations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectName: text("project_name").notNull(),
+    requestedBy: text("requested_by").notNull(),
+    requestedByName: text("requested_by_name"),
+    channelId: text("channel_id"),
+    commandText: text("command_text"),
+    demandRequest: jsonb("demand_request").$type<Record<string, any>>().notNull(),
+    analysis: jsonb("analysis").$type<Record<string, any>>().notNull(),
+    summary: jsonb("summary").$type<Record<string, any>>().notNull(),
+    needsClarification: boolean("needs_clarification").default(false).notNull(),
+    totalScore: integer("total_score"),
+    recommendation: text("recommendation"),
+    confidence: text("confidence"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("idx_strategic_eval_project").on(table.projectName),
+    requestedByIdx: index("idx_strategic_eval_requested_by").on(table.requestedBy),
+    createdAtIdx: index("idx_strategic_eval_created_at").on(table.createdAt),
+  }),
+);
+
+export type StrategicEvaluation = typeof strategicEvaluations.$inferSelect;
+export type NewStrategicEvaluation = typeof strategicEvaluations.$inferInsert;
+
+/**
  * Incident Enrichment States Table
  * Tracks incident enrichment workflow for automatic CI matching and metadata enhancement
  *

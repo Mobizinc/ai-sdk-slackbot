@@ -34,7 +34,7 @@ export function getConfigValue<K extends ConfigKey>(key: K): ConfigValueMap[K] {
 function createInitialConfig(): ConfigValueMap {
   const initial = {} as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
-    const definition = CONFIG_DEFINITIONS[key];
+    const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
     const envRaw = definition.envVar ? process.env[definition.envVar] : undefined;
     initial[key] = parseValue(definition, envRaw);
   }
@@ -95,7 +95,7 @@ async function loadOverridesFromDatabase(): Promise<RawOverrides> {
 function applyOverrides(target: ConfigValueMap, overrides: RawOverrides): void {
   const mutableTarget = target as unknown as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
-    const definition = CONFIG_DEFINITIONS[key];
+    const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
     const raw = overrides.get(key) ?? (definition.envVar ? process.env[definition.envVar] : undefined);
     mutableTarget[key] = parseValue(definition, raw);
   }
@@ -170,7 +170,7 @@ function cloneDefault(definition: ConfigDefinition): any {
 }
 
 export function serializeConfigValue(key: ConfigKey, value: unknown): string {
-  const definition = CONFIG_DEFINITIONS[key];
+  const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
 
   switch (definition.type) {
     case "boolean":

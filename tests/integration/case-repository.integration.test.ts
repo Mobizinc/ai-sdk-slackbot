@@ -36,7 +36,12 @@ const hasServiceNowConfig = () => {
   const hasBasicAuth = process.env.SERVICENOW_USERNAME && process.env.SERVICENOW_PASSWORD;
   const hasBearerAuth = process.env.SERVICENOW_API_TOKEN;
 
-  return Boolean(instanceUrl && (hasBasicAuth || hasBearerAuth));
+  // Exclude placeholder/mock values
+  const isRealUrl = instanceUrl && !instanceUrl.includes("example.service-now.com");
+  const isRealUser = process.env.SERVICENOW_USERNAME && process.env.SERVICENOW_USERNAME !== "test-user";
+  const isRealToken = process.env.SERVICENOW_API_TOKEN && process.env.SERVICENOW_API_TOKEN !== "test-anthropic-key";
+
+  return Boolean(isRealUrl && ((hasBasicAuth && isRealUser) || (hasBearerAuth && isRealToken)));
 };
 
 // Skip all tests if ServiceNow is not configured

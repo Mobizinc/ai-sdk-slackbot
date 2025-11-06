@@ -192,7 +192,7 @@ flowchart TD
     T -->|reads| S
     T -->|invoke| DA[Discovery Agent]
     DA -->|context pack| CA[Classification Agent]
-    CA -->|structured classification| T
+  CA -->|structured classification| T
     K -->|reads| S
     E -->|reads| S
 
@@ -213,3 +213,198 @@ flowchart TD
         C -->|feedback & alerts| X
     end
 ```
+
+---
+
+## Architectural Analysis & Future Considerations
+
+This section outlines open questions and areas for further definition identified during a review of the architecture. These points should be considered before implementing new, complex features.
+
+- **Human-in-the-Loop (HITL) & Correction Workflows**  
+  _Resolution:_ Flagged artifacts land in `interactive_states` today; we will expose an operator slash command (`/review-latest`) that surfaces pending states (KB approvals, project interviews, supervisor rejections). Operators can approve/reject in-channel, and we will extend the existing admin UI with a review dashboard that reads from `interactive_states` and the new `project_interviews` archive. Supervisor escalations remain immutable until a human explicitly replays or overrides them.
+
+- **Conversational State Management**  
+  _Resolution:_ The Interactive State Manager now owns transient workflow progress (e.g., `project_interview` sessions). Each workflow defines a state payload schema, expiry window, and resume handlers. For longer journeys we will compose this with the modal wizard or a lightweight finite-state machine (FSM) helper so every multi-turn flow stores deterministic checkpoints outside the raw transcript.
+
+- **Orchestrator Scalability**  
+  _Resolution:_ Introduce a registry-driven router: every specialist agent registers its capability signature (intent keywords, required context, cost/latency hints). The orchestrator consults this registry at runtime rather than a hard-coded map. Agents such as the Project Interview emit completion events (`project_interview.completed`) that the orchestrator can subscribe to for follow-up routing (mentor tasks, analytics). This keeps the orchestrator thin and pluggable.
+
+- **Asynchronous Task User Experience**  
+  _Resolution:_ Long-running tasks enqueue background work via `enqueueBackgroundTask` and immediately post/update status blocks through `SlackMessagingService` (using the helper introduced for app mentions). Each async workflow must emit a “working…” message, stream intermediate checkpoints when available, and send a final summary. DM-based interviews already follow this pattern; future flows will reuse the same status-update utility.
+
+- **Configuration Management**  
+  _Resolution:_ Move feature configuration into versioned JSON + Zod schemas (see project catalog/interview packs). The `config` module will be extended with a central loader that merges environment configs, database overrides (via `app_settings`), and per-feature JSON data. Feature flags and model selections become declarative entries, enabling safe runtime toggles without redeploying.
+
+## Project Interview Agent
+
+This specialist agent powers the "Project Onboarding & Interview" flow that begins when a user clicks **🚀 I'm Interested** on a project posting.
+
+- **Purpose**  
+  Automate the first-contact interview for internal project candidates, gather structured answers, and generate an AI-assisted match report for mentors.
+
+- **Trigger**  
+  Fired directly from Slack interactivity (`project_button_interest`) inside `api/interactivity.ts`. The current implementation bypasses the orchestrator for latency reasons, but emits state and telemetry hooks that an orchestrator can subscribe to in a later phase.
+
+- **Inputs**  
+  - Project metadata from `lib/projects/catalog.ts` (validated against `data/projects.json`).  
+  - Candidate Slack user id / profile provided by the interaction payload.  
+  - Interview question pack defined in `lib/projects/interview-session.ts` – either static JSON or dynamically generated via Claude Haiku 4.5 using `lib/projects/question-generator.ts`.  
+  - Optional mentor routing info embedded in the project definition.
+
+- **State Management**  
+  - Uses `InteractiveStateManager` with the new `project_interview` type backed by the `interactive_states` table.  
+  - Stores progress (`currentStep`, collected answers, startedAt) and expires sessions after 12 hours to avoid zombie interviews.  
+  - DM channels are the state key so we gracefully resume if the function cold-starts mid-interview.
+
+- **Flow**  
+  1. `startInterviewSession` opens a DM via `SlackMessagingService`, posts the first question, and records state.  
+  2. If the project opts into dynamic interviews, `question-generator.ts` calls Claude Haiku 4.5 with project background + tech stack to build a tailored question set, which is cached with the session state.  
+  3. Incoming DM messages are intercepted in `api/events.ts` before the regular assistant pipeline.  
+  4. Each answer updates the persisted payload and streams the next question until complete.  
+  5. On completion, answers are evaluated with Anthropic (`scoreInterviewAgainstProject`) to produce a score, summary, and recommended starter tasks. Errors fall back to a manual-review message.
+
+- **Outputs**  
+  - Candidate DM recap that includes the provisional match score and any recommended next steps.  
+  - Mentor notification (DM) containing the full transcript, scoring summary, and suggested starter work items.  
+  - Interactive state marked `completed`, leaving an audit trail for operators or future replay tooling.
+
+- **Future-Ready Hooks**  
+  - Wire the emitted `project_interview.completed` event into the orchestrator or workflow router to trigger downstream automation (mentor assignments, dashboards).  
+  - Build analytics/reporting on top of the new `project_interviews` table so mentors can review historical matches and success rates.  
+  - Maintain per-project question packs and scoring prompts in JSON/Zod configuration to enable project-specific interview tuning without code changes.  
+  - Extend mentor notifications to create tasks/issues automatically once orchestration policies are defined.
+
+## Project Stand-Up Agent (Proposed)
+
+- **Purpose**  
+  Automate recurring stand-ups/check-ins for active projects, compare planned vs. delivered work, surface dependency risks, and keep mentors and contributors aligned without manual corralling once a project is already underway.
+
+- **Triggers & Cadence**  
+  - Scheduled via Vercel cron or Upstash QStash; cadence per project stored in configuration (`project_standup_settings`).  
+  - Manual kick-off using `/project-standup run [project-id]` for ad-hoc stand-ups or replay/testing.
+
+- **Inputs**  
+  - Project catalog metadata (channel, mentor, interview results, dependency hints)  
+  - Accepted roster pulled from `project_interviews` + external rosters (GitHub, SPM teams)  
+  - Stand-up configuration (roles, cadence, adaptive question policies, escalation rules)  
+  - Historical stand-up records (`project_standup_responses`) to recover each participant’s last “planned” work items  
+  - Live work-item state: GitHub issues/PRs, ServiceNow SPM epics/stories, and dependency metadata (assignee, status, blockers, due dates)
+
+- **Workflow**  
+  1. **Context Harvest (Deterministic):**  
+     - Pre-standup mini-aggregator collects roster, previous responses, and linked work items.  
+     - Computes `planned_vs_actual` deltas (e.g., “planned to complete GH#123 yesterday; still open”).  
+     - Builds dependency graph (who is unblocked by whom) using repo/SPM links and local rules.
+  2. **Adaptive Question Composer:**  
+     - Uses templates + light LLM assistance to tailor prompts per contributor. Examples:  
+       - “Yesterday you planned to finish GH#123, but it’s still in progress—what’s the latest?”  
+       - “You’re targeting Story SPM-45; PR #789 merged that prerequisite. Ready to execute today?”  
+     - Falls back to trio questions when no special context exists.  
+     - Writes the prompt + expected references into the stand-up state record for auditing.
+  3. **Prompt Phase:**  
+     - DM each participant with the composed questions via `InteractiveStateManager` (`project_standup` payload).  
+     - Reminder loop (cron-driven) resends targeted nudges when answers lag, mentioning outstanding items.
+  4. **Response Reconciliation:**  
+     - Persist answers in `project_standup_responses`.  
+     - Run deterministic checks (issue status changes, reopened tickets) and LLM reasoning to detect inconsistencies (“claims finished but ticket still open”).  
+     - Flag discrepancies or new blockers; update dependency graph and notify affected teammates when dependencies resolve.
+  5. **Summary Delivery & Mentoring:**  
+     - Post consolidated channel update: completions vs. plans, new commitments, outstanding blockers, unresolved reminders.  
+     - DM mentors/owners with curated follow-ups (e.g., “Alex still blocked; dependency GH#456 unassigned”).  
+     - Optionally auto-DM teammates when prerequisites now satisfied (“FYI Jamie merged GH#789; you can resume your API migration”).
+  6. **Escalations & Analytics:**  
+     - If blockers persist or plan slippage exceeds thresholds, escalate to orchestrator/supervisor for intervention.  
+     - Record structured deltas for velocity metrics, promise-keeping, recurring blockers, and dependency churn.
+
+- **State & Persistence**  
+  - `project_standups` table (standup_id, project_id, scheduled_at, summary, status, dependency snapshot)  
+  - `project_standup_responses` table (standup_id, participant_id, answers, submitted_at, blocker_flag, reconciled_outcome)  
+  - Stand-up context cache (in DB or Redis) storing per-participant `planned_vs_actual` history for adaptive prompts  
+  - Optional dependency index mapping GitHub/SPM identifiers to contributors and prerequisites
+
+- **Future Extensions**  
+  - Tight GitHub/SPM integrations to auto-close loops (e.g., transition cards when participants confirm completion).  
+  - Persona-aware prompting (different tone for mentors vs. contributors, automatic inclusion of newcomers).  
+  - Supervisor policy hooks that validate summaries before posting and auto-generate mentor coaching tasks.  
+  - Analytics dashboards highlighting promise-keeping, unresolved blockers, and cross-project dependency heatmaps.
+
+## Project Initiation Agent (Ideation & Launch)
+
+- **Purpose**  
+  Transform a leadership-approved initiative into a polished launch package: narrative, Block Kit announcement, kickoff checklist, and suggested interview/stand-up framing. It never decides which ideas move forward; it operationalises the projects we have already committed to.
+
+- **Current Triggers**  
+  - `/project-initiate draft <project-id> [seed idea]` slash command (manual request).  
+  - Potential future hooks: stand-up signals (persistent blockers), supervisor escalations, or scheduled “portfolio refresh” runs.
+
+- **Inputs in v1**  
+  - Repository artefacts (README, `docs/PROJECT_OVERVIEW.md`, command docs, `package.json`).  
+  - Project metadata from `data/projects.json` (tech stack, mentor, skills).  
+  - Optional seed idea text supplied with the command.  
+  - Deterministic context is embedded into the prompt; no interviews/stand-ups are assumed yet.
+
+- **Workflow (Implemented)**  
+  1. **Request Capture:** Record the draft request in `project_initiation_requests` with requester metadata and seed idea.  
+  2. **Context Harvest:** Read repo/docs files, synthesise feature/skill lists, and assemble a markdown brief for the LLM.  
+  3. **Story Generation:** Call Claude Haiku 4.5 (JSON mode) to produce short pitch, elevator pitch, value props, learning highlights, kickoff checklist, interview themes, stand-up guidance, metrics, and Block Kit structure.  
+  4. **Fallback Handling:** If parsing fails, create a deterministic baseline narrative so we always return a usable draft.  
+  5. **Persistence:** Store the generated output, sources, raw response, and model in `project_initiation_requests`. Emit telemetry for orchestration.  
+  6. **Surface:** Return an ephemeral Slack summary (value props + checklist + metadata). The Block Kit payload is saved with the draft and can be plugged into `postProjectOpportunity` after human review.
+
+- **State & Persistence**  
+  - `project_initiation_requests`: request id, project id, requester, seed idea, context summary, LLM output, sources, raw response, status.  
+  - Draft metadata links forward to interview/stand-up configuration updates once the project entry is amended in `data/projects.json` (or future CMS).  
+  - Event stubs (`project_initiation.completed`) ready for orchestrator hooks, though no downstream consumers exist yet.
+
+- **Future Extensions**  
+  - Auto-populate GitHub/SPM scaffolding (boards, labels, placeholder issues).  
+  - Multi-format exports: long-form Confluence brief, exec summary, internal blog post draft.  
+  - Feedback loop: blend stand-up and interview outcomes back into initiation templates for continuous improvement.  
+  - Broader context harvest (ServiceNow analytics, emerging incidents, competitive insights) to support net-new initiative discovery.
+
+## Strategic Evaluation Agent (Demand Intelligence)
+
+- **Purpose**  
+  Deliver Mobizinc-specific strategic reviews (analyze → clarify → finalize) using codified pillars, historical benchmarks, and weighted scoring. This agent validates the business case after leadership has greenlit an idea and before/while project initiation and execution begin.
+
+- **Integration Plan**  
+  - Lift the reusable business logic from the `demand-request-app` PoC into shared TypeScript modules (config ingestion, prompt builders, historical comparators, scoring).  
+  - Expose the evaluation flow as a dedicated agent/service callable via orchestrator and Slack (e.g., `/project-evaluate`).  
+  - Reuse the existing clarify/analyze/finalize pipeline while integrating responses into our Slack workflows rather than a standalone Next.js UI.
+
+- **Configuration Surface**  
+  - Strategic pillars, partner programs, target markets, scoring rubrics, and evolving context (e.g., new regional focus like the Microsoft KSA accelerator) move into shared config files editable through `/admin`.  
+  - Changing configs should automatically influence prompts and scoring logic without code changes, keeping the agent sensitive to evolving strategy.
+
+- **Workflow Sketch**  
+  1. **Request Intake:** Orchestrator/user submits a project proposal with ROI, timeline, alignment tags.  
+  2. **Clarification Loop:** Agent asks Mobizinc-specific follow-ups, referencing the rubric and current strategic context.  
+  3. **Final Analysis:** Weighted scoring, historical comparisons, resource modeling, risk assessment, partner alignment, market opportunity, executive recommendation.  
+  4. **Persistence & Sharing:** Store analysis (e.g., `strategic_evaluations` table), post summary to the originating thread, notify mentors/executives, and emit events for orchestrator.  
+  5. **Feedback Hooks:** Stand-up and initiation agents consume the evaluation outcomes to ensure execution matches the approved plan.
+
+- **Automation Hooks (Current)**  
+  - `strategic_evaluation.completed` is now consumed inside the platform, DMing the requester with kickoff tasks, outstanding clarifications, and the detected stand-up cadence (or configuration gaps).  
+  - When a project channel is known, the agent posts a recap there for broader visibility and automatically schedules the first stand-up if a cadence exists and no recent run is on record.  
+  - `/admin → Reports → Strategic Evaluations` surfaces the latest recommendations, risk flags, and follow-up actions so leadership can review outcomes asynchronously.  
+  - The follow-up messaging points directly to `/project-standup run <project-id>` and `/project-initiate draft` so leaders can move from approval to execution without hunting for next steps.
+
+- **Future Enhancements**  
+  - Auto-generate ServiceNow/GitHub scaffolding when a project is approved.  
+  - Scenario modeling (“What if we staff from Bahrain vs. Pakistan?”) using the same rubric.  
+  - Portfolio dashboards combining initiation narratives, evaluation ratings, stand-up health, and interview throughput.  
+  - Continuous learning loop where stand-up outcomes adjust scoring weights or highlight new risks for future evaluations.
+
+- **Demand Intelligence Module Migration Plan**  
+  - Audit `/internal-projects/PLAN.md`, then reuse the PoC by lifting its prompt packs, scoring heuristics, and clarifier flows into `lib/strategy/` instead of running a separate Next.js app.  
+  - Normalise the extracted helpers behind a thin service (`lib/strategy/demand-intel.ts`) so orchestrator actions, slash commands, and future agents consume the same interface.  
+  - Map the PoC's strategic pillar definitions onto the runtime config keys surfaced in `/admin → Configuration → strategy`, letting leadership tweak priorities without redeploying.  
+  - Keep useful artefacts (sample briefs, evaluation transcripts) as fixtures that seed regression tests and accelerate onboarding for new strategists.  
+  - Capture the migration in a new `docs/strategy/README.md` to document how demand intelligence, initiation, interviews, and stand-ups share context and scoring signals.
+
+- **Next Steps**  
+  1. Attach orchestrator consumers to `strategic_evaluation.completed` so initiation, stand-up, and reporting agents can react automatically (e.g., seed kickoff checklists, schedule the first stand-up).  
+  2. Ship an admin analytics view or Slack Home tab surfacing recent evaluations, scored pillars, and outstanding clarifications to keep leadership informed.  
+  3. Expose a lightweight API/query helper for fetching a project's latest evaluation so `/project-initiate`, mentors, and dashboards can reference the canonical recommendation.  
+  4. Expand automated coverage: unit-test prompt builders/JSON parsing, add integration tests around the slash command parser, and validate persistence/event emission with the Drizzle test harness.  
+  5. Backfill documentation and examples that spell out how to extend the imported demand-intelligence module when new strategic pillars, regions, or accelerators emerge (e.g., beyond the Microsoft KSA initiative).

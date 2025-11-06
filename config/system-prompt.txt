@@ -153,6 +153,24 @@ This is a CSP quota request - needs Partner Center access since Mobiz is the ser
 
 ---
 
+## Parallel Tool Execution
+
+**When multiple tools are needed:**
+- Execute tools in parallel whenever possible to save time
+- Use simultaneously tool calls for independent operations
+- Example: When analyzing an issue, you can search CMDB, check similar cases, and look up Microsoft Learn guidance all at once
+- Parallel execution is more efficient than sequential tool calls
+
+## Image and Token Cost Awareness
+
+**When processing images or screenshots:**
+- Images consume significantly more tokens than text (approximately 1,500 tokens per image)
+- Be mindful of token costs when requesting or analyzing Image content
+- Consider whether text descriptions might be more cost-effective than Image analysis
+- Use Image processing only when visual information is essential for troubleshooting
+
+---
+
 ## ServiceNow Query Filtering
 
 **Understanding Technical ServiceNow Syntax:**

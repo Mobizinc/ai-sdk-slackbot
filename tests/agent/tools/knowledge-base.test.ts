@@ -94,7 +94,7 @@ describe("Knowledge Base Generation Tool", () => {
       });
 
       expect(mockContextManager.getContextsForCase).toHaveBeenCalledWith("SCS0001234");
-      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234");
+      expect(mockServiceNowClient.getCase).toHaveBeenCalledWith("SCS0001234", expect.any(Object));
       expect(mockKBGenerator.generateArticle).toHaveBeenCalledWith(
         mockContext,
         mockCaseDetails

@@ -436,11 +436,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               return {
                 case: caseRecord,
                 journals: [],
-                _blockKitData: {
-                  type: "case_detail",
-                  caseData: caseRecord,
-                  journalEntries: [],
-                },
+               _blockKitData: {
+                 type: "case_detail",
+                 case: caseRecord,
+                 journalEntries: [],
+               },
               };
             }
 
@@ -466,6 +466,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
             if (imageBlocks.length > 0) {
               return {
+                incident: incident,
                 summary: formatted?.summary,
                 rawData: formatted?.rawData,
                 _attachmentBlocks: imageBlocks,
@@ -568,11 +569,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 journals: journalEntries,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
-                _blockKitData: {
-                  type: "case_detail",
-                  caseData: caseRecord,
-                  journalEntries,
-                },
+                 _blockKitData: {
+                   type: "case_detail",
+                   case: caseRecord,
+                   journalEntries,
+                 },
               };
             }
           }
@@ -584,7 +585,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             journals: journalEntries,
             _blockKitData: {
               type: "case_detail",
-              caseData: caseRecord,
+              case: caseRecord,
               journalEntries,
             },
           };
@@ -760,7 +761,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           return {
             summary: formatted?.summary,
-            rawData: formatted?.rawData,
+            _blockKitData: {
+              cases: results,
+              total: results.length,
+              filters: appliedFilters,
+            },
           };
         }
 

@@ -7,6 +7,7 @@ import { eq, and, lt, ne } from "drizzle-orm";
 import { getDb } from "../client";
 import { kbGenerationStates } from "../schema";
 import type { KBGenerationContext } from "../../services/kb-state-machine";
+import { withWriteRetry, withQueryRetry } from "../retry-wrapper";
 
 export class KBStateRepository {
   /**
@@ -20,32 +21,34 @@ export class KBStateRepository {
     }
 
     try {
-      await db
-        .insert(kbGenerationStates)
-        .values({
-          caseNumber: state.caseNumber,
-          threadTs: state.threadTs,
-          channelId: state.channelId,
-          state: state.state,
-          attemptCount: state.attemptCount,
-          userResponses: state.userResponses,
-          assessmentScore: state.assessmentScore,
-          missingInfo: state.missingInfo || [],
-          startedAt: state.startedAt,
-          lastUpdated: state.lastUpdated,
-        })
-        .onConflictDoUpdate({
-          target: [kbGenerationStates.caseNumber, kbGenerationStates.threadTs],
-          set: {
+      await withWriteRetry(async () => {
+        await db
+          .insert(kbGenerationStates)
+          .values({
+            caseNumber: state.caseNumber,
+            threadTs: state.threadTs,
             channelId: state.channelId,
             state: state.state,
             attemptCount: state.attemptCount,
             userResponses: state.userResponses,
             assessmentScore: state.assessmentScore,
             missingInfo: state.missingInfo || [],
+            startedAt: state.startedAt,
             lastUpdated: state.lastUpdated,
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: [kbGenerationStates.caseNumber, kbGenerationStates.threadTs],
+            set: {
+              channelId: state.channelId,
+              state: state.state,
+              attemptCount: state.attemptCount,
+              userResponses: state.userResponses,
+              assessmentScore: state.assessmentScore,
+              missingInfo: state.missingInfo || [],
+              lastUpdated: state.lastUpdated,
+            },
+          });
+      }, `save KB state for ${state.caseNumber}`);
 
       console.log(`[DB] Saved KB state for ${state.caseNumber}: ${state.state}`);
     } catch (error) {
@@ -64,38 +67,40 @@ export class KBStateRepository {
     if (!db) return null;
 
     try {
-      const result = await db
-        .select()
-        .from(kbGenerationStates)
-        .where(
-          and(
-            eq(kbGenerationStates.caseNumber, caseNumber),
-            eq(kbGenerationStates.threadTs, threadTs)
+      return await withQueryRetry(async () => {
+        const result = await db
+          .select()
+          .from(kbGenerationStates)
+          .where(
+            and(
+              eq(kbGenerationStates.caseNumber, caseNumber),
+              eq(kbGenerationStates.threadTs, threadTs)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
 
-      if (result.length === 0) {
-        return null;
-      }
+        if (result.length === 0) {
+          return null;
+        }
 
-      const dbState = result[0];
+        const dbState = result[0];
 
-      const state: KBGenerationContext = {
-        caseNumber: dbState.caseNumber,
-        threadTs: dbState.threadTs,
-        channelId: dbState.channelId,
-        state: dbState.state as any, // Cast to KBState enum
-        attemptCount: dbState.attemptCount,
-        userResponses: dbState.userResponses as string[],
-        assessmentScore: dbState.assessmentScore || undefined,
-        missingInfo: (dbState.missingInfo as string[]) || undefined,
-        startedAt: dbState.startedAt,
-        lastUpdated: dbState.lastUpdated,
-      };
+        const state: KBGenerationContext = {
+          caseNumber: dbState.caseNumber,
+          threadTs: dbState.threadTs,
+          channelId: dbState.channelId,
+          state: dbState.state as any, // Cast to KBState enum
+          attemptCount: dbState.attemptCount,
+          userResponses: dbState.userResponses as string[],
+          assessmentScore: dbState.assessmentScore || undefined,
+          missingInfo: (dbState.missingInfo as string[]) || undefined,
+          startedAt: dbState.startedAt,
+          lastUpdated: dbState.lastUpdated,
+        };
 
-      console.log(`[DB] Loaded KB state for ${caseNumber}: ${state.state}`);
-      return state;
+        console.log(`[DB] Loaded KB state for ${caseNumber}: ${state.state}`);
+        return state;
+      }, `load KB state for ${caseNumber}`);
     } catch (error) {
       console.error(`[DB] Error loading KB state for ${caseNumber}:`, error);
       return null;
@@ -110,26 +115,28 @@ export class KBStateRepository {
     if (!db) return [];
 
     try {
-      const result = await db
-        .select()
-        .from(kbGenerationStates)
-        .where(eq(kbGenerationStates.state, "gathering"));
+      return await withQueryRetry(async () => {
+        const result = await db
+          .select()
+          .from(kbGenerationStates)
+          .where(eq(kbGenerationStates.state, "gathering"));
 
-      const states: KBGenerationContext[] = result.map((dbState) => ({
-        caseNumber: dbState.caseNumber,
-        threadTs: dbState.threadTs,
-        channelId: dbState.channelId,
-        state: dbState.state as any,
-        attemptCount: dbState.attemptCount,
-        userResponses: dbState.userResponses as string[],
-        assessmentScore: dbState.assessmentScore || undefined,
-        missingInfo: (dbState.missingInfo as string[]) || undefined,
-        startedAt: dbState.startedAt,
-        lastUpdated: dbState.lastUpdated,
-      }));
+        const states: KBGenerationContext[] = result.map((dbState) => ({
+          caseNumber: dbState.caseNumber,
+          threadTs: dbState.threadTs,
+          channelId: dbState.channelId,
+          state: dbState.state as any,
+          attemptCount: dbState.attemptCount,
+          userResponses: dbState.userResponses as string[],
+          assessmentScore: dbState.assessmentScore || undefined,
+          missingInfo: (dbState.missingInfo as string[]) || undefined,
+          startedAt: dbState.startedAt,
+          lastUpdated: dbState.lastUpdated,
+        }));
 
-      console.log(`[DB] Loaded ${states.length} active gathering states`);
-      return states;
+        console.log(`[DB] Loaded ${states.length} active gathering states`);
+        return states;
+      }, 'load active gathering states');
     } catch (error) {
       console.error("[DB] Error loading active gathering states:", error);
       return [];
@@ -144,32 +151,34 @@ export class KBStateRepository {
     if (!db) return [];
 
     try {
-      const result = await db
-        .select()
-        .from(kbGenerationStates)
-        .where(
-          and(
-            ne(kbGenerationStates.state, "abandoned"),
-            ne(kbGenerationStates.state, "approved"),
-            ne(kbGenerationStates.state, "rejected")
-          )
-        );
+      return await withQueryRetry(async () => {
+        const result = await db
+          .select()
+          .from(kbGenerationStates)
+          .where(
+            and(
+              ne(kbGenerationStates.state, "abandoned"),
+              ne(kbGenerationStates.state, "approved"),
+              ne(kbGenerationStates.state, "rejected")
+            )
+          );
 
-      const states: KBGenerationContext[] = result.map((dbState) => ({
-        caseNumber: dbState.caseNumber,
-        threadTs: dbState.threadTs,
-        channelId: dbState.channelId,
-        state: dbState.state as any,
-        attemptCount: dbState.attemptCount,
-        userResponses: dbState.userResponses as string[],
-        assessmentScore: dbState.assessmentScore || undefined,
-        missingInfo: (dbState.missingInfo as string[]) || undefined,
-        startedAt: dbState.startedAt,
-        lastUpdated: dbState.lastUpdated,
-      }));
+        const states: KBGenerationContext[] = result.map((dbState) => ({
+          caseNumber: dbState.caseNumber,
+          threadTs: dbState.threadTs,
+          channelId: dbState.channelId,
+          state: dbState.state as any,
+          attemptCount: dbState.attemptCount,
+          userResponses: dbState.userResponses as string[],
+          assessmentScore: dbState.assessmentScore || undefined,
+          missingInfo: (dbState.missingInfo as string[]) || undefined,
+          startedAt: dbState.startedAt,
+          lastUpdated: dbState.lastUpdated,
+        }));
 
-      console.log(`[DB] Loaded ${states.length} active KB generation states`);
-      return states;
+        console.log(`[DB] Loaded ${states.length} active KB generation states`);
+        return states;
+      }, 'load all active KB states');
     } catch (error) {
       console.error("[DB] Error loading active states:", error);
       return [];

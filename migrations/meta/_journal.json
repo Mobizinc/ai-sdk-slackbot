@@ -120,6 +120,62 @@
       "when": 1761626089835,
       "tag": "0016_eminent_dracula",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1762379764276,
+      "tag": "0017_long_vengeance",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1762381184642,
+      "tag": "0018_lumpy_post",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1762381891614,
+      "tag": "0019_real_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1763000000000,
+      "tag": "0020_projects_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1763000001000,
+      "tag": "0021_enhanced_standups",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1763000002000,
+      "tag": "0022_projects_github",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1762393972630,
+      "tag": "0020_typical_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1762396357990,
+      "tag": "0021_rainy_whiplash",
+      "breakpoints": true
     }
   ]
 }

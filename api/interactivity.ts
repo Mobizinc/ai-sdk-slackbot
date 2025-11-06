@@ -48,6 +48,12 @@ import {
   type KnownBlock,
   type ModalView,
 } from "../lib/utils/message-styling";
+import { enqueueBackgroundTask } from "../lib/background-tasks";
+import { ProjectActions } from "../lib/projects/posting";
+import { getProjectById } from "../lib/projects/catalog";
+import { sendProjectLearnMore, startInterviewSession } from "../lib/projects/interview-session";
+import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
+import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -157,6 +163,64 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
     if (actionId.startsWith("select_ci_") || actionId === "skip_ci") {
       await handleIncidentEnrichmentAction(actionId, value, payload);
     }
+
+    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE) {
+      const parsed = (() => {
+        try {
+          return JSON.parse(value || "{}");
+        } catch (error) {
+          console.error("[Project Interactivity] Failed to parse action value", error);
+          return null;
+        }
+      })();
+
+      if (!parsed?.projectId) {
+        console.warn("[Project Interactivity] Missing project id in action payload");
+        continue;
+      }
+
+      const project = await getProjectById(parsed.projectId);
+      if (!project) {
+        console.warn(`[Project Interactivity] Project not found: ${parsed.projectId}`);
+        continue;
+      }
+
+      if (actionId === ProjectActions.INTEREST) {
+        enqueueBackgroundTask(
+          startInterviewSession({
+            project,
+            userId: payload.user.id,
+            userName: payload.user.name,
+            initiatedBy: payload.user.id,
+            sourceMessageTs: payload.message?.ts,
+          }),
+        );
+      }
+
+      if (actionId === ProjectActions.LEARN_MORE) {
+        enqueueBackgroundTask(
+          sendProjectLearnMore({
+            project,
+            userId: payload.user.id,
+          }),
+        );
+      }
+    }
+
+    if (actionId === StandupActions.OPEN_MODAL) {
+      const { channel_id: actionChannelId, message_ts: messageTs } = payload.container || {};
+
+      if (!actionChannelId || !messageTs) {
+        console.warn("[Standup] Missing container metadata for stand-up modal open");
+        continue;
+      }
+
+      await openStandupModal({
+        triggerId: payload.trigger_id,
+        channelId: actionChannelId,
+        messageTs,
+      });
+    }
   }
 }
 
@@ -173,6 +237,8 @@ async function handleViewSubmission(payload: any): Promise<void> {
     await handleCreateProjectSubmission(payload);
   } else if (callbackId === "reassign_case_modal") {
     await handleReassignSubmission(payload);
+  } else if (callbackId === StandupCallbackIds.MODAL) {
+    await handleStandupModalSubmission(payload);
   } else {
     console.warn(`[Interactivity] Unknown view submission: ${callbackId}`);
   }

@@ -17,6 +17,8 @@
 import { getDb } from "../db/client";
 import { interactiveStates, type InteractiveState, type NewInteractiveState } from "../db/schema";
 import { eq, and, lt, desc, gt } from "drizzle-orm";
+import type { InterviewSessionState, StandupSessionState } from "../projects/types";
+import { withWriteRetry, withQueryRetry } from "../db/retry-wrapper";
 
 /**
  * KB Approval State Payload
@@ -89,6 +91,8 @@ export type StatePayloadByType = {
   modal_wizard: ModalWizardStatePayload;
   stale_ticket_workflow: StaleTicketWorkflowStatePayload;
   case_search: CaseSearchStatePayload;
+  project_interview: InterviewSessionState;
+  project_standup: StandupSessionState;
 };
 
 /**
@@ -115,25 +119,33 @@ export class InteractiveStateManager {
       return null;
     }
 
-    const expiresInHours = options?.expiresInHours || 24; // Default 24 hours
-    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+    try {
+      const expiresInHours = options?.expiresInHours || 24; // Default 24 hours
+      const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
-    const newState: NewInteractiveState = {
-      type,
-      channelId,
-      messageTs,
-      threadTs: options?.threadTs,
-      payload: payload as Record<string, any>,
-      status: "pending",
-      expiresAt,
-      metadata: options?.metadata || {},
-    };
+      const newState: NewInteractiveState = {
+        type,
+        channelId,
+        messageTs,
+        threadTs: options?.threadTs,
+        payload: payload as Record<string, any>,
+        status: "pending",
+        expiresAt,
+        metadata: options?.metadata || {},
+      };
 
-    const [inserted] = await db.insert(interactiveStates).values(newState).returning();
+      const inserted = await withWriteRetry(async () => {
+        const [result] = await db.insert(interactiveStates).values(newState).returning();
+        return result;
+      }, `save ${type} state for ${channelId}:${messageTs}`);
 
-    console.log(`[Interactive State] Saved ${type} state for ${channelId}:${messageTs} (expires in ${expiresInHours}h)`);
+      console.log(`[Interactive State] Saved ${type} state for ${channelId}:${messageTs} (expires in ${expiresInHours}h)`);
 
-    return inserted;
+      return inserted;
+    } catch (error) {
+      console.error(`[Interactive State] Error saving ${type} state:`, error);
+      return null;
+    }
   }
 
   /**
@@ -149,28 +161,75 @@ export class InteractiveStateManager {
       return null;
     }
 
-    const conditions = [
-      eq(interactiveStates.channelId, channelId),
-      eq(interactiveStates.messageTs, messageTs),
-      eq(interactiveStates.status, "pending"),
-      gt(interactiveStates.expiresAt, new Date()), // Not expired (gt = greater than, not lt)
-    ];
+    try {
+      return await withQueryRetry(async () => {
+        const conditions = [
+          eq(interactiveStates.channelId, channelId),
+          eq(interactiveStates.messageTs, messageTs),
+          eq(interactiveStates.status, "pending"),
+          gt(interactiveStates.expiresAt, new Date()), // Not expired (gt = greater than, not lt)
+        ];
 
-    if (type) {
-      conditions.push(eq(interactiveStates.type, type));
+        if (type) {
+          conditions.push(eq(interactiveStates.type, type));
+        }
+
+        const results = await db
+          .select()
+          .from(interactiveStates)
+          .where(and(...conditions))
+          .limit(1);
+
+        if (results.length === 0) {
+          return null;
+        }
+
+        return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
+      }, `get state for ${channelId}:${messageTs}`);
+    } catch (error) {
+      console.error(`[Interactive State] Error getting state:`, error);
+      return null;
     }
+  }
 
-    const results = await db
-      .select()
-      .from(interactiveStates)
-      .where(and(...conditions))
-      .limit(1);
-
-    if (results.length === 0) {
+  /**
+   * Get the most recent pending state for a channel (useful for DM flows)
+   */
+  async getStateByChannel<T extends keyof StatePayloadByType>(
+    channelId: string,
+    type: T
+  ): Promise<(InteractiveState & { payload: StatePayloadByType[T] }) | null> {
+    const db = getDb();
+    if (!db) {
       return null;
     }
 
-    return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
+    try {
+      return await withQueryRetry(async () => {
+        const results = await db
+          .select()
+          .from(interactiveStates)
+          .where(
+            and(
+              eq(interactiveStates.channelId, channelId),
+              eq(interactiveStates.type, type),
+              eq(interactiveStates.status, "pending"),
+              gt(interactiveStates.expiresAt, new Date())
+            )
+          )
+          .orderBy(desc(interactiveStates.createdAt))
+          .limit(1);
+
+        if (results.length === 0) {
+          return null;
+        }
+
+        return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
+      }, `get state by channel ${channelId}`);
+    } catch (error) {
+      console.error(`[Interactive State] Error getting state by channel:`, error);
+      return null;
+    }
   }
 
   /**
@@ -184,17 +243,24 @@ export class InteractiveStateManager {
       return null;
     }
 
-    const results = await db
-      .select()
-      .from(interactiveStates)
-      .where(eq(interactiveStates.id, id))
-      .limit(1);
+    try {
+      return await withQueryRetry(async () => {
+        const results = await db
+          .select()
+          .from(interactiveStates)
+          .where(eq(interactiveStates.id, id))
+          .limit(1);
 
-    if (results.length === 0) {
+        if (results.length === 0) {
+          return null;
+        }
+
+        return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
+      }, `get state by id ${id}`);
+    } catch (error) {
+      console.error(`[Interactive State] Error getting state by id:`, error);
       return null;
     }
-
-    return results[0] as InteractiveState & { payload: StatePayloadByType[T] };
   }
 
   /**
@@ -212,29 +278,36 @@ export class InteractiveStateManager {
       return false;
     }
 
-    const result = await db
-      .update(interactiveStates)
-      .set({
-        status,
-        processedBy,
-        processedAt: new Date(),
-        errorMessage,
-      })
-      .where(
-        and(
-          eq(interactiveStates.channelId, channelId),
-          eq(interactiveStates.messageTs, messageTs),
-          eq(interactiveStates.status, "pending")
-        )
-      );
+    try {
+      const result = await withWriteRetry(async () => {
+        return await db
+          .update(interactiveStates)
+          .set({
+            status,
+            processedBy,
+            processedAt: new Date(),
+            errorMessage,
+          })
+          .where(
+            and(
+              eq(interactiveStates.channelId, channelId),
+              eq(interactiveStates.messageTs, messageTs),
+              eq(interactiveStates.status, "pending")
+            )
+          );
+      }, `mark state as ${status} for ${channelId}:${messageTs}`);
 
-    const updated = result.rowCount || 0;
+      const updated = result.rowCount || 0;
 
-    if (updated > 0) {
-      console.log(`[Interactive State] Marked ${channelId}:${messageTs} as ${status} by ${processedBy}`);
+      if (updated > 0) {
+        console.log(`[Interactive State] Marked ${channelId}:${messageTs} as ${status} by ${processedBy}`);
+      }
+
+      return updated > 0;
+    } catch (error) {
+      console.error(`[Interactive State] Error marking state as processed:`, error);
+      return false;
     }
-
-    return updated > 0;
   }
 
   /**
@@ -250,32 +323,39 @@ export class InteractiveStateManager {
       return false;
     }
 
-    // Get current state
-    const current = await this.getState(channelId, messageTs);
+    try {
+      // Get current state
+      const current = await this.getState(channelId, messageTs);
 
-    if (!current) {
+      if (!current) {
+        return false;
+      }
+
+      // Merge with existing payload
+      const updatedPayload = {
+        ...current.payload,
+        ...payload,
+      };
+
+      const result = await withWriteRetry(async () => {
+        return await db
+          .update(interactiveStates)
+          .set({
+            payload: updatedPayload as Record<string, any>,
+          })
+          .where(
+            and(
+              eq(interactiveStates.channelId, channelId),
+              eq(interactiveStates.messageTs, messageTs)
+            )
+          );
+      }, `update payload for ${channelId}:${messageTs}`);
+
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error(`[Interactive State] Error updating payload:`, error);
       return false;
     }
-
-    // Merge with existing payload
-    const updatedPayload = {
-      ...current.payload,
-      ...payload,
-    };
-
-    const result = await db
-      .update(interactiveStates)
-      .set({
-        payload: updatedPayload as Record<string, any>,
-      })
-      .where(
-        and(
-          eq(interactiveStates.channelId, channelId),
-          eq(interactiveStates.messageTs, messageTs)
-        )
-      );
-
-    return (result.rowCount || 0) > 0;
   }
 
   /**
@@ -287,16 +367,23 @@ export class InteractiveStateManager {
       return false;
     }
 
-    const result = await db
-      .delete(interactiveStates)
-      .where(
-        and(
-          eq(interactiveStates.channelId, channelId),
-          eq(interactiveStates.messageTs, messageTs)
-        )
-      );
+    try {
+      const result = await withWriteRetry(async () => {
+        return await db
+          .delete(interactiveStates)
+          .where(
+            and(
+              eq(interactiveStates.channelId, channelId),
+              eq(interactiveStates.messageTs, messageTs)
+            )
+          );
+      }, `delete state for ${channelId}:${messageTs}`);
 
-    return (result.rowCount || 0) > 0;
+      return (result.rowCount || 0) > 0;
+    } catch (error) {
+      console.error(`[Interactive State] Error deleting state:`, error);
+      return false;
+    }
   }
 
   /**
@@ -309,19 +396,26 @@ export class InteractiveStateManager {
       return 0;
     }
 
-    const now = new Date();
+    try {
+      const now = new Date();
 
-    const result = await db
-      .delete(interactiveStates)
-      .where(lt(interactiveStates.expiresAt, now));
+      const result = await withWriteRetry(async () => {
+        return await db
+          .delete(interactiveStates)
+          .where(lt(interactiveStates.expiresAt, now));
+      }, 'cleanup expired states');
 
-    const deleted = result.rowCount || 0;
+      const deleted = result.rowCount || 0;
 
-    if (deleted > 0) {
-      console.log(`[Interactive State] Cleaned up ${deleted} expired states`);
+      if (deleted > 0) {
+        console.log(`[Interactive State] Cleaned up ${deleted} expired states`);
+      }
+
+      return deleted;
+    } catch (error) {
+      console.error(`[Interactive State] Error cleaning up expired states:`, error);
+      return 0;
     }
-
-    return deleted;
   }
 
   /**
@@ -335,19 +429,26 @@ export class InteractiveStateManager {
       return [];
     }
 
-    const results = await db
-      .select()
-      .from(interactiveStates)
-      .where(
-        and(
-          eq(interactiveStates.type, type),
-          eq(interactiveStates.status, "pending"),
-          gt(interactiveStates.expiresAt, new Date()) // Not expired (gt = greater than)
-        )
-      )
-      .orderBy(desc(interactiveStates.createdAt));
+    try {
+      return await withQueryRetry(async () => {
+        const results = await db
+          .select()
+          .from(interactiveStates)
+          .where(
+            and(
+              eq(interactiveStates.type, type),
+              eq(interactiveStates.status, "pending"),
+              gt(interactiveStates.expiresAt, new Date()) // Not expired (gt = greater than)
+            )
+          )
+          .orderBy(desc(interactiveStates.createdAt));
 
-    return results as Array<InteractiveState & { payload: StatePayloadByType[T] }>;
+        return results as Array<InteractiveState & { payload: StatePayloadByType[T] }>;
+      }, `get pending states by type ${type}`);
+    } catch (error) {
+      console.error(`[Interactive State] Error getting pending states by type:`, error);
+      return [];
+    }
   }
 
   /**
@@ -362,22 +463,29 @@ export class InteractiveStateManager {
       return 0;
     }
 
-    const conditions = [];
+    try {
+      return await withQueryRetry(async () => {
+        const conditions = [];
 
-    if (type) {
-      conditions.push(eq(interactiveStates.type, type));
+        if (type) {
+          conditions.push(eq(interactiveStates.type, type));
+        }
+
+        if (status) {
+          conditions.push(eq(interactiveStates.status, status));
+        }
+
+        const results = await db
+          .select()
+          .from(interactiveStates)
+          .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+        return results.length;
+      }, 'get state count');
+    } catch (error) {
+      console.error(`[Interactive State] Error getting state count:`, error);
+      return 0;
     }
-
-    if (status) {
-      conditions.push(eq(interactiveStates.status, status));
-    }
-
-    const results = await db
-      .select()
-      .from(interactiveStates)
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
-
-    return results.length;
   }
 
   /**

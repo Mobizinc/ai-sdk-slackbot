@@ -2,16 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GenericMessageEvent } from "../../lib/slack-event-types";
 
 const shouldSkipMessage = vi.fn();
+const isDelegationMessage = vi.fn();
 const processCaseDetection = vi.fn();
 const processExistingThread = vi.fn();
 
 vi.mock("../../lib/passive/handler-utils", () => ({
   shouldSkipMessage: (...args: unknown[]) => shouldSkipMessage(...args),
+  isDelegationMessage: (...args: unknown[]) => isDelegationMessage(...args),
   processCaseDetection: (...args: unknown[]) => processCaseDetection(...args),
   processExistingThread: (...args: unknown[]) => processExistingThread(...args),
 }));
 
-const { handlePassiveMessage } = require("../../lib/passive/handler");
+import { handlePassiveMessage } from "../../lib/passive/handler";
 
 function buildEvent(partial: Partial<GenericMessageEvent>): GenericMessageEvent {
   return {
@@ -28,6 +30,7 @@ function buildEvent(partial: Partial<GenericMessageEvent>): GenericMessageEvent 
 describe("passive handler", () => {
   beforeEach(() => {
     shouldSkipMessage.mockReset().mockReturnValue(false);
+    isDelegationMessage.mockReset().mockReturnValue(false);
     processCaseDetection.mockReset();
     processExistingThread.mockReset();
   });
@@ -36,6 +39,15 @@ describe("passive handler", () => {
     shouldSkipMessage.mockReturnValue(true);
 
     await handlePassiveMessage(buildEvent({}), "BOT");
+
+    expect(processCaseDetection).not.toHaveBeenCalled();
+    expect(processExistingThread).not.toHaveBeenCalled();
+  });
+
+  it("skips processing when isDelegationMessage returns true", async () => {
+    isDelegationMessage.mockReturnValue(true);
+
+    await handlePassiveMessage(buildEvent({ text: "Hello <@U123>, please take a look at SCS0001111" }), "BOT");
 
     expect(processCaseDetection).not.toHaveBeenCalled();
     expect(processExistingThread).not.toHaveBeenCalled();

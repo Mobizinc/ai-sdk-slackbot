@@ -24,7 +24,7 @@ describe("Microsoft Learn Search Tool", () => {
     // Setup Microsoft Learn MCP mock
     const microsoftLearn = await import("../../../lib/tools/microsoft-learn-mcp");
     mockMicrosoftLearnMCP = microsoftLearn.microsoftLearnMCP as any;
-    mockMicrosoftLearnMCP.search = vi.fn();
+    mockMicrosoftLearnMCP.searchDocs = vi.fn();
 
     // Create tools
     tools = createAgentTools({
@@ -50,29 +50,31 @@ describe("Microsoft Learn Search Tool", () => {
         },
       ];
 
-      mockMicrosoftLearnMCP.search.mockResolvedValue(mockResults);
+      mockMicrosoftLearnMCP.searchDocs.mockResolvedValue(mockResults);
 
       const result = await tools.microsoftLearnSearch.execute({
         query: "Azure Virtual Network",
         limit: 3,
       });
 
-      expect(mockMicrosoftLearnMCP.search).toHaveBeenCalledWith({
-        query: "Azure Virtual Network",
-        limit: 3,
-      });
+      expect(mockMicrosoftLearnMCP.searchDocs).toHaveBeenCalledWith(
+        "Azure Virtual Network",
+        3
+      );
       expect(mockUpdateStatus).toHaveBeenCalledWith("is searching Microsoft Learn...");
       expect(result).toEqual({
         results: [
           {
             title: "Configure Azure Virtual Network",
             url: "https://learn.microsoft.com/azure/vnet",
-            content: "Learn how to configure Azure Virtual Networks...",
+            excerpt: "Learn how to configure Azure Virtual Networks...",
+            key_points: ["Learn how to configure Azure Virtual Networks"],
           },
           {
             title: "Azure Networking Best Practices",
             url: "https://learn.microsoft.com/azure/networking",
-            content: "Best practices for Azure networking architecture...",
+            excerpt: "Best practices for Azure networking architecture...",
+            key_points: ["Best practices for Azure networking architecture"],
           },
         ],
         total_found: 2,
@@ -80,30 +82,30 @@ describe("Microsoft Learn Search Tool", () => {
     });
 
     it("should use default limit when not provided", async () => {
-      mockMicrosoftLearnMCP.search.mockResolvedValue([]);
+      mockMicrosoftLearnMCP.searchDocs.mockResolvedValue([]);
 
       await tools.microsoftLearnSearch.execute({
         query: "PowerShell commands",
       });
 
-      expect(mockMicrosoftLearnMCP.search).toHaveBeenCalledWith({
-        query: "PowerShell commands",
-        limit: 3,
-      });
+      expect(mockMicrosoftLearnMCP.searchDocs).toHaveBeenCalledWith(
+        "PowerShell commands",
+        3
+      );
     });
 
     it("should respect custom limit parameter", async () => {
-      mockMicrosoftLearnMCP.search.mockResolvedValue([]);
+      mockMicrosoftLearnMCP.searchDocs.mockResolvedValue([]);
 
       await tools.microsoftLearnSearch.execute({
         query: "Exchange Online",
         limit: 5,
       });
 
-      expect(mockMicrosoftLearnMCP.search).toHaveBeenCalledWith({
-        query: "Exchange Online",
-        limit: 5,
-      });
+      expect(mockMicrosoftLearnMCP.searchDocs).toHaveBeenCalledWith(
+        "Exchange Online",
+        5
+      );
     });
 
     it("should handle different query types", async () => {
@@ -115,7 +117,7 @@ describe("Microsoft Learn Search Tool", () => {
         },
       ];
 
-      mockMicrosoftLearnMCP.search.mockResolvedValue(mockResults);
+      mockMicrosoftLearnMCP.searchDocs.mockResolvedValue(mockResults);
 
       const result = await tools.microsoftLearnSearch.execute({
         query: "error 0x80070005",
@@ -128,7 +130,7 @@ describe("Microsoft Learn Search Tool", () => {
 
   describe("Microsoft Learn Search - Empty Results", () => {
     it("should return message when no results found", async () => {
-      mockMicrosoftLearnMCP.search.mockResolvedValue([]);
+      mockMicrosoftLearnMCP.searchDocs.mockResolvedValue([]);
 
       const result = await tools.microsoftLearnSearch.execute({
         query: "nonexistent topic xyz123",
@@ -143,7 +145,7 @@ describe("Microsoft Learn Search Tool", () => {
 
   describe("Microsoft Learn Search - Error Handling", () => {
     it("should handle MCP search errors gracefully", async () => {
-      mockMicrosoftLearnMCP.search.mockRejectedValue(
+      mockMicrosoftLearnMCP.searchDocs.mockRejectedValue(
         new Error("MCP service unavailable")
       );
 
@@ -158,7 +160,7 @@ describe("Microsoft Learn Search Tool", () => {
     });
 
     it("should handle network timeouts", async () => {
-      mockMicrosoftLearnMCP.search.mockRejectedValue(
+      mockMicrosoftLearnMCP.searchDocs.mockRejectedValue(
         new Error("ETIMEDOUT")
       );
 
@@ -173,7 +175,7 @@ describe("Microsoft Learn Search Tool", () => {
     });
 
     it("should handle malformed responses", async () => {
-      mockMicrosoftLearnMCP.search.mockRejectedValue(
+      mockMicrosoftLearnMCP.searchDocs.mockRejectedValue(
         new Error("Invalid JSON response")
       );
 
