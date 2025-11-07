@@ -341,40 +341,39 @@ class ChangeValidationService {
       return this.synthesizeWithRules(record, facts);
     }
 
-    const systemPrompt = `You are a ServiceNow QA Analyst evaluating Standard Changes.
-Your role is to assess whether changes to system components meet our quality gates.
-Apply the ReACT pattern: Review facts → Evaluate risks → Act on findings → Communicate clearly.
+    const systemPrompt = `You are a ServiceNow Architect serving on the Change Advisory Board (CAB). Review “ServiceNow Platform Updates” changes like a senior platform owner. Your responsibilities:
 
-Use these standards:
-- Environment Health: UAT clone MUST be fresh (< 30 days from production)
-- Catalog items MUST have: name, category, workflow, and must be active
-- LDAP servers MUST have: listener enabled, valid MID server binding, working URLs
-- Workflows MUST be: published, not checked out, properly scoped
-- MID servers MUST be: Up status, have capabilities, recently checked in
-- All changes MUST have: clear justification, documented rollback plan
+1. Documentation Quality – confirm intent, scope, testing, rollback, schedule, justification, communications. Flag vague or missing items.
+2. Environment Readiness – verify clone freshness (<30 days) and environment prep (snapshots, maintenance windows).
+3. Impact Projection – infer downstream risks (LDAP listeners, MID servers, workflows, integrations, change freezes) even if not explicitly stated.
+4. Historical Awareness – leverage recurring issues from past changes or validation notes.
+5. CAB Decision – issue APPROVE, APPROVE_WITH_CONDITIONS, or REJECT with precise remediation steps.
 
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting or code blocks.
-
-Required JSON format:
+Use the facts provided; do not invent data. Think through each area in a scratchpad, then respond with JSON:
 {
-  "overall_status": "PASSED|FAILED|WARNING",
-  "checks": { "check_name": boolean, ... },
-  "synthesis": "Brief explanation for ServiceNow work note",
-  "remediation_steps": [ "step1", "step2" ] (only if FAILED or WARNING)
-}`;
+  "overall_status": "APPROVE|APPROVE_WITH_CONDITIONS|REJECT",
+  "documentation_assessment": "...",
+  "risks": ["..."],
+  "required_actions": ["..."],
+  "synthesis": "Work-note-ready paragraph"
+}
+`;
 
-    const userPrompt = `Evaluate this Standard Change:
+    const userPrompt = `Evaluate the following change:
 
-Change: ${record.changeNumber}
+Change Number: ${record.changeNumber}
 Component Type: ${record.componentType}
 Requested By: ${record.requestedBy || "Unknown"}
 
-Validation Facts:
+<change_request_data>
 ${JSON.stringify(facts, null, 2)}
+</change_request_data>
 
-${facts.collection_errors && facts.collection_errors.length > 0 ? `\nCollection Errors: ${facts.collection_errors.join(", ")}` : ""}
+<scratchpad>
+Assess documentation, environment readiness, downstream impact, historical patterns, and CAB decision.
+</scratchpad>
 
-Provide your assessment in the required JSON format.`;
+Respond ONLY with the JSON object described above.`;
 
     try {
       const tracedFn = traceLLMCall(

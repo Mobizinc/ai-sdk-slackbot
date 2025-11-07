@@ -1,0 +1,6202 @@
+{
+  "7e2d1c06c34d325066d9bdb4e4013114": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-11-07 09:21:23",
+        "value": "2025-11-07 17:21:23"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "96add886c34d325066d9bdb4e401317e",
+        "value": "96add886c34d325066d9bdb4e401317e"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0042104",
+        "link": "https://mobiz.service-now.com/api/now/table/task/7e2d1c06c34d325066d9bdb4e4013114",
+        "value": "7e2d1c06c34d325066d9bdb4e4013114"
+      },
+      "sys_created_on": {
+        "display_value": "2025-11-07 09:21:23",
+        "value": "2025-11-07 17:21:23"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "a42f3929c385fe90ad36b9ff050131f4": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-11-06 03:45:29",
+        "value": "2025-11-06 11:45:29"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "243706adc3c5fe90ad36b9ff05013179",
+        "value": "243706adc3c5fe90ad36b9ff05013179"
+      },
+      "sys_updated_by": {
+        "display_value": "ikochetkov@mobizinc.com",
+        "value": "ikochetkov@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0042100",
+        "link": "https://mobiz.service-now.com/api/now/table/task/a42f3929c385fe90ad36b9ff050131f4",
+        "value": "a42f3929c385fe90ad36b9ff050131f4"
+      },
+      "sys_created_on": {
+        "display_value": "2025-11-06 03:45:29",
+        "value": "2025-11-06 11:45:29"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ikochetkov@mobizinc.com",
+        "value": "ikochetkov@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b8b11c0dc3893a1066d9bdb4e40131f6": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-11-04 05:57:28",
+        "value": "2025-11-04 13:57:28"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "1e32d84dc3893a1066d9bdb4e40131a6",
+        "value": "1e32d84dc3893a1066d9bdb4e40131a6"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041987",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b8b11c0dc3893a1066d9bdb4e40131f6",
+        "value": "b8b11c0dc3893a1066d9bdb4e40131f6"
+      },
+      "sys_created_on": {
+        "display_value": "2025-11-04 05:57:28",
+        "value": "2025-11-04 13:57:28"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "f981b433c3347290ad36b9ff050131a9": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-31 12:02:39",
+        "value": "2025-10-31 19:02:39"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b5b17c33c3347290ad36b9ff0501311f",
+        "value": "b5b17c33c3347290ad36b9ff0501311f"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041986",
+        "link": "https://mobiz.service-now.com/api/now/table/task/f981b433c3347290ad36b9ff050131a9",
+        "value": "f981b433c3347290ad36b9ff050131a9"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-31 12:02:39",
+        "value": "2025-10-31 19:02:39"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "44da76a3c3343290ad36b9ff050131d3": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-31 03:24:32",
+        "value": "2025-10-31 10:24:32"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "182b72e3c3343290ad36b9ff050131f4",
+        "value": "182b72e3c3343290ad36b9ff050131f4"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041985",
+        "link": "https://mobiz.service-now.com/api/now/table/task/44da76a3c3343290ad36b9ff050131d3",
+        "value": "44da76a3c3343290ad36b9ff050131d3"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-31 03:24:32",
+        "value": "2025-10-31 10:24:32"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "20f3ab0947f07a1085733525d36d4385": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-23 12:00:58",
+        "value": "2025-10-23 19:00:58"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "0794e78947f07a1085733525d36d4317",
+        "value": "0794e78947f07a1085733525d36d4317"
+      },
+      "sys_updated_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041980",
+        "link": "https://mobiz.service-now.com/api/now/table/task/20f3ab0947f07a1085733525d36d4385",
+        "value": "20f3ab0947f07a1085733525d36d4385"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-23 12:00:58",
+        "value": "2025-10-23 19:00:58"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "bbf615f883f4f210ba267000feaad37a": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-22 07:06:30",
+        "value": "2025-10-22 14:06:30"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b797d93c83f4f210ba267000feaad39f",
+        "value": "b797d93c83f4f210ba267000feaad39f"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041978",
+        "link": "https://mobiz.service-now.com/api/now/table/task/bbf615f883f4f210ba267000feaad37a",
+        "value": "bbf615f883f4f210ba267000feaad37a"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-22 07:06:30",
+        "value": "2025-10-22 14:06:30"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "1482fec7c3ecb21066d9bdb4e401314f": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-17 03:42:53",
+        "value": "2025-10-17 10:42:53"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5419fec3c360f21066d9bdb4e40131fa",
+        "value": "5419fec3c360f21066d9bdb4e40131fa"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041960",
+        "link": "https://mobiz.service-now.com/api/now/table/task/1482fec7c3ecb21066d9bdb4e401314f",
+        "value": "1482fec7c3ecb21066d9bdb4e401314f"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-17 03:42:53",
+        "value": "2025-10-17 10:42:53"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "9ef327a6c32cf21066d9bdb4e40131d9": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-15 17:34:34",
+        "value": "2025-10-16 00:34:34"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "e734efa6c32cf21066d9bdb4e4013196",
+        "value": "e734efa6c32cf21066d9bdb4e4013196"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041959",
+        "link": "https://mobiz.service-now.com/api/now/table/task/9ef327a6c32cf21066d9bdb4e40131d9",
+        "value": "9ef327a6c32cf21066d9bdb4e40131d9"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-15 17:34:34",
+        "value": "2025-10-16 00:34:34"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "2cd1bff0c368b21066d9bdb4e40131cb": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-10 08:08:21",
+        "value": "2025-10-10 15:08:21"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "34b2bf74c368b21066d9bdb4e40131f5",
+        "value": "34b2bf74c368b21066d9bdb4e40131f5"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041958",
+        "link": "https://mobiz.service-now.com/api/now/table/task/2cd1bff0c368b21066d9bdb4e40131cb",
+        "value": "2cd1bff0c368b21066d9bdb4e40131cb"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-10 08:08:21",
+        "value": "2025-10-10 15:08:21"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "7c583de4c3ec3210ad36b9ff050131a0": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-09 04:36:50",
+        "value": "2025-10-09 11:36:50"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "f8b87528c3ec3210ad36b9ff050131d0",
+        "value": "f8b87528c3ec3210ad36b9ff050131d0"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041956",
+        "link": "https://mobiz.service-now.com/api/now/table/task/7c583de4c3ec3210ad36b9ff050131a0",
+        "value": "7c583de4c3ec3210ad36b9ff050131a0"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-09 04:36:50",
+        "value": "2025-10-09 11:36:50"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "9fea9531c3dc3210ad36b9ff0501315a": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-30 13:26:37",
+        "value": "2025-09-30 20:26:37"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5dab51b1c3dc3210ad36b9ff05013183",
+        "value": "5dab51b1c3dc3210ad36b9ff05013183"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041948",
+        "link": "https://mobiz.service-now.com/api/now/table/task/9fea9531c3dc3210ad36b9ff0501315a",
+        "value": "9fea9531c3dc3210ad36b9ff0501315a"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-30 13:26:37",
+        "value": "2025-09-30 20:26:37"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "bd2da72cc3983210ad36b9ff05013160": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-27 02:53:14",
+        "value": "2025-09-27 09:53:14"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "12ed6b6cc3983210ad36b9ff05013123",
+        "value": "12ed6b6cc3983210ad36b9ff05013123"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041946",
+        "link": "https://mobiz.service-now.com/api/now/table/task/bd2da72cc3983210ad36b9ff05013160",
+        "value": "bd2da72cc3983210ad36b9ff05013160"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-27 02:53:14",
+        "value": "2025-09-27 09:53:14"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "40060460c3187210ad36b9ff05013156": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-26 10:01:38",
+        "value": "2025-09-26 17:01:38"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "ff5644a0c3187210ad36b9ff0501312b",
+        "value": "ff5644a0c3187210ad36b9ff0501312b"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041945",
+        "link": "https://mobiz.service-now.com/api/now/table/task/40060460c3187210ad36b9ff05013156",
+        "value": "40060460c3187210ad36b9ff05013156"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-26 10:01:38",
+        "value": "2025-09-26 17:01:38"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "5e0774bfc3c83210ad36b9ff0501311b": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-24 05:41:31",
+        "value": "2025-09-24 12:41:31"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c2a738ffc3c83210ad36b9ff050131d2",
+        "value": "c2a738ffc3c83210ad36b9ff050131d2"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041939",
+        "link": "https://mobiz.service-now.com/api/now/table/task/5e0774bfc3c83210ad36b9ff0501311b",
+        "value": "5e0774bfc3c83210ad36b9ff0501311b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-24 05:41:31",
+        "value": "2025-09-24 12:41:31"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "6170456fc3887210ad36b9ff050131f5": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-23 11:43:43",
+        "value": "2025-09-23 18:43:43"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "7df00defc3887210ad36b9ff05013191",
+        "value": "7df00defc3887210ad36b9ff05013191"
+      },
+      "sys_updated_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041938",
+        "link": "https://mobiz.service-now.com/api/now/table/task/6170456fc3887210ad36b9ff050131f5",
+        "value": "6170456fc3887210ad36b9ff050131f5"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-23 11:43:43",
+        "value": "2025-09-23 18:43:43"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "8e8e3e06c3c47e1066d9bdb4e401319a": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-19 05:05:27",
+        "value": "2025-09-19 12:05:27"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "747f3686c3c47e1066d9bdb4e401319c",
+        "value": "747f3686c3c47e1066d9bdb4e401319c"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041926",
+        "link": "https://mobiz.service-now.com/api/now/table/task/8e8e3e06c3c47e1066d9bdb4e401319a",
+        "value": "8e8e3e06c3c47e1066d9bdb4e401319a"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-19 05:05:27",
+        "value": "2025-09-19 12:05:27"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "208492cac3807e1066d9bdb4e401319d": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-19 02:01:03",
+        "value": "2025-09-19 09:01:03"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b335d60ec3807e1066d9bdb4e4013149",
+        "value": "b335d60ec3807e1066d9bdb4e4013149"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041925",
+        "link": "https://mobiz.service-now.com/api/now/table/task/208492cac3807e1066d9bdb4e401319d",
+        "value": "208492cac3807e1066d9bdb4e401319d"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-19 02:01:03",
+        "value": "2025-09-19 09:01:03"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "a6e73bc9c300f61066d9bdb4e40131fb": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-16 06:39:38",
+        "value": "2025-09-16 13:39:38"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "1b38fb0dc300f61066d9bdb4e4013122",
+        "value": "1b38fb0dc300f61066d9bdb4e4013122"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041921",
+        "link": "https://mobiz.service-now.com/api/now/table/task/a6e73bc9c300f61066d9bdb4e40131fb",
+        "value": "a6e73bc9c300f61066d9bdb4e40131fb"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-16 06:39:38",
+        "value": "2025-09-16 13:39:38"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "5c17838dc388b61066d9bdb4e40131ee": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-16 03:06:25",
+        "value": "2025-09-16 10:06:25"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "8c770f8dc388b61066d9bdb4e40131f8",
+        "value": "8c770f8dc388b61066d9bdb4e40131f8"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041920",
+        "link": "https://mobiz.service-now.com/api/now/table/task/5c17838dc388b61066d9bdb4e40131ee",
+        "value": "5c17838dc388b61066d9bdb4e40131ee"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-16 03:06:25",
+        "value": "2025-09-16 10:06:25"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "35408afbc3fb6a905bcb9df015013164": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-12 00:46:33",
+        "value": "2025-09-12 07:46:33"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "181106bfc3fb6a905bcb9df0150131cf",
+        "value": "181106bfc3fb6a905bcb9df0150131cf"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041919",
+        "link": "https://mobiz.service-now.com/api/now/table/task/35408afbc3fb6a905bcb9df015013164",
+        "value": "35408afbc3fb6a905bcb9df015013164"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-12 00:46:33",
+        "value": "2025-09-12 07:46:33"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "9106cd1bc33f66905bcb9df01501312d": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-10 07:13:42",
+        "value": "2025-09-10 14:13:42"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b776c95bc33f66905bcb9df01501313d",
+        "value": "b776c95bc33f66905bcb9df01501313d"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041918",
+        "link": "https://mobiz.service-now.com/api/now/table/task/9106cd1bc33f66905bcb9df01501312d",
+        "value": "9106cd1bc33f66905bcb9df01501312d"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-10 07:13:42",
+        "value": "2025-09-10 14:13:42"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "6078c0dbc33766905bcb9df0150131a7": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-10 02:43:41",
+        "value": "2025-09-10 09:43:41"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "20b888dbc33766905bcb9df0150131bf",
+        "value": "20b888dbc33766905bcb9df0150131bf"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041917",
+        "link": "https://mobiz.service-now.com/api/now/table/task/6078c0dbc33766905bcb9df0150131a7",
+        "value": "6078c0dbc33766905bcb9df0150131a7"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-10 02:43:41",
+        "value": "2025-09-10 09:43:41"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b365c2d9c3b3e6505bcb9df01501312e": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-04 06:42:32",
+        "value": "2025-09-04 13:42:32"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b8d50a1dc3b3e6505bcb9df0150131b3",
+        "value": "b8d50a1dc3b3e6505bcb9df0150131b3"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041900",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b365c2d9c3b3e6505bcb9df01501312e",
+        "value": "b365c2d9c3b3e6505bcb9df01501312e"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-04 06:42:32",
+        "value": "2025-09-04 13:42:32"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "ae808691c3b3e6505bcb9df01501312c": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-04 06:20:41",
+        "value": "2025-09-04 13:20:41"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "f8d002d1c3b3e6505bcb9df0150131d7",
+        "value": "f8d002d1c3b3e6505bcb9df0150131d7"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041855",
+        "link": "https://mobiz.service-now.com/api/now/table/task/ae808691c3b3e6505bcb9df01501312c",
+        "value": "ae808691c3b3e6505bcb9df01501312c"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-04 06:20:41",
+        "value": "2025-09-04 13:20:41"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "664fb5ddc373e6505bcb9df0150131cc": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-04 06:15:12",
+        "value": "2025-09-04 13:15:12"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5c9f7111c3b3e6505bcb9df01501313f",
+        "value": "5c9f7111c3b3e6505bcb9df01501313f"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041835",
+        "link": "https://mobiz.service-now.com/api/now/table/task/664fb5ddc373e6505bcb9df0150131cc",
+        "value": "664fb5ddc373e6505bcb9df0150131cc"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-04 06:15:12",
+        "value": "2025-09-04 13:15:12"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "f8732154c33baa10a01d5673e4013122": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-09-01 01:39:49",
+        "value": "2025-09-01 08:39:49"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "4dc3e554c33baa10a01d5673e4013109",
+        "value": "4dc3e554c33baa10a01d5673e4013109"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041803",
+        "link": "https://mobiz.service-now.com/api/now/table/task/f8732154c33baa10a01d5673e4013122",
+        "value": "f8732154c33baa10a01d5673e4013122"
+      },
+      "sys_created_on": {
+        "display_value": "2025-09-01 01:39:49",
+        "value": "2025-09-01 08:39:49"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "63468bdfc3eb6610a01d5673e40131a5": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-29 06:18:59",
+        "value": "2025-08-29 13:18:59"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d5e68713c32f6610a01d5673e40131a0",
+        "value": "d5e68713c32f6610a01d5673e40131a0"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041802",
+        "link": "https://mobiz.service-now.com/api/now/table/task/63468bdfc3eb6610a01d5673e40131a5",
+        "value": "63468bdfc3eb6610a01d5673e40131a5"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-29 06:18:59",
+        "value": "2025-08-29 13:18:59"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "90f424f2c363a210a01d5673e40131c7": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-27 05:20:58",
+        "value": "2025-08-27 12:20:58"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c876a076c363a210a01d5673e40131d3",
+        "value": "c876a076c363a210a01d5673e40131d3"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041801",
+        "link": "https://mobiz.service-now.com/api/now/table/task/90f424f2c363a210a01d5673e40131c7",
+        "value": "90f424f2c363a210a01d5673e40131c7"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-27 05:20:58",
+        "value": "2025-08-27 12:20:58"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "e5c57f2ec32f6210a01d5673e40131f2": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-27 01:50:22",
+        "value": "2025-08-27 08:50:22"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "4f36fb6ec32f6210a01d5673e4013105",
+        "value": "4f36fb6ec32f6210a01d5673e4013105"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041800",
+        "link": "https://mobiz.service-now.com/api/now/table/task/e5c57f2ec32f6210a01d5673e40131f2",
+        "value": "e5c57f2ec32f6210a01d5673e40131f2"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-27 01:50:22",
+        "value": "2025-08-27 08:50:22"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "865727aac3eb6210a01d5673e40131bf": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-27 00:47:33",
+        "value": "2025-08-27 07:47:33"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "bed7afaac3eb6210a01d5673e4013118",
+        "value": "bed7afaac3eb6210a01d5673e4013118"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041799",
+        "link": "https://mobiz.service-now.com/api/now/table/task/865727aac3eb6210a01d5673e40131bf",
+        "value": "865727aac3eb6210a01d5673e40131bf"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-27 00:47:33",
+        "value": "2025-08-27 07:47:33"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "29e1d646c3afe210a01d5673e40131ba": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-25 05:25:40",
+        "value": "2025-08-25 12:25:40"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d954568ac3afe210a01d5673e40131fa",
+        "value": "d954568ac3afe210a01d5673e40131fa"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041797",
+        "link": "https://mobiz.service-now.com/api/now/table/task/29e1d646c3afe210a01d5673e40131ba",
+        "value": "29e1d646c3afe210a01d5673e40131ba"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-25 05:25:40",
+        "value": "2025-08-25 12:25:40"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "7aff0682c3afe210a01d5673e4013158": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-25 05:13:43",
+        "value": "2025-08-25 12:13:43"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "1a91de06c3afe210a01d5673e40131e6",
+        "value": "1a91de06c3afe210a01d5673e40131e6"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041796",
+        "link": "https://mobiz.service-now.com/api/now/table/task/7aff0682c3afe210a01d5673e4013158",
+        "value": "7aff0682c3afe210a01d5673e4013158"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-25 05:13:43",
+        "value": "2025-08-25 12:13:43"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "97304a81c36fee505bcb9df015013151": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-22 01:27:02",
+        "value": "2025-08-22 08:27:02"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "58f04ac1c36fee505bcb9df0150131b8",
+        "value": "58f04ac1c36fee505bcb9df0150131b8"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041795",
+        "link": "https://mobiz.service-now.com/api/now/table/task/97304a81c36fee505bcb9df015013151",
+        "value": "97304a81c36fee505bcb9df015013151"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-22 01:27:02",
+        "value": "2025-08-22 08:27:02"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "7c7a66fcc3a7ae505bcb9df015013191": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-21 09:51:23",
+        "value": "2025-08-21 16:51:23"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "e6ca2efcc3a7ae505bcb9df015013102",
+        "value": "e6ca2efcc3a7ae505bcb9df015013102"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041794",
+        "link": "https://mobiz.service-now.com/api/now/table/task/7c7a66fcc3a7ae505bcb9df015013191",
+        "value": "7c7a66fcc3a7ae505bcb9df015013191"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-21 09:51:23",
+        "value": "2025-08-21 16:51:23"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "67e23468c3efea505bcb9df0150131e8": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-20 06:33:33",
+        "value": "2025-08-20 13:33:33"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "fae3f0e8c3efea505bcb9df0150131b7",
+        "value": "fae3f0e8c3efea505bcb9df0150131b7"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041793",
+        "link": "https://mobiz.service-now.com/api/now/table/task/67e23468c3efea505bcb9df0150131e8",
+        "value": "67e23468c3efea505bcb9df0150131e8"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-20 06:33:33",
+        "value": "2025-08-20 13:33:33"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "4c15abbfc35fe6505bcb9df015013189": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-18 11:36:46",
+        "value": "2025-08-18 18:36:46"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "8926af33c39fe6505bcb9df01501314a",
+        "value": "8926af33c39fe6505bcb9df01501314a"
+      },
+      "sys_updated_by": {
+        "display_value": "ikochetkov@mobizinc.com",
+        "value": "ikochetkov@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041791",
+        "link": "https://mobiz.service-now.com/api/now/table/task/4c15abbfc35fe6505bcb9df015013189",
+        "value": "4c15abbfc35fe6505bcb9df015013189"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-18 11:36:46",
+        "value": "2025-08-18 18:36:46"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ikochetkov@mobizinc.com",
+        "value": "ikochetkov@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "5c8fbdbec317aa50a01d5673e40131e9": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-15 01:36:46",
+        "value": "2025-08-15 08:36:46"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "32004efec317aa50a01d5673e40131a4",
+        "value": "32004efec317aa50a01d5673e40131a4"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041789",
+        "link": "https://mobiz.service-now.com/api/now/table/task/5c8fbdbec317aa50a01d5673e40131e9",
+        "value": "5c8fbdbec317aa50a01d5673e40131e9"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-15 01:36:46",
+        "value": "2025-08-15 08:36:46"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "1a2d11a6c3172a50a01d5673e40131a1": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-14 04:34:40",
+        "value": "2025-08-14 11:34:40"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "0b2f156ac3172a50a01d5673e4013172",
+        "value": "0b2f156ac3172a50a01d5673e4013172"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041788",
+        "link": "https://mobiz.service-now.com/api/now/table/task/1a2d11a6c3172a50a01d5673e40131a1",
+        "value": "1a2d11a6c3172a50a01d5673e40131a1"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-14 04:34:40",
+        "value": "2025-08-14 11:34:40"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "a09a511ac31ba650a01d5673e4013125": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-13 09:45:21",
+        "value": "2025-08-13 16:45:21"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "90bc1d1ec31ba650a01d5673e4013113",
+        "value": "90bc1d1ec31ba650a01d5673e4013113"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041787",
+        "link": "https://mobiz.service-now.com/api/now/table/task/a09a511ac31ba650a01d5673e4013125",
+        "value": "a09a511ac31ba650a01d5673e4013125"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-13 09:45:21",
+        "value": "2025-08-13 16:45:21"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "15916c56c353a650a01d5673e4013136": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-13 05:31:24",
+        "value": "2025-08-13 12:31:24"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d0922cd6c353a650a01d5673e4013160",
+        "value": "d0922cd6c353a650a01d5673e4013160"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041786",
+        "link": "https://mobiz.service-now.com/api/now/table/task/15916c56c353a650a01d5673e4013136",
+        "value": "15916c56c353a650a01d5673e4013136"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-13 05:31:24",
+        "value": "2025-08-13 12:31:24"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "671e2ee9c39b6250a01d5673e40131f2": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-11 07:47:37",
+        "value": "2025-08-11 14:47:37"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "009ea26dc39b6250a01d5673e401318c",
+        "value": "009ea26dc39b6250a01d5673e401318c"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041780",
+        "link": "https://mobiz.service-now.com/api/now/table/task/671e2ee9c39b6250a01d5673e40131f2",
+        "value": "671e2ee9c39b6250a01d5673e40131f2"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-11 07:47:37",
+        "value": "2025-08-11 14:47:37"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "208fb569c3176250a01d5673e4013191": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-11 04:24:52",
+        "value": "2025-08-11 11:24:52"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5e208ea9c3176250a01d5673e4013170",
+        "value": "5e208ea9c3176250a01d5673e4013170"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041779",
+        "link": "https://mobiz.service-now.com/api/now/table/task/208fb569c3176250a01d5673e4013191",
+        "value": "208fb569c3176250a01d5673e4013191"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-11 04:24:52",
+        "value": "2025-08-11 11:24:52"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "48c37125c3d36250a01d5673e4013190": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-11 03:32:06",
+        "value": "2025-08-11 10:32:06"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "9d147925c3d36250a01d5673e4013180",
+        "value": "9d147925c3d36250a01d5673e4013180"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041778",
+        "link": "https://mobiz.service-now.com/api/now/table/task/48c37125c3d36250a01d5673e4013190",
+        "value": "48c37125c3d36250a01d5673e4013190"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-11 03:32:06",
+        "value": "2025-08-11 10:32:06"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "3f9fc768c313ea10a01d5673e4013114": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-08 07:39:51",
+        "value": "2025-08-08 14:39:51"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "8500d3a8c313ea10a01d5673e40131d1",
+        "value": "8500d3a8c313ea10a01d5673e40131d1"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041776",
+        "link": "https://mobiz.service-now.com/api/now/table/task/3f9fc768c313ea10a01d5673e4013114",
+        "value": "3f9fc768c313ea10a01d5673e4013114"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-08 07:39:51",
+        "value": "2025-08-08 14:39:51"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b5e4d03fc34b2610a01d5673e4013141": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-08-05 10:14:04",
+        "value": "2025-08-05 17:14:04"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "32865cbfc34b2610a01d5673e401319f",
+        "value": "32865cbfc34b2610a01d5673e401319f"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041773",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b5e4d03fc34b2610a01d5673e4013141",
+        "value": "b5e4d03fc34b2610a01d5673e4013141"
+      },
+      "sys_created_on": {
+        "display_value": "2025-08-05 10:14:04",
+        "value": "2025-08-05 17:14:04"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "999027d5c30baad05bcb9df0150131e1": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-29 06:34:19",
+        "value": "2025-07-29 13:34:19"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "f311e319c30baad05bcb9df015013146",
+        "value": "f311e319c30baad05bcb9df015013146"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041764",
+        "link": "https://mobiz.service-now.com/api/now/table/task/999027d5c30baad05bcb9df0150131e1",
+        "value": "999027d5c30baad05bcb9df0150131e1"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-29 06:34:19",
+        "value": "2025-07-29 13:34:19"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "d57f2e09c3cbae14a01d5673e401314f": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-28 08:20:28",
+        "value": "2025-07-28 15:20:28"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b0df6e49c3cbae14a01d5673e401316c",
+        "value": "b0df6e49c3cbae14a01d5673e401316c"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041761",
+        "link": "https://mobiz.service-now.com/api/now/table/task/d57f2e09c3cbae14a01d5673e401314f",
+        "value": "d57f2e09c3cbae14a01d5673e401314f"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-28 08:20:28",
+        "value": "2025-07-28 15:20:28"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "e9220a81c307ae14a01d5673e4013113": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-28 05:04:02",
+        "value": "2025-07-28 12:04:02"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "6fd28205c307ae14a01d5673e4013149",
+        "value": "6fd28205c307ae14a01d5673e4013149"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041760",
+        "link": "https://mobiz.service-now.com/api/now/table/task/e9220a81c307ae14a01d5673e4013113",
+        "value": "e9220a81c307ae14a01d5673e4013113"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-28 05:04:02",
+        "value": "2025-07-28 12:04:02"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "6f42c23bc3b622d05bcb9df01501312b": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-24 07:51:34",
+        "value": "2025-07-24 14:51:34"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "ead202bbc3b622d05bcb9df0150131dc",
+        "value": "ead202bbc3b622d05bcb9df0150131dc"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041759",
+        "link": "https://mobiz.service-now.com/api/now/table/task/6f42c23bc3b622d05bcb9df01501312b",
+        "value": "6f42c23bc3b622d05bcb9df01501312b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-24 07:51:34",
+        "value": "2025-07-24 14:51:34"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "846f7533c3b622d05bcb9df015013101": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-24 07:37:25",
+        "value": "2025-07-24 14:37:25"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5f9fbd33c3b622d05bcb9df015013150",
+        "value": "5f9fbd33c3b622d05bcb9df015013150"
+      },
+      "sys_updated_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041758",
+        "link": "https://mobiz.service-now.com/api/now/table/task/846f7533c3b622d05bcb9df015013101",
+        "value": "846f7533c3b622d05bcb9df015013101"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-24 07:37:25",
+        "value": "2025-07-24 14:37:25"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "ee2d0ab5c3366e90a01d5673e4013131": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-18 03:30:39",
+        "value": "2025-07-18 10:30:39"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "4e9d0ef5c3366e90a01d5673e4013142",
+        "value": "4e9d0ef5c3366e90a01d5673e4013142"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041755",
+        "link": "https://mobiz.service-now.com/api/now/table/task/ee2d0ab5c3366e90a01d5673e4013131",
+        "value": "ee2d0ab5c3366e90a01d5673e4013131"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-18 03:30:39",
+        "value": "2025-07-18 10:30:39"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "d7f23bacc37a2690a01d5673e4013124": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-14 13:44:18",
+        "value": "2025-07-14 20:44:18"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "44b37fecc37a2690a01d5673e4013127",
+        "value": "44b37fecc37a2690a01d5673e4013127"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041754",
+        "link": "https://mobiz.service-now.com/api/now/table/task/d7f23bacc37a2690a01d5673e4013124",
+        "value": "d7f23bacc37a2690a01d5673e4013124"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-14 13:44:18",
+        "value": "2025-07-14 20:44:18"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "9de45a9bc3aeaa50a01d5673e401316b": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-10 09:41:45",
+        "value": "2025-07-10 16:41:45"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "00d51a5fc3aeaa50a01d5673e40131d3",
+        "value": "00d51a5fc3aeaa50a01d5673e40131d3"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041753",
+        "link": "https://mobiz.service-now.com/api/now/table/task/9de45a9bc3aeaa50a01d5673e401316b",
+        "value": "9de45a9bc3aeaa50a01d5673e401316b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-10 09:41:45",
+        "value": "2025-07-10 16:41:45"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "f3e97c4fc3662a50a01d5673e4013117": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-09 08:24:10",
+        "value": "2025-07-09 15:24:10"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "797a78cfc3662a50a01d5673e4013125",
+        "value": "797a78cfc3662a50a01d5673e4013125"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041752",
+        "link": "https://mobiz.service-now.com/api/now/table/task/f3e97c4fc3662a50a01d5673e4013117",
+        "value": "f3e97c4fc3662a50a01d5673e4013117"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-09 08:24:10",
+        "value": "2025-07-09 15:24:10"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "d4ef469ec32a22105bcb9df015013140": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-07 06:45:08",
+        "value": "2025-07-07 13:45:08"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "e39056dec32a22105bcb9df01501319b",
+        "value": "e39056dec32a22105bcb9df01501319b"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041751",
+        "link": "https://mobiz.service-now.com/api/now/table/task/d4ef469ec32a22105bcb9df015013140",
+        "value": "d4ef469ec32a22105bcb9df015013140"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-07 06:45:08",
+        "value": "2025-07-07 13:45:08"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "060d9912c3e222105bcb9df0150131d3": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-07 03:20:23",
+        "value": "2025-07-07 10:20:23"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "10c125dac3e222105bcb9df0150131b2",
+        "value": "10c125dac3e222105bcb9df0150131b2"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041750",
+        "link": "https://mobiz.service-now.com/api/now/table/task/060d9912c3e222105bcb9df0150131d3",
+        "value": "060d9912c3e222105bcb9df0150131d3"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-07 03:20:23",
+        "value": "2025-07-07 10:20:23"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "6688b61dc3eaaa10a01d5673e4013129": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-04 07:12:42",
+        "value": "2025-07-04 14:12:42"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d62af2ddc3eaaa10a01d5673e40131f3",
+        "value": "d62af2ddc3eaaa10a01d5673e40131f3"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041749",
+        "link": "https://mobiz.service-now.com/api/now/table/task/6688b61dc3eaaa10a01d5673e4013129",
+        "value": "6688b61dc3eaaa10a01d5673e4013129"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-04 07:12:42",
+        "value": "2025-07-04 14:12:42"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "aa97b0b8c362e610a01d5673e40131e8": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-02 08:28:56",
+        "value": "2025-07-02 15:28:56"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "6368f8f8c362e610a01d5673e401310c",
+        "value": "6368f8f8c362e610a01d5673e401310c"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041748",
+        "link": "https://mobiz.service-now.com/api/now/table/task/aa97b0b8c362e610a01d5673e40131e8",
+        "value": "aa97b0b8c362e610a01d5673e40131e8"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-02 08:28:56",
+        "value": "2025-07-02 15:28:56"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b47914fcc36ea610a01d5673e401312b": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-02 06:24:06",
+        "value": "2025-07-02 13:24:06"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "32dbdcb0c3aea610a01d5673e4013164",
+        "value": "32dbdcb0c3aea610a01d5673e4013164"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-02 06:24:06",
+        "value": "2025-07-02 13:24:06"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "0bcda140c3a6a210a01d5673e401312c": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-30 04:28:09",
+        "value": "2025-06-30 11:28:09"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "f42ea180c3a6a210a01d5673e4013132",
+        "value": "f42ea180c3a6a210a01d5673e4013132"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041741",
+        "link": "https://mobiz.service-now.com/api/now/table/task/0bcda140c3a6a210a01d5673e401312c",
+        "value": "0bcda140c3a6a210a01d5673e401312c"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-30 04:28:09",
+        "value": "2025-06-30 11:28:09"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "8b06c6cbc39ea6905bcb9df01501315a": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-27 03:41:46",
+        "value": "2025-06-27 10:41:46"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c4c6ca0fc39ea6905bcb9df015013138",
+        "value": "c4c6ca0fc39ea6905bcb9df015013138"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041740",
+        "link": "https://mobiz.service-now.com/api/now/table/task/8b06c6cbc39ea6905bcb9df01501315a",
+        "value": "8b06c6cbc39ea6905bcb9df01501315a"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-27 03:41:46",
+        "value": "2025-06-27 10:41:46"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "8d75ca0bc39ea6905bcb9df0150131fb": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-27 03:38:09",
+        "value": "2025-06-27 10:38:09"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "03e506cbc39ea6905bcb9df015013192",
+        "value": "03e506cbc39ea6905bcb9df015013192"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041739",
+        "link": "https://mobiz.service-now.com/api/now/table/task/8d75ca0bc39ea6905bcb9df0150131fb",
+        "value": "8d75ca0bc39ea6905bcb9df0150131fb"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-27 03:38:09",
+        "value": "2025-06-27 10:38:09"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "2e990a6ac35ee2905bcb9df015013100": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-25 14:44:10",
+        "value": "2025-06-25 21:44:10"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "a32b0eeac35ee2905bcb9df01501318c",
+        "value": "a32b0eeac35ee2905bcb9df01501318c"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041738",
+        "link": "https://mobiz.service-now.com/api/now/table/task/2e990a6ac35ee2905bcb9df015013100",
+        "value": "2e990a6ac35ee2905bcb9df015013100"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-25 14:44:10",
+        "value": "2025-06-25 21:44:10"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "a6e02b86c35a62905bcb9df0150131e7": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-24 08:13:02",
+        "value": "2025-06-24 15:13:02"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d8186386c39a62905bcb9df0150131e1",
+        "value": "d8186386c39a62905bcb9df0150131e1"
+      },
+      "sys_updated_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041735",
+        "link": "https://mobiz.service-now.com/api/now/table/task/a6e02b86c35a62905bcb9df0150131e7",
+        "value": "a6e02b86c35a62905bcb9df0150131e7"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-24 08:13:02",
+        "value": "2025-06-24 15:13:02"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "e6054af1c39aee505bcb9df0150131ac": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-23 06:51:49",
+        "value": "2025-06-23 13:51:49"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "bceb8231c3daee505bcb9df0150131a7",
+        "value": "bceb8231c3daee505bcb9df0150131a7"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041733",
+        "link": "https://mobiz.service-now.com/api/now/table/task/e6054af1c39aee505bcb9df0150131ac",
+        "value": "e6054af1c39aee505bcb9df0150131ac"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-23 06:51:49",
+        "value": "2025-06-23 13:51:49"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "aadce262c3022e50a01d5673e4013185": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-13 06:59:25",
+        "value": "2025-06-13 13:59:25"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "6abdeaa2c3022e50a01d5673e4013167",
+        "value": "6abdeaa2c3022e50a01d5673e4013167"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041721",
+        "link": "https://mobiz.service-now.com/api/now/table/task/aadce262c3022e50a01d5673e4013185",
+        "value": "aadce262c3022e50a01d5673e4013185"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-13 06:59:25",
+        "value": "2025-06-13 13:59:25"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b534aff1c386aa105bcb9df015013131": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-11 03:06:20",
+        "value": "2025-06-11 10:06:20"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "05352f35c386aa105bcb9df0150131af",
+        "value": "05352f35c386aa105bcb9df0150131af"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041719",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b534aff1c386aa105bcb9df015013131",
+        "value": "b534aff1c386aa105bcb9df015013131"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-11 03:06:20",
+        "value": "2025-06-11 10:06:20"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "363a8d4bc339e610a01d5673e401314c": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-06-02 03:06:14",
+        "value": "2025-06-02 10:06:14"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "37de8183c379e610a01d5673e40131b0",
+        "value": "37de8183c379e610a01d5673e40131b0"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041714",
+        "link": "https://mobiz.service-now.com/api/now/table/task/363a8d4bc339e610a01d5673e401314c",
+        "value": "363a8d4bc339e610a01d5673e401314c"
+      },
+      "sys_created_on": {
+        "display_value": "2025-06-02 03:06:14",
+        "value": "2025-06-02 10:06:14"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "fff10cedc3392a105bcb9df01501317e": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-28 05:41:08",
+        "value": "2025-05-28 12:41:08"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "88624821c3792a105bcb9df01501319f",
+        "value": "88624821c3792a105bcb9df01501319f"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041708",
+        "link": "https://mobiz.service-now.com/api/now/table/task/fff10cedc3392a105bcb9df01501317e",
+        "value": "fff10cedc3392a105bcb9df01501317e"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-28 05:41:08",
+        "value": "2025-05-28 12:41:08"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "75af33d9c3392a105bcb9df015013179": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-28 05:30:58",
+        "value": "2025-05-28 12:30:58"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "0f0000e9c3392a105bcb9df01501312a",
+        "value": "0f0000e9c3392a105bcb9df01501312a"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041707",
+        "link": "https://mobiz.service-now.com/api/now/table/task/75af33d9c3392a105bcb9df015013179",
+        "value": "75af33d9c3392a105bcb9df015013179"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-28 05:30:58",
+        "value": "2025-05-28 12:30:58"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "b268bf1dc3f52a105bcb9df015013152": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-28 04:59:06",
+        "value": "2025-05-28 11:59:06"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "18c8f35dc3f52a105bcb9df0150131cb",
+        "value": "18c8f35dc3f52a105bcb9df0150131cb"
+      },
+      "sys_updated_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041706",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b268bf1dc3f52a105bcb9df015013152",
+        "value": "b268bf1dc3f52a105bcb9df015013152"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-28 04:59:06",
+        "value": "2025-05-28 11:59:06"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "3cdf2b5dc3b52a105bcb9df015013128": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-28 04:53:44",
+        "value": "2025-05-28 11:53:44"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "7187f799c3f52a105bcb9df0150131fe",
+        "value": "7187f799c3f52a105bcb9df0150131fe"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041705",
+        "link": "https://mobiz.service-now.com/api/now/table/task/3cdf2b5dc3b52a105bcb9df015013128",
+        "value": "3cdf2b5dc3b52a105bcb9df015013128"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-28 04:53:44",
+        "value": "2025-05-28 11:53:44"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "d23960f0c37da210a01d5673e401314b": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-26 00:58:42",
+        "value": "2025-05-26 07:58:42"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5b8ea0b8c37da210a01d5673e401319f",
+        "value": "5b8ea0b8c37da210a01d5673e401319f"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041676",
+        "link": "https://mobiz.service-now.com/api/now/table/task/d23960f0c37da210a01d5673e401314b",
+        "value": "d23960f0c37da210a01d5673e401314b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-26 00:58:42",
+        "value": "2025-05-26 07:58:42"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "c6c3a333c3296a905bcb9df01501316c": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-23 11:38:21",
+        "value": "2025-05-23 18:38:21"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c034af33c3296a905bcb9df0150131c8",
+        "value": "c034af33c3296a905bcb9df0150131c8"
+      },
+      "sys_updated_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041672",
+        "link": "https://mobiz.service-now.com/api/now/table/task/c6c3a333c3296a905bcb9df01501316c",
+        "value": "c6c3a333c3296a905bcb9df01501316c"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-23 11:38:21",
+        "value": "2025-05-23 18:38:21"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "f4c32633c3616a905bcb9df015013193": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-23 07:02:18",
+        "value": "2025-05-23 14:02:18"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "58052237c3616a905bcb9df015013155",
+        "value": "58052237c3616a905bcb9df015013155"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041669",
+        "link": "https://mobiz.service-now.com/api/now/table/task/f4c32633c3616a905bcb9df015013193",
+        "value": "f4c32633c3616a905bcb9df015013193"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-23 07:02:18",
+        "value": "2025-05-23 14:02:18"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "fb3f523bc3216a905bcb9df01501316f": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-23 06:44:11",
+        "value": "2025-05-23 13:44:11"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c7d066fbc3216a905bcb9df015013193",
+        "value": "c7d066fbc3216a905bcb9df015013193"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041668",
+        "link": "https://mobiz.service-now.com/api/now/table/task/fb3f523bc3216a905bcb9df01501316f",
+        "value": "fb3f523bc3216a905bcb9df01501316f"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-23 06:44:11",
+        "value": "2025-05-23 13:44:11"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "18bde577c3e92a905bcb9df015013169": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-23 03:19:19",
+        "value": "2025-05-23 10:19:19"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "02f1bdbfc3e92a905bcb9df0150131ba",
+        "value": "02f1bdbfc3e92a905bcb9df0150131ba"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041667",
+        "link": "https://mobiz.service-now.com/api/now/table/task/18bde577c3e92a905bcb9df015013169",
+        "value": "18bde577c3e92a905bcb9df015013169"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-23 03:19:19",
+        "value": "2025-05-23 10:19:19"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "53bc32bec3e5a2905bcb9df0150131d2": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-20 07:00:50",
+        "value": "2025-05-20 14:00:50"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "65e7c7f2c369a2905bcb9df0150131ac",
+        "value": "65e7c7f2c369a2905bcb9df0150131ac"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041665",
+        "link": "https://mobiz.service-now.com/api/now/table/task/53bc32bec3e5a2905bcb9df0150131d2",
+        "value": "53bc32bec3e5a2905bcb9df0150131d2"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-20 07:00:50",
+        "value": "2025-05-20 14:00:50"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "cf44a6a9c3e52a50a01d5673e4013198": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-16 07:47:00",
+        "value": "2025-05-16 14:47:00"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b21c2ae1c3292a50a01d5673e40131cf",
+        "value": "b21c2ae1c3292a50a01d5673e40131cf"
+      },
+      "sys_updated_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041663",
+        "link": "https://mobiz.service-now.com/api/now/table/task/cf44a6a9c3e52a50a01d5673e4013198",
+        "value": "cf44a6a9c3e52a50a01d5673e4013198"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-16 07:47:00",
+        "value": "2025-05-16 14:47:00"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "97f45499c325a650a01d5673e4013141": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-15 02:11:41",
+        "value": "2025-05-15 09:11:41"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "01c554d9c325a650a01d5673e401312c",
+        "value": "01c554d9c325a650a01d5673e401312c"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041659",
+        "link": "https://mobiz.service-now.com/api/now/table/task/97f45499c325a650a01d5673e4013141",
+        "value": "97f45499c325a650a01d5673e4013141"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-15 02:11:41",
+        "value": "2025-05-15 09:11:41"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "26e71ba4c3a5e250a01d5673e40131af": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-13 08:26:11",
+        "value": "2025-05-13 15:26:11"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "63485be4c3a5e250a01d5673e40131c3",
+        "value": "63485be4c3a5e250a01d5673e40131c3"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041641",
+        "link": "https://mobiz.service-now.com/api/now/table/task/26e71ba4c3a5e250a01d5673e40131af",
+        "value": "26e71ba4c3a5e250a01d5673e40131af"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-13 08:26:11",
+        "value": "2025-05-13 15:26:11"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "4a6825a4c32de2505bcb9df0150131bc": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-13 00:21:09",
+        "value": "2025-05-13 07:21:09"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "6249a9e4c32de2505bcb9df015013169",
+        "value": "6249a9e4c32de2505bcb9df015013169"
+      },
+      "sys_updated_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041635",
+        "link": "https://mobiz.service-now.com/api/now/table/task/4a6825a4c32de2505bcb9df0150131bc",
+        "value": "4a6825a4c32de2505bcb9df0150131bc"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-13 00:21:09",
+        "value": "2025-05-13 07:21:09"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "2da0ca94c365a2505bcb9df0150131ec": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-12 07:28:32",
+        "value": "2025-05-12 14:28:32"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "dd818618c365a2505bcb9df01501315a",
+        "value": "dd818618c365a2505bcb9df01501315a"
+      },
+      "sys_updated_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041632",
+        "link": "https://mobiz.service-now.com/api/now/table/task/2da0ca94c365a2505bcb9df0150131ec",
+        "value": "2da0ca94c365a2505bcb9df0150131ec"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-12 07:28:32",
+        "value": "2025-05-12 14:28:32"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "ad956198c3656250a01d5673e4013119": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-12 06:20:08",
+        "value": "2025-05-12 13:20:08"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "a3d1391cc3a56250a01d5673e4013159",
+        "value": "a3d1391cc3a56250a01d5673e4013159"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041631",
+        "link": "https://mobiz.service-now.com/api/now/table/task/ad956198c3656250a01d5673e4013119",
+        "value": "ad956198c3656250a01d5673e4013119"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-12 06:20:08",
+        "value": "2025-05-12 13:20:08"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "6a0e1ddcc3256250a01d5673e4013191": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-12 05:00:58",
+        "value": "2025-05-12 12:00:58"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "7fbf1d50c3656250a01d5673e4013154",
+        "value": "7fbf1d50c3656250a01d5673e4013154"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041630",
+        "link": "https://mobiz.service-now.com/api/now/table/task/6a0e1ddcc3256250a01d5673e4013191",
+        "value": "6a0e1ddcc3256250a01d5673e4013191"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-12 05:00:58",
+        "value": "2025-05-12 12:00:58"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "82769590c3256250a01d5673e401314e": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-12 04:31:28",
+        "value": "2025-05-12 11:31:28"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "b7f81118c3256250a01d5673e401313a",
+        "value": "b7f81118c3256250a01d5673e401313a"
+      },
+      "sys_updated_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041629",
+        "link": "https://mobiz.service-now.com/api/now/table/task/82769590c3256250a01d5673e401314e",
+        "value": "82769590c3256250a01d5673e401314e"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-12 04:31:28",
+        "value": "2025-05-12 11:31:28"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "ooliinyk@mobizinc.com",
+        "value": "ooliinyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "c657964ac3dde210a01d5673e401312d": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-05 09:20:10",
+        "value": "2025-05-05 16:20:10"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d4f79a8ac3dde210a01d5673e401310b",
+        "value": "d4f79a8ac3dde210a01d5673e401310b"
+      },
+      "sys_updated_by": {
+        "display_value": "DKhalil@mobizinc.com",
+        "value": "DKhalil@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041622",
+        "link": "https://mobiz.service-now.com/api/now/table/task/c657964ac3dde210a01d5673e401312d",
+        "value": "c657964ac3dde210a01d5673e401312d"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-05 09:20:10",
+        "value": "2025-05-05 16:20:10"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "DKhalil@mobizinc.com",
+        "value": "DKhalil@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "c194d246c3dde210a01d5673e401315e": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-05 09:17:14",
+        "value": "2025-05-05 16:17:14"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "11471a4ac3dde210a01d5673e401316d",
+        "value": "11471a4ac3dde210a01d5673e401316d"
+      },
+      "sys_updated_by": {
+        "display_value": "DKhalil@mobizinc.com",
+        "value": "DKhalil@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041621",
+        "link": "https://mobiz.service-now.com/api/now/table/task/c194d246c3dde210a01d5673e401315e",
+        "value": "c194d246c3dde210a01d5673e401315e"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-05 09:17:14",
+        "value": "2025-05-05 16:17:14"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "DKhalil@mobizinc.com",
+        "value": "DKhalil@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "54f9a106c3d9e210a01d5673e401310c": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-05 06:01:55",
+        "value": "2025-05-05 13:01:55"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "589aa146c3d9e210a01d5673e4013128",
+        "value": "589aa146c3d9e210a01d5673e4013128"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041619",
+        "link": "https://mobiz.service-now.com/api/now/table/task/54f9a106c3d9e210a01d5673e401310c",
+        "value": "54f9a106c3d9e210a01d5673e401310c"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-05 06:01:55",
+        "value": "2025-05-05 13:01:55"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "5c06e749c3dd6650ad36b9ff050131b6": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-05-02 12:30:28",
+        "value": "2025-05-02 19:30:28"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "fab66b89c3dd6650ad36b9ff050131cb",
+        "value": "fab66b89c3dd6650ad36b9ff050131cb"
+      },
+      "sys_updated_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041618",
+        "link": "https://mobiz.service-now.com/api/now/table/task/5c06e749c3dd6650ad36b9ff050131b6",
+        "value": "5c06e749c3dd6650ad36b9ff050131b6"
+      },
+      "sys_created_on": {
+        "display_value": "2025-05-02 12:30:28",
+        "value": "2025-05-02 19:30:28"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "farnous@mobizinc.com",
+        "value": "farnous@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "bcadda73c381ee10ad36b9ff05013178": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-28 10:02:29",
+        "value": "2025-04-28 17:02:29"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "c08e12f3c381ee10ad36b9ff050131ca",
+        "value": "c08e12f3c381ee10ad36b9ff050131ca"
+      },
+      "sys_updated_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041604",
+        "link": "https://mobiz.service-now.com/api/now/table/task/bcadda73c381ee10ad36b9ff05013178",
+        "value": "bcadda73c381ee10ad36b9ff05013178"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-28 10:02:29",
+        "value": "2025-04-28 17:02:29"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "7631747fc385ae10ad36b9ff05013109": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-28 02:19:27",
+        "value": "2025-04-28 09:19:27"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "15847873c3c5ae10ad36b9ff050131ab",
+        "value": "15847873c3c5ae10ad36b9ff050131ab"
+      },
+      "sys_updated_by": {
+        "display_value": "AZia@mobizinc.com",
+        "value": "AZia@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041601",
+        "link": "https://mobiz.service-now.com/api/now/table/task/7631747fc385ae10ad36b9ff05013109",
+        "value": "7631747fc385ae10ad36b9ff05013109"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-28 02:19:27",
+        "value": "2025-04-28 09:19:27"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZia@mobizinc.com",
+        "value": "AZia@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "0709cefac341aa10ad36b9ff050131c3": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-25 07:02:40",
+        "value": "2025-04-25 14:02:40"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "f4989272c3c1aa10ad36b9ff050131b3",
+        "value": "f4989272c3c1aa10ad36b9ff050131b3"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041599",
+        "link": "https://mobiz.service-now.com/api/now/table/task/0709cefac341aa10ad36b9ff050131c3",
+        "value": "0709cefac341aa10ad36b9ff050131c3"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-25 07:02:40",
+        "value": "2025-04-25 14:02:40"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "c35a7d6ec38daa1066d9bdb4e4013193": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-24 10:18:00",
+        "value": "2025-04-24 17:18:00"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "04bbf9eec38daa1066d9bdb4e4013151",
+        "value": "04bbf9eec38daa1066d9bdb4e4013151"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041593",
+        "link": "https://mobiz.service-now.com/api/now/table/task/c35a7d6ec38daa1066d9bdb4e4013193",
+        "value": "c35a7d6ec38daa1066d9bdb4e4013193"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-24 10:18:00",
+        "value": "2025-04-24 17:18:00"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "8c097deac38daa1066d9bdb4e4013108": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-24 10:09:33",
+        "value": "2025-04-24 17:09:33"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "d8c9b52ec38daa1066d9bdb4e40131c8",
+        "value": "d8c9b52ec38daa1066d9bdb4e40131c8"
+      },
+      "sys_updated_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041592",
+        "link": "https://mobiz.service-now.com/api/now/table/task/8c097deac38daa1066d9bdb4e4013108",
+        "value": "8c097deac38daa1066d9bdb4e4013108"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-24 10:09:33",
+        "value": "2025-04-24 17:09:33"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AZafar@mobizinc.com",
+        "value": "AZafar@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "c274e8aac3452a10ad36b9ff05013102": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-24 04:00:04",
+        "value": "2025-04-24 11:00:04"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "0435aceac3452a10ad36b9ff05013125",
+        "value": "0435aceac3452a10ad36b9ff05013125"
+      },
+      "sys_updated_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041590",
+        "link": "https://mobiz.service-now.com/api/now/table/task/c274e8aac3452a10ad36b9ff05013102",
+        "value": "c274e8aac3452a10ad36b9ff05013102"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-24 04:00:04",
+        "value": "2025-04-24 11:00:04"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "sriznyk@mobizinc.com",
+        "value": "sriznyk@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "bca20c52c3892a1066d9bdb4e4013181": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-23 06:53:53",
+        "value": "2025-04-23 13:53:53"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "e863cc52c3892a1066d9bdb4e40131cd",
+        "value": "e863cc52c3892a1066d9bdb4e40131cd"
+      },
+      "sys_updated_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041589",
+        "link": "https://mobiz.service-now.com/api/now/table/task/bca20c52c3892a1066d9bdb4e4013181",
+        "value": "bca20c52c3892a1066d9bdb4e4013181"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-23 06:53:53",
+        "value": "2025-04-23 13:53:53"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "VZhukovskyi@mobizinc.com",
+        "value": "VZhukovskyi@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "57300c1ec3492a1066d9bdb4e40131a7": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-23 06:42:38",
+        "value": "2025-04-23 13:42:38"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "7fc0849ec3492a1066d9bdb4e4013167",
+        "value": "7fc0849ec3492a1066d9bdb4e4013167"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041588",
+        "link": "https://mobiz.service-now.com/api/now/table/task/57300c1ec3492a1066d9bdb4e40131a7",
+        "value": "57300c1ec3492a1066d9bdb4e40131a7"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-23 06:42:38",
+        "value": "2025-04-23 13:42:38"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "122e7b4ac3492a1066d9bdb4e40131ca": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-04-23 06:33:59",
+        "value": "2025-04-23 13:33:59"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "89de7b8ac3492a1066d9bdb4e4013107",
+        "value": "89de7b8ac3492a1066d9bdb4e4013107"
+      },
+      "sys_updated_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041587",
+        "link": "https://mobiz.service-now.com/api/now/table/task/122e7b4ac3492a1066d9bdb4e40131ca",
+        "value": "122e7b4ac3492a1066d9bdb4e40131ca"
+      },
+      "sys_created_on": {
+        "display_value": "2025-04-23 06:33:59",
+        "value": "2025-04-23 13:33:59"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "SKhalid@mobizinc.com",
+        "value": "SKhalid@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ]
+}

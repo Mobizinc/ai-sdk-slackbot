@@ -4,6 +4,20 @@
 
 This document provides implementation guidance for integrating the ServiceNow QA Analyst skill into the ai-sdk-slackbot architecture. The integration follows existing webhook/worker/service patterns and enables automated validation of Standard Changes when they enter "Assess" state.
 
+### Current Status & Next Steps (Nov 2025)
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Webhook + worker endpoints | ✅ Implemented (`api/servicenow-change-webhook.ts`, `api/workers/process-change-validation.ts`) |
+| Change validation service | ✅ Implemented (`lib/services/change-validation.ts`) with clone freshness + catalog/LDAP/MID/workflow collectors |
+| ServiceNow SDK & extraction | ✅ ServiceNow client, table client, change repository, and automated export script built; dataset saved under `backup/standard-changes/2025-11-07/` |
+| CAB-grade prompt | ⏳ Pending – need new persona focused on documentation quality, inferred impact, CAB decisions |
+| Replay harness | 🛠 In progress – script scaffold exists, must call service and log Claude verdicts |
+| Historical evaluation | 🔍 Planned – start with 5 curated changes, expand to 100-batch job once prompt stabilizes |
+| Production rollout | ⏳ Blocked on prompt approval, replay results, ServiceNow business rule deployment, and env/QStash config |
+
+This doc now focuses on the implemented architecture plus the remaining work required to enable CAB-level automatic gating.
+
 ### Updated Goal – Architect‑level Gating
 
 We are expanding the scope from "catalog item sanity check" to a **ServiceNow Architect + QA** skill that can evaluate any standard-change component (catalog items, LDAP servers, MID configs, workflows, etc.). The orchestrator must:
@@ -15,9 +29,13 @@ We are expanding the scope from "catalog item sanity check" to a **ServiceNow Ar
 
 The architecture below now assumes a pluggable collector framework plus the architect agent prompt (`.claude/agents/servicenow-architect.md`).
 
-> **Implementation status (2025-10-24)**
+> **Implementation status (2025-11-07)**
 >
-> The webhook, worker, `changeValidationService`, ServiceNow client extensions, and Drizzle persistence are now implemented in the repo (`api/servicenow-change-webhook.ts`, `api/workers/process-change-validation.ts`, `lib/services/change-validation.ts`, `lib/tools/servicenow.ts`, and `lib/db/schema.ts`). This document reflects the live architecture. Future enhancements (new collectors, richer prompts, etc.) are noted explicitly where still pending.
+> The webhook, worker, `changeValidationService`, ServiceNow client extensions, and Drizzle persistence are now implemented in the repo (`api/servicenow-change-webhook.ts`, `api/workers/process-change-validation.ts`, `lib/services/change-validation.ts`, `lib/tools/servicenow.ts`, and `lib/db/schema.ts`).
+>
+> **New**: A reusable ServiceNow SDK has been built with `ServiceNowTableAPIClient` and `ChangeRepository` (see `docs/servicenow-sdk-architecture.md`). This SDK provides reusable patterns for all ServiceNow Table API operations including change data extraction and related records.
+>
+> This document reflects the live architecture. Future enhancements (new collectors, richer prompts, deployment to production) are noted explicitly where still pending.
 
 ## Architecture Pattern
 
@@ -28,10 +46,10 @@ ServiceNow Business Rule (Assess state)
     ↓ HTTPS POST
 Webhook: /api/servicenow-change-webhook
     ↓ QStash Queue (async)
-Worker: /api/workers/process-change-validation  
+Worker: /api/workers/process-change-validation
     ↓
 Service: changeValidationService
-    ↓ Executes Python scripts
+    ↓ TypeScript collectors (ServiceNow SDK)
 ServiceNow QA Analyst Skill (Claude Code)
     ↓ Posts results
 ServiceNow Change Record (work note)
@@ -48,7 +66,9 @@ To reach architect-level gating, the worker aggregates a **fact bundle** assembl
 | `mid_server` | Payload references `ecc_agent` | `{status, capabilities, last_check_in, version}` |
 | `workflow` / `business_rule` | Template field `u_script_target` | `{published, checked_out, scope, updated_by}` |
 
-Collectors run in parallel using `ServiceNowClient` (or Python helpers) and return a normalized block `{component_type, sys_id, facts, warnings}`. The worker merges these blocks with clone freshness data and recent Neon history, then forwards the entire context to the **servicenow-architect** Claude agent for reasoning.
+Collectors run in parallel using `ServiceNowClient` (via the new ServiceNow SDK - see `docs/servicenow-sdk-architecture.md`) and return a normalized block `{component_type, sys_id, facts, warnings}`. The worker merges these blocks with clone freshness data and recent Neon history, then forwards the entire context to the **servicenow-architect** Claude agent for reasoning.
+
+**SDK Integration**: The collectors can leverage `ChangeRepository` methods for extracting standard changes, state transitions, component references, work notes, and related records. See `scripts/extract-standard-changes-refactored.ts` for examples of using the SDK.
 
 **Collector requirements**
 
@@ -272,7 +292,23 @@ export const POST = verifySignatureEdge(handler);
 **Key additions (already implemented)**:
 
 - `addChangeWorkNote(changeSysId, workNote)` – wraps the ServiceNow PATCH call to append work notes (lib/tools/servicenow.ts:3572‑3585).
-- `getChangeDetails`, `getCatalogItem`, `getLDAPServer`, `getMIDServer`, `getWorkflow`, `getCloneInfo` – thin API helpers used by the service’s fact collectors.
+- `getChangeDetails`, `getCatalogItem`, `getLDAPServer`, `getWorkflow`, `getCloneInfo` – thin API helpers used by the service's fact collectors.
+
+**ServiceNow SDK Architecture** (see `docs/servicenow-sdk-architecture.md`):
+
+The codebase now includes a reusable ServiceNow SDK with three layers:
+1. **ServiceNowHttpClient** (`lib/infrastructure/servicenow/client/http-client.ts`) - Low-level HTTP operations with retry logic
+2. **ServiceNowTableAPIClient** (`lib/infrastructure/servicenow/client/table-api-client.ts`) - Generic CRUD operations for any table with automatic pagination
+3. **Domain Repositories** (`lib/infrastructure/servicenow/repositories/`) - High-level domain-specific operations (e.g., `ChangeRepository`, `IncidentRepository`)
+
+Collectors can use `ChangeRepository` methods for:
+- `fetchCompleteChange(changeSysId)` - Get change with all related records
+- `fetchStateTransitions(changeSysId)` - Get change tasks
+- `fetchComponentReferences(changeSysId)` - Get linked CIs
+- `fetchWorkNotes(changeSysId)` - Get work notes
+- `fetchStandardChanges(pattern)` - Query standard changes by description
+
+Example usage: `scripts/extract-standard-changes-refactored.ts`
 
 ---
 
@@ -428,41 +464,63 @@ NEON_DATABASE_URL="postgresql://..."
 
 ## Deployment Checklist
 
-### Phase 1: Infrastructure
+### Phase 1: Infrastructure ⚠️ **PENDING DEPLOYMENT**
 - [ ] Add environment variables to Vercel *(scripts use `.env.local`; production env vars still need to be set)*
-- [ ] Deploy webhook endpoint (`/api/servicenow-change-webhook`)
-- [ ] Deploy worker endpoint (`/api/workers/process-change-validation`)
+- [ ] Deploy webhook endpoint (`/api/servicenow-change-webhook`) - **Code exists, not deployed**
+- [ ] Deploy worker endpoint (`/api/workers/process-change-validation`) - **Code exists, not deployed**
 - [ ] Verify QStash configuration
 
-### Phase 2: ServiceNow Configuration
+### Phase 2: ServiceNow Configuration ⚠️ **PENDING SERVICENOW SETUP**
 - [ ] Create system properties for webhook URL and secret
-- [ ] Create business rule on change_request table
+- [ ] Create business rule on change_request table - **Script ready (line 321-393), not deployed**
 - [ ] Test business rule fires when change enters "Assess" state
 - [ ] Verify payload structure
 
-### Phase 3: Service Layer
+### Phase 3: Service Layer ✅ **IMPLEMENTED**
 - [x] Implement `changeValidationService`
 - [x] Add `addChangeWorkNote` to ServiceNow client
 - [x] Test catalog/LDAP/MID/workflow collectors
-- [ ] Validate Claude synthesis end-to-end in production env
+- [x] Build reusable ServiceNow SDK (`ServiceNowTableAPIClient`, `ChangeRepository`)
+- [x] Create data extraction scripts using SDK (`extract-standard-changes-refactored.ts`)
+- [ ] Validate Claude synthesis end-to-end in production env **← NEEDS PRODUCTION TEST**
 
-### Phase 4: Database
+### Phase 4: Database ✅ **IMPLEMENTED**
 - [x] Create `change_validations` table (Drizzle migration)
 - [x] Add indexes
-- [ ] Verify repository logging/queries under load
+- [x] Implement Drizzle repository for change validations
+- [ ] Verify repository logging/queries under load **← NEEDS LOAD TEST**
 
-### Phase 5: Testing
+### Phase 5: Testing ⚠️ **ALL PENDING**
 - [ ] Unit test webhook endpoint
-- [ ] Unit test worker endpoint  
+- [ ] Unit test worker endpoint
 - [ ] Integration test: Create test change in ServiceNow UAT
 - [ ] Verify validation executes and results post back
 - [ ] Test error handling scenarios
 
-### Phase 6: Monitoring
+### Phase 6: Monitoring ⚠️ **ALL PENDING**
 - [ ] Add logging to Vercel
 - [ ] Monitor QStash queue
 - [ ] Set up alerts for validation failures
 - [ ] Create dashboard for validation metrics
+
+---
+
+## Summary: What's Complete vs. Pending
+
+### ✅ **Complete** (Development Ready):
+- All TypeScript code implementation (webhook, worker, service, SDK)
+- Database schema and migrations
+- ServiceNow SDK architecture with repositories
+- Data extraction scripts
+- ServiceNow business rule script (ready to deploy)
+
+### ⚠️ **Pending** (Deployment Required):
+- **Vercel Deployment**: Webhook and worker endpoints exist but not deployed to production
+- **Environment Variables**: Need to be set in Vercel production environment
+- **ServiceNow Configuration**: Business rule needs to be created in ServiceNow
+- **Testing**: No unit or integration tests written yet
+- **Monitoring**: No observability infrastructure set up
+- **Production Validation**: Claude synthesis hasn't been tested end-to-end in production
 
 ---
 
