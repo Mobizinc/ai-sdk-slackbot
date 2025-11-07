@@ -689,6 +689,93 @@ export function createRichTextInput(config: {
 }
 
 /**
+ * Helper function to match and format a single initial option for Slack Block Kit elements
+ * Ensures initial_option exactly matches an available option (including description field)
+ *
+ * @param initialOption - The initial option to match (with text and value)
+ * @param options - Array of available options to match against
+ * @param elementType - Type of element (for error messages, e.g., "static_select", "radio_buttons")
+ * @param actionId - Action ID of the element (for error messages)
+ * @returns Formatted initial_option object or undefined if no match found
+ */
+function matchAndFormatInitialOption(
+  initialOption: { text: string; value: string },
+  options: Array<{ text: string; value: string; description?: string }>,
+  elementType: string,
+  actionId: string
+): any | undefined {
+  // Find the matching option from the options array to ensure exact match
+  // This is required by Slack - initial_option must match an option exactly
+  const matchingOption = options.find(opt => opt.value === initialOption.value);
+
+  if (matchingOption) {
+    // Use the matching option's structure to ensure description is included if present
+    const formattedOption: any = {
+      text: { type: 'plain_text', text: matchingOption.text, emoji: true },
+      value: matchingOption.value,
+    };
+
+    if (matchingOption.description) {
+      formattedOption.description = { type: 'plain_text', text: matchingOption.description };
+    }
+
+    return formattedOption;
+  }
+
+  // Warn if initial option doesn't match any available options (helps debugging)
+  console.warn(
+    `[Block Kit] initialOption value "${initialOption.value}" not found in options for ${elementType} "${actionId}". ` +
+    `Slack requires initial_option to match an available option exactly. No initial selection will be set.`
+  );
+
+  return undefined;
+}
+
+/**
+ * Helper function to match and format multiple initial options for Slack Block Kit checkboxes
+ * Ensures each initial_option exactly matches an available option (including description field)
+ *
+ * @param initialOptions - Array of initial options to match
+ * @param options - Array of available options to match against
+ * @param actionId - Action ID of the element (for error messages)
+ * @returns Array of formatted initial_option objects (warns and uses fallback for unmatched options)
+ */
+function matchAndFormatInitialOptions(
+  initialOptions: Array<{ text: string; value: string }>,
+  options: Array<{ text: string; value: string; description?: string }>,
+  actionId: string
+): any[] {
+  return initialOptions.map(initOpt => {
+    const matchingOption = options.find(opt => opt.value === initOpt.value);
+
+    if (matchingOption) {
+      const formattedOption: any = {
+        text: { type: 'plain_text', text: matchingOption.text, emoji: true },
+        value: matchingOption.value,
+      };
+
+      if (matchingOption.description) {
+        formattedOption.description = { type: 'plain_text', text: matchingOption.description };
+      }
+
+      return formattedOption;
+    }
+
+    // Fallback if no matching option found (shouldn't happen in normal use)
+    // WARNING: This may violate Slack's exact-match requirement and cause validation errors
+    console.warn(
+      `[Block Kit] initialOption value "${initOpt.value}" not found in options for checkboxes "${actionId}". ` +
+      `Using fallback (may cause Slack validation errors). Ensure initialOptions values match available options.`
+    );
+
+    return {
+      text: { type: 'plain_text', text: initOpt.text, emoji: true },
+      value: initOpt.value,
+    };
+  });
+}
+
+/**
  * Create a static select menu
  */
 export function createStaticSelect(config: {
@@ -720,26 +807,14 @@ export function createStaticSelect(config: {
   };
 
   if (config.initialOption) {
-    // Find the matching option from the options array to ensure exact match
-    // This is required by Slack - initial_option must match an option exactly
-    const matchingOption = config.options.find(opt => opt.value === config.initialOption!.value);
-
-    if (matchingOption) {
-      // Use the matching option's structure to ensure description is included if present
-      element.initial_option = {
-        text: { type: 'plain_text', text: matchingOption.text, emoji: true },
-        value: matchingOption.value,
-      };
-
-      if (matchingOption.description) {
-        element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
-      }
-    } else {
-      // Warn if initial option doesn't match any available options (helps debugging)
-      console.warn(
-        `[Block Kit] initialOption value "${config.initialOption.value}" not found in options for static_select "${config.actionId}". ` +
-        `Slack requires initial_option to match an available option exactly. No initial selection will be set.`
-      );
+    const formattedInitialOption = matchAndFormatInitialOption(
+      config.initialOption,
+      config.options,
+      'static_select',
+      config.actionId
+    );
+    if (formattedInitialOption) {
+      element.initial_option = formattedInitialOption;
     }
   }
 
@@ -931,26 +1006,14 @@ export function createRadioButtons(config: {
   };
 
   if (config.initialOption) {
-    // Find the matching option from the options array to ensure exact match
-    // This is required by Slack - initial_option must match an option exactly
-    const matchingOption = config.options.find(opt => opt.value === config.initialOption!.value);
-
-    if (matchingOption) {
-      // Use the matching option's structure to ensure description is included if present
-      element.initial_option = {
-        text: { type: 'plain_text', text: matchingOption.text, emoji: true },
-        value: matchingOption.value,
-      };
-
-      if (matchingOption.description) {
-        element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
-      }
-    } else {
-      // Warn if initial option doesn't match any available options (helps debugging)
-      console.warn(
-        `[Block Kit] initialOption value "${config.initialOption.value}" not found in options for radio_buttons "${config.actionId}". ` +
-        `Slack requires initial_option to match an available option exactly. No initial selection will be set.`
-      );
+    const formattedInitialOption = matchAndFormatInitialOption(
+      config.initialOption,
+      config.options,
+      'radio_buttons',
+      config.actionId
+    );
+    if (formattedInitialOption) {
+      element.initial_option = formattedInitialOption;
     }
   }
 
@@ -988,35 +1051,11 @@ export function createCheckboxes(config: {
   };
 
   if (config.initialOptions && config.initialOptions.length > 0) {
-    // Find matching options from the options array to ensure exact match
-    // This is required by Slack - initial_options must match options exactly
-    element.initial_options = config.initialOptions.map(initOpt => {
-      const matchingOption = config.options.find(opt => opt.value === initOpt.value);
-
-      if (matchingOption) {
-        const option: any = {
-          text: { type: 'plain_text', text: matchingOption.text, emoji: true },
-          value: matchingOption.value,
-        };
-
-        if (matchingOption.description) {
-          option.description = { type: 'plain_text', text: matchingOption.description };
-        }
-
-        return option;
-      }
-
-      // Fallback if no matching option found (shouldn't happen in normal use)
-      // WARNING: This may violate Slack's exact-match requirement and cause validation errors
-      console.warn(
-        `[Block Kit] initialOption value "${initOpt.value}" not found in options for checkboxes "${config.actionId}". ` +
-        `Using fallback (may cause Slack validation errors). Ensure initialOptions values match available options.`
-      );
-      return {
-        text: { type: 'plain_text', text: initOpt.text, emoji: true },
-        value: initOpt.value,
-      };
-    });
+    element.initial_options = matchAndFormatInitialOptions(
+      config.initialOptions,
+      config.options,
+      config.actionId
+    );
   }
 
   if (config.confirm) {
