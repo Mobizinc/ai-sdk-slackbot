@@ -13,7 +13,7 @@ import type { BusinessContext } from "@/lib/api-client"
 
 interface BusinessContextFormProps {
   initialData?: Partial<BusinessContext>
-  onSubmit: (data: BusinessContextFormData) => Promise<void>
+  onSubmit: (data: Partial<BusinessContext>) => Promise<void>
   onCancel?: () => void
   submitText?: string
 }
@@ -38,8 +38,8 @@ export function BusinessContextForm({
       description: initialData?.description || "",
       technologyPortfolio: initialData?.technologyPortfolio || "",
       serviceDetails: initialData?.serviceDetails || "",
-      aliases: initialData?.aliases || [],
-      relatedEntities: initialData?.relatedEntities || [],
+      aliases: (initialData?.aliases || []).map(alias => ({ value: alias })),
+      relatedEntities: (initialData?.relatedEntities || []).map(entity => ({ value: entity })),
       relatedCompanies: initialData?.relatedCompanies || [],
       keyContacts: initialData?.keyContacts || [],
       slackChannels: initialData?.slackChannels || [],
@@ -49,14 +49,14 @@ export function BusinessContextForm({
     },
   })
 
-  const { fields: aliasFields, append: appendAlias, remove: removeAlias } = useFieldArray<BusinessContextFormData, "aliases">({
+  const { fields: aliasFields, append: appendAlias, remove: removeAlias } = useFieldArray({
     control,
-    name: "aliases",
+    name: "aliases" as const,
   })
 
-  const { fields: entityFields, append: appendEntity, remove: removeEntity } = useFieldArray<BusinessContextFormData, "relatedEntities">({
+  const { fields: entityFields, append: appendEntity, remove: removeEntity } = useFieldArray({
     control,
-    name: "relatedEntities",
+    name: "relatedEntities" as const,
   })
 
   const { fields: companyFields, append: appendCompany, remove: removeCompany } = useFieldArray<BusinessContextFormData, "relatedCompanies">({
@@ -84,8 +84,18 @@ export function BusinessContextForm({
     name: "contextStewards",
   })
 
+  const transformAndSubmit = handleSubmit(async (formData) => {
+    // Transform object arrays back to string arrays for API compatibility
+    const transformedData: Partial<BusinessContext> = {
+      ...formData,
+      aliases: formData.aliases?.map(a => a.value),
+      relatedEntities: formData.relatedEntities?.map(e => e.value),
+    }
+    await onSubmit(transformedData)
+  })
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={transformAndSubmit} className="space-y-6">
       {/* Basic Fields */}
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -135,13 +145,13 @@ export function BusinessContextForm({
         <div className="space-y-2 mt-2">
           {aliasFields.map((field, index) => (
             <div key={field.id} className="flex gap-2">
-              <Input {...register(`aliases.${index}` as const)} placeholder="Alias name" />
+              <Input {...register(`aliases.${index}.value` as const)} placeholder="Alias name" />
               <Button type="button" variant="outline" size="icon" onClick={() => removeAlias(index)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => appendAlias("")}>
+          <Button type="button" variant="outline" size="sm" onClick={() => appendAlias({ value: "" })}>
             <Plus className="w-4 h-4" /> Add Alias
           </Button>
         </div>
@@ -153,13 +163,13 @@ export function BusinessContextForm({
         <div className="space-y-2 mt-2">
           {entityFields.map((field, index) => (
             <div key={field.id} className="flex gap-2">
-              <Input {...register(`relatedEntities.${index}` as const)} placeholder="Entity name" />
+              <Input {...register(`relatedEntities.${index}.value` as const)} placeholder="Entity name" />
               <Button type="button" variant="outline" size="icon" onClick={() => removeEntity(index)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => appendEntity("")}>
+          <Button type="button" variant="outline" size="sm" onClick={() => appendEntity({ value: "" })}>
             <Plus className="w-4 h-4" /> Add Entity
           </Button>
         </div>

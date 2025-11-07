@@ -7,8 +7,12 @@ export const businessContextSchema = z.object({
   description: z.string().optional(),
   technologyPortfolio: z.string().optional(),
   serviceDetails: z.string().optional(),
-  aliases: z.array(z.string()).optional(),
-  relatedEntities: z.array(z.string()).optional(),
+  aliases: z.array(z.object({
+    value: z.string(),
+  })).optional(),
+  relatedEntities: z.array(z.object({
+    value: z.string(),
+  })).optional(),
   relatedCompanies: z.array(z.object({
     companyName: z.string(),
     relationship: z.string(),
@@ -38,7 +42,7 @@ export const businessContextSchema = z.object({
     name: z.string().optional(),
     notes: z.string().optional(),
   })).optional(),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 })
 
 export type BusinessContextFormData = z.infer<typeof businessContextSchema>

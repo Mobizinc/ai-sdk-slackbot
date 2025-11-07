@@ -3,7 +3,7 @@
  * Wraps existing API endpoints with type safety
  */
 
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+type JsonValue = string | number | boolean | null | undefined | JsonValue[] | { [key: string]: JsonValue }
 type JsonObject = { [key: string]: JsonValue }
 type TimelineEntry = {
   type: string
