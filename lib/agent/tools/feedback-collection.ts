@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import type { CoreMessage } from "ai";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 import { generateBRD } from "../../services/brd-generator";
 import { createGitHubIssue } from "../../services/github-issue-service";
@@ -32,7 +33,7 @@ export function createFeedbackCollectionTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "collect_feature_feedback",
     description:
-      "Collects feature requests and feedback from users when they encounter missing functionality or limitations in the bot. This tool gathers structured information about what the user wants, generates a Business Requirements Document (BRD), and automatically creates a GitHub issue for tracking. Use this tool when: (1) A user explicitly requests a feature, (2) A tool/function returns an error indicating unsupported functionality, (3) A user expresses frustration about a limitation. This helps capture user needs systematically and ensures nothing gets lost. The tool will ask for: feature description, use case, and current limitation.",
+      "Collects user feature requests and creates GitHub issues with auto-generated BRDs. Use when: (1) user requests a feature, (2) tool errors indicate missing functionality, (3) user hits a limitation. Requires: feature description, use case, current limitation.",
     inputSchema: feedbackCollectionInputSchema,
     execute: async ({ featureDescription, useCase, currentLimitation }: FeedbackCollectionInput) => {
       try {
@@ -60,15 +61,9 @@ export function createFeedbackCollectionTool(params: AgentToolFactoryParams) {
 
         return {
           success: true,
-          message: `Feature request submitted successfully! I've created GitHub issue #${issue.number} to track this request.`,
+          message: `Feature request submitted successfully! Created GitHub issue #${issue.number}: ${issue.title}`,
           issueNumber: issue.number,
           issueUrl: issue.htmlUrl,
-          issueTitle: issue.title,
-          brd: {
-            problemStatement: brd.problemStatement,
-            userStory: brd.userStory,
-            acceptanceCriteria: brd.acceptanceCriteria,
-          },
         };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -85,14 +80,29 @@ export function createFeedbackCollectionTool(params: AgentToolFactoryParams) {
 /**
  * Builds a conversation context summary from messages
  */
-function buildConversationContext(messages: any[]): string {
+function buildConversationContext(messages: CoreMessage[]): string {
   // Take last 5 messages to provide context without overwhelming the BRD
   const recentMessages = messages.slice(-5);
 
   return recentMessages
     .map((msg, idx) => {
       const role = msg.role === "user" ? "User" : "Assistant";
-      const content = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+
+      // Extract text content specifically, avoiding verbose tool calls and images
+      let content: string;
+      if (typeof msg.content === "string") {
+        content = msg.content;
+      } else if (Array.isArray(msg.content)) {
+        // Filter only text blocks from content array
+        const textBlocks = msg.content
+          .filter((block: any) => block.type === "text")
+          .map((block: any) => block.text)
+          .join(" ");
+        content = textBlocks || "[non-text content]";
+      } else {
+        content = "[complex content]";
+      }
+
       // Truncate very long messages
       const truncated = content.length > 500 ? content.substring(0, 500) + "..." : content;
       return `[${idx + 1}] ${role}: ${truncated}`;
