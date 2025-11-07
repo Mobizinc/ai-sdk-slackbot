@@ -34,10 +34,12 @@ export class ServiceNowChoiceRepository implements ChoiceRepository {
 
     for (const record of records) {
       if (!record) continue;
-      const key = `${record.value}:${record.dependent_value ?? ""}`;
+      // Map first to handle display_value format properly
+      const choice = mapChoice(record);
+      const key = `${choice.value}:${choice.dependentValue ?? ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      choices.push(mapChoice(record));
+      choices.push(choice);
     }
 
     choices.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));

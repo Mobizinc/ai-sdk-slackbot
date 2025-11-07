@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { apiClient, type StrategicEvaluationSummary } from "@/lib/api-client"
 import { Activity, AlertTriangle, Loader2, Target, Users } from "lucide-react"
 
@@ -25,11 +25,7 @@ export default function StrategicEvaluationsReport() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    void loadEvaluations()
-  }, [limit])
-
-  async function loadEvaluations() {
+  const loadEvaluations = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -40,7 +36,11 @@ export default function StrategicEvaluationsReport() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [limit])
+
+  useEffect(() => {
+    void loadEvaluations()
+  }, [loadEvaluations])
 
   const grouped = useMemo(() => groupByProject(evaluations), [evaluations])
 

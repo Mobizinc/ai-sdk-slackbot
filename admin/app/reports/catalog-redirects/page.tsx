@@ -1,24 +1,18 @@
 "use client"
 
-
-import { useEffect, useState } from "react"
-import { apiClient } from "@/lib/api-client"
-import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
-import { TrendingUp } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { apiClient, type CatalogRedirectStatsResponse, type CatalogRedirectMetrics, type CatalogRedirectKeyword, type CatalogRedirectClientSummary, type CatalogRedirectSubmitter } from "@/lib/api-client"
+import { LineChart, Line, PieChart, Pie, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
 
 export default function CatalogRedirectsPage() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<CatalogRedirectStatsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedClient, setSelectedClient] = useState<string>('')
   const [days, setDays] = useState(30)
 
-  useEffect(() => {
-    loadData()
-  }, [selectedClient, days])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const result = await apiClient.getCatalogRedirectStats(selectedClient || undefined, days)
@@ -28,15 +22,23 @@ export default function CatalogRedirectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClient, days])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   if (loading) {
     return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
   }
 
   // Handle both single client and all clients response
-  const metrics = data?.metrics ? (Array.isArray(data.metrics) ? data.metrics[0] : data) : data
-  const clients = data?.clients || []
+  const metrics: CatalogRedirectMetrics | undefined = data
+    ? Array.isArray(data.metrics)
+      ? data.metrics[0]
+      : data.metrics
+    : undefined
+  const clients: CatalogRedirectClientSummary[] = data?.clients ?? []
 
   if (!metrics || metrics.totalRedirects === 0) {
     return (
@@ -53,7 +55,7 @@ export default function CatalogRedirectsPage() {
     value: count as number
   }))
 
-  const keywordData = (metrics.topKeywords || []).slice(0, 10).map((kw: any) => ({
+  const keywordData = (metrics.topKeywords || []).slice(0, 10).map((kw: CatalogRedirectKeyword) => ({
     keyword: kw.keyword,
     count: kw.count
   }))
@@ -73,7 +75,7 @@ export default function CatalogRedirectsPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">All Clients</option>
-              {clients.map((c: any) => (
+              {clients.map((c) => (
                 <option key={c.clientId} value={c.clientId}>{c.clientName}</option>
               ))}
             </select>
@@ -124,7 +126,7 @@ export default function CatalogRedirectsPage() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  label={({ name, percent }: { name: string; percent: number }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -187,8 +189,8 @@ export default function CatalogRedirectsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {metrics.topSubmitters.map((sub: any, i: number) => (
-                  <tr key={i} className="hover:bg-gray-50">
+                {metrics.topSubmitters.map((sub: CatalogRedirectSubmitter, i) => (
+                  <tr key={`${sub.submitter}-${i}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm text-gray-900">{sub.submitter}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{sub.count}</td>
                   </tr>

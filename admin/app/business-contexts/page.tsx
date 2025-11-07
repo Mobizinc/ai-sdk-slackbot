@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react"
 import { apiClient, type BusinessContext } from "@/lib/api-client"
 import Link from "next/link"
-import { Plus, Search, Filter } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 
 export default function BusinessContextsPage() {
   const [contexts, setContexts] = useState<BusinessContext[]>([])

@@ -105,6 +105,8 @@ export interface ConfigurationItem {
   fqdn?: string;
   hostName?: string;
   ipAddresses: string[];
+  company?: string;
+  companyName?: string;
   ownerGroup?: string;
   supportGroup?: string;
   location?: string;
@@ -318,6 +320,7 @@ export interface CISearchCriteria {
   fqdn?: string;
   className?: string;
   sysId?: string;
+  company?: string;
   ownerGroup?: string;
   environment?: string;
   operationalStatus?: string;

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { BarChart3, Database, FileText, Settings, AlertCircle, GitBranch } from "lucide-react"
+import { BarChart3, Database, Settings, AlertCircle } from "lucide-react"
 
 export default function HomePage() {
   const cards = [

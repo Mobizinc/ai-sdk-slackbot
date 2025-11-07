@@ -7,23 +7,27 @@ export const businessContextSchema = z.object({
   description: z.string().optional(),
   technologyPortfolio: z.string().optional(),
   serviceDetails: z.string().optional(),
-  aliases: z.array(z.string()).default([]),
-  relatedEntities: z.array(z.string()).default([]),
+  aliases: z.array(z.object({
+    value: z.string(),
+  })).optional(),
+  relatedEntities: z.array(z.object({
+    value: z.string(),
+  })).optional(),
   relatedCompanies: z.array(z.object({
     companyName: z.string(),
     relationship: z.string(),
     notes: z.string().optional(),
-  })).default([]),
+  })).optional(),
   keyContacts: z.array(z.object({
     name: z.string(),
     role: z.string(),
     email: z.string().email().optional().or(z.literal("")),
-  })).default([]),
+  })).optional(),
   slackChannels: z.array(z.object({
     name: z.string(),
     channelId: z.string().optional(),
     notes: z.string().optional(),
-  })).default([]),
+  })).optional(),
   cmdbIdentifiers: z.array(z.object({
     ciName: z.string().optional(),
     sysId: z.string().optional(),
@@ -31,14 +35,14 @@ export const businessContextSchema = z.object({
     ipAddresses: z.array(z.string()).optional(),
     description: z.string().optional(),
     documentation: z.array(z.string()).optional(),
-  })).default([]),
+  })).optional(),
   contextStewards: z.array(z.object({
     type: z.enum(["channel", "user", "usergroup"]),
     id: z.string().optional(),
     name: z.string().optional(),
     notes: z.string().optional(),
-  })).default([]),
-  isActive: z.boolean().default(true),
+  })).optional(),
+  isActive: z.boolean(),
 })
 
 export type BusinessContextFormData = z.infer<typeof businessContextSchema>

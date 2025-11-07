@@ -115,6 +115,7 @@ export class CategoryCacheRepository {
           .set({
             label: choice.label,
             sequence: choice.sequence,
+            dependentValue: choice.dependentValue, // FIX: Update dependent_value too!
             inactive: false,
             lastSyncedUtc: new Date(),
             updatedAt: new Date(),

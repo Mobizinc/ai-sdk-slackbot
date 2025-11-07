@@ -120,6 +120,7 @@ export interface ConfigurationItemRecord {
   fqdn: ServiceNowField;
   host_name: ServiceNowField;
   ip_address: ServiceNowField | ServiceNowField[];
+  company: ServiceNowField;
   owner_group: ServiceNowField;
   support_group: ServiceNowField;
   location: ServiceNowField;

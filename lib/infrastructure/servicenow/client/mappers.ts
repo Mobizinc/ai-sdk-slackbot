@@ -242,6 +242,8 @@ export function mapConfigurationItem(record: ConfigurationItemRecord, instanceUr
     fqdn: extractDisplayValue(record.fqdn),
     hostName: extractDisplayValue(record.host_name),
     ipAddresses: normalizeIpAddresses(record.ip_address),
+    company: extractSysId(record.company),
+    companyName: extractDisplayValue(record.company),
     ownerGroup: extractDisplayValue(record.owner_group),
     supportGroup: extractDisplayValue(record.support_group),
     location: extractDisplayValue(record.location),
@@ -314,12 +316,22 @@ export function mapJournalEntry(record: JournalEntryRecord): JournalEntry {
  * Map ChoiceRecord to Choice domain model
  */
 export function mapChoice(record: ChoiceRecord): Choice {
+  // Extract values - handles both string and {value, display_value} format from sysparm_display_value=all
+  const labelValue = extractDisplayValue(record.label);
+  const valueValue = extractDisplayValue(record.value);
+  const sequenceValue = extractDisplayValue(record.sequence);
+  const dependentValueValue = extractDisplayValue(record.dependent_value);
+
+  // Parse sequence safely
+  const sequence = sequenceValue ? parseInt(sequenceValue, 10) : undefined;
+  const isValidSequence = sequence !== undefined && !Number.isNaN(sequence);
+
   return {
-    label: record.label,
-    value: record.value,
-    sequence: record.sequence ? parseInt(record.sequence) : undefined,
+    label: labelValue,
+    value: valueValue,
+    sequence: isValidSequence ? sequence : undefined,
     inactive: typeof record.inactive === "boolean" ? record.inactive : record.inactive === "true",
-    dependentValue: record.dependent_value,
+    dependentValue: dependentValueValue || undefined,
   };
 }
 

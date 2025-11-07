@@ -1,7 +1,7 @@
 "use client"
 
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { apiClient, type BusinessContext } from "@/lib/api-client"
 import { BusinessContextForm } from "@/components/BusinessContextForm"
@@ -21,11 +21,7 @@ export default function EditEntityPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    loadEntity()
-  }, [entityName])
-
-  async function loadEntity() {
+  const loadEntity = useCallback(async () => {
     try {
       setLoading(true)
       const all = await apiClient.getBusinessContexts()
@@ -37,15 +33,20 @@ export default function EditEntityPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [entityName])
 
-  async function handleSubmit(data: any) {
+  useEffect(() => {
+    loadEntity()
+  }, [loadEntity])
+
+  async function handleSubmit(data: Partial<BusinessContext>) {
     if (!context) return
 
     try {
       await apiClient.updateBusinessContext(context.id, data)
       toast.success('Entity updated successfully!')
-      router.push(`/business-contexts/${encodeURIComponent(data.entityName)}`)
+      const nextName = (data.entityName ?? context.entityName).trim()
+      router.push(`/business-contexts/${encodeURIComponent(nextName)}`)
     } catch (error) {
       toast.error('Failed to update entity')
       console.error(error)

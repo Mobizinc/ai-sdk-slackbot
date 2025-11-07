@@ -1265,6 +1265,7 @@ export class ServiceNowClient {
       ipAddress?: string;
       sysId?: string;
       className?: string;
+      company?: string;
       operationalStatus?: string;
       location?: string;
       ownerGroup?: string;
@@ -1286,6 +1287,7 @@ export class ServiceNowClient {
       ipAddress: input.ipAddress,
       sysId: input.sysId,
       className: input.className,
+      company: input.company,
       operationalStatus: input.operationalStatus,
       location: input.location,
       ownerGroup: input.ownerGroup,
@@ -1303,6 +1305,7 @@ export class ServiceNowClient {
           ipAddress: input.ipAddress,
           sysId: input.sysId,
           className: input.className,
+          company: input.company,
           operationalStatus: input.operationalStatus,
           location: input.location,
           ownerGroup: input.ownerGroup,
@@ -1319,6 +1322,7 @@ export class ServiceNowClient {
           fqdn: item.fqdn,
           host_name: item.hostName,
           ip_addresses: item.ipAddresses,
+          company: item.companyName,
           owner_group: item.ownerGroup,
           support_group: item.supportGroup,
           location: item.location,
@@ -1366,6 +1370,10 @@ export class ServiceNowClient {
       queryGroups.push(`sys_class_name=${input.className}`);
     }
 
+    if (input.company) {
+      queryGroups.push(`company.nameLIKE${input.company}`);
+    }
+
     if (input.operationalStatus) {
       queryGroups.push(`operational_status=${input.operationalStatus}`);
     }
@@ -1384,7 +1392,7 @@ export class ServiceNowClient {
 
     if (!queryGroups.length) {
       throw new Error(
-        "At least one search criterion must be provided: name, ipAddress, sysId, className, location, ownerGroup, environment, or operationalStatus.",
+        "At least one search criterion must be provided: name, ipAddress, sysId, className, company, location, ownerGroup, environment, or operationalStatus.",
       );
     }
 
@@ -3564,6 +3572,138 @@ export class ServiceNowClient {
 
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
+  }
+
+  /**
+   * Add work note to a change request
+   */
+  public async addChangeWorkNote(changeSysId: string, workNote: string): Promise<void> {
+    try {
+      const path = `/api/now/table/change_request/${changeSysId}`;
+      await request<{ result: Record<string, any> }>(path, {
+        method: "PATCH",
+        body: JSON.stringify({
+          work_notes: workNote,
+        }),
+      });
+
+      console.log(`[ServiceNow] Added work note to change: ${changeSysId}`);
+    } catch (error) {
+      console.error(`[ServiceNow] Error adding work note to change ${changeSysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get change request details
+   */
+  public async getChangeDetails(changeSysId: string): Promise<Record<string, any> | null> {
+    try {
+      const path = `/api/now/table/change_request/${changeSysId}?sysparm_fields=sys_id,number,short_description,state,assignment_group,assigned_to,description`;
+      const response = await request<{ result: Record<string, any> }>(path);
+      return response.result || null;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching change details ${changeSysId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get catalog item details
+   */
+  public async getCatalogItem(catalogItemSysId: string): Promise<Record<string, any> | null> {
+    try {
+      const path = `/api/now/table/sc_cat_item/${catalogItemSysId}?sysparm_fields=sys_id,name,short_description,description,category,active,workflow,workflow_start`;
+      const response = await request<{ result: Record<string, any> }>(path);
+      return response.result || null;
+    } catch (error) {
+      console.error(
+        `[ServiceNow] Error fetching catalog item ${catalogItemSysId}:`,
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Get LDAP server configuration
+   */
+  public async getLDAPServer(ldapServerSysId: string): Promise<Record<string, any> | null> {
+    try {
+      const path = `/api/now/table/cmdb_ci_ldap_server/${ldapServerSysId}?sysparm_fields=sys_id,name,listener_enabled,mid_server,urls,paging_enabled`;
+      const response = await request<{ result: Record<string, any> }>(path);
+      return response.result || null;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching LDAP server ${ldapServerSysId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get MID server details
+   */
+  public async getMIDServer(midServerSysId: string): Promise<Record<string, any> | null> {
+    try {
+      const path = `/api/now/table/ecc_agent/${midServerSysId}?sysparm_fields=sys_id,name,status,capabilities,last_check_in,version`;
+      const response = await request<{ result: Record<string, any> }>(path);
+      return response.result || null;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching MID server ${midServerSysId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get workflow details
+   */
+  public async getWorkflow(workflowSysId: string): Promise<Record<string, any> | null> {
+    try {
+      const path = `/api/now/table/wf_workflow/${workflowSysId}?sysparm_fields=sys_id,name,published,checked_out,scoped_app,description`;
+      const response = await request<{ result: Record<string, any> }>(path);
+      return response.result || null;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching workflow ${workflowSysId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get clone information for an instance
+   * Checks when the target instance was last cloned from source
+   */
+  public async getCloneInfo(targetInstance: string = 'uat', sourceInstance: string = 'prod'): Promise<{
+    last_clone_date?: string;
+    clone_age_days?: number;
+    source_instance?: string;
+    target_instance?: string;
+  } | null> {
+    try {
+      // Query clone_instance table for most recent clone from source to target
+      const query = `target_instance=${targetInstance}^source_instance=${sourceInstance}^ORDERBYDESCclone_date`;
+      const path = `/api/now/table/clone_instance?sysparm_query=${encodeURIComponent(query)}&sysparm_limit=1&sysparm_fields=clone_date,source_instance,target_instance,state`;
+
+      const response = await request<{ result: Array<Record<string, any>> }>(path);
+
+      if (!response.result || response.result.length === 0) {
+        return null;
+      }
+
+      const clone = response.result[0];
+      const cloneDate = new Date(clone.clone_date);
+      const now = new Date();
+      const ageMs = now.getTime() - cloneDate.getTime();
+      const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+
+      return {
+        last_clone_date: clone.clone_date,
+        clone_age_days: ageDays,
+        source_instance: clone.source_instance,
+        target_instance: clone.target_instance,
+      };
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching clone info for ${targetInstance}:`, error);
+      return null;
+    }
   }
 }
 

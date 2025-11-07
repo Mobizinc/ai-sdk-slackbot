@@ -5,10 +5,7 @@ import { apiClient, type ConfigValue } from "@/lib/api-client"
 import { Settings, Search, RefreshCcw, Save, X, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 
-interface StatusMessage {
-  type: "success" | "error"
-  text: string
-}
+
 
 
 export default function ConfigPage() {
@@ -20,7 +17,7 @@ export default function ConfigPage() {
   const [pendingValues, setPendingValues] = useState<Record<string, unknown>>({})
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [savingAll, setSavingAll] = useState(false)
-  const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null)
+  
 
   const hasUnsavedChanges = Object.keys(pendingValues).length > 0
 
