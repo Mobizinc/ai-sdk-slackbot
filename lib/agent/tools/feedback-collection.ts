@@ -6,8 +6,7 @@
  */
 
 import { z } from "zod";
-import type { CoreMessage } from "ai";
-import { createTool, type AgentToolFactoryParams } from "./shared";
+import { createTool, type AgentToolFactoryParams, type CoreMessage } from "./shared";
 import { generateBRD } from "../../services/brd-generator";
 import { createGitHubIssue } from "../../services/github-issue-service";
 
