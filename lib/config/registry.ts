@@ -229,6 +229,20 @@ export const CONFIG_DEFINITIONS = {
     group: "github",
     description: "Override GitHub API base URL (set for GitHub Enterprise).",
   },
+  githubFeedbackRepo: {
+    envVar: "GITHUB_FEEDBACK_REPO",
+    type: "string",
+    default: "Mobizinc/ai-sdk-slackbot",
+    group: "github",
+    description: "Repository for user feedback issues (format: owner/repo).",
+  },
+  githubFeedbackLabels: {
+    envVar: "GITHUB_FEEDBACK_LABELS",
+    type: "string",
+    default: "feature-request,user-feedback",
+    group: "github",
+    description: "Comma-separated labels to apply to feedback issues.",
+  },
   llmTimeoutMs: {
     envVar: "LLM_TIMEOUT_MS",
     type: "number",
