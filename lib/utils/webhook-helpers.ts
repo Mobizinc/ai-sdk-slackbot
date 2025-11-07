@@ -9,7 +9,6 @@
  * - Response formatting: Success responses, queued responses, error responses
  */
 
-import { createHmac, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
 import { parseServiceNowPayload } from './servicenow-payload';
 import { ServiceNowParser } from './servicenow-parser';
@@ -83,17 +82,17 @@ export interface WebhookError {
  * @returns AuthResult with authenticated boolean and method used
  *
  * @example
- * const authResult = authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
+ * const authResult = await authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
  * if (!authResult.authenticated) {
  *   return Response.json({ error: 'Unauthorized' }, { status: 401 });
  * }
  * console.info(`Authenticated via ${authResult.method}`);
  */
-export function authenticateWebhookRequest(
+export async function authenticateWebhookRequest(
   request: Request,
   payload: string,
   secret?: string
-): AuthResult {
+): Promise<AuthResult> {
   // If no secret configured, allow all requests (development mode)
   if (!secret) {
     return {
@@ -126,7 +125,7 @@ export function authenticateWebhookRequest(
     // Invalid URL, continue to next auth method
   }
 
-  // Method 3: HMAC-SHA256 signature verification (constant-time comparison)
+  // Method 3: HMAC-SHA256 signature verification (edge-compatible with Web Crypto API)
   let signatureHeader = request.headers.get('x-servicenow-signature') ||
                         request.headers.get('signature') || '';
 
@@ -138,48 +137,54 @@ export function authenticateWebhookRequest(
     const isHexSignature = /^[a-fA-F0-9]+$/.test(signatureHeader);
     const isBase64Signature = /^[A-Za-z0-9+/]+={0,2}$/.test(signatureHeader);
 
-    // Compute HMAC once as a buffer, then convert to needed format
-    const hmacBuffer = createHmac('sha256', secret)
-      .update(payload)
-      .digest();
-
-    const hexSignatureBuffer = hmacBuffer.toString('hex');
-    const base64SignatureBuffer = hmacBuffer.toString('base64');
-
-    // Convert provided signature to Buffer for comparison
     try {
-      let providedBuffer: Buffer;
-      let expectedBuffer: Buffer;
-      let matched = false;
+      // Use Web Crypto API (edge-compatible) instead of Node crypto
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(secret);
+      const messageData = encoder.encode(payload);
+
+      // Import the key for HMAC
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+
+      // Compute HMAC signature
+      const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+      const signatureArray = new Uint8Array(signatureBuffer);
+
+      // Convert to hex and base64 for comparison
+      const hexSignature = Array.from(signatureArray)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Use btoa in edge runtime, Buffer in Node.js (for tests)
+      const base64Signature = typeof btoa !== 'undefined'
+        ? btoa(String.fromCharCode(...signatureArray))
+        : Buffer.from(signatureArray).toString('base64');
+
+      // Constant-time comparison helper (edge-compatible)
+      const timingSafeEqual = (a: string, b: string): boolean => {
+        if (a.length !== b.length) return false;
+        let result = 0;
+        for (let i = 0; i < a.length; i++) {
+          result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        }
+        return result === 0;
+      };
 
       // Try hex comparison if signature looks like hex
-      if (isHexSignature) {
-        providedBuffer = Buffer.from(signatureHeader, 'hex');
-        expectedBuffer = Buffer.from(hexSignatureBuffer, 'hex');
-
-        // Guard against mismatched lengths
-        if (providedBuffer.length === expectedBuffer.length) {
-          try {
-            matched = timingSafeEqual(providedBuffer, expectedBuffer);
-          } catch {
-            matched = false;
-          }
-        }
+      let matched = false;
+      if (isHexSignature && signatureHeader.length === hexSignature.length) {
+        matched = timingSafeEqual(signatureHeader.toLowerCase(), hexSignature);
       }
 
       // Try base64 comparison if not matched and signature looks like base64
       if (!matched && isBase64Signature) {
-        providedBuffer = Buffer.from(signatureHeader, 'base64');
-        expectedBuffer = Buffer.from(base64SignatureBuffer, 'base64');
-
-        // Guard against mismatched lengths
-        if (providedBuffer.length === expectedBuffer.length) {
-          try {
-            matched = timingSafeEqual(providedBuffer, expectedBuffer);
-          } catch {
-            matched = false;
-          }
-        }
+        matched = timingSafeEqual(signatureHeader, base64Signature);
       }
 
       if (matched) {

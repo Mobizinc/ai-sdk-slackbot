@@ -1046,3 +1046,53 @@ export const incidentEnrichmentStates = pgTable(
 
 export type IncidentEnrichmentState = typeof incidentEnrichmentStates.$inferSelect;
 export type NewIncidentEnrichmentState = typeof incidentEnrichmentStates.$inferInsert;
+
+/**
+ * Change Validations Table
+ * Stores ServiceNow change validation results and audit trail
+ * Tracks the lifecycle of automated validation for standard changes
+ */
+export const changeValidations = pgTable(
+  "change_validations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Change identification
+    changeNumber: text("change_number").notNull(),
+    changeSysId: text("change_sys_id").notNull(),  // Unique constraint via index below
+    // Component being validated
+    componentType: text("component_type").notNull(), // catalog_item, ldap_server, mid_server, workflow, etc.
+    componentSysId: text("component_sys_id"),
+    // Webhook/Request metadata
+    payload: jsonb("payload").notNull().$type<Record<string, any>>(),
+    hmacSignature: text("hmac_signature"),
+    requestedBy: text("requested_by"),
+    // Validation lifecycle
+    status: text("status").notNull().default("received"), // received, processing, completed, failed
+    validationResults: jsonb("validation_results").$type<{
+      overall_status: "PASSED" | "FAILED" | "WARNING";
+      checks: Record<string, boolean>;
+      synthesis?: string;
+    }>(),
+    failureReason: text("failure_reason"),
+    // Timing
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    // Processing details
+    processingTimeMs: integer("processing_time_ms"),
+    retryCount: integer("retry_count").default(0).notNull(),
+  },
+  (table) => ({
+    changeNumberIdx: index("idx_change_validations_change_number").on(table.changeNumber),
+    changeSysIdIdx: uniqueIndex("idx_change_validations_change_sys_id").on(table.changeSysId),
+    statusIdx: index("idx_change_validations_status").on(table.status),
+    componentTypeIdx: index("idx_change_validations_component_type").on(table.componentType),
+    createdAtIdx: index("idx_change_validations_created_at").on(table.createdAt),
+    processedAtIdx: index("idx_change_validations_processed_at").on(table.processedAt),
+    // Composite index for finding unprocessed changes
+    statusCreatedIdx: index("idx_change_validations_status_created").on(table.status, table.createdAt),
+  })
+);
+
+export type ChangeValidation = typeof changeValidations.$inferSelect;
+export type NewChangeValidation = typeof changeValidations.$inferInsert;

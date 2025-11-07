@@ -97,7 +97,7 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
     const payload = await request.text();
 
     // Authenticate webhook request
-    const authResult = authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
+    const authResult = await authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
     if (!authResult.authenticated) {
       console.warn('[Webhook] Authentication failed');
       return buildErrorResponse({

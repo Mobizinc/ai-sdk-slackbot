@@ -24,140 +24,191 @@ describe('authenticateWebhookRequest', () => {
   const PAYLOAD = '{"case_number": "TEST123"}';
 
   describe('with API key header', () => {
-    it('authenticates with x-api-key header', () => {
+    it('authenticates with x-api-key header', async () => {
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-api-key': SECRET },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('api-key-header');
     });
 
-    it('authenticates with x-functions-key header', () => {
+    it('authenticates with x-functions-key header', async () => {
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-functions-key': SECRET },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('api-key-header');
     });
 
-    it('rejects invalid api-key header', () => {
+    it('rejects invalid api-key header', async () => {
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-api-key': 'wrong-secret' },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(false);
     });
   });
 
   describe('with API key query parameter', () => {
-    it('authenticates with ?code=... query parameter', () => {
+    it('authenticates with ?code=... query parameter', async () => {
       const request = new Request(
         `http://localhost:3000/webhook?code=${SECRET}`
       );
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('api-key-query');
     });
 
-    it('rejects invalid query parameter', () => {
+    it('rejects invalid query parameter', async () => {
       const request = new Request(
         'http://localhost:3000/webhook?code=wrong-secret'
       );
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(false);
     });
   });
 
   describe('with HMAC signature', () => {
-    it('authenticates with hex HMAC signature', () => {
-      const hexSignature = createHmac('sha256', SECRET)
-        .update(PAYLOAD)
-        .digest('hex');
+    it('authenticates with hex HMAC signature', async () => {
+      // Generate HMAC signature using Web Crypto API (same as the implementation)
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(SECRET);
+      const messageData = encoder.encode(PAYLOAD);
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+      const signatureArray = new Uint8Array(signatureBuffer);
+      const hexSignature = Array.from(signatureArray)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-servicenow-signature': hexSignature },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('hmac-signature');
     });
 
-    it('authenticates with base64 HMAC signature', () => {
-      const base64Signature = createHmac('sha256', SECRET)
-        .update(PAYLOAD)
-        .digest('base64');
+    it('authenticates with base64 HMAC signature', async () => {
+      // Generate HMAC signature using Web Crypto API
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(SECRET);
+      const messageData = encoder.encode(PAYLOAD);
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+      const signatureArray = new Uint8Array(signatureBuffer);
+      const base64Signature = btoa(String.fromCharCode(...signatureArray));
+
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-servicenow-signature': base64Signature },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('hmac-signature');
     });
 
-    it('authenticates with sha256= prefixed hex signature', () => {
-      const hexSignature = createHmac('sha256', SECRET)
-        .update(PAYLOAD)
-        .digest('hex');
+    it('authenticates with sha256= prefixed hex signature', async () => {
+      // Generate HMAC signature using Web Crypto API
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(SECRET);
+      const messageData = encoder.encode(PAYLOAD);
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+      const signatureArray = new Uint8Array(signatureBuffer);
+      const hexSignature = Array.from(signatureArray)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       const prefixedSignature = `sha256=${hexSignature}`;
+
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-servicenow-signature': prefixedSignature },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('hmac-signature');
     });
 
-    it('authenticates with signature header instead of x-servicenow-signature', () => {
-      const hexSignature = createHmac('sha256', SECRET)
-        .update(PAYLOAD)
-        .digest('hex');
+    it('authenticates with signature header instead of x-servicenow-signature', async () => {
+      // Generate HMAC signature using Web Crypto API
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(SECRET);
+      const messageData = encoder.encode(PAYLOAD);
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+      const signatureArray = new Uint8Array(signatureBuffer);
+      const hexSignature = Array.from(signatureArray)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'signature': hexSignature },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('hmac-signature');
     });
 
-    it('rejects invalid HMAC signature', () => {
+    it('rejects invalid HMAC signature', async () => {
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-servicenow-signature': 'invalid-signature-hex' },
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(false);
     });
 
-    it('rejects signature with mismatched length', () => {
+    it('rejects signature with mismatched length', async () => {
       const request = new Request('http://localhost:3000/webhook', {
         headers: { 'x-servicenow-signature': 'a1b2c3d4' }, // Too short
       });
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(false);
     });
   });
 
   describe('without secret (development mode)', () => {
-    it('allows all requests when no secret configured', () => {
+    it('allows all requests when no secret configured', async () => {
       const request = new Request('http://localhost:3000/webhook');
-      const result = authenticateWebhookRequest(request, PAYLOAD, undefined);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, undefined);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('no-secret');
     });
   });
 
   describe('authentication priority', () => {
-    it('prefers API key header over query parameter', () => {
-      const hexSignature = createHmac('sha256', SECRET)
-        .update(PAYLOAD)
-        .digest('hex');
+    it('prefers API key header over query parameter', async () => {
       const request = new Request(
         `http://localhost:3000/webhook?code=${SECRET}`,
         {
           headers: { 'x-api-key': SECRET },
         }
       );
-      const result = authenticateWebhookRequest(request, PAYLOAD, SECRET);
+      const result = await authenticateWebhookRequest(request, PAYLOAD, SECRET);
       expect(result.authenticated).toBe(true);
       expect(result.method).toBe('api-key-header');
     });
