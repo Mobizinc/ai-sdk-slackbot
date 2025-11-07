@@ -16,16 +16,21 @@
  * Original: api/app/routers/webhooks.py:379-531
  */
 
-import { createHmac } from 'crypto';
 import { getCaseTriageService } from '../lib/services/case-triage';
 import {
-  validateServiceNowWebhook,
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 import { withLangSmithTrace } from '../lib/observability';
-import { parseServiceNowPayload } from '../lib/utils/servicenow-payload';
-import { ServiceNowParser } from '../lib/utils/servicenow-parser';
+import {
+  authenticateWebhookRequest,
+  parseWebhookPayload,
+  validateWebhook,
+  buildTriageSuccessResponse,
+  buildQueuedResponse,
+  buildErrorResponse,
+  type WebhookError,
+} from '../lib/utils/webhook-helpers';
 
 // Initialize services
 const caseTriageService = getCaseTriageService();
@@ -39,55 +44,37 @@ const ENABLE_ASYNC_TRIAGE = process.env.ENABLE_ASYNC_TRIAGE !== 'false';
 const USE_NEW_PARSER = process.env.SERVICENOW_USE_NEW_PARSER !== 'false';
 
 /**
- * Validate webhook request
- * Supports multiple authentication methods (all using same SERVICENOW_WEBHOOK_SECRET):
- * 1. Simple API key in header (x-api-key) - Azure Functions style
- * 2. Simple API key in query param (?code=xxx) - Azure Functions style
- * 3. HMAC-SHA256 signature (hex or base64) - Advanced security
+ * Try to enqueue a case for async processing via QStash
+ * Returns null if async processing is disabled or fails (falls back to sync)
  */
-function validateRequest(request: Request, payload: string): boolean {
-  if (!WEBHOOK_SECRET) {
-    console.warn('[Webhook] No SERVICENOW_WEBHOOK_SECRET configured, allowing request');
-    return true;
+async function tryEnqueueCase(webhookData: ServiceNowCaseWebhook): Promise<Response | null> {
+  if (!ENABLE_ASYNC_TRIAGE || !isQStashEnabled()) {
+    return null;
   }
 
-  // Method 1: Simple API key in header (x-api-key)
-  const apiKeyHeader = request.headers.get('x-api-key') || request.headers.get('x-functions-key');
-  if (apiKeyHeader === WEBHOOK_SECRET) {
-    console.info('[Webhook] Authenticated via API key (header)');
-    return true;
-  }
-
-  // Method 2: Simple API key in query param (?code=xxx) - Azure Functions style
-  const url = new URL(request.url);
-  const apiKeyQuery = url.searchParams.get('code');
-  if (apiKeyQuery === WEBHOOK_SECRET) {
-    console.info('[Webhook] Authenticated via API key (query param)');
-    return true;
-  }
-
-  // Method 3: HMAC signature (backward compatibility)
-  const signature = request.headers.get('x-servicenow-signature') ||
-                   request.headers.get('signature') || '';
-
-  if (signature) {
-    // ServiceNow may send signatures in either hex or base64 format
-    const hexSignature = createHmac('sha256', WEBHOOK_SECRET)
-      .update(payload)
-      .digest('hex');
-
-    const base64Signature = createHmac('sha256', WEBHOOK_SECRET)
-      .update(payload)
-      .digest('base64');
-
-    if (signature === hexSignature || signature === base64Signature) {
-      console.info('[Webhook] Authenticated via HMAC signature');
-      return true;
+  try {
+    const qstashClient = getQStashClient();
+    if (!qstashClient) {
+      throw new Error('QStash client not initialized');
     }
-  }
 
-  // All authentication methods failed
-  return false;
+    const workerUrl = getWorkerUrl('/api/workers/process-case');
+    console.info(`[Webhook] Enqueueing case ${webhookData.case_number} to ${workerUrl}`);
+
+    await qstashClient.publishJSON({
+      url: workerUrl,
+      body: webhookData,
+      retries: 3,
+      delay: 0,
+    });
+
+    console.info(`[Webhook] Case ${webhookData.case_number} queued successfully (async mode)`);
+    return buildQueuedResponse(webhookData.case_number);
+  } catch (error) {
+    console.error('[Webhook] Failed to enqueue to QStash:', error);
+    console.warn('[Webhook] Falling back to synchronous processing');
+    return null;
+  }
 }
 
 /**
@@ -109,90 +96,69 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
     // Get request body
     const payload = await request.text();
 
-    // Validate authentication (API key or HMAC signature)
-    if (!validateRequest(request, payload)) {
+    // Authenticate webhook request
+    const authResult = authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
+    if (!authResult.authenticated) {
       console.warn('[Webhook] Authentication failed');
-      return Response.json(
-        { error: 'Authentication failed' },
-        { status: 401 }
-      );
+      return buildErrorResponse({
+        type: 'authentication_error',
+        message: 'Authentication failed',
+        statusCode: 401,
+      });
     }
+    console.info(`[Webhook] Authenticated via ${authResult.method}`);
 
-    // Parse and validate payload with Zod schema
-    let webhookData: ServiceNowCaseWebhook;
-    try {
-      let parsedPayload: unknown;
-      
-      if (USE_NEW_PARSER) {
-        // Use new ServiceNowParser with advanced JSON handling
-        const parser = new ServiceNowParser();
-        const parseResult = parser.parse(payload);
-        
-        if (!parseResult.success) {
-          console.error('[Webhook] New parser failed:', parseResult.error?.message);
-          return Response.json(
-            {
-              error: 'Failed to parse payload',
-              details: parseResult.error?.message,
-              strategy: parseResult.strategy,
-            },
-            { status: 400 }
-          );
-        }
-        
-        parsedPayload = parseResult.data;
-        
-        // Log parsing metrics for monitoring
-        console.log('[Webhook] Parser metrics:', parseResult.metadata);
-        
-        // Log warnings for debugging
-        if (parseResult.warnings && parseResult.warnings.length > 0) {
-          console.warn('[Webhook] Parser warnings:', parseResult.warnings);
-        }
-      } else {
-        // Use legacy parser
-        parsedPayload = parseServiceNowPayload(payload);
-      }
 
-      const validationResult = validateServiceNowWebhook(parsedPayload);
+    // Parse payload
+    const parseResult = parseWebhookPayload(payload, USE_NEW_PARSER);
+    if (!parseResult.success) {
+      console.error('[Webhook] Parsing failed:', parseResult.error?.message);
 
-      if (!validationResult.success) {
-        console.error('[Webhook] Schema validation failed:', validationResult.errors);
-        return Response.json(
-          {
-            error: 'Invalid webhook payload schema',
-            details: validationResult.errors,
-          },
-          { status: 422 } // Unprocessable Entity
-        );
-      }
+      // Treat empty objects as validation errors (422) not parse errors (400)
+      const isEmptyObject = parseResult.data !== undefined &&
+                           typeof parseResult.data === 'object' &&
+                           Object.keys(parseResult.data as Record<string, unknown>).length === 0;
 
-      webhookData = validationResult.data!;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[Webhook] Failed to parse webhook payload:', errorMessage);
+      const statusCode = isEmptyObject ? 422 : 400;
+      const errorType = isEmptyObject ? 'validation_error' : 'parse_error';
+      const errorMessage = isEmptyObject
+        ? 'Invalid webhook payload schema - payload cannot be empty'
+        : parseResult.error?.message || 'Failed to parse payload';
 
-      // Extract useful error details for the response
-      const errorDetails: Record<string, any> = {
+      return buildErrorResponse({
+        type: errorType,
         message: errorMessage,
-        payloadLength: payload?.length || 0,
-      };
-
-      // Check if error message contains position information
-      const positionMatch = errorMessage.match(/position (\d+)/);
-      if (positionMatch) {
-        errorDetails.errorPosition = parseInt(positionMatch[1], 10);
-        errorDetails.hint = 'Check the JSON syntax around the specified position';
-      }
-
-      return Response.json(
-        {
-          error: 'Invalid JSON payload',
-          details: errorDetails,
-        },
-        { status: 400 }
-      );
+        details: parseResult.metadata,
+        statusCode,
+      });
     }
+
+    // Log parsing metrics for monitoring
+    if (parseResult.metadata) {
+      console.log('[Webhook] Parser metrics:', parseResult.metadata);
+    }
+
+    // Log warnings for debugging
+    if (parseResult.metadata?.warnings && parseResult.metadata.warnings.length > 0) {
+      console.warn('[Webhook] Parser warnings:', parseResult.metadata.warnings);
+    }
+
+    // Validate payload against schema
+    const validationResult = validateWebhook(parseResult.data);
+    if (!validationResult.success) {
+      console.error('[Webhook] Schema validation failed:', validationResult.errors);
+      return buildErrorResponse({
+        type: 'validation_error',
+        message: 'Invalid webhook payload schema',
+        details: {
+          errors: validationResult.errors,
+          issues: validationResult.issues,
+        },
+        statusCode: 422,
+      });
+    }
+
+    const webhookData: ServiceNowCaseWebhook = validationResult.data!;
 
     // Log webhook with company/account info for debugging
     const companyInfo = webhookData.company ? `Company: ${webhookData.company}` : '';
@@ -204,42 +170,10 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
       (clientInfo ? ` | ${clientInfo}` : '')
     );
 
-    // Check if async triage is enabled
-    if (ENABLE_ASYNC_TRIAGE && isQStashEnabled()) {
-      // Async mode: Enqueue to QStash and return immediately
-      try {
-        const qstashClient = getQStashClient();
-        if (!qstashClient) {
-          throw new Error('QStash client not initialized');
-        }
-
-        const workerUrl = getWorkerUrl('/api/workers/process-case');
-        console.info(`[Webhook] Enqueueing case ${webhookData.case_number} to ${workerUrl}`);
-
-        await qstashClient.publishJSON({
-          url: workerUrl,
-          body: webhookData,
-          retries: 3,
-          delay: 0,
-        });
-
-        console.info(
-          `[Webhook] Case ${webhookData.case_number} queued successfully (async mode)`
-        );
-
-        // Return 202 Accepted - processing will happen asynchronously
-        return Response.json({
-          success: true,
-          queued: true,
-          case_number: webhookData.case_number,
-          message: 'Case queued for async processing',
-        }, { status: 202 });
-
-      } catch (error) {
-        console.error('[Webhook] Failed to enqueue to QStash:', error);
-        // Fall through to sync processing as fallback
-        console.warn('[Webhook] Falling back to synchronous processing');
-      }
+    // Try async processing first if enabled
+    const queuedResponse = await tryEnqueueCase(webhookData);
+    if (queuedResponse) {
+      return queuedResponse;
     }
 
     // Sync mode: Execute centralized triage workflow immediately
@@ -265,55 +199,16 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
       `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
     );
 
-    // Return comprehensive response matching original format
-    return Response.json({
-      success: true,
-      case_number: triageResult.caseNumber,
-      classification: {
-        category: triageResult.classification.category,
-        subcategory: triageResult.classification.subcategory,
-        confidence_score: triageResult.classification.confidence_score,
-        urgency_level: triageResult.classification.urgency_level,
-        reasoning: triageResult.classification.reasoning,
-        keywords: (triageResult.classification as any).keywords ||
-                 (triageResult.classification as any).keywords_detected || [],
-        quick_summary: triageResult.classification.quick_summary,
-        immediate_next_steps: triageResult.classification.immediate_next_steps,
-        technical_entities: triageResult.classification.technical_entities,
-        business_intelligence: triageResult.classification.business_intelligence,
-        record_type_suggestion: triageResult.classification.record_type_suggestion,
-      },
-      similar_cases: triageResult.similarCases,
-      kb_articles: triageResult.kbArticles,
-      servicenow_updated: triageResult.servicenowUpdated,
-      update_error: triageResult.updateError,
-      processing_time_ms: triageResult.processingTimeMs,
-      entities_discovered: triageResult.entitiesDiscovered,
-      workflow_id: triageResult.workflowId,
-      cached: triageResult.cached,
-      cache_reason: triageResult.cacheReason,
-      // ITSM record type fields
-      incident_created: triageResult.incidentCreated,
-      incident_number: triageResult.incidentNumber,
-      incident_sys_id: triageResult.incidentSysId,
-      incident_url: triageResult.incidentUrl,
-      record_type_suggestion: triageResult.recordTypeSuggestion,
-      // Catalog redirect fields
-      catalog_redirected: triageResult.catalogRedirected,
-      catalog_redirect_reason: triageResult.catalogRedirectReason,
-      catalog_items_provided: triageResult.catalogItemsProvided,
-    });
+    return buildTriageSuccessResponse(triageResult);
 
   } catch (error) {
     console.error('[Webhook] Processing failed:', error);
 
-    return Response.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    return buildErrorResponse({
+      type: 'internal_error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      statusCode: 500,
+    });
   }
 }, {
   name: "servicenow_webhook_handler",

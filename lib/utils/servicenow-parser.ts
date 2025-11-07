@@ -234,10 +234,11 @@ export class ServiceNowParser {
 
   /**
    * Layer 4: Schema validation
-   * Placeholder for Zod integration - will be enhanced in next phase.
+   * Returns success for any valid JSON object (including empty).
+   * Downstream Zod schema validation handles field requirements.
    */
   private validate(parsed: unknown): ValidationResult {
-    // For now, just do basic validation
+    // Only validate that we have a JSON object
     if (!parsed || typeof parsed !== 'object') {
       return {
         success: false,
@@ -245,27 +246,8 @@ export class ServiceNowParser {
       };
     }
 
-    const obj = parsed as Record<string, unknown>;
-    if (Object.keys(obj).length === 0) {
-      return {
-        success: false,
-        errors: ['Parsed object is empty'],
-      };
-    }
-
-    // Check for common ServiceNow fields
-    const hasServiceNowFields = [
-      'sys_id', 'number', 'case_number', 'incident_number', 'short_description'
-    ].some(field => field in obj);
-
-    if (!hasServiceNowFields) {
-      return {
-        success: true,
-        data: parsed,
-        warnings: ['No common ServiceNow fields found'],
-      };
-    }
-
+    // Accept any valid JSON object, including empty objects
+    // Schema conformance is handled by downstream Zod validation
     return {
       success: true,
       data: parsed,
