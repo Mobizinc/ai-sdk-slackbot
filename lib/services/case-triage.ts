@@ -397,7 +397,7 @@ export class CaseTriageService {
             },
             assignedTo: webhook.assigned_to,
             assignmentGroup: webhook.assignment_group,
-            // Use account display_value for human-readable client name (fallback to account if account_id not present)
+            // Use account_id for human-readable client name (fallback to account field if account_id not present)
             companyName: webhook.account_id || webhook.account,
             // Include caller/requester information
             contactName: webhook.caller_id,
