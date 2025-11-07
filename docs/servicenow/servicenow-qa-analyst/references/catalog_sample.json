@@ -1,0 +1,31 @@
+[
+  {
+    "label": "Access: AVD (baseline UAT sample)",
+    "context": "General catalog validation sanity-check",
+    "data": {
+      "sys_id": "e3c0c4ca83c62e1068537cdfeeaad3ea",
+      "name": "Access: AVD",
+      "short_description": "Request AVD Access",
+      "active": "true",
+      "workflow": "",
+      "category": ""
+    }
+  },
+  {
+    "label": "ServiceNow Platform Updates (Standard Change template)",
+    "source_template_id": "4be3a83d83897e9039717000feaad3e5",
+    "context": "Standard Change for ServiceNow Platform Updates",
+    "data": {
+      "sys_id": "353681ca875da510e88deb5e0ebb3554",
+      "name": "ServiceNow Platform Updates",
+      "short_description": "Task change",
+      "active": "true",
+      "workflow": "",
+      "category": {
+        "link": "https://mobizuat.service-now.com/api/now/table/sc_category/b0fdfb01932002009ca87a75e57ffbe9",
+        "value": "b0fdfb01932002009ca87a75e57ffbe9"
+      },
+      "sc_catalogs": "e0d08b13c3330100c8b837659bba8fb4"
+    }
+  }
+]
