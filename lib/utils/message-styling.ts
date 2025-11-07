@@ -720,10 +720,21 @@ export function createStaticSelect(config: {
   };
 
   if (config.initialOption) {
-    element.initial_option = {
-      text: { type: 'plain_text', text: config.initialOption.text, emoji: true },
-      value: config.initialOption.value,
-    };
+    // Find the matching option from the options array to ensure exact match
+    // This is required by Slack - initial_option must match an option exactly
+    const matchingOption = config.options.find(opt => opt.value === config.initialOption!.value);
+
+    if (matchingOption) {
+      // Use the matching option's structure to ensure description is included if present
+      element.initial_option = {
+        text: { type: 'plain_text', text: matchingOption.text, emoji: true },
+        value: matchingOption.value,
+      };
+
+      if (matchingOption.description) {
+        element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
+      }
+    }
   }
 
   if (config.confirm) {
@@ -914,10 +925,21 @@ export function createRadioButtons(config: {
   };
 
   if (config.initialOption) {
-    element.initial_option = {
-      text: { type: 'plain_text', text: config.initialOption.text, emoji: true },
-      value: config.initialOption.value,
-    };
+    // Find the matching option from the options array to ensure exact match
+    // This is required by Slack - initial_option must match an option exactly
+    const matchingOption = config.options.find(opt => opt.value === config.initialOption!.value);
+
+    if (matchingOption) {
+      // Use the matching option's structure to ensure description is included if present
+      element.initial_option = {
+        text: { type: 'plain_text', text: matchingOption.text, emoji: true },
+        value: matchingOption.value,
+      };
+
+      if (matchingOption.description) {
+        element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
+      }
+    }
   }
 
   if (config.confirm) {
@@ -954,10 +976,30 @@ export function createCheckboxes(config: {
   };
 
   if (config.initialOptions && config.initialOptions.length > 0) {
-    element.initial_options = config.initialOptions.map(opt => ({
-      text: { type: 'plain_text', text: opt.text, emoji: true },
-      value: opt.value,
-    }));
+    // Find matching options from the options array to ensure exact match
+    // This is required by Slack - initial_options must match options exactly
+    element.initial_options = config.initialOptions.map(initOpt => {
+      const matchingOption = config.options.find(opt => opt.value === initOpt.value);
+
+      if (matchingOption) {
+        const option: any = {
+          text: { type: 'plain_text', text: matchingOption.text, emoji: true },
+          value: matchingOption.value,
+        };
+
+        if (matchingOption.description) {
+          option.description = { type: 'plain_text', text: matchingOption.description };
+        }
+
+        return option;
+      }
+
+      // Fallback if no matching option found (shouldn't happen in normal use)
+      return {
+        text: { type: 'plain_text', text: initOpt.text, emoji: true },
+        value: initOpt.value,
+      };
+    });
   }
 
   if (config.confirm) {
