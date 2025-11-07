@@ -74,6 +74,10 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
       queryParts.push(`sys_class_name=${criteria.className}`);
     }
 
+    if (criteria.company) {
+      queryParts.push(`company.name LIKE ${criteria.company}`);
+    }
+
     if (criteria.ownerGroup) {
       queryParts.push(`owner=${criteria.ownerGroup}`);
     }
@@ -91,7 +95,7 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
     }
 
     if (queryParts.length === 0) {
-      throw new Error("At least one search criterion must be provided for CMDB search. Broad queries require additional filters (location, environment, owner group).");
+      throw new Error("At least one search criterion must be provided for CMDB search. Broad queries require additional filters (location, environment, owner group, company).");
     }
 
     // Limit maximum results to prevent overly broad queries

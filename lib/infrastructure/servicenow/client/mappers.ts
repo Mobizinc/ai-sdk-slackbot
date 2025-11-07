@@ -242,6 +242,8 @@ export function mapConfigurationItem(record: ConfigurationItemRecord, instanceUr
     fqdn: extractDisplayValue(record.fqdn),
     hostName: extractDisplayValue(record.host_name),
     ipAddresses: normalizeIpAddresses(record.ip_address),
+    company: extractValue(record.company),
+    companyName: extractDisplayValue(record.company),
     ownerGroup: extractDisplayValue(record.owner_group),
     supportGroup: extractDisplayValue(record.support_group),
     location: extractDisplayValue(record.location),

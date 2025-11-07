@@ -153,7 +153,7 @@ const serviceNowInputSchema = z
     companyName: z
       .string()
       .optional()
-      .describe("Filter cases by company name (partial match)."),
+      .describe("Filter cases by company name (partial match). Also used to filter CMDB configuration items by company for searchConfigurationItem action."),
     priority: z
       .string()
       .optional()
@@ -316,7 +316,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'getIncident' / 'getCase': Fetch specific ticket BY NUMBER (number parameter REQUIRED)\n" +
       "- 'getCaseJournal': Get comment history (requires caseSysId)\n" +
       "- 'searchKnowledge': Find KB articles (requires query)\n" +
-      "- 'searchConfigurationItem': CMDB lookup - search for CIs by name, IP, class, location, environment, status, or owner group\n" +
+      "- 'searchConfigurationItem': CMDB lookup - search for CIs by name, IP, class, company, location, environment, status, or owner group\n" +
       "- 'getCIRelationships': Get related CIs for a specific CI (requires ciSysId, optional relationshipType filter)\n" +
       "- 'searchCases': Advanced filtering when you DON'T have an exact number (use filters: companyName, priority, state, assignmentGroup, etc.)\n\n" +
       "**Natural Language Query Examples for searchConfigurationItem:**\n" +
@@ -324,6 +324,8 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'CIs in Chicago' → ciLocation: 'Chicago'\n" +
       "- 'production servers' → ciEnvironment: 'production', ciClassName: 'cmdb_ci_server'\n" +
       "- 'network devices for Network Ops' → ciClassName: 'cmdb_ci_netgear', ciOwnerGroup: 'Network Ops'\n" +
+      "- 'Neighbors servers in Azure' → companyName: 'Neighbors', ciLocation: 'Azure'\n" +
+      "- 'what servers does Altus have' → companyName: 'Altus', ciClassName: 'cmdb_ci_server'\n" +
       "- '10.50.10.25' → ipAddress: '10.50.10.25'\n" +
       "- 'operational servers in production' → ciClassName: 'cmdb_ci_server', ciEnvironment: 'production', ciOperationalStatus: '1'\n" +
       "- 'all CIs owned by Platform team' → ciOwnerGroup: 'Platform'\n" +
@@ -665,9 +667,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
         }
 
         if (action === "searchConfigurationItem") {
-          if (!ciName && !ipAddress && !ciSysId && !ciClassName && !ciLocation && !ciOwnerGroup && !ciEnvironment && !ciOperationalStatus) {
+          if (!ciName && !ipAddress && !ciSysId && !ciClassName && !companyName && !ciLocation && !ciOwnerGroup && !ciEnvironment && !ciOperationalStatus) {
             throw new Error(
-              "At least one search criterion must be provided: ciName, ipAddress, ciSysId, ciClassName, ciLocation, ciOwnerGroup, ciEnvironment, or ciOperationalStatus.",
+              "At least one search criterion must be provided: ciName, ipAddress, ciSysId, ciClassName, companyName, ciLocation, ciOwnerGroup, ciEnvironment, or ciOperationalStatus.",
             );
           }
 
@@ -679,6 +681,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               ipAddress,
               sysId: ciSysId,
               className: ciClassName,
+              company: companyName,
               operationalStatus: ciOperationalStatus,
               location: ciLocation,
               ownerGroup: ciOwnerGroup,

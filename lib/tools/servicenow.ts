@@ -1265,6 +1265,7 @@ export class ServiceNowClient {
       ipAddress?: string;
       sysId?: string;
       className?: string;
+      company?: string;
       operationalStatus?: string;
       location?: string;
       ownerGroup?: string;
@@ -1286,6 +1287,7 @@ export class ServiceNowClient {
       ipAddress: input.ipAddress,
       sysId: input.sysId,
       className: input.className,
+      company: input.company,
       operationalStatus: input.operationalStatus,
       location: input.location,
       ownerGroup: input.ownerGroup,
@@ -1303,6 +1305,7 @@ export class ServiceNowClient {
           ipAddress: input.ipAddress,
           sysId: input.sysId,
           className: input.className,
+          company: input.company,
           operationalStatus: input.operationalStatus,
           location: input.location,
           ownerGroup: input.ownerGroup,
@@ -1319,6 +1322,7 @@ export class ServiceNowClient {
           fqdn: item.fqdn,
           host_name: item.hostName,
           ip_addresses: item.ipAddresses,
+          company: item.companyName,
           owner_group: item.ownerGroup,
           support_group: item.supportGroup,
           location: item.location,
@@ -1366,6 +1370,10 @@ export class ServiceNowClient {
       queryGroups.push(`sys_class_name=${input.className}`);
     }
 
+    if (input.company) {
+      queryGroups.push(`company.nameLIKE${input.company}`);
+    }
+
     if (input.operationalStatus) {
       queryGroups.push(`operational_status=${input.operationalStatus}`);
     }
@@ -1384,7 +1392,7 @@ export class ServiceNowClient {
 
     if (!queryGroups.length) {
       throw new Error(
-        "At least one search criterion must be provided: name, ipAddress, sysId, className, location, ownerGroup, environment, or operationalStatus.",
+        "At least one search criterion must be provided: name, ipAddress, sysId, className, company, location, ownerGroup, environment, or operationalStatus.",
       );
     }
 
