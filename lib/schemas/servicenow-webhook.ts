@@ -88,8 +88,8 @@ export const ServiceNowCaseWebhookSchema = z.object({
   contact: optionalDisplayValueTransformer.describe("Customer contact sys_id"),
   contact_type: z.string().optional().describe("How case was created"),
   company: optionalDisplayValueTransformer.describe("Customer company sys_id"),
-  account_id: z.string().optional().describe("Customer account sys_id"),
-  account: z.string().optional().describe("Customer account sys_id (alternative field)"),
+  account_id: optionalDisplayValueTransformer.describe("Customer account (extracts display_value for human-readable name)"),
+  account: optionalDisplayValueTransformer.describe("Customer account (alternative field, extracts display_value for human-readable name)"),
   location: optionalDisplayValueTransformer.describe("Physical location sys_id"),
   opened_at: z.coerce.date().optional().describe("Case creation timestamp"),
   opened_by: optionalDisplayValueTransformer.describe("User who opened case"),
@@ -318,7 +318,8 @@ export function webhookToClassificationRequest(webhook: ServiceNowCaseWebhook): 
     urgency: webhook.urgency,
     current_category: webhook.category,
     company: webhook.company,
-    company_name: webhook.account_id, // Map account_id to company_name if available
+    // Use account_id or account for company_name (both now extract display_value)
+    company_name: webhook.account_id || webhook.account,
     assignment_group: webhook.assignment_group,
     assignment_group_sys_id: webhook.assignment_group_sys_id,
     routing_context: webhook.routing_context,
