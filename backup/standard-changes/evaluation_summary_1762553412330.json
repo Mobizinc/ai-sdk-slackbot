@@ -1,0 +1,32 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "duration_ms": 23879,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - CHG0041587 cannot be approved in its current state due to critical documentation gaps and environmental readiness failures. The change request lacks fundamental information required for risk assessment: no detailed scope, testing evidence, rollback plan, or implementation timeline. Technical barriers exist with clone information unavailable and catalog item fetch timeouts, preventing validation of environment readiness and component configuration. The component metadata shows concerning gaps (no name, category, workflow, inactive status) that must be resolved before proceeding. Required Actions: (1) Resolve all catalog item fetch and clone information retrieval issues, (2) Provide complete change documentation per ITIL standards including scope, testing, rollback, schedule, and justification, (3) Verify and document catalog item configuration completeness, (4) Conduct and document testing in sub-production environment, (5) Confirm clone freshness <30 days. Requestor should resubmit with complete documentation addressing all mandatory actions for CAB re-evaluation."
+  },
+  {
+    "change_number": "CHG0041588",
+    "duration_ms": 24708,
+    "overall_status": "REJECT",
+    "synthesis": "This change is REJECTED due to critical documentation gaps and data collection failures. The change description 'Slack SLA message - add days/hours left and spent' provides insufficient technical detail for a catalog item modification affecting SLA notifications. Collection errors prevented retrieval of the catalog item configuration, making impact assessment impossible - all catalog item checks returned false/null values. Clone freshness cannot be verified (null last_clone_date). No testing evidence, rollback plan, implementation schedule, or stakeholder communication is documented. The use of 'Standard Change for ServiceNow Platform Updates' template is inappropriate for catalog item modifications. MANDATORY ACTIONS: (1) Resolve data collection timeouts and provide complete catalog item configuration export, (2) Document technical specifications with before/after message format examples, (3) Verify clone freshness <30 days with documented date, (4) Provide testing evidence and stakeholder approvals, (5) Create detailed rollback procedure, (6) Identify and communicate with all impacted notification consumers. Resubmit with complete documentation using appropriate change template before CAB reconsideration."
+  },
+  {
+    "change_number": "CHG0041589",
+    "duration_ms": 21504,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECT - CHG0041589 cannot proceed due to critical documentation gaps and environmental validation failures. The change lacks fundamental details required for platform updates: no implementation plan, testing evidence, rollback procedures, or impact analysis documented. Collection errors prevented validation of clone freshness and catalog item configuration. The catalog item checks returning all false values raises concerns about component integrity - this must be investigated before deployment. Email Inbound Flow modifications carry significant risk to ticket creation and automated routing without documented testing. The requestor must resolve data collection timeouts, confirm clone freshness under 30 days, provide comprehensive implementation documentation with test results, document all integration dependencies, and establish a verified rollback plan. Resubmit with complete documentation addressing all mandatory actions listed above."
+  },
+  {
+    "change_number": "CHG0041590",
+    "duration_ms": 24099,
+    "overall_status": "REJECT",
+    "synthesis": "Change CHG0041590 is REJECTED due to critical deficiencies that prevent proper risk assessment and approval. Primary concerns: (1) Change title/description mismatch - labeled as 'Platform Updates' but describes catalog item workflow text correction, (2) Complete absence of implementation details, testing plan, and rollback procedures, (3) Catalog item configuration unavailable due to system timeout, preventing scope verification, (4) Clone freshness indeterminate - cannot confirm environment readiness for testing, (5) No evidence this change has been tested or validated in sub-production. Required remediation: Correct change classification and description, provide complete technical specifications including affected workflow/variables, resolve environment data collection issues, execute comprehensive testing with HR validation, and document rollback procedures. This appears to be custom development work incorrectly classified as a Standard Change. Resubmit with complete documentation and test evidence after sub-production validation."
+  },
+  {
+    "change_number": "CHG0041592",
+    "duration_ms": 26288,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - CHG0041592 cannot proceed to implementation due to critical deficiencies. The change exhibits fundamental documentation failures including title/scope mismatch ('Platform Updates' vs catalog routing logic), absence of technical specifications (workflows, business rules, UI actions), and missing testing evidence. Infrastructure concerns include clone environment timeouts preventing validation of environment readiness and configuration verification. The proposed changes carry significant operational risk: currency-based routing modifications without business justification may violate financial controls, and PDF generation deactivation lacks impact analysis for compliance/audit requirements. No rollback procedures, communication plan, or implementation schedule provided. Submitter must resubmit with complete technical documentation, business stakeholder approvals, successful sub-production test evidence, comprehensive impact analysis on PDF removal, detailed rollback plan, and defined deployment window. Recommend engaging Finance and HR leadership for routing logic approval and Security/Compliance teams for PDF deactivation review before resubmission."
+  }
+]

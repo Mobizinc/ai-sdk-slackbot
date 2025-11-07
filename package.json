@@ -25,7 +25,7 @@
     "queue:leaderboard": "tsx scripts/post-case-leaderboard.ts",
     "set:app-setting": "tsx scripts/set-app-setting.ts",
     "extract:standard-changes": "tsx scripts/extract-standard-changes.ts",
-    "replay:standard-changes": "tsx scripts/replay/replay-change-validations.ts"
+    "evaluate:standard-changes": "tsx scripts/evaluate-standard-changes.ts"
   },
   "keywords": [],
   "author": "",
