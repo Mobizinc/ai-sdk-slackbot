@@ -4,6 +4,17 @@
 
 This document provides implementation guidance for integrating the ServiceNow QA Analyst skill into the ai-sdk-slackbot architecture. The integration follows existing webhook/worker/service patterns and enables automated validation of Standard Changes when they enter "Assess" state.
 
+### Updated Goal – Architect‑level Gating
+
+We are expanding the scope from "catalog item sanity check" to a **ServiceNow Architect + QA** skill that can evaluate any standard-change component (catalog items, LDAP servers, MID configs, workflows, etc.). The orchestrator must:
+
+1. **Detect component types automatically** from the change payload/template.
+2. **Collect the right signals per component** (e.g., LDAP listener flag, MID server binding, workflow states) using lightweight "fact collectors".
+3. **Feed those facts to the `servicenow-architect` Claude agent** so it reasons like a platform architect instead of relying on hard-coded rules.
+4. **Enforce gating decisions** (pass/warn/fail) and log everything to Neon/ServiceNow for audit.
+
+The architecture below now assumes a pluggable collector framework plus the architect agent prompt (`.claude/agents/servicenow-architect.md`).
+
 > **Implementation status (2025-10-24)**
 >
 > The Python validation utilities (`check_uat_clone_date.py`, `validate_catalog_item.py`, `track_validation.py`, and `servicenow_api.py`) plus sample catalog data have been implemented. However, the TypeScript portions of this design (webhook endpoint, worker endpoint, `changeValidationService`, ServiceNow client extension, and the script-execution harness) are still pending. Items marked **TODO** below represent the remaining work required to complete the integration.
@@ -25,6 +36,28 @@ ServiceNow QA Analyst Skill (Claude Code)
     ↓ Posts results
 ServiceNow Change Record (work note)
 ```
+
+## Component Signal Collector Framework
+
+To reach architect-level gating, the worker aggregates a **fact bundle** assembled by pluggable collectors:
+
+| Component Type | Detection Signal | Collector Outputs (examples) |
+| --- | --- | --- |
+| `catalog_item` | `component_type === catalog_item` or template metadata | `{name, active, workflow, category, owner, scoped_app}` |
+| `ldap_server` | Template references `u_ldap_server` / `cmdb_ci_ldap_server` | `{listener_enabled, mid_server, timeouts, urls, paging}` |
+| `mid_server` | Payload references `ecc_agent` | `{status, capabilities, last_check_in, version}` |
+| `workflow` / `business_rule` | Template field `u_script_target` | `{published, checked_out, scope, updated_by}` |
+
+Collectors run in parallel using `ServiceNowClient` (or Python helpers) and return a normalized block `{component_type, sys_id, facts, warnings}`. The worker merges these blocks with clone freshness data and recent Neon history, then forwards the entire context to the **servicenow-architect** Claude agent for reasoning.
+
+**Collector requirements**
+
+1. Fetch facts only—do not declare pass/fail.
+2. Finish within ~2s; timeouts become `warnings` for the agent to weigh.
+3. Emit consistent schema for predictable parsing.
+4. Extensible: new component → add collector module + registry entry.
+
+This guarantees the agent always receives the key configuration signals (e.g., LDAP listener flag) and can enforce standards without brittle hard-coded logic.
 
 ## Implementation Components
 

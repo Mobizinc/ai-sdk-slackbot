@@ -86,7 +86,19 @@ class ServiceNowClient:
     # Core REST helpers
     # ------------------------------------------------------------------ #
     def get_record(self, table: str, sys_id: str, fields: Optional[str] = None) -> dict[str, Any]:
-        """Retrieve a single record from a table."""
+        """Retrieve a single record from a table.
+
+        Args:
+            table: The name of the ServiceNow table.
+            sys_id: The sys_id of the record to retrieve.
+            fields: Optional comma-separated list of fields to return.
+
+        Returns:
+            The record as a dictionary.
+
+        Raises:
+            ServiceNowError: If the ServiceNow API returns a 4xx or 5xx status code.
+        """
         params = {"sysparm_fields": fields} if fields else None
         response = self._request("GET", f"/api/now/table/{table}/{sys_id}", params=params)
         return self._extract_result(response)

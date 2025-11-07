@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-import psycopg
-from psycopg.rows import dict_row
+import psycopg2
+import psycopg2.extras
 
 LOGGER = logging.getLogger(__name__)
 
@@ -80,8 +80,10 @@ def fetch_common_issues(database_url: str, min_occurrences: int) -> list[Frequen
         HAVING COUNT(*) >= %(min_occurrences)s
         ORDER BY occurrences DESC, check_name ASC;
     """
-    with psycopg.connect(database_url, row_factory=dict_row) as conn:
-        rows = conn.execute(query, {"min_occurrences": min_occurrences}).fetchall()
+    with psycopg2.connect(database_url) as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(query, {"min_occurrences": min_occurrences})
+            rows = cur.fetchall()
     issues = [
         FrequentIssue(
             check_name=row["check_name"],

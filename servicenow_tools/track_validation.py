@@ -16,9 +16,8 @@ def log_validation(change_number: str, validation_results: Dict[str, Any]) -> No
     if not database_url:
         raise EnvironmentError("NEON_DATABASE_URL or DATABASE_URL is not configured.")
 
-    conn = psycopg2.connect(database_url)
-    conn.autocommit = True
-    try:
+    with psycopg2.connect(database_url) as conn:
+        conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -50,8 +49,6 @@ def log_validation(change_number: str, validation_results: Dict[str, Any]) -> No
                     validation_results.get("duration_seconds", 0.0),
                 ),
             )
-    finally:
-        conn.close()
 
 
 if __name__ == "__main__":

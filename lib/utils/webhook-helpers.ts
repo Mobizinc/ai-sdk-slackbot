@@ -138,14 +138,13 @@ export function authenticateWebhookRequest(
     const isHexSignature = /^[a-fA-F0-9]+$/.test(signatureHeader);
     const isBase64Signature = /^[A-Za-z0-9+/]+={0,2}$/.test(signatureHeader);
 
-    // Compute HMAC in both hex and base64 formats as Buffers
-    const hexSignatureBuffer = createHmac('sha256', secret)
+    // Compute HMAC once as a buffer, then convert to needed format
+    const hmacBuffer = createHmac('sha256', secret)
       .update(payload)
-      .digest('hex');
+      .digest();
 
-    const base64SignatureBuffer = createHmac('sha256', secret)
-      .update(payload)
-      .digest('base64');
+    const hexSignatureBuffer = hmacBuffer.toString('hex');
+    const base64SignatureBuffer = hmacBuffer.toString('base64');
 
     // Convert provided signature to Buffer for comparison
     try {
