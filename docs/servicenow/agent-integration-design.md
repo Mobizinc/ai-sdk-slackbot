@@ -17,7 +17,7 @@ The architecture below now assumes a pluggable collector framework plus the arch
 
 > **Implementation status (2025-10-24)**
 >
-> The Python validation utilities (`check_uat_clone_date.py`, `validate_catalog_item.py`, `track_validation.py`, and `servicenow_api.py`) plus sample catalog data have been implemented. However, the TypeScript portions of this design (webhook endpoint, worker endpoint, `changeValidationService`, ServiceNow client extension, and the script-execution harness) are still pending. Items marked **TODO** below represent the remaining work required to complete the integration.
+> The webhook, worker, `changeValidationService`, ServiceNow client extensions, and Drizzle persistence are now implemented in the repo (`api/servicenow-change-webhook.ts`, `api/workers/process-change-validation.ts`, `lib/services/change-validation.ts`, `lib/tools/servicenow.ts`, and `lib/db/schema.ts`). This document reflects the live architecture. Future enhancements (new collectors, richer prompts, etc.) are noted explicitly where still pending.
 
 ## Architecture Pattern
 
@@ -64,8 +64,6 @@ This guarantees the agent always receives the key configuration signals (e.g., L
 ### 1. Webhook Endpoint
 
 **File**: `api/servicenow-change-webhook.ts`
-
-> **TODO**: Endpoint not yet implemented. ServiceNow currently has nowhere to POST Assess-state events.
 
 **Purpose**: Receive change validation requests from ServiceNow and queue for async processing
 
@@ -164,8 +162,6 @@ export async function POST(request: NextRequest) {
 
 **File**: `api/workers/process-change-validation.ts`
 
-> **TODO**: Worker has not been created; queued change validations will fail until this endpoint exists.
-
 **Purpose**: Process queued change validations using the QA Analyst skill
 
 **Pattern**: Follow `api/workers/process-case.ts` pattern
@@ -244,185 +240,28 @@ export const POST = verifySignatureEdge(handler);
 
 **File**: `lib/services/change-validation.ts`
 
-> **TODO**: Service layer not yet implemented. We need the orchestration logic described below (script execution, Claude synthesis, ServiceNow updates, Neon logging).
+**Purpose**: Orchestrate validation logic using the servicenow-architect skill
 
-**Purpose**: Orchestrate validation logic using the QA Analyst skill
+**Implementation summary (`lib/services/change-validation.ts`)**:
 
-**Pattern**: Follow `lib/services/case-triage.ts` pattern
-
-**Implementation**:
-
-```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { serviceNowClient } from '@/lib/tools/servicenow';
-import { executeScript } from '@/lib/claude-code';
-
-interface ChangeValidationPayload {
-  change_sys_id: string;
-  change_number: string;
-  component_type: string;
-  component_sys_id: string;
-  submitted_by?: string;
-}
-
-interface ValidationResult {
-  overall_status: 'PASSED' | 'FAILED' | 'WARNING';
-  checks: Record<string, boolean>;
-  duration_ms: number;
-  synthesized_comment: string;
-}
-
-class ChangeValidationService {
-  private anthropic: Anthropic;
-
-  constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY!,
-    });
-  }
-
-  async validateChange(payload: ChangeValidationPayload): Promise<ValidationResult> {
-    const startTime = Date.now();
-
-    try {
-      // 1. Execute validation scripts via Claude Code
-      const validationScripts = await this.executeValidationScripts(payload);
-
-      // 2. Use Claude to review results and synthesize (ReACT pattern)
-      const synthesis = await this.synthesizeResults(payload, validationScripts);
-
-      // 3. Post results to ServiceNow
-      await this.postResultsToServiceNow(payload.change_sys_id, synthesis.comment);
-
-      // 4. Log to NeonDB via track_validation.py
-      await this.logValidation(payload.change_number, synthesis.validation_results);
-
-      return {
-        overall_status: synthesis.status,
-        checks: synthesis.checks,
-        duration_ms: Date.now() - startTime,
-        synthesized_comment: synthesis.comment,
-      };
-
-    } catch (error) {
-      console.error('[Change Validation] Error:', error);
-      
-      // Post error to ServiceNow
-      await this.postErrorToServiceNow(payload.change_sys_id, error);
-      
-      throw error;
-    }
-  }
-
-  private async executeValidationScripts(payload: ChangeValidationPayload) {
-    // Execute Python scripts via Claude Code or direct subprocess
-    
-    // 1. Check UAT clone freshness
-    const uatCheck = await executeScript(
-      'check_uat_clone_date.py',
-      ['--target-environment', 'UAT', '--source-environment', 'PROD']
-    );
-
-    // 2. Validate component (catalog item, workflow, etc.)
-    let componentCheck;
-    if (payload.component_type === 'catalog_item') {
-      componentCheck = await executeScript(
-        'validate_catalog_item.py',
-        [payload.component_sys_id, '--environment', 'UAT', '--output-json', '/tmp/validation.json']
-      );
-    }
-
-    return {
-      uat_status: JSON.parse(uatCheck.stdout),
-      component_validation: JSON.parse(componentCheck.stdout),
-    };
-  }
-
-  private async synthesizeResults(
-    payload: ChangeValidationPayload,
-    scripts: any
-  ): Promise<any> {
-    // Use Claude with ServiceNow QA Analyst skill to review and synthesize
-    
-    const systemPrompt = `You are a ServiceNow QA analyst reviewing validation results. 
-Apply the ReACT pattern:
-1. Review the raw validation data
-2. Reason about what it means and what actions are needed
-3. Act by synthesizing clear, actionable findings
-4. Communicate results professionally
-
-Use the servicenow-qa-analyst skill for guidance.`;
-
-    const userPrompt = `Review these validation results for ${payload.change_number}:
-
-UAT Status:
-${JSON.stringify(scripts.uat_status, null, 2)}
-
-Component Validation:
-${JSON.stringify(scripts.component_validation, null, 2)}
-
-Synthesize these results into:
-1. Overall status (PASSED/FAILED/WARNING)
-2. Clear work note for ServiceNow change record
-3. Specific remediation steps if needed
-
-Return JSON with: {status, checks, comment, validation_results}`;
-
-    const response = await this.anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    });
-
-    // Parse Claude's response (expects JSON)
-    const content = response.content[0];
-    if (content.type === 'text') {
-      return JSON.parse(content.text);
-    }
-
-    throw new Error('Unexpected response format');
-  }
-
-  private async postResultsToServiceNow(change_sys_id: string, comment: string) {
-    // Use existing serviceNowClient
-    await serviceNowClient.postChangeComment(change_sys_id, comment);
-  }
-
-  private async postErrorToServiceNow(change_sys_id: string, error: any) {
-    const errorComment = `❌ Validation Error
-
-An error occurred during automated validation:
-${String(error)}
-
-Please contact the automation team or validate manually.`;
-
-    await serviceNowClient.postChangeComment(change_sys_id, errorComment);
-  }
-
-  private async logValidation(change_number: string, validation_results: any) {
-    // Execute track_validation.py script
-    await executeScript('track_validation.py', [
-      change_number,
-      JSON.stringify(validation_results),
-    ]);
-  }
-}
-
-export const changeValidationService = new ChangeValidationService();
-```
+1. **Receive & Persist**  
+   - Webhook payloads are validated via `ServiceNowChangeWebhookSchema` and stored in the `change_validations` table (Drizzle repository).
+2. **Process (worker)**  
+   - `processValidation(changeSysId)` loads the record, marks it `processing`, and gathers facts.
+3. **Phase 1 – Environment Health**  
+   - Calls `serviceNowClient.getCloneInfo('uat','prod')` with an 8 s timeout, producing `clone_freshness_check` (`is_fresh`, `age_days`, `last_clone_date`). Failures/timeout add to `collection_errors`.
+4. **Phase 2 – Component Facts**  
+   - Branches on `componentType` (catalog item, LDAP server, MID server, workflow) and fetches the relevant fields via `serviceNowClient`. Each branch sets explicit boolean checks so Claude sees the pass/fail signals even on timeout.
+5. **Phase 3 – Synthesis**  
+   - If Anthropics is configured, `synthesizeWithClaude` uses the `servicenow-architect` prompt (ReACT pattern with environment-health requirement) to produce `{overall_status, checks, synthesis}`. Otherwise the service falls back to deterministic rules.
+6. **Persistence & Notifications**  
+   - Results are persisted via the repository, posted back to the change record through `serviceNowClient.addChangeWorkNote`, and exposed to the worker response. Errors mark the record failed and post an error work note.
 
 **Key Points**:
-- Executes Python validation scripts
-- Uses Claude with QA Analyst skill for synthesis (ReACT)
-- Posts results back to ServiceNow
-- Logs to NeonDB
-- Handles errors gracefully
+- No Python subprocesses; all collectors run inside the service with request-level timeouts.
+- Drizzle repository (`change_validations` table) replaces the old `track_validation.py` logger.
+- Claude prompt includes the environment-health gate and component standards.
+- Additional collectors can be added by extending `collectValidationFacts`.
 
 ---
 
@@ -430,38 +269,16 @@ export const changeValidationService = new ChangeValidationService();
 
 **File**: `lib/tools/servicenow.ts`
 
-**Additions needed**:
+**Key additions (already implemented)**:
 
-> **TODO**: `postChangeComment` helper is still missing from `lib/tools/servicenow.ts`. Without this, the worker cannot write validation notes back to ServiceNow.
-
-```typescript
-// Add method for posting change comments
-async postChangeComment(changeSysId: string, comment: string): Promise<void> {
-  const url = `${this.baseUrl}/api/now/table/change_request/${changeSysId}`;
-  
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Basic ${Buffer.from(`${this.username}:${this.password}`).toString('base64')}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      work_notes: comment,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to post change comment: ${response.statusText}`);
-  }
-}
-```
+- `addChangeWorkNote(changeSysId, workNote)` – wraps the ServiceNow PATCH call to append work notes (lib/tools/servicenow.ts:3572‑3585).
+- `getChangeDetails`, `getCatalogItem`, `getLDAPServer`, `getMIDServer`, `getWorkflow`, `getCloneInfo` – thin API helpers used by the service’s fact collectors.
 
 ---
 
 ### 5. Database Schema
 
-**File**: Database migration or init script
+**Implementation**: Defined in `lib/db/schema.ts` (Drizzle) and `lib/db/migrations`.
 
 **Table**: `change_validations`
 
@@ -483,9 +300,7 @@ CREATE INDEX idx_change_validations_date ON change_validations(validation_date);
 CREATE INDEX idx_change_validations_status ON change_validations(overall_status);
 ```
 
-**Note**: The Python `track_validation.py` script will auto-create this table if missing, but adding it to your schema migrations ensures consistency.
-
-> **TODO**: No migration or Prisma model has been added yet. Decide whether to rely on the Python script for table creation or add an explicit migration.
+**Note**: Table and indexes already exist via Drizzle migrations. The legacy `track_validation.py` logger is no longer used.
 
 ---
 
@@ -614,10 +429,10 @@ NEON_DATABASE_URL="postgresql://..."
 ## Deployment Checklist
 
 ### Phase 1: Infrastructure
-- [ ] Add environment variables to Vercel *(partially done: Python scripts rely on `.env.local`, but Vercel env vars still pending)*
-- [ ] Deploy webhook endpoint (`/api/servicenow-change-webhook`) *(TODO)*
-- [ ] Deploy worker endpoint (`/api/workers/process-change-validation`) *(TODO)*
-- [ ] Verify QStash configuration *(TODO)*
+- [ ] Add environment variables to Vercel *(scripts use `.env.local`; production env vars still need to be set)*
+- [ ] Deploy webhook endpoint (`/api/servicenow-change-webhook`)
+- [ ] Deploy worker endpoint (`/api/workers/process-change-validation`)
+- [ ] Verify QStash configuration
 
 ### Phase 2: ServiceNow Configuration
 - [ ] Create system properties for webhook URL and secret
@@ -626,15 +441,15 @@ NEON_DATABASE_URL="postgresql://..."
 - [ ] Verify payload structure
 
 ### Phase 3: Service Layer
-- [ ] Implement `changeValidationService` *(TODO)*
-- [ ] Add `postChangeComment` to ServiceNow client *(TODO)*
-- [x] Test script execution (check_uat_clone_date.py, validate_catalog_item.py)
-- [ ] Test Claude synthesis with QA Analyst skill *(pending service layer)*
+- [x] Implement `changeValidationService`
+- [x] Add `addChangeWorkNote` to ServiceNow client
+- [x] Test catalog/LDAP/MID/workflow collectors
+- [ ] Validate Claude synthesis end-to-end in production env
 
 ### Phase 4: Database
-- [ ] Create `change_validations` table (or verify auto-creation)
-- [ ] Add indexes
-- [ ] Test `track_validation.py` logging
+- [x] Create `change_validations` table (Drizzle migration)
+- [x] Add indexes
+- [ ] Verify repository logging/queries under load
 
 ### Phase 5: Testing
 - [ ] Unit test webhook endpoint
@@ -769,15 +584,9 @@ Before implementing, confirm:
 3. ✅ Auto-posting: **NO - Agent synthesizes then posts**
 4. ✅ NeonDB table: **Auto-creates if missing**
 
-5. ⚠️ **NEW**: Where to store Python scripts?
-   - Option A: Bundle in repo, execute via subprocess
-   - Option B: Deploy to Claude Code, call via API
-   - **Recommendation**: Bundle in repo for reliability
+5. ✅ **Collectors**: Component facts are gathered via ServiceNow REST helpers inside `collectValidationFacts`. No subprocess execution is required.
 
-6. ⚠️ **NEW**: How to handle multiple component types?
-   - Catalog items: Use validate_catalog_item.py
-   - Workflows/Business Rules: Direct API validation
-   - **Recommendation**: Start with catalog items, expand later
+6. ⚠️ **Future**: For new component types, add a collector branch (or future pluggable module) plus prompt additions.
 
 ---
 
