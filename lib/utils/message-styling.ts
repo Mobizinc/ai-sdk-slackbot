@@ -734,6 +734,12 @@ export function createStaticSelect(config: {
       if (matchingOption.description) {
         element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
       }
+    } else {
+      // Warn if initial option doesn't match any available options (helps debugging)
+      console.warn(
+        `[Block Kit] initialOption value "${config.initialOption.value}" not found in options for static_select "${config.actionId}". ` +
+        `Slack requires initial_option to match an available option exactly. No initial selection will be set.`
+      );
     }
   }
 
@@ -939,6 +945,12 @@ export function createRadioButtons(config: {
       if (matchingOption.description) {
         element.initial_option.description = { type: 'plain_text', text: matchingOption.description };
       }
+    } else {
+      // Warn if initial option doesn't match any available options (helps debugging)
+      console.warn(
+        `[Block Kit] initialOption value "${config.initialOption.value}" not found in options for radio_buttons "${config.actionId}". ` +
+        `Slack requires initial_option to match an available option exactly. No initial selection will be set.`
+      );
     }
   }
 
@@ -995,6 +1007,11 @@ export function createCheckboxes(config: {
       }
 
       // Fallback if no matching option found (shouldn't happen in normal use)
+      // WARNING: This may violate Slack's exact-match requirement and cause validation errors
+      console.warn(
+        `[Block Kit] initialOption value "${initOpt.value}" not found in options for checkboxes "${config.actionId}". ` +
+        `Using fallback (may cause Slack validation errors). Ensure initialOptions values match available options.`
+      );
       return {
         text: { type: 'plain_text', text: initOpt.text, emoji: true },
         value: initOpt.value,
