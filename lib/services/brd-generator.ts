@@ -25,6 +25,52 @@ export interface GeneratedBRD {
 }
 
 /**
+ * Sanitizes and validates user input to prevent prompt injection and ensure quality
+ */
+function sanitizeInput(input: FeedbackInput): FeedbackInput {
+  const MAX_FIELD_LENGTH = 1000;
+
+  // Validate and truncate field lengths
+  const sanitize = (field: string, fieldName: string): string => {
+    if (!field || field.trim().length === 0) {
+      throw new Error(`${fieldName} cannot be empty`);
+    }
+
+    const trimmed = field.trim();
+
+    if (trimmed.length > MAX_FIELD_LENGTH) {
+      throw new Error(`${fieldName} exceeds maximum length of ${MAX_FIELD_LENGTH} characters`);
+    }
+
+    // Check for potential prompt injection patterns
+    const suspiciousPatterns = [
+      /ignore\s+(previous|above|prior)\s+instructions/i,
+      /system\s*:\s*/i,
+      /\[INST\]/i,
+      /\<\|im_start\|\>/i,
+      /\{system\}/i,
+    ];
+
+    for (const pattern of suspiciousPatterns) {
+      if (pattern.test(trimmed)) {
+        throw new Error(
+          `${fieldName} contains suspicious content. Please rephrase without meta-instructions.`
+        );
+      }
+    }
+
+    return trimmed;
+  };
+
+  return {
+    featureDescription: sanitize(input.featureDescription, "Feature description"),
+    useCase: sanitize(input.useCase, "Use case"),
+    currentLimitation: sanitize(input.currentLimitation, "Current limitation"),
+    conversationContext: input.conversationContext?.substring(0, 2000), // Limit context length
+  };
+}
+
+/**
  * Generates a structured BRD from user feedback
  */
 export async function generateBRD(input: FeedbackInput): Promise<GeneratedBRD> {
@@ -33,9 +79,12 @@ export async function generateBRD(input: FeedbackInput): Promise<GeneratedBRD> {
     throw new Error("Anthropic API key not configured");
   }
 
+  // Sanitize and validate input
+  const sanitizedInput = sanitizeInput(input);
+
   const client = new Anthropic({ apiKey });
 
-  const prompt = buildBRDPrompt(input);
+  const prompt = buildBRDPrompt(sanitizedInput);
 
   const response = await client.messages.create({
     model: "claude-3-5-haiku-20241022",
@@ -48,9 +97,19 @@ export async function generateBRD(input: FeedbackInput): Promise<GeneratedBRD> {
     ],
   });
 
+  // Validate response structure
+  if (!response.content || response.content.length === 0) {
+    throw new Error("Empty response from Claude - no content blocks returned");
+  }
+
   const content = response.content[0];
   if (content.type !== "text") {
     throw new Error("Unexpected response type from Claude");
+  }
+
+  // Validate response quality
+  if (content.text.length < 100) {
+    throw new Error("Response too short - BRD generation failed to produce sufficient content");
   }
 
   return parseBRDResponse(content.text, input.conversationContext);
@@ -100,10 +159,31 @@ function parseBRDResponse(text: string, conversationContext?: string): Generated
     technicalContext: extractSection(text, "## Technical Context", null),
   };
 
+  // Validate quality thresholds - reject poor responses instead of using fallbacks
+  const missingFields: string[] = [];
+  if (!sections.title || sections.title.length < 5) {
+    missingFields.push("Title");
+  }
+  if (!sections.problemStatement || sections.problemStatement.length < 20) {
+    missingFields.push("Problem Statement");
+  }
+  if (!sections.userStory || sections.userStory.length < 15) {
+    missingFields.push("User Story");
+  }
+  if (sections.acceptanceCriteria.length === 0) {
+    missingFields.push("Acceptance Criteria");
+  }
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `BRD generation failed quality checks. Missing or insufficient content for: ${missingFields.join(", ")}. Please try again with more detailed feedback.`
+    );
+  }
+
   return {
-    title: sections.title || "Feature Request",
-    problemStatement: sections.problemStatement || "No problem statement provided",
-    userStory: sections.userStory || "No user story provided",
+    title: sections.title,
+    problemStatement: sections.problemStatement,
+    userStory: sections.userStory,
     acceptanceCriteria: sections.acceptanceCriteria,
     technicalContext: sections.technicalContext || "No technical context provided",
     conversationTranscript: conversationContext,

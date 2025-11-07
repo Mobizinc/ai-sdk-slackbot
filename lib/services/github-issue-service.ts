@@ -25,7 +25,15 @@ export interface CreatedIssue {
  * Creates a GitHub issue from a BRD
  */
 export async function createGitHubIssue(params: CreateIssueParams): Promise<CreatedIssue> {
-  const client = await getGitHubClient();
+  let client;
+  try {
+    client = await getGitHubClient();
+  } catch (error) {
+    throw new Error(
+      "GitHub App is not configured. Please set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_INSTALLATION_ID environment variables to enable feedback collection."
+    );
+  }
+
   const { owner, repo } = getRepoConfig();
 
   const body = formatIssueBody(params.brd, params.slackThreadUrl, params.requestedBy);
@@ -53,15 +61,25 @@ function getRepoConfig(): { owner: string; repo: string } {
   const repoConfig = getConfigValue("githubFeedbackRepo");
   const repoString = typeof repoConfig === "string" ? repoConfig : "Mobizinc/ai-sdk-slackbot";
 
-  const parts = repoString.split("/");
+  // Trim and filter empty segments to handle edge cases like leading/trailing slashes
+  const parts = repoString
+    .trim()
+    .split("/")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
   if (parts.length !== 2) {
     throw new Error(`Invalid GitHub repository format: ${repoString}. Expected format: owner/repo`);
   }
 
-  return {
-    owner: parts[0],
-    repo: parts[1],
-  };
+  const [owner, repo] = parts;
+
+  // Validate that both owner and repo are non-empty after trimming
+  if (!owner || !repo) {
+    throw new Error(`Invalid GitHub repository format: ${repoString}. Both owner and repo must be non-empty`);
+  }
+
+  return { owner, repo };
 }
 
 /**
@@ -71,7 +89,10 @@ function getIssueLabels(): string[] {
   const labelsConfig = getConfigValue("githubFeedbackLabels");
   const labelsString = typeof labelsConfig === "string" ? labelsConfig : "feature-request,user-feedback";
 
-  return labelsString.split(",").map((label) => label.trim());
+  return labelsString
+    .split(",")
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0);
 }
 
 /**
