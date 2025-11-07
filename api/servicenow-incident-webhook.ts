@@ -23,7 +23,7 @@ const postImpl = withLangSmithTrace(
     }
 
     // Authenticate webhook request
-    const authResult = authenticateWebhookRequest(request, rawPayload, WEBHOOK_SECRET);
+    const authResult = await authenticateWebhookRequest(request, rawPayload, WEBHOOK_SECRET);
     if (!authResult.authenticated) {
       console.warn('[IncidentWebhook] Authentication failed');
       return buildErrorResponse({
