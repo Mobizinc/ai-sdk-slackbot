@@ -24,6 +24,7 @@ import { createCaseAggregationTool } from "./case-aggregation";
 import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
 import { createVeloCloudTool } from "./velocloud";
+import { createFeedbackCollectionTool } from "./feedback-collection";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -40,6 +41,7 @@ export type { CaseAggregationInput } from "./case-aggregation";
 export type { CaseSearchInput } from "./case-search";
 export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
+export type { FeedbackCollectionInput } from "./feedback-collection";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -68,6 +70,7 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     caseAggregation: createCaseAggregationTool(params), // NEW: Case aggregations
     getFirewallStatus: createFortiManagerMonitorTool(params), // NEW: FortiManager monitoring
     queryVelocloud: createVeloCloudTool(params), // NEW: VeloCloud REST queries
+    collectFeatureFeedback: createFeedbackCollectionTool(params), // NEW: Feature feedback collection
   };
 }
 
