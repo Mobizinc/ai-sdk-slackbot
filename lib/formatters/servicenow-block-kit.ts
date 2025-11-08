@@ -7,6 +7,109 @@
 
 import { config } from "../config";
 
+/**
+ * Slack Block Kit Constraints
+ */
+const SLACK_LIMITS = {
+  SECTION_TEXT_MAX_LENGTH: 3000, // Max characters in a section block's text field
+  MAX_BLOCKS_PER_MESSAGE: 50,    // Max blocks per message
+  SAFE_SPLIT_LENGTH: 2800,       // Safe split point (leave buffer for formatting)
+} as const;
+
+/**
+ * Split long text into multiple section blocks, respecting Slack's 3000 character limit.
+ * Intelligently splits on paragraph boundaries and word boundaries.
+ *
+ * @param text - Long text to split (e.g., LLM response)
+ * @param textType - Type of text formatting ('mrkdwn' or 'plain_text')
+ * @returns Array of section blocks, each under 3000 characters
+ */
+export function splitTextIntoSectionBlocks(
+  text: string,
+  textType: 'mrkdwn' | 'plain_text' = 'mrkdwn'
+): any[] {
+  if (!text || text.length === 0) {
+    return [];
+  }
+
+  // If text fits in one block, return it
+  if (text.length <= SLACK_LIMITS.SAFE_SPLIT_LENGTH) {
+    return [{
+      type: "section",
+      text: {
+        type: textType,
+        text: text
+      }
+    }];
+  }
+
+  const blocks: any[] = [];
+  let remainingText = text;
+
+  while (remainingText.length > 0) {
+    let chunkSize = SLACK_LIMITS.SAFE_SPLIT_LENGTH;
+
+    // If remaining text fits, take it all
+    if (remainingText.length <= SLACK_LIMITS.SAFE_SPLIT_LENGTH) {
+      blocks.push({
+        type: "section",
+        text: {
+          type: textType,
+          text: remainingText
+        }
+      });
+      break;
+    }
+
+    // Find a good split point (prefer paragraph breaks, then sentences, then words)
+    let splitPoint = chunkSize;
+    const chunk = remainingText.substring(0, chunkSize + 200); // Look ahead a bit
+
+    // Try to split on double newline (paragraph break)
+    const paragraphBreak = chunk.lastIndexOf('\n\n');
+    if (paragraphBreak > chunkSize * 0.7) {
+      splitPoint = paragraphBreak + 2; // Include the newlines
+    } else {
+      // Try to split on single newline
+      const lineBreak = chunk.lastIndexOf('\n');
+      if (lineBreak > chunkSize * 0.7) {
+        splitPoint = lineBreak + 1;
+      } else {
+        // Try to split on sentence end
+        const sentenceEnd = Math.max(
+          chunk.lastIndexOf('. '),
+          chunk.lastIndexOf('.\n'),
+          chunk.lastIndexOf('? '),
+          chunk.lastIndexOf('! ')
+        );
+        if (sentenceEnd > chunkSize * 0.7) {
+          splitPoint = sentenceEnd + 1;
+        } else {
+          // Fall back to word boundary
+          const wordBoundary = chunk.lastIndexOf(' ');
+          if (wordBoundary > chunkSize * 0.5) {
+            splitPoint = wordBoundary + 1;
+          }
+        }
+      }
+    }
+
+    // Extract chunk and add to blocks
+    const textChunk = remainingText.substring(0, splitPoint).trim();
+    blocks.push({
+      type: "section",
+      text: {
+        type: textType,
+        text: textChunk
+      }
+    });
+
+    remainingText = remainingText.substring(splitPoint).trim();
+  }
+
+  return blocks;
+}
+
 interface ServiceNowCase {
   number?: string;
   sys_id?: string | { display_value?: string; value?: string };

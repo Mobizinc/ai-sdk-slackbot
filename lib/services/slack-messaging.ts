@@ -125,12 +125,30 @@ export class SlackMessagingService {
         // When blocks are present, they should be the primary content
         // Text is only used as fallback for notifications/search
         if (options.blocks && options.blocks.length > 0) {
+          // Validate block count (Slack limit: 50 blocks per message)
+          if (options.blocks.length > 50) {
+            console.error(`[Slack Messaging] Too many blocks: ${options.blocks.length} (max 50)`);
+            throw new Error(`Block count exceeds Slack limit: ${options.blocks.length} blocks (max 50)`);
+          }
+
           // Validate blocks before sending
           for (let i = 0; i < options.blocks.length; i++) {
             const block = options.blocks[i];
             if (!block.type) {
               console.error(`[Slack Messaging] Block ${i} missing required 'type' field:`, block);
               throw new Error(`Invalid block at index ${i}: missing 'type' field`);
+            }
+
+            // Validate section block text length (Slack limit: 3000 characters)
+            if (block.type === 'section' && block.text?.text) {
+              const textLength = block.text.text.length;
+              if (textLength > 3000) {
+                console.error(`[Slack Messaging] Section block ${i} text exceeds 3000 chars: ${textLength}`);
+                throw new Error(
+                  `Section block ${i} text exceeds Slack limit: ${textLength} chars (max 3000). ` +
+                  `Use splitTextIntoSectionBlocks() utility to split long text.`
+                );
+              }
             }
           }
 

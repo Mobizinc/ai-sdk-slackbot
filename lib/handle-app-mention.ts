@@ -275,16 +275,12 @@ export async function handleNewAppMention(
         // Get LLM's full text response (with Microsoft Learn guidance, etc.)
         const llmResponse = parsed.text || result;
 
-        // Per Gemini: Put LLM text INSIDE Block Kit as first section block
-        // This allows text + blocks to display together in Slack
+        // Split LLM response into section blocks (handles 3000 char limit per block)
+        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, 'mrkdwn');
+
+        // Combine LLM text blocks with incident details
         const combinedBlocks = [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: llmResponse
-            }
-          },
+          ...llmTextBlocks,
           { type: "divider" },
           ...incidentBlocks
         ];
@@ -295,13 +291,14 @@ export async function handleNewAppMention(
         console.log('[Handler] Incident data:', {
           number: parsed._blockKitData.incidentData?.number,
           llmTextLength: llmResponse?.length,
+          llmBlockCount: llmTextBlocks?.length,
           incidentBlockCount: incidentBlocks?.length,
           totalBlockCount: combinedBlocks.length,
           blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
         });
-        console.log('[Handler] Combined blocks preview:', JSON.stringify(combinedBlocks.slice(0, 2), null, 2));
+        console.log('[Handler] First LLM block preview:', JSON.stringify(llmTextBlocks[0], null, 2));
 
-        // Send combined blocks with LLM text as first block
+        // Send combined blocks with LLM text split across multiple blocks
         await setFinalMessage(fallbackText, combinedBlocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Use existing case formatting
@@ -314,16 +311,12 @@ export async function handleNewAppMention(
         // Get LLM's full text response (with analysis, root cause guidance, etc.)
         const llmResponse = parsed.text || result;
 
-        // Put LLM text INSIDE Block Kit as first section block
-        // This allows text + blocks to display together in Slack
+        // Split LLM response into section blocks (handles 3000 char limit per block)
+        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, 'mrkdwn');
+
+        // Combine LLM text blocks with case details
         const combinedBlocks = [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: llmResponse
-            }
-          },
+          ...llmTextBlocks,
           { type: "divider" },
           ...blocks
         ];
@@ -334,13 +327,14 @@ export async function handleNewAppMention(
         console.log('[Handler] Case data:', {
           number: parsed._blockKitData.caseData?.number,
           llmTextLength: llmResponse?.length,
+          llmBlockCount: llmTextBlocks?.length,
           caseBlockCount: blocks?.length,
           totalBlockCount: combinedBlocks.length,
           blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
         });
-        console.log('[Handler] Combined blocks preview:', JSON.stringify(combinedBlocks.slice(0, 2), null, 2));
+        console.log('[Handler] First LLM block preview:', JSON.stringify(llmTextBlocks[0], null, 2));
 
-        // Send combined blocks with LLM text as first block
+        // Send combined blocks with LLM text split across multiple blocks
         await setFinalMessage(fallbackText, combinedBlocks);
       } else {
         // Unknown type, fallback to text
