@@ -88,7 +88,7 @@ export async function generateBRD(input: FeedbackInput): Promise<GeneratedBRD> {
 
   const response = await client.messages.create({
     model: "claude-3-5-haiku-20241022",
-    max_tokens: 2000,
+    max_tokens: 900,
     messages: [
       {
         role: "user",
@@ -130,21 +130,21 @@ ${input.conversationContext ? `\nConversation Context:\n${input.conversationCont
 Generate a BRD with the following sections (use these exact headers):
 
 ## Title
-[A concise, descriptive title for the feature request]
+[A concise, descriptive title for the feature request, maximum 10 words]
 
 ## Problem Statement
-[2-3 sentences describing what problem this feature solves and why it matters]
+[≤2 sentences (≤80 words) describing what problem this feature solves and why it matters]
 
 ## User Story
-[In the format: "As a [user], I want to [action] so that [benefit]"]
+[Exactly one sentence in the format: "As a [user], I want to [action] so that [benefit]"]
 
 ## Acceptance Criteria
-[Bulleted list of specific, testable criteria that define when this feature is complete]
+[3-5 bullets, each ≤12 words, describing specific, testable criteria that define when this feature is complete]
 
 ## Technical Context
-[Any technical details, tool names, API parameters, or system constraints mentioned in the feedback]
+[1-3 short bullet sentences (≤15 words each) covering relevant systems, APIs, or constraints mentioned in the feedback]
 
-Keep it concise and actionable. Focus on what the user needs, not how to implement it.`;
+Keep every section compact and actionable. Avoid implementation detail beyond what the user already described.`;
 }
 
 /**
