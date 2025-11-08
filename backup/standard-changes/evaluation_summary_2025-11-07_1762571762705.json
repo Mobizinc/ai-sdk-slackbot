@@ -1,0 +1,10 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 29767,
+    "overall_status": "REJECT",
+    "synthesis": "REJECT - CHG0041587 cannot proceed to implementation due to critical deficiencies that pose unacceptable risk. Primary concerns: (1) Development clone is 554 days stale, making reliable testing impossible and creating high probability of production failure. (2) Complete absence of rollback plan violates platform change management standards. (3) Documentation quality is insufficient across all areas - implementation plan lacks deployment specifics and validation criteria, test plan covers only basic notification triggering without comprehensive regression testing, and justification provides no business context beyond 'Requested by Igor'. (4) State transition changes to STRY Deploy/Launch states carry significant downstream risk to fulfillment workflows, SLA calculations, and notification volumes without documented impact analysis or integration testing. MANDATORY remediation: Clone must be refreshed to <30 days old, complete rollback plan developed, implementation and test plans expanded with specific validation criteria and integration testing results, and business justification documented with stakeholder approval. Change may be resubmitted for CAB review once all mandatory actions are completed and evidence provided."
+  }
+]

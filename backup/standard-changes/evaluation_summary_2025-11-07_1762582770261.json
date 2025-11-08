@@ -1,0 +1,32 @@
+[
+  {
+    "change_number": "CHG0041593",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 27746,
+    "overall_status": "REJECT",
+    "documentation_assessment": "CRITICAL DEFICIENCIES IDENTIFIED: This change exhibits fundamentally inadequate documentation for a user-facing workspace configuration change. Implementation plan states 'N/A' - completely unacceptable for hiding UI fields in CSM/FSM Agent Workspace that affects end-user workflows. Rollback plan is empty, creating unmitigated risk if field hiding breaks dependent functionality. Test plan states 'N/A' despite modifying user interface elements that require validation across multiple workspace views. Justification reads 'Requested by Igor' with zero business context, stakeholder approval documentation, or impact analysis. The description mentions hiding Comments/Work Notes fields and relying on Activity Stream, but provides no technical implementation method (Form Designer, UI Policy, Client Script, ACL), no affected workspace inventory, no dependency analysis, and no user communication strategy. Update Set field references three batch update sets but no validation documentation accompanies them. This level of documentation would fail basic change management governance in any mature organization.",
+    "risks": [
+      "CRITICAL - Clone freshness: Clone info unavailable for mobizuat; cannot validate changes against sub-production environment before production deployment, violating fundamental pre-prod validation principles",
+      "CRITICAL - Environment undefined: CMDB record shows environment field is empty, making it impossible to determine target environment characteristics or associated maintenance windows",
+      "HIGH - Missing rollback plan: Zero documented procedure to restore Comments/Work Notes field visibility if Activity Stream fails, users revolt, or hidden fields break integrations/automations",
+      "HIGH - Undefined implementation method: No specification of HOW fields will be hidden (Form Designer, UI Policy, ACL, Client Script) creates execution ambiguity and deployment risk",
+      "HIGH - Workspace scope uncertainty: 'CSM/FSM Workspace' is vague - could affect Agent Workspace, Mobile, Service Portal, or multiple workspace variants without explicit inventory",
+      "HIGH - Dependency blindness: Hiding Comments/Work Notes fields may break client scripts, business rules, workflows, integrations, or reports that reference these fields - no dependency analysis documented",
+      "MEDIUM - Activity Stream single point of failure: Change assumes Activity Stream/Compose pane will replace commenting functionality but provides no validation that Activity Stream is operational, properly configured, or accepted by users",
+      "MEDIUM - Zero user validation: No evidence of CSM/FSM business owner approval, end-user acceptance testing, or pilot program - users may reject workflow change",
+      "MEDIUM - Training gap: No documented user communication or change management plan for agents transitioning from traditional comment fields to Activity Stream",
+      "MEDIUM - Mobile/Service Portal impact: No mention of how field hiding affects mobile apps or Service Portal views where Activity Stream may not be available",
+      "MEDIUM - Update Set validation gap: Three update sets referenced (Parent + 2 Children) but no collision detection, dependency documentation, or sequence validation provided",
+      "LOW - Template misalignment: Template 'ServiceNow Platform Updates' with 100% success rate across 505 changes suggests routine platform maintenance, but this change is custom workspace UI configuration - template may be incorrectly applied"
+    ],
+    "required_actions": [
+      "MANDATORY - Clone refresh: Establish clone information for mobizuat or alternative sub-production environment; validate changes in non-production before production deployment per change management standards",
+      "MANDATORY - Complete implementation plan: Document step-by-step technical procedure including: (1) specific workspace(s) affected (list all variants), (2) implementation method with rationale (Form Designer/UI Policy/Client Script/ACL), (3) exact fields to be hidden with API names, (4) affected forms/views inventory, (5) configuration item sys_ids to be modified, (6) deployment sequence if using multiple update sets",
+      "MANDATORY - Create rollback plan: Document specific steps to restore Comments/Work Notes field visibility including configuration rollback procedure, update set reversion steps, cache clearing requirements, and validation checkpoints",
+      "MANDATORY - Develop comprehensive test plan: Include (1) field visibility verification across all workspace variants, (2) Activity Stream functionality validation, (3) comment creation/editing/viewing workflows, (4) mobile app testing, (5) Service Portal impact assessment, (6) integration testing for systems reading/writing comments, (7) business rule/client script dependency validation, (8) user acceptance testing with representative CSM/FSM agents",
+      "MANDATORY - Formal business justification: Replace 'Requested by Igor' with proper documentation including: (1) problem"
+    ],
+    "synthesis": "❌ Automated validation failed; documentation and readiness details are incomplete."
+  }
+]

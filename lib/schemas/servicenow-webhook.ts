@@ -10,7 +10,7 @@ import { z } from "zod";
  * ServiceNow often sends references as objects with display_value, value, and link fields.
  * This transformer normalizes them to just the display_value (human-readable text).
  */
-const displayValueTransformer = z.union([
+export const displayValueTransformer = z.union([
   z.string(),
   z.object({
     display_value: z.string(),
@@ -36,7 +36,7 @@ const displayValueTransformer = z.union([
  * Transformer for optional display_value fields.
  * Handles null/undefined values and applies displayValueTransformer.
  */
-const optionalDisplayValueTransformer = z.union([
+export const optionalDisplayValueTransformer = z.union([
   z.string(),
   z.object({
     display_value: z.string(),

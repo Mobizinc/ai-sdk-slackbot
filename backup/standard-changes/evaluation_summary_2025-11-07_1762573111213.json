@@ -1,0 +1,65 @@
+[
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 14528,
+    "overall_status": "REJECT",
+    "documentation_assessment": "CRITICAL DEFICIENCIES - This change fails minimum documentation standards for production deployment. Implementation plan ('Install Update sets') is superficial without deployment sequence, component specification, or duration estimates. Backout plan ('Backout Update sets') equally vague, lacking specific revert procedures or validation steps. NO test plan provided (test_plan field empty), eliminating visibility into validation scope. Justification describes desired outcome but omits business impact rationale, stakeholder authorization, or urgency. Update set field references 'SR; AllCare offboarding request, SR; AllCare Update User Cat Item' but implementation plan doesn't detail these components or deployment order. Template shows 100% success rate across 505 changes, yet this submission falls significantly below that quality standard.",
+    "risks": [
+      "CRITICAL: Change status is CLOSED (state: 3, closed_at: 2025-04-30) yet being evaluated - indicates revalidation of historical change or data integrity issue requiring immediate investigation before any CAB assessment",
+      "CRITICAL: Clone age of 554 days (18.4 months stale) creates catastrophic environment drift risk - development instance cloned May 2024 deploying to production environment that received 18+ months of updates, patches, and configuration changes",
+      "CRITICAL: Missing rollback plan eliminates recovery path if deployment corrupts HR offboarding workflows, breaks mailbox access revocation triggers, or introduces description field logic errors affecting active offboarding tickets",
+      "HIGH: Zero test plan documentation means validation approach unknown - unclear if HR offboarding scenarios, shared mailbox revocation workflows, or description field population logic were tested",
+      "HIGH: Modification to offboarding description field logic risks breaking LDAP deprovisioning triggers, Exchange/O365 mailbox delegation removal automation, or downstream HR systems parsing description text for workflow routing",
+      "HIGH: Update set deployment without environment refresh risks installing code developed against outdated schema, missing dependencies introduced in 18 months of platform updates, or conflicting with recent customizations",
+      "MEDIUM: No maintenance window specified - deployment could impact active HR offboarding requests in-flight, causing description field inconsistencies or workflow processing errors",
+      "MEDIUM: Missing communication plan leaves HR stakeholders unaware of changed description behavior, potentially causing confusion in offboarding ticket validation or reporting",
+      "MEDIUM: Template inactive (active: false) and unpublished (template_is_published: false) suggests deprecated status - questionable whether template should be used for new changes"
+    ],
+    "required_actions": [
+      "MANDATORY: DO NOT PROCEED - Change shows CLOSED status since 2025-04-30. Clarify evaluation context: if revalidating historical change, document reason and current production state; if data error, correct change state before CAB review",
+      "MANDATORY: Refresh development instance (mobizdev) - current 554-day clone age exceeds 30-day maximum by 524 days (1,747% over limit). Clone must be <30 days old before any development or testing proceeds",
+      "MANDATORY: Document comprehensive rollback plan including: (1) exact update set revert procedure with sys_ids, (2) description field value restoration steps, (3) validation checklist for offboarding workflow functionality, (4) estimated rollback duration, (5) post-rollback testing requirements",
+      "MANDATORY: Create detailed test plan covering: (1) HR offboarding request submission with shared mailbox component, (2) description field population for 'Revoke Access' vs 'Fulfill Access' scenarios, (3) workflow trigger validation for mailbox delegation removal, (4) end-to-end offboarding for multiple user types, (5) integration testing with Exchange/LDAP systems, (6) regression testing for non-offboarding shared mailbox requests",
+      "MANDATORY: Expand implementation plan to specify: (1) exact update set names/sys_ids from u_update_set field, (2) deployment sequence and dependencies, (3) affected catalog items/workflows, (4) estimated installation duration, (5) pre-deployment environment snapshot procedure",
+      "REQUIRED: Add comprehensive justification explaining business impact of current incorrect descriptions, stakeholder approval from HR leadership, and urgency rationale",
+      "REQUIRED: Define communication plan to notify HR team of corrected description behavior including validation period and escalation contacts",
+      "REQUIRED: Specify maintenance window avoiding peak offboarding periods (typically end of business"
+    ],
+    "synthesis": "❌ Automated validation failed; documentation and readiness details are incomplete."
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 17197,
+    "overall_status": "REJECT",
+    "documentation_assessment": "Critical template misclassification and documentation failures render this change fundamentally unapprovable. This change is categorized under 'ServiceNow Platform Updates' template when the actual scope is expense management application configuration (routing logic modification for PAK currency expenses from Accounting to HR + PDF generation deactivation). The description explicitly states 'Expense Item Routing - When currency is PAK - ticket should go to Human Resources instead of Accounting & deactive logic to generate PDFs' - this is NOT a platform update. Implementation plan marked 'N/A' despite concrete technical work requiring business rule modifications, workflow changes, and configuration updates. Rollback plan completely absent - mandatory for financial workflow changes. Test plan marked 'N/A' for changes affecting expense processing and downstream integrations. Justification 'Requested by Igor' provides zero business case, urgency rationale, stakeholder alignment, or compliance consideration. Template producer is inactive (active: false), indicating this template should not be used for new changes. State '3' (Closed) with multiple automated rejection work notes from November 2025 shows this previously rejected change may be under reconsideration without remediation. Update set reference 'AZ;STRY0011125;Expense Item - sc_task routing + deactivate PDFs generation' confirms scope mismatch.",
+    "risks": [
+      "Clone environment age of 554 days (18+ months) makes mobizdev completely unsuitable for validation - configuration drift virtually guarantees production defects",
+      "Expense routing change from Accounting to HR for PAK currency creates unvalidated workflow disruption affecting financial processes, approval chains, SLA compliance, and organizational accountability without documented testing",
+      "PDF generation deactivation may break downstream systems consuming expense documentation (ERP integrations, audit systems, compliance repositories, reporting tools) - no integration endpoint analysis performed",
+      "Zero rollback plan means inability to restore routing logic or PDF functionality when business disruption occurs - unacceptable for financial operations",
+      "Wrong template usage bypasses appropriate change controls - 'Platform Updates' template has fundamentally different risk profile and review requirements than application logic modifications",
+      "HR team readiness unconfirmed - no evidence of capacity planning, training, process documentation, or system access provisioning for handling PAK currency expenses",
+      "Accounting team impact unexplored - workload reduction/reallocation, handoff procedures, system access adjustments, and process documentation not addressed",
+      "Compliance and audit implications unassessed - currency-specific routing may violate financial controls, segregation of duties, or regulatory requirements (SOX, audit trails)",
+      "Integration cascade failures likely - financial reporting systems, reimbursement processing, tax documentation, and expense analytics consuming PDF outputs not identified or tested",
+      "No communication plan for affected parties (Finance teams, HR personnel, end users submitting PAK expenses, downstream system owners, auditors)",
+      "Template producer inactive status combined with 100% success rate across 505 changes suggests established pattern - but current change fundamentally violates template intent and scope",
+      "Change already closed with 'Successful' status but work notes show repeated automated rejections - suggests governance bypass or unauthorized implementation attempt"
+    ],
+    "required_actions": [
+      "IMMEDIATE: REJECT change and prevent any implementation under current template - this is application configuration change fraudulently misclassified as platform update",
+      "MANDATORY: Reclassify to appropriate standard change template for expense management application modifications OR elevate to normal change requiring full CAB review with Finance/HR/Compliance stakeholder presence",
+      "Refresh mobizdev clone to achieve <30 day age before any testing proceeds - current 554-day drift makes validation meaningless and dangerous",
+      "Develop comprehensive implementation plan documenting: business rule modifications for PAK currency detection, assignment group routing changes from Accounting to HR, workflow updates, PDF generation logic deactivation steps, affected tables/fields, configuration backup procedures, deployment sequence",
+      "Create detailed rollback plan with: step-by-step restoration of original routing logic, PDF generation reactivation procedures, database rollback scripts if applicable, verification testing procedures, maximum rollback time window, rollback decision criteria",
+      "Document complete test plan covering: PAK currency expense submission scenarios across all expense types, routing validation to HR group with approval workflow integrity, non-PAK currency regression testing, PDF deactivation verification, integration endpoint testing, performance impact assessment, audit trail validation",
+      "Replace justification with full business case: identify Igor's role",
+      "/authority level,"
+    ],
+    "synthesis": "❌ Automated validation failed; documentation and readiness details are incomplete."
+  }
+]

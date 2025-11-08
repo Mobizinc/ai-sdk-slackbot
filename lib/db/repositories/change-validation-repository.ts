@@ -270,11 +270,11 @@ export class ChangeValidationRepository {
         const overallStatus = r.validationResults?.overall_status;
         if (r.status === "pending" || r.status === "received") {
           stats.pending++;
-        } else if (overallStatus === "PASSED") {
+        } else if (overallStatus === "APPROVE") {
           stats.passed++;
-        } else if (overallStatus === "FAILED") {
+        } else if (overallStatus === "REJECT") {
           stats.failed++;
-        } else if (overallStatus === "WARNING") {
+        } else if (overallStatus === "APPROVE_WITH_CONDITIONS") {
           stats.warning++;
         }
 

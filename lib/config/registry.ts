@@ -352,6 +352,27 @@ export const CONFIG_DEFINITIONS = {
     description: "ServiceNow password for basic auth.",
     sensitive: true,
   },
+  servicenowCloneTargetInstance: {
+    envVar: "SERVICENOW_CLONE_TARGET_INSTANCE",
+    type: "string",
+    default: "mobizuat",
+    group: "servicenow",
+    description: "Display name (or substring) of the target instance used for clone freshness checks (e.g., mobizuat).",
+  },
+  servicenowCloneSourceInstance: {
+    envVar: "SERVICENOW_CLONE_SOURCE_INSTANCE",
+    type: "string",
+    default: "mobizprod",
+    group: "servicenow",
+    description: "Display name (or substring) of the source instance used for clone freshness checks (e.g., mobizprod).",
+  },
+  servicenowCabSkillId: {
+    envVar: "SERVICENOW_CAB_SKILL_ID",
+    type: "string",
+    default: "",
+    group: "servicenow",
+    description: "Anthropic skill ID for the ServiceNow CAB reviewer prompt bundle.",
+  },
   servicenowApiToken: {
     envVar: "SERVICENOW_API_TOKEN",
     type: "string",

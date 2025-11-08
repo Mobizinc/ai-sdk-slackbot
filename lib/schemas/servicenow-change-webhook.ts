@@ -4,6 +4,10 @@
  */
 
 import { z } from "zod";
+import {
+  displayValueTransformer,
+  optionalDisplayValueTransformer,
+} from "./servicenow-webhook";
 
 /**
  * Component type enum for validation
@@ -42,8 +46,8 @@ export const ServiceNowChangeWebhookSchema = z.object({
   // Optional: CMDB CI fields
   cmdb_ci: z.object({
     sys_id: z.string(),
-    name: z.string().optional(),
-    sys_class_name: z.string().optional(),
+    name: optionalDisplayValueTransformer.describe("CMDB CI name"),
+    sys_class_name: optionalDisplayValueTransformer.describe("CMDB CI class"),
   }).optional().describe("CMDB Configuration Item details"),
 
   // Optional: Additional context
@@ -76,10 +80,12 @@ export type ServiceNowChangeWebhook = z.infer<typeof ServiceNowChangeWebhookSche
  * Validation result schema for Claude synthesis
  */
 export const ValidationResultSchema = z.object({
-  overall_status: z.enum(["PASSED", "FAILED", "WARNING"]).describe("Overall validation status"),
-  checks: z.record(z.string(), z.boolean()).describe("Individual validation check results"),
+  overall_status: z.enum(["APPROVE", "APPROVE_WITH_CONDITIONS", "REJECT"]).describe("Overall CAB decision"),
+  documentation_assessment: z.string().optional().describe("Summary of implementation/rollback/test doc quality"),
+  risks: z.array(z.string()).optional().describe("Explicit risks or unknowns"),
+  required_actions: z.array(z.string()).optional().describe("Actions needed before CAB approval"),
   synthesis: z.string().optional().describe("Human-readable synthesis of validation results"),
-  remediation_steps: z.array(z.string()).optional().describe("Steps to remediate failures"),
+  checks: z.record(z.string(), z.boolean()).optional().describe("Fallback configuration checks (rules mode)"),
 });
 
 export type ValidationResult = z.infer<typeof ValidationResultSchema>;
@@ -112,15 +118,11 @@ export const ValidationErrorSchema = z.object({
 export type ValidationError = z.infer<typeof ValidationErrorSchema>;
 
 /**
- * Helper function to extract required fields from webhook payload
- * Handles both ServiceNow's nested object formats and flat strings
+ * Helper to normalize ServiceNow display/value fields using shared transformers
  */
-function extractValue(val: any): string | undefined {
-  if (typeof val === "string") return val;
-  if (val && typeof val === "object") {
-    return val.display_value || val.value || undefined;
-  }
-  return undefined;
+function toDisplayValue(val: unknown): string | undefined {
+  const result = optionalDisplayValueTransformer.safeParse(val);
+  return result.success ? result.data : undefined;
 }
 
 /**
@@ -151,7 +153,7 @@ export function detectComponentType(payload: any): {
   if (payload.catalog_item?.sys_id || payload.catalog_item) {
     return {
       type: "catalog_item",
-      sysId: extractValue(payload.catalog_item?.sys_id || payload.catalog_item)
+      sysId: toDisplayValue(payload.catalog_item?.sys_id || payload.catalog_item)
     };
   }
 
@@ -159,7 +161,7 @@ export function detectComponentType(payload: any): {
   if (payload.ldap_server?.sys_id) {
     return {
       type: "ldap_server",
-      sysId: extractValue(payload.ldap_server.sys_id)
+      sysId: toDisplayValue(payload.ldap_server.sys_id)
     };
   }
 
@@ -167,7 +169,7 @@ export function detectComponentType(payload: any): {
   if (payload.mid_server?.sys_id) {
     return {
       type: "mid_server",
-      sysId: extractValue(payload.mid_server.sys_id)
+      sysId: toDisplayValue(payload.mid_server.sys_id)
     };
   }
 
@@ -175,7 +177,7 @@ export function detectComponentType(payload: any): {
   if (payload.workflow?.sys_id) {
     return {
       type: "workflow",
-      sysId: extractValue(payload.workflow.sys_id)
+      sysId: toDisplayValue(payload.workflow.sys_id)
     };
   }
 
@@ -205,20 +207,20 @@ export function extractDocumentationFields(payload: any): {
   justification?: string;
 } {
   return {
-    implementation_plan: extractValue(payload.implementation_plan) ||
-                        extractValue(payload.archived?.implementation_plan),
-    rollback_plan: extractValue(payload.rollback_plan) ||
-                   extractValue(payload.back_out_plan) ||
-                   extractValue(payload.archived?.rollback_plan) ||
-                   extractValue(payload.archived?.back_out_plan),
-    test_plan: extractValue(payload.test_plan) ||
-               extractValue(payload.testing_plan) ||
-               extractValue(payload.archived?.test_plan) ||
-               extractValue(payload.archived?.testing_plan),
-    justification: extractValue(payload.justification) ||
-                   extractValue(payload.business_justification) ||
-                   extractValue(payload.archived?.justification) ||
-                   extractValue(payload.archived?.business_justification)
+    implementation_plan: toDisplayValue(payload.implementation_plan) ||
+                        toDisplayValue(payload.archived?.implementation_plan),
+    rollback_plan: toDisplayValue(payload.rollback_plan) ||
+                   toDisplayValue(payload.back_out_plan) ||
+                   toDisplayValue(payload.archived?.rollback_plan) ||
+                   toDisplayValue(payload.archived?.back_out_plan),
+    test_plan: toDisplayValue(payload.test_plan) ||
+               toDisplayValue(payload.testing_plan) ||
+               toDisplayValue(payload.archived?.test_plan) ||
+               toDisplayValue(payload.archived?.testing_plan),
+    justification: toDisplayValue(payload.justification) ||
+                   toDisplayValue(payload.business_justification) ||
+                   toDisplayValue(payload.archived?.justification) ||
+                   toDisplayValue(payload.archived?.business_justification)
   };
 }
 

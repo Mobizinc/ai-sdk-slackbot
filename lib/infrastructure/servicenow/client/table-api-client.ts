@@ -89,7 +89,7 @@ export class ServiceNowTableAPIClient {
       };
 
       // Fetch page
-      const response = await this.httpClient.get<T>(
+      const response = await this.httpClient.get<T[]>(
         `/api/now/table/${table}`,
         params
       );

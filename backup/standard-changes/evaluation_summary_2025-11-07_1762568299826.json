@@ -1,0 +1,29 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 31049,
+    "overall_status": "REJECT",
+    "checks": {
+      "template_has_workflow": false,
+      "template_recently_updated": true,
+      "template_has_catalog": false,
+      "template_is_published": true,
+      "template_is_active": false,
+      "has_implementation_plan": true,
+      "has_rollback_plan": false,
+      "has_test_plan": true,
+      "has_justification": true
+    },
+    "synthesis": "❌ Change validation failed. Missing or invalid configuration: template has workflow, template has catalog, template is active, has rollback plan. Please remediate before proceeding."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 29263,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - CHG0041588 requires significant remediation before approval. This change modifies Slack SLA notifications to display time remaining and spent, but critical gaps exist: (1) Clone freshness cannot be verified due to system timeout, creating blind spot for environment readiness. (2) Rollback plan is completely absent - no recovery procedure if Slack integration fails. (3) Implementation plan lacks detail on update set contents, dependencies, and installation sequence. (4) Test plan only covers happy path without error scenarios or message format validation. (5) Justification insufficient - 'Requested by Igor' provides no business context. (6) Risk of incorrect SLA time calculations affecting contractual reporting is unmitigated. Despite the template's 100% historical success rate across 505 changes, this specific integration modification introduces untested variables. Required actions: resolve clone verification, document complete rollback procedure, expand implementation and test plans with technical specifics, provide business justification, and create stakeholder communication plan. Resubmit after addressing mandatory items."
+  }
+]

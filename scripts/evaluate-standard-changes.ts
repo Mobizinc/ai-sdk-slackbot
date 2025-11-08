@@ -12,6 +12,9 @@ import {
   extractDocumentationFields,
   type ServiceNowChangeWebhook,
 } from '../lib/schemas/servicenow-change-webhook';
+import { ServiceNowParser } from '../lib/utils/servicenow-parser';
+
+const serviceNowParser = new ServiceNowParser();
 
 type ChangeBundle = {
   metadata?: {
@@ -27,6 +30,9 @@ type EvaluationResult = {
   component_type?: string;
   component_sys_id?: string;
   overall_status?: string;
+  documentation_assessment?: string;
+  risks?: string[];
+  required_actions?: string[];
   checks?: Record<string, boolean>;
   synthesis?: string;
   error?: string;
@@ -152,7 +158,7 @@ function buildWebhookPayload(bundle: ChangeBundle): ServiceNowChangeWebhook {
   const cmdbCi = buildCmdbCi(changeRequest);
   const componentInfo = determineComponentInfo(bundle, templateVersion, cmdbCi);
 
-  const basePayload: ServiceNowChangeWebhook = ServiceNowChangeWebhookSchema.parse({
+  const rawPayload = {
     change_sys_id: changeSysId,
     change_number: changeNumber,
     state,
@@ -167,7 +173,18 @@ function buildWebhookPayload(bundle: ChangeBundle): ServiceNowChangeWebhook {
     justification,
     ...(templateVersion ? { std_change_producer_version: templateVersion } : {}),
     ...(cmdbCi ? { cmdb_ci: cmdbCi } : {}),
-  });
+  };
+
+  const parsedWebhook = serviceNowParser.parse(JSON.stringify(rawPayload));
+  if (!parsedWebhook.success || !parsedWebhook.data) {
+    throw new Error(
+      `Failed to parse webhook payload for ${changeNumber}: ${
+        parsedWebhook.error ? parsedWebhook.error.message : 'Unknown parser error'
+      }`
+    );
+  }
+
+  const basePayload: ServiceNowChangeWebhook = ServiceNowChangeWebhookSchema.parse(parsedWebhook.data);
 
   const detected = detectComponentType(basePayload);
   return {
@@ -177,7 +194,12 @@ function buildWebhookPayload(bundle: ChangeBundle): ServiceNowChangeWebhook {
   };
 }
 
-function readChangeFiles(limit: number, snapshot?: string): { snapshot: string; changes: ChangeBundle[] } {
+function readChangeFiles(
+  limit: number,
+  snapshot?: string,
+  offset: number = 0,
+  includeNumbers?: Set<string>
+): { snapshot: string; changes: ChangeBundle[] } {
   const backupRoot = path.join(process.cwd(), 'backup', 'standard-changes');
   if (!fs.existsSync(backupRoot)) {
     throw new Error(`Backup root missing: ${backupRoot}`);
@@ -203,11 +225,22 @@ function readChangeFiles(limit: number, snapshot?: string): { snapshot: string; 
     throw new Error(`Missing changes directory: ${changesDir}`);
   }
 
-  const files = fs
+  let files = fs
     .readdirSync(changesDir)
     .filter((file) => file.endsWith('.json'))
-    .sort()
-    .slice(0, limit > 0 ? limit : undefined);
+    .sort();
+
+  if (includeNumbers && includeNumbers.size > 0) {
+    files = files.filter((file) => includeNumbers.has(file.replace(/\.json$/i, '')));
+  }
+
+  if (offset > 0) {
+    files = files.slice(offset);
+  }
+
+  if (limit > 0) {
+    files = files.slice(0, limit);
+  }
 
   const changes = files.map((file) =>
     JSON.parse(fs.readFileSync(path.join(changesDir, file), 'utf8')) as ChangeBundle
@@ -220,20 +253,43 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
   const limitArg = args.find((arg) => arg.startsWith('--limit='));
+  const offsetArg = args.find((arg) => arg.startsWith('--offset='));
+  const changesArg = args.find((arg) => arg.startsWith('--changes='));
   const snapshotArg = args.find((arg) => arg.startsWith('--snapshot='));
   const limit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 5;
+  const offset = offsetArg ? parseInt(offsetArg.split('=')[1], 10) : 0;
+  const includeNumbers = changesArg
+    ? new Set(
+        changesArg
+          .split('=')[1]
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    : undefined;
   const snapshot = snapshotArg ? snapshotArg.split('=')[1] : undefined;
 
   console.log('Evaluate Standard Changes');
   console.log('='.repeat(80));
   console.log(`Dry run: ${dryRun ? 'YES' : 'NO'}`);
   console.log(`Limit: ${limit > 0 ? limit : 'all'}`);
+  if (offset > 0) {
+    console.log(`Offset: ${offset}`);
+  }
+  if (includeNumbers && includeNumbers.size > 0) {
+    console.log(`Changes: ${Array.from(includeNumbers).join(', ')}`);
+  }
   if (snapshot) {
     console.log(`Snapshot: ${snapshot}`);
   }
   console.log('');
 
-  const { snapshot: resolvedSnapshot, changes } = readChangeFiles(limit, snapshot);
+  const { snapshot: resolvedSnapshot, changes } = readChangeFiles(
+    limit,
+    snapshot,
+    offset,
+    includeNumbers
+  );
   const { getChangeValidationService } = await import('../lib/services/change-validation');
   const { getChangeValidationRepository } = await import('../lib/db/repositories/change-validation-repository');
   const service = getChangeValidationService();
@@ -291,9 +347,7 @@ async function main() {
 
       const verdict = await service.processValidation(payload.change_sys_id);
 
-      result.overall_status = verdict.overall_status;
-      result.checks = verdict.checks;
-      result.synthesis = verdict.synthesis;
+      Object.assign(result, verdict);
 
       console.log(
         `  ✅ Verdict: ${verdict.overall_status} | ${verdict.synthesis ?? 'No synthesis provided'}`

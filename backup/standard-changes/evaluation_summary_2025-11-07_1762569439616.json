@@ -1,0 +1,18 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 31102,
+    "overall_status": "REJECT",
+    "synthesis": "CHG0041587 is REJECTED due to insufficient documentation for a notification workflow change. While the template shows strong historical success (505 changes, 100% success rate), this change introduces new business rule logic requiring rigorous documentation. Critical deficiencies: (1) ZERO rollback plan for notification changes that could impact fulfillment operations, (2) unable to verify clone freshness - empty last_clone_date values indicate environment readiness cannot be confirmed, (3) implementation plan lacks update set naming standards and validation steps, (4) test plan is superficial without scenario coverage or success criteria, (5) justification provides no business context or stakeholder approval. Notification changes carry high operational risk - incorrect triggers could generate email storms or miss critical communications. REQUIRED ACTIONS BEFORE RESUBMISSION: Document detailed rollback procedure, confirm mobizdev clone <30 days old, expand implementation plan with full update set details and checkpoints, create comprehensive test scenarios covering recipient validation and content verification, provide business justification with stakeholder sign-off, and establish communication plan for affected fulfillment teams. Recommend scheduling CAB review after remediation with implementation team present to address questions."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 28081,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECT - CHG0041588 cannot proceed to implementation due to critical documentation gaps and environment readiness issues. This change modifies SLA breach notifications to Slack, adding time calculations, but lacks essential safeguards: (1) No rollback plan exists for reverting SLA notification logic - a critical business function; (2) Target instance 'mobizdev' shows no recent clone date, potentially invalidating all test results; (3) Implementation plan references cryptic update set names without details; (4) Test plan covers only happy-path Slack message verification without calculation validation or error scenarios; (5) Business justification states only 'Requested by Igor' without explaining value or urgency. Required remediation: Provide comprehensive rollback procedures, refresh clone to <30 days, document complete update set details and installation sequence, expand testing to validate SLA time calculations across record types with baseline comparisons, add Slack API error handling documentation, specify implementation window, and articulate business value. Template shows strong historical success (100% over 505 changes) but current change documentation does not meet platform governance standards. Resubmit after addressing all mandatory items."
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 28430,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT. Change CHG0041587 requires substantial remediation before approval. Primary concerns: (1) Absent rollback plan for notification logic modification creates unacceptable risk of irreversible alert issues. (2) Clone freshness validation failure prevents confirmation of adequate sub-production testing. (3) Implementation and test plans lack sufficient detail for production deployment—no target environment specified, no validation criteria defined, no impact analysis provided. (4) Justification insufficient for audit trail requirements. This change modifies fulfiller notification triggers for STRY state transitions, which directly impacts operational communication flows. The 100% success rate across 505 closed changes under this template demonstrates strong historical performance, but current documentation does not meet minimum CAB standards. REQUIRED ACTIONS: Submit revised change with complete rollback procedure, resolve clone check timeout, expand implementation/test plans with specific technical details and success criteria, provide business justification with stakeholder impact analysis, and confirm notification infrastructure capacity. Resubmit for expedited CAB review once remediation complete."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 24419,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - CHG0041588 cannot proceed due to critical documentation gaps and environment readiness failures. The change lacks a mandatory rollback plan, presents vague implementation details ('Install updates sets SK'), and has no verifiable clone information to confirm environment isolation. While the template shows strong historical performance (505 successful changes), modifying SLA-to-Slack messaging without comprehensive rollback procedures creates unacceptable production risk. The test plan addresses only basic validation without edge cases or existing functionality verification. Justification lacks business context beyond 'Requested by Igor.' REQUIRED REMEDIATION: (1) Submit detailed rollback plan with update set removal procedures, (2) Resolve clone information timeout and confirm environment <30 days old, (3) Expand implementation plan with step-by-step procedures and dependencies, (4) Document business justification and stakeholder impact, (5) Enhance test plan to cover existing SLA messages and error scenarios, (6) Confirm maintenance window and change freeze compliance. Resubmit to CAB once all mandatory items are addressed."
+  },
+  {
+    "change_number": "CHG0041589",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 27462,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - Change CHG0041589 cannot proceed to implementation due to critically insufficient documentation and environment validation failures. While the template maintains 100% success rate across 505 changes, this submission lacks fundamental CAB requirements: (1) No rollback plan for email processing modifications affecting incident workflows, (2) No test plan documenting validation of CC/watchlist functionality changes, (3) Clone freshness verification failed - cannot confirm sub-production testing occurred, (4) Implementation plan provides only update set name without technical scope, timing, or deployment steps. Inbound email changes carry HIGH RISK given dependencies on incident creation, LDAP resolution, notification triggers, and potential integration impacts. Change owner must resubmit with complete rollback procedures, documented test results from validated sub-production environment, detailed technical scope of flow/action modifications, and expanded implementation plan including maintenance window and affected components. Template owner should reinforce documentation standards to preserve the template's perfect success rate."
+  },
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 28115,
+    "overall_status": "REJECT",
+    "synthesis": "CHG0041590 is REJECTED due to insufficient documentation and inability to verify environment readiness. While correcting the HR offboarding description from 'Fulfill Access' to 'Revoke Access' for shared mailbox requests is operationally valid, the change lacks foundational CAB requirements: (1) implementation plan provides no technical detail beyond 'Install Update sets', (2) rollback and test plans are completely absent, (3) clone information is unavailable preventing verification of sub-production validation, and (4) the template itself is marked inactive raising process compliance concerns. HR offboarding workflows are identity-critical and require rigorous change control. Requestor must resubmit with: comprehensive implementation plan specifying exact update sets and technical modifications, documented rollback procedure, detailed test plan with validation criteria, fresh clone evidence (<30 days) showing successful testing, expanded justification with root cause analysis, and confirmation that standard change template is active and authorized. Without these elements, deployment risk to HR access governance is unacceptable."
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 26217,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECT. This change is improperly categorized as a 'ServiceNow Platform Update' when it actually modifies business-critical expense routing logic and deactivates PDF generation. Documentation is severely deficient with N/A implementation/test plans, missing rollback plan, and insufficient justification ('Requested by Igor'). The template being used is marked inactive, and clone information is unavailable preventing validation of environment readiness. Changes to currency-based routing rules affecting HR and Accounting departments require comprehensive testing, stakeholder approvals, and detailed rollback procedures - none of which are present. Requester must reclassify this as a normal change, provide complete documentation per corporate change management standards, obtain department approvals, validate in fresh clone environment, and resubmit for CAB review. Current risk of misdirected financial approvals and audit trail disruption is unacceptable."
+  }
+]

@@ -3671,34 +3671,78 @@ export class ServiceNowClient {
    * Get clone information for an instance
    * Checks when the target instance was last cloned from source
    */
-  public async getCloneInfo(targetInstance: string = 'uat', sourceInstance: string = 'prod'): Promise<{
+  public async getCloneInfo(
+    targetInstance: string = 'mobizuat',
+    sourceInstance: string = 'mobizprod'
+  ): Promise<{
     last_clone_date?: string;
     clone_age_days?: number;
     source_instance?: string;
     target_instance?: string;
+    state?: string;
   } | null> {
     try {
-      // Query clone_instance table for most recent clone from source to target
-      const query = `target_instance=${targetInstance}^source_instance=${sourceInstance}^ORDERBYDESCclone_date`;
-      const path = `/api/now/table/clone_instance?sysparm_query=${encodeURIComponent(query)}&sysparm_limit=1&sysparm_fields=clone_date,source_instance,target_instance,state`;
-
+      const path = `/api/now/table/clone_instance?sysparm_display_value=all&sysparm_limit=50&sysparm_fields=clone_date,completed,scheduled,sys_created_on,source_instance,target_instance,state`;
       const response = await request<{ result: Array<Record<string, any>> }>(path);
 
       if (!response.result || response.result.length === 0) {
         return null;
       }
 
-      const clone = response.result[0];
-      const cloneDate = new Date(clone.clone_date);
+      const normalize = (value: unknown) => (value ?? "").toString().toLowerCase();
+      const targetNeedle = normalize(targetInstance);
+      const sourceNeedle = normalize(sourceInstance);
+
+      const match = response.result.find((clone) => {
+        const targetDisplay = normalize(clone.target_instance?.display_value);
+        const targetValue = normalize(clone.target_instance?.value);
+        const sourceDisplay = normalize(clone.source_instance?.display_value);
+        const sourceValue = normalize(clone.source_instance?.value);
+        const targetMatches =
+          targetNeedle.length === 0 ||
+          targetDisplay.includes(targetNeedle) ||
+          targetValue.includes(targetNeedle);
+        const sourceMatches =
+          sourceNeedle.length === 0 ||
+          sourceDisplay.includes(sourceNeedle) ||
+          sourceValue.includes(sourceNeedle);
+        return targetMatches && sourceMatches;
+      });
+
+      if (!match) {
+        return null;
+      }
+
+      const extractField = (record: Record<string, any>, field: string): string | undefined => {
+        const raw = record?.[field];
+        if (!raw || raw === "") return undefined;
+        if (typeof raw === "string") return raw || undefined;
+        if (typeof raw === "object") {
+          return raw.value || raw.display_value || undefined;
+        }
+        return undefined;
+      };
+
+      const cloneDateRaw =
+        extractField(match, "clone_date") ||
+        extractField(match, "completed") ||
+        extractField(match, "scheduled") ||
+        extractField(match, "sys_created_on") ||
+        extractField(match, "sys_updated_on");
+
+      const cloneDate = cloneDateRaw ? new Date(cloneDateRaw) : null;
       const now = new Date();
-      const ageMs = now.getTime() - cloneDate.getTime();
-      const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+      const ageDays =
+        cloneDate && !Number.isNaN(cloneDate.getTime())
+          ? Math.floor((now.getTime() - cloneDate.getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
 
       return {
-        last_clone_date: clone.clone_date,
+        last_clone_date: cloneDateRaw,
         clone_age_days: ageDays,
-        source_instance: clone.source_instance,
-        target_instance: clone.target_instance,
+        source_instance: extractField(match.source_instance ?? {}, "display_value") || extractField(match.source_instance ?? {}, "value"),
+        target_instance: extractField(match.target_instance ?? {}, "display_value") || extractField(match.target_instance ?? {}, "value"),
+        state: extractField(match.state ?? {}, "value") || extractField(match.state ?? {}, "display_value"),
       };
     } catch (error) {
       console.error(`[ServiceNow] Error fetching clone info for ${targetInstance}:`, error);
