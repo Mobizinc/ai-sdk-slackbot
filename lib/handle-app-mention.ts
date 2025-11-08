@@ -7,6 +7,16 @@ import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
 
+const SLACK_DISPLAY_TEXT_LIMIT = 12000;
+
+const clampTextForSlackDisplay = (text: string): string => {
+  if (!text) return text;
+  if (text.length <= SLACK_DISPLAY_TEXT_LIMIT) {
+    return text;
+  }
+  return `${text.slice(0, SLACK_DISPLAY_TEXT_LIMIT - 1)}…`;
+};
+
 const slackMessaging = getSlackMessagingService();
 
 const updateStatusUtil = async (
@@ -87,11 +97,19 @@ const updateStatusUtil = async (
 
   // Destructive final update - replaces entire message with final content
   const setFinalMessage = async (text: string, blocks?: any[]) => {
+    const displayText = clampTextForSlackDisplay(text);
+    let finalBlocks = blocks;
+
+    if ((!finalBlocks || finalBlocks.length === 0) && displayText && displayText.length > 2800) {
+      const { splitTextIntoSectionBlocks } = await import("./formatters/servicenow-block-kit");
+      finalBlocks = splitTextIntoSectionBlocks(displayText, "mrkdwn");
+    }
+
     await slackMessaging.updateMessage({
       channel: event.channel,
       ts: initialMessage.ts as string,
-      text,
-      blocks,
+      text: displayText,
+      blocks: finalBlocks,
     });
   };
 
@@ -270,7 +288,7 @@ export async function handleNewAppMention(
       // Handle both case and incident Block Kit data
       if (parsed._blockKitData.type === "incident_detail") {
         // Get LLM's full text response (with Microsoft Learn guidance, etc.)
-        const llmResponse = parsed.text || result;
+        const llmResponse = clampTextForSlackDisplay(parsed.text || result);
 
         // Create minimal incident card with "View Details" button
         const minimalBlocks = blockKitModule.formatIncidentAsMinimalCard(parsed._blockKitData.incidentData);
@@ -282,14 +300,17 @@ export async function handleNewAppMention(
           minimalBlockCount: minimalBlocks?.length,
         });
 
-        // Combine LLM text with minimal card blocks
-        const combinedText = `${llmResponse}\n\n---`;
+        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
+        const combinedBlocks = [
+          ...llmTextBlocks,
+          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
+          ...minimalBlocks,
+        ];
 
-        // Send LLM text as markdown + minimal Block Kit card
-        await setFinalMessage(combinedText, minimalBlocks);
+        await setFinalMessage(llmResponse, combinedBlocks);
       } else if (parsed._blockKitData.type === "case_detail") {
         // Get LLM's full text response (with analysis, root cause guidance, etc.)
-        const llmResponse = parsed.text || result;
+        const llmResponse = clampTextForSlackDisplay(parsed.text || result);
 
         // Create minimal case card with "View Details" button
         const minimalBlocks = blockKitModule.formatCaseAsMinimalCard(parsed._blockKitData.caseData);
@@ -301,11 +322,14 @@ export async function handleNewAppMention(
           minimalBlockCount: minimalBlocks?.length,
         });
 
-        // Combine LLM text with minimal card blocks
-        const combinedText = `${llmResponse}\n\n---`;
+        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
+        const combinedBlocks = [
+          ...llmTextBlocks,
+          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
+          ...minimalBlocks,
+        ];
 
-        // Send LLM text as markdown + minimal Block Kit card
-        await setFinalMessage(combinedText, minimalBlocks);
+        await setFinalMessage(llmResponse, combinedBlocks);
       } else {
         // Unknown type, fallback to text
         console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);

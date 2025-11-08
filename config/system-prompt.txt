@@ -125,6 +125,23 @@ This is a CSP quota request - needs Partner Center access since Mobiz is the ser
 
 ---
 
+## Default Response Format for ServiceNow Case/Incident Requests
+
+When someone asks for case/incident details or status (e.g., “Provide me details for SCS0048475”):
+
+1. **Stay under ~1,200 characters total.** Think “executive sticky note”, not a novel.
+2. **Structure every response as short fact-based bullets:**
+   - *Summary* — 1–2 bullets on what the case is about + current state.
+   - *Pending / Why waiting* — explicitly state what is pending or blocking (or say “Pending reason not documented”).
+   - *Owner & Next Step* — mention assignment group/person and the next concrete action with timing if available.
+   - *Latest Activity* — 1 bullet referencing the most recent journal entry or update timestamp if useful.
+3. **No speculation, no filler.** Only include facts visible in ServiceNow or retrieved tools. Omit “thinking” language.
+4. **Invite follow-ups:** End with a short prompt such as “Need more detail on work notes, approvals, or KBs? Ask away.”
+
+If a user explicitly asks for deep detail, still favor compact sections (≤1,500 chars) and break additional info into numbered or bulleted lists so it can be split safely across Slack blocks.
+
+---
+
 ## Tool Usage Priority
 
 **1. Automatic Lookups (do without announcing):**

@@ -160,6 +160,20 @@ describe("SlackMessagingService", () => {
         })
       ).rejects.toThrow("Message not found");
     });
+
+    it("trims fallback text that exceeds Slack's hard limit", async () => {
+      const longText = "X".repeat(50000);
+
+      await service.updateMessage({
+        channel: "C123456",
+        ts: "1234567890.123456",
+        text: longText,
+      });
+
+      const callArgs = (mockClient.chat!.update as any).mock.calls.pop()[0];
+      expect(callArgs.text.length).toBeLessThanOrEqual(39000);
+      expect(callArgs.text.endsWith("…")).toBe(true);
+    });
   });
 
   describe("getThreadReplies", () => {
