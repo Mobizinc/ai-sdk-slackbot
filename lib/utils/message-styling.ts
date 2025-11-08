@@ -1429,21 +1429,24 @@ export function sanitizeMrkdwn(text: string): string {
 export function sanitizePlainText(text: string, maxLength: number = 3000): string {
   if (!text) return '';
 
+  // Ensure text is actually a string (runtime safety)
+  const textStr = typeof text === 'string' ? text : String(text);
+
   // Dangerous HTML tags that should be completely removed (keep content)
   const DANGEROUS_TAGS = [
-    'script', 'iframe', 'object', 'embed', 'form', 'input', 
+    'script', 'iframe', 'object', 'embed', 'form', 'input',
     'textarea', 'button', 'link', 'meta', 'style', 'html', 'head', 'body'
   ];
 
   // Dangerous attributes that should be removed
   const DANGEROUS_ATTRIBUTES = [
-    'onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout', 
-    'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onselect', 
-    'onunload', 'onkeydown', 'onkeyup', 'onkeypress', 'onmousedown', 
+    'onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout',
+    'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onselect',
+    'onunload', 'onkeydown', 'onkeyup', 'onkeypress', 'onmousedown',
     'onmouseup', 'onmousemove', 'ondblclick', 'javascript:', 'vbscript:', 'data:'
   ];
 
-  let sanitized = text;
+  let sanitized = textStr;
 
   // Remove dangerous HTML tags completely but keep their content
   DANGEROUS_TAGS.forEach(tag => {
