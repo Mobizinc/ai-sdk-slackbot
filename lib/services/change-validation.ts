@@ -327,6 +327,28 @@ class ChangeValidationService {
   /**
    * Synthesize validation using Claude (ReACT pattern)
    * Uses LangSmith tracing for observability
+   *
+   * IMPORTANT: Do NOT use Anthropic Agent Skills for this task.
+   *
+   * Agent Skills are designed for:
+   * - Multi-step file generation (PowerPoint, Excel, PDF, Word)
+   * - Complex code execution workflows requiring filesystem operations
+   * - Tasks requiring iterative code execution
+   *
+   * This task is a pure reasoning operation:
+   * - Input: Validation facts bundle (~10-15K tokens)
+   * - Process: Reason over standards and facts
+   * - Output: Structured JSON verdict (~1K tokens)
+   *
+   * Using skills would add:
+   * - ❌ 10-30K extra tokens for skill loading
+   * - ❌ Code execution overhead (no benefit)
+   * - ❌ 5-10x slower response time
+   * - ❌ Potential for infinite loops if misconfigured
+   * - ❌ 7-10x higher cost per validation
+   *
+   * The current implementation using standard messages.create() is correct.
+   * See Issue #89 for details on why skills were removed.
    */
   private async synthesizeWithClaude(
     record: ChangeValidation,
