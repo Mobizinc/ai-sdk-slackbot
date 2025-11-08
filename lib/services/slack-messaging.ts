@@ -42,6 +42,7 @@ export interface MessageResult {
 export class SlackMessagingService {
   private lastUpdateTimes = new Map<string, number>();
   private readonly UPDATE_RATE_LIMIT_MS = 3000; // Slack enforces 3-second minimum between updates
+  private readonly MAX_FALLBACK_TEXT_LENGTH = 39000; // Slack hard limit is ~40k chars
 
   constructor(private client: WebClient) {}
 
@@ -100,9 +101,11 @@ export class SlackMessagingService {
     const messageKey = `${options.channel}:${options.ts}`;
     const maxRetries = 3;
     let attempt = 0;
+    const fallbackText = this.trimFallbackText(options.text);
 
     while (attempt < maxRetries) {
       try {
+
         // Enforce 3-second rate limit
         const lastUpdate = this.lastUpdateTimes.get(messageKey) || 0;
         const elapsed = Date.now() - lastUpdate;
@@ -154,16 +157,16 @@ export class SlackMessagingService {
 
           updateParams.blocks = options.blocks;
           // Include text as fallback if provided
-          if (options.text) {
-            updateParams.text = options.text;
+          if (fallbackText) {
+            updateParams.text = fallbackText;
           }
 
           console.log(`[Slack Messaging] Updating message with ${options.blocks.length} Block Kit blocks`);
           console.log(`[Slack Messaging] First 3 blocks:`, JSON.stringify(options.blocks.slice(0, 3), null, 2));
-          console.log(`[Slack Messaging] Fallback text:`, options.text?.substring(0, 100));
+          console.log(`[Slack Messaging] Fallback text:`, fallbackText?.substring(0, 100));
         } else {
           // Text-only message
-          updateParams.text = options.text || "Message sent";
+          updateParams.text = fallbackText || "Message sent";
         }
 
         const response = await this.client.chat.update(updateParams);
@@ -209,7 +212,7 @@ export class SlackMessagingService {
           errorDetails: error?.data,
           hadBlocks: !!options.blocks,
           blockCount: options.blocks?.length || 0,
-          textPreview: options.text?.substring(0, 100),
+          textPreview: fallbackText?.substring(0, 100),
         });
         throw error;
       }
@@ -536,6 +539,22 @@ export class SlackMessagingService {
       console.error('[Slack Messaging] Error setting suggested prompts:', error);
       throw error;
     }
+  }
+
+  /**
+   * Trim fallback text so we never exceed Slack's ~40k character limit.
+   */
+  private trimFallbackText(text?: string): string | undefined {
+    if (!text) return text;
+    if (text.length <= this.MAX_FALLBACK_TEXT_LENGTH) {
+      return text;
+    }
+
+    const truncated = `${text.slice(0, this.MAX_FALLBACK_TEXT_LENGTH - 1)}…`;
+    console.warn(
+      `[Slack Messaging] Trimming fallback text from ${text.length} to ${truncated.length}`,
+    );
+    return truncated;
   }
 }
 
