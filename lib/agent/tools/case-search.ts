@@ -33,6 +33,8 @@ const CaseSearchInputSchema = z.object({
   // Date filters (ISO 8601 strings)
   openedAfter: z.string().optional().describe("Show cases opened after this date (YYYY-MM-DD)"),
   openedBefore: z.string().optional().describe("Show cases opened before this date (YYYY-MM-DD)"),
+  updatedAfter: z.string().optional().describe("Show cases updated after this date (YYYY-MM-DD)"),
+  updatedBefore: z.string().optional().describe("Show cases updated before this date (YYYY-MM-DD) - useful for finding stale cases"),
 
   // Boolean flags
   activeOnly: z.boolean().optional().describe("Only show active/open cases (default: true)"),
@@ -66,9 +68,10 @@ export function createCaseSearchTool(params: AgentToolFactoryParams) {
 - "high priority tickets"
 - "cases in IT Support queue"
 - "cases opened last week"
+- "cases not updated in 3 days" (use updatedBefore)
 - "search for email sync issues"
 
-Returns paginated results with Slack-formatted display. Supports sorting and filtering by customer, queue, assignee, priority, state, keywords, and dates.`,
+Returns paginated results with Slack-formatted display. Supports sorting and filtering by customer, queue, assignee, priority, state, keywords, opened dates, and updated dates.`,
 
     inputSchema: CaseSearchInputSchema,
 
@@ -88,6 +91,8 @@ Returns paginated results with Slack-formatted display. Supports sorting and fil
           query: input.keyword,
           openedAfter: input.openedAfter,
           openedBefore: input.openedBefore,
+          updatedAfter: input.updatedAfter,
+          updatedBefore: input.updatedBefore,
           activeOnly: input.activeOnly !== false, // Default true
           sortBy: input.sortBy,
           sortOrder: input.sortOrder,

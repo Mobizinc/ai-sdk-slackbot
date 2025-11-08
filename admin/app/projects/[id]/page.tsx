@@ -28,6 +28,7 @@ type EditableField =
   | "mentorName";
 
 const extractProjectFields = (item: ProjectWithRelations): Project =>
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (({ standups, interviews, initiations, evaluations, ...rest }) => rest)(item) as Project;
 
 export default function ProjectOverviewPage() {

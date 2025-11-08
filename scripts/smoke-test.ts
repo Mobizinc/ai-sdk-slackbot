@@ -99,8 +99,7 @@ async function run() {
       },
     ]);
 
-    console.log("Generated response:
-");
+    console.log("Generated response:\n");
     console.log(result);
   } catch (error) {
     console.error("Smoke test failed", error);

@@ -1625,7 +1625,7 @@ export class ServiceNowClient {
           criteria.openedBefore = new Date(input.openedBefore);
         }
 
-        const cases = await caseRepo.search(criteria);
+        const { cases } = await caseRepo.search(criteria);
 
         // Convert Case[] to ServiceNowCaseSummary[]
         const summaries: ServiceNowCaseSummary[] = cases.map((case_) => ({
