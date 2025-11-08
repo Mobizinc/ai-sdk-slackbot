@@ -338,7 +338,10 @@ class ChangeValidationService {
     }
 
     const cabSkillId = this.getCabSkillId();
-    const skillEnabled = Boolean(cabSkillId);
+    if (!cabSkillId) {
+      console.warn("[Change Validation] CAB skill ID not configured; falling back to rules-based validation");
+      return this.synthesizeWithRules(record, facts);
+    }
 
     const userPrompt = `Evaluate the following change:
 
@@ -362,10 +365,10 @@ Before responding, load the ServiceNow Architect skill instructions by reading /
 </skill_bootstrap>`;
 
     try {
-    const userMessage = {
-      role: "user" as const,
-      content: `${skillBootstrap}\n\n${userPrompt}`,
-    };
+      const userMessage = {
+        role: "user" as const,
+        content: `${skillBootstrap}\n\n${userPrompt}`,
+      };
 
       const tracedFn = traceLLMCall(
         async () => {
@@ -384,66 +387,78 @@ Before responding, load the ServiceNow Architect skill instructions by reading /
             const timeoutController = new AbortController();
             const timeoutHandle = setTimeout(() => timeoutController.abort(), skillTimeoutMs);
             try {
-              return await this.anthropic.beta.messages.create({
-                model: this.anthropicModel,
-                max_tokens: perCallMaxTokens,
-                messages: conversationMessages,
-                betas: [this.codeExecutionBetaHeader, this.skillBetaHeader],
-                container: containerId
-                  ? { id: containerId }
-                  : {
-                      skills: [
-                        {
-                          skill_id: cabSkillId,
-                          type: "custom",
-                          version: "latest",
-                        },
-                      ],
-                    },
-                tools: [
-                  {
-                    type: "code_execution_20250825",
-                    name: "code_execution",
-                  } as any,
-                ],
-                tool_choice: { type: "auto" } as any,
-                signal: timeoutController.signal,
-              });
+              return await this.anthropic.beta.messages.create(
+                {
+                  model: this.anthropicModel,
+                  max_tokens: perCallMaxTokens,
+                  messages: conversationMessages,
+                  betas: [this.codeExecutionBetaHeader, this.skillBetaHeader],
+                  container: containerId
+                    ? { id: containerId }
+                    : {
+                        skills: [
+                          {
+                            skill_id: cabSkillId,
+                            type: "custom",
+                            version: "latest",
+                          },
+                        ],
+                      },
+                  tools: [
+                    {
+                      type: "code_execution_20250825",
+                      name: "code_execution",
+                    } as any,
+                  ],
+                  tool_choice: { type: "auto" } as any,
+                },
+                { signal: timeoutController.signal }
+              );
             } finally {
               clearTimeout(timeoutHandle);
             }
           };
 
+          const extractResponseText = (content: any): string => {
+            if (!content) {
+              return "";
+            }
+            if (typeof content === "string") {
+              return content;
+            }
+            if (Array.isArray(content)) {
+              return content
+                .map((item) => {
+                  if (!item) return "";
+                  if (typeof item === "string") return item;
+                  if (item.type === "text" && typeof item.text === "string") {
+                    return item.text;
+                  }
+                  if (typeof item.input_text === "string") {
+                    return item.input_text;
+                  }
+                  return "";
+                })
+                .filter(Boolean)
+                .join("\n")
+                .trim();
+            }
+            if (typeof content === "object" && typeof content.text === "string") {
+              return content.text;
+            }
+            return "";
+          };
+
+          let responseText = "";
+
           for (let attempt = 0; attempt < maxSkillIterations; attempt++) {
             response = await fetchSkillResponse();
-            model: this.anthropicModel,
-            max_tokens: 2048,
-              messages: conversationMessages,
-              betas: [this.codeExecutionBetaHeader, this.skillBetaHeader],
-              container: containerId
-                ? { id: containerId }
-                : {
-                    skills: [
-                      {
-                        skill_id: cabSkillId,
-                        type: "custom",
-                        version: "latest",
-                      },
-                    ],
-                  },
-              tools: [
-                {
-                  type: "code_execution_20250825",
-                  name: "code_execution",
-                } as any,
-              ],
-              tool_choice: { type: "auto" } as any,
-            });
 
             containerId = response?.container?.id ?? containerId;
             const stopReason = response?.stop_reason ?? "unknown";
             console.log(`[Change Validation] Skill response stop_reason: ${stopReason}`);
             if (stopReason !== "pause_turn" && stopReason !== "max_tokens") {
+              responseText = extractResponseText(response?.content);
               break;
             }
 
@@ -463,6 +478,16 @@ Before responding, load the ServiceNow Architect skill instructions by reading /
             throw new Error("Skill response did not complete after multiple iterations");
           }
 
+          if (!responseText) {
+            responseText = extractResponseText(response?.content);
+          }
+
+          if (!responseText) {
+            throw new Error("Claude skill response did not include any text content");
+          }
+
+          const parsed = this.parseClaudeResponse(responseText);
+          return this.normalizeValidationResult(parsed);
         },
         {
           name: "claude-change-validation-synthesis",

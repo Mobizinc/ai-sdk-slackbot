@@ -373,6 +373,27 @@ export const CONFIG_DEFINITIONS = {
     group: "servicenow",
     description: "Anthropic skill ID for the ServiceNow CAB reviewer prompt bundle.",
   },
+  servicenowSkillMaxIterations: {
+    envVar: "SERVICENOW_SKILL_MAX_ITERATIONS",
+    type: "number",
+    default: 6,
+    group: "servicenow",
+    description: "Maximum number of Anthropic skill container turns before aborting.",
+  },
+  servicenowSkillTimeoutMs: {
+    envVar: "SERVICENOW_SKILL_TIMEOUT_MS",
+    type: "number",
+    default: 30000,
+    group: "servicenow",
+    description: "Per-call timeout (ms) for Anthropic skill responses.",
+  },
+  servicenowSkillMaxTokens: {
+    envVar: "SERVICENOW_SKILL_MAX_TOKENS",
+    type: "number",
+    default: 1024,
+    group: "servicenow",
+    description: "Max tokens to request per Anthropic skill call.",
+  },
   servicenowApiToken: {
     envVar: "SERVICENOW_API_TOKEN",
     type: "string",
