@@ -8,7 +8,7 @@
  */
 
 import type { GenericMessageEvent } from '../slack-event-types';
-import { extractCaseNumbers } from './detectors/case-number-extractor';
+import { extractCaseNumbers } from '../utils/case-number-extractor';
 import { getTriggerKBWorkflowAction } from './actions/trigger-kb-workflow';
 import { shouldSkipMessage, processCaseDetection, processExistingThread, isDelegationMessage } from './handler-utils';
 

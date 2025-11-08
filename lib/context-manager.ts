@@ -6,7 +6,8 @@
 
 import type { CaseContextRepository } from "./db/repositories/case-context-repository";
 import { getCaseContextRepository } from "./db/repositories/case-context-repository";
-import { extractCaseNumbers as detectCaseNumbers } from "./passive/detectors/case-number-extractor";
+import { extractCaseNumbers } from "./utils/case-number-extractor";
+import { detectResolution } from "./utils/resolution-detector";
 
 export interface CaseMessage {
   user: string;
@@ -47,9 +48,10 @@ export class ContextManager {
 
   /**
    * Extract case numbers from message text using regex
+   * @deprecated Use extractCaseNumbers from utils/case-number-extractor directly
    */
   extractCaseNumbers(text: string): string[] {
-    return detectCaseNumbers(text);
+    return extractCaseNumbers(text);
   }
 
   /**
@@ -100,59 +102,19 @@ export class ContextManager {
 
   /**
    * Check if message contains resolution keywords
-   * Enhanced with context awareness to avoid false positives
+   * Uses resolution-detector utility for improved SRP
    */
   private checkForResolution(context: CaseContext, message: CaseMessage): void {
-    if (context.isResolved) return;
+    const result = detectResolution(message.text, {
+      detectedAt: context.detectedAt,
+      recentMessages: context.messages,
+      isResolved: context.isResolved || false,
+    });
 
-    // Check if case was just detected (cooldown period to avoid premature detection)
-    const cooldownMinutes = 5;
-    const timeSinceDetection = new Date().getTime() - context.detectedAt.getTime();
-    const cooldownMs = cooldownMinutes * 60 * 1000;
-
-    if (timeSinceDetection < cooldownMs) {
-      return; // Too soon to detect resolution
-    }
-
-    // Negative patterns - questions or hypotheticals should NOT trigger resolution
-    const negativePatterns = [
-      /\?$/,  // Message ends with question mark
-      /is (it|this|that) (fixed|resolved|working|closed|done)/i,
-      /can (you|we|someone) (fix|resolve|close)/i,
-      /will (it|this|that) be (fixed|resolved|closed)/i,
-      /what if (it's|it is|this is) (fixed|resolved|working)/i,
-      /should (we|i) (fix|resolve|close)/i,
-      /(help|issue|problem|error|failed|failing|broken)/i, // Active troubleshooting indicators
-    ];
-
-    const isNegativeContext = negativePatterns.some((pattern) =>
-      pattern.test(message.text)
-    );
-
-    if (isNegativeContext) {
-      return; // Don't detect resolution in questions or active troubleshooting
-    }
-
-    // Positive resolution patterns - affirmative statements only
-    const resolutionKeywords = [
-      /\b(fixed|resolved|closed) (it|this|that|the issue|the problem)\b/i,
-      /\b(it's|it is|this is) (fixed|resolved|working now|all set)\b/i,
-      /\bproblem (solved|fixed|resolved)\b/i,
-      /\bissue (resolved|fixed|closed)\b/i,
-      /\b(successfully|completed|done) (fixed|resolved|closed)\b/i,
-      /\b(working|operational) (now|again)\b/i,
-    ];
-
-    const hasResolutionKeyword = resolutionKeywords.some((pattern) =>
-      pattern.test(message.text)
-    );
-
-    // Check recent messages for ongoing troubleshooting signals
-    const recentMessages = context.messages.slice(-3);
-    const hasRecentQuestions = recentMessages.some(msg => msg.text.includes('?'));
-
-    if (hasResolutionKeyword && !hasRecentQuestions) {
-      console.log(`[ContextManager] Detected resolution for ${context.caseNumber} from message: "${message.text.substring(0, 100)}"`);
+    if (result.isResolved) {
+      console.log(
+        `[ContextManager] Detected resolution for ${context.caseNumber} from message: "${message.text.substring(0, 100)}" - ${result.reason}`
+      );
       context.isResolved = true;
       context.resolvedAt = new Date();
     }
