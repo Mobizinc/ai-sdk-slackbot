@@ -33,7 +33,7 @@ export interface ResolutionCheckResult {
   /**
    * Reason for the detection result (for logging/debugging)
    */
-  reason?: string;
+  reason: string;
 }
 
 /**
