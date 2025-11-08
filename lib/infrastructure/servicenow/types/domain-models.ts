@@ -305,6 +305,8 @@ export interface CaseSearchCriteria {
   updatedAfter?: Date;
   updatedBefore?: Date;
   activeOnly?: boolean; // Filter by active status
+  sysDomain?: string; // Domain sys_id for multi-tenant filtering
+  includeChildDomains?: boolean; // If true, includes cases from child domains (hierarchical search)
   sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
   sortOrder?: 'asc' | 'desc';
   limit?: number;

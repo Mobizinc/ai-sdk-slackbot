@@ -72,6 +72,8 @@ export type ServiceNowToolInput = {
   openedAfter?: string;
   openedBefore?: string;
   activeOnly?: boolean;
+  domain?: string;
+  includeChildDomains?: boolean;
   sortBy?: "opened_at" | "priority" | "updated_on" | "state";
   sortOrder?: "asc" | "desc";
   includeAttachments?: boolean;
@@ -182,6 +184,14 @@ const serviceNowInputSchema = z
       .boolean()
       .optional()
       .describe("Only return active (open) cases (default: true if no state filter specified)."),
+    domain: z
+      .string()
+      .optional()
+      .describe("Domain sys_id for filtering cases in multi-tenant environments. Use this to filter cases by organizational domain."),
+    includeChildDomains: z
+      .boolean()
+      .optional()
+      .describe("Include cases from child domains in hierarchical multi-tenant searches (default: false). Only applies when domain is specified."),
     sortBy: z
       .enum(["opened_at", "priority", "updated_on", "state"])
       .optional()
@@ -365,6 +375,8 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       openedAfter,
       openedBefore,
       activeOnly,
+      domain,
+      includeChildDomains,
       sortBy,
       sortOrder,
       includeAttachments,
@@ -743,6 +755,8 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             openedAfter,
             openedBefore,
             activeOnly,
+            sysDomain: domain,
+            includeChildDomains,
             sortBy,
             sortOrder,
           };
@@ -759,6 +773,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           if (assignmentGroup) appliedFilters.push(`group=${assignmentGroup}`);
           if (assignedTo) appliedFilters.push(`assigned_to=${assignedTo}`);
           if (activeOnly) appliedFilters.push(`active=true`);
+          if (domain) appliedFilters.push(`domain=${domain}${includeChildDomains ? ' (with children)' : ''}`);
 
           const formatted = formatSearchResultsForLLM(results, appliedFilters, results.length);
 

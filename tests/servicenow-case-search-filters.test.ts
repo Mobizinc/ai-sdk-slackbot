@@ -431,6 +431,114 @@ describe("ServiceNow Case Search - Enhanced Filtering (Issue #47)", () => {
     });
   });
 
+  describe("Domain Filtering (Issue #73)", () => {
+    it("should filter by exact domain match", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: [] }),
+      });
+
+      await client.searchCustomerCases({
+        sysDomain: "87eec28c931c9a1049d9764efaba10f4",
+        limit: 5,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const url = callArgs[0];
+
+      expect(decodeURIComponent(url)).toContain("sys_domain=87eec28c931c9a1049d9764efaba10f4");
+      expect(decodeURIComponent(url)).not.toContain("sys_domainRELATIVE");
+    });
+
+    it("should filter by hierarchical domain search (with children)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: [] }),
+      });
+
+      await client.searchCustomerCases({
+        sysDomain: "87eec28c931c9a1049d9764efaba10f4",
+        includeChildDomains: true,
+        limit: 5,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const url = callArgs[0];
+
+      expect(decodeURIComponent(url)).toContain("sys_domainRELATIVE87eec28c931c9a1049d9764efaba10f4");
+      expect(decodeURIComponent(url)).not.toContain("sys_domain=");
+    });
+
+    it("should combine domain filtering with other filters", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: [] }),
+      });
+
+      await client.searchCustomerCases({
+        sysDomain: "87eec28c931c9a1049d9764efaba10f4",
+        includeChildDomains: true,
+        accountName: "Altus Community Healthcare",
+        priority: "2",
+        activeOnly: true,
+        limit: 10,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const url = callArgs[0];
+      const decodedUrl = decodeURIComponent(url);
+
+      // Verify all filters are applied
+      expect(decodedUrl).toContain("sys_domainRELATIVE87eec28c931c9a1049d9764efaba10f4");
+      expect(decodedUrl).toContain("account.name=Altus Community Healthcare");
+      expect(decodedUrl).toContain("priority=2");
+      expect(decodedUrl).toContain("active=true");
+
+      // Verify filters are combined with AND operator (^)
+      expect(decodedUrl).toContain("^");
+    });
+
+    it("should not include domain filter when sysDomain is not provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: [] }),
+      });
+
+      await client.searchCustomerCases({
+        accountName: "Test Account",
+        limit: 5,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const url = callArgs[0];
+      const decodedUrl = decodeURIComponent(url);
+
+      expect(decodedUrl).not.toContain("sys_domain");
+      expect(decodedUrl).not.toContain("RELATIVE");
+    });
+
+    it("should ignore includeChildDomains when sysDomain is not provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: [] }),
+      });
+
+      await client.searchCustomerCases({
+        includeChildDomains: true,
+        accountName: "Test Account",
+        limit: 5,
+      });
+
+      const callArgs = mockFetch.mock.calls[0];
+      const url = callArgs[0];
+      const decodedUrl = decodeURIComponent(url);
+
+      // Should not add domain filter since sysDomain is not provided
+      expect(decodedUrl).not.toContain("sys_domain");
+      expect(decodedUrl).not.toContain("RELATIVE");
+    });
+  });
+
   describe("Backward Compatibility", () => {
     it("should still support legacy fuzzy search with query parameter", async () => {
       mockFetch.mockResolvedValueOnce({

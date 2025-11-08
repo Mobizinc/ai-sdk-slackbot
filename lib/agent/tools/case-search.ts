@@ -39,6 +39,10 @@ const CaseSearchInputSchema = z.object({
   // Boolean flags
   activeOnly: z.boolean().optional().describe("Only show active/open cases (default: true)"),
 
+  // Domain filtering (multi-tenant support)
+  domain: z.string().optional().describe("Domain sys_id for filtering cases in multi-tenant environments"),
+  includeChildDomains: z.boolean().optional().describe("Include cases from child domains (hierarchical search, default: false)"),
+
   // Sorting
   sortBy: z.enum(["opened_at", "priority", "updated_on", "state"]).optional().describe(
     "Sort field (opened_at=oldest/newest, priority=by priority, updated_on=recently updated)"
@@ -70,8 +74,9 @@ export function createCaseSearchTool(params: AgentToolFactoryParams) {
 - "cases opened last week"
 - "cases not updated in 3 days" (use updatedBefore)
 - "search for email sync issues"
+- "show cases in Altus domain" (multi-tenant filtering)
 
-Returns paginated results with Slack-formatted display. Supports sorting and filtering by customer, queue, assignee, priority, state, keywords, opened dates, and updated dates.`,
+Returns paginated results with Slack-formatted display. Supports sorting and filtering by customer, queue, assignee, priority, state, keywords, opened dates, updated dates, and domain (multi-tenant).`,
 
     inputSchema: CaseSearchInputSchema,
 
@@ -94,6 +99,8 @@ Returns paginated results with Slack-formatted display. Supports sorting and fil
           updatedAfter: input.updatedAfter,
           updatedBefore: input.updatedBefore,
           activeOnly: input.activeOnly !== false, // Default true
+          sysDomain: input.domain,
+          includeChildDomains: input.includeChildDomains || false, // Default false
           sortBy: input.sortBy,
           sortOrder: input.sortOrder,
           limit: input.limit || 10,
