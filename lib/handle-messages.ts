@@ -6,6 +6,7 @@ import type {
 import { getSlackMessagingService } from "./services/slack-messaging";
 import { generateResponse } from "./agent";
 import { withLangSmithTrace } from "./observability";
+import { postErrorToSlack } from "./utils/slack-error-handler";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -139,17 +140,12 @@ export const handleNewAssistantMessage = withLangSmithTrace(
         unfurlLinks: false,
       });
     } catch (error) {
-      console.error("Error generating assistant response", error);
-      const errorMessage =
-        (error instanceof Error ? error.message : "Unexpected error")
-          .slice(0, 180);
-      await slackMessaging.postMessage({
-        channel: channel,
+      await postErrorToSlack({
+        channel,
         threadTs: thread_ts,
-        text:
-          "Sorry, I ran into a problem fetching that answer. Please try asking again in a moment. (" +
-          errorMessage +
-          ")",
+        error,
+        errorPrefix: "Sorry, I ran into a problem fetching that answer",
+        logContext: "[Assistant Message]",
       });
     } finally {
       await updateStatus("");

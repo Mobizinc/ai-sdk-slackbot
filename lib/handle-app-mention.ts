@@ -6,16 +6,8 @@ import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
-
-const SLACK_DISPLAY_TEXT_LIMIT = 12000;
-
-const clampTextForSlackDisplay = (text: string): string => {
-  if (!text) return text;
-  if (text.length <= SLACK_DISPLAY_TEXT_LIMIT) {
-    return text;
-  }
-  return `${text.slice(0, SLACK_DISPLAY_TEXT_LIMIT - 1)}…`;
-};
+import { createStatusUpdater, clampTextForSlackDisplay } from "./utils/slack-status-updater";
+import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -39,103 +31,6 @@ const extractSummaryText = (raw: unknown): string | null => {
   return trimmed;
 };
 
-const updateStatusUtil = async (
-  initialStatus: string,
-  event: AppMentionEvent,
-) => {
-  // Create initial message with dedicated status block
-  const initialMessage = await slackMessaging.postMessage({
-    channel: event.channel,
-    threadTs: event.thread_ts ?? event.ts,
-    text: "Processing your request...",
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "_Processing your request..._"
-        }
-      },
-      {
-        type: "context",
-        block_id: "status_block",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: `⏳ ${initialStatus}`
-          }
-        ]
-      }
-    ]
-  });
-
-  if (!initialMessage || !initialMessage.ts)
-    throw new Error("Failed to post initial message");
-
-  const statusEmojis: Record<string, string> = {
-    'is thinking...': '⏳',
-    'thinking': '⏳',
-    'calling-tool': '🔧',
-    'is looking up': '🔍',
-    'is searching': '🔎',
-    'is fetching': '📥',
-    'analyzing': '🧠',
-    'is gathering': '📊',
-  };
-
-  // Non-destructive status update - only updates the status block
-  const updateStatus = async (status: string) => {
-    // Find matching emoji
-    const emojiKey = Object.keys(statusEmojis).find(key => status.includes(key)) || '';
-    const emoji = statusEmojis[emojiKey] || '⚙️';
-
-    await slackMessaging.updateMessage({
-      channel: event.channel,
-      ts: initialMessage.ts as string,
-      text: "Processing your request...",
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "_Processing your request..._"
-          }
-        },
-        {
-          type: "context",
-          block_id: "status_block",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `${emoji} ${status}`
-            }
-          ]
-        }
-      ]
-    });
-  };
-
-  // Destructive final update - replaces entire message with final content
-  const setFinalMessage = async (text: string, blocks?: any[]) => {
-    const displayText = clampTextForSlackDisplay(text);
-    let finalBlocks = blocks;
-
-    if ((!finalBlocks || finalBlocks.length === 0) && displayText && displayText.length > 2800) {
-      const { splitTextIntoSectionBlocks } = await import("./formatters/servicenow-block-kit");
-      finalBlocks = splitTextIntoSectionBlocks(displayText, "mrkdwn");
-    }
-
-    await slackMessaging.updateMessage({
-      channel: event.channel,
-      ts: initialMessage.ts as string,
-      text: displayText,
-      blocks: finalBlocks,
-    });
-  };
-
-  return { updateStatus, setFinalMessage };
-};
-
 export async function handleNewAppMention(
   event: AppMentionEvent,
   botUserId: string,
@@ -147,7 +42,11 @@ export async function handleNewAppMention(
   }
 
   const { thread_ts, channel } = event;
-  const { updateStatus, setFinalMessage } = await updateStatusUtil("is thinking...", event);
+  const { updateStatus, setFinalMessage } = await createStatusUpdater(
+    event.channel,
+    event.thread_ts ?? event.ts,
+    "is thinking..."
+  );
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:
@@ -272,8 +171,12 @@ export async function handleNewAppMention(
       return;
 
     } catch (error) {
-      console.error(`[App Mention] Triage failed for ${caseNumber}:`, error);
-      await setFinalMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await setErrorWithStatusUpdater(
+        { setFinalMessage },
+        error,
+        `Failed to triage case ${caseNumber}`,
+        "[App Mention]"
+      );
       return;
     }
   }
