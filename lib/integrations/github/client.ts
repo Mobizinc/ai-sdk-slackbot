@@ -1,4 +1,3 @@
-import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "@octokit/rest";
 import { getConfigValue } from "../../config";
 import type { ConfigKey } from "../../config/registry";
@@ -11,6 +10,19 @@ interface InstallationToken {
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000; // refresh 1 minute before expiry
 
 let cachedInstallationToken: InstallationToken | null = null;
+type CreateAppAuth = typeof import("@octokit/auth-app").createAppAuth;
+let createAppAuthFn: CreateAppAuth | undefined;
+type DynamicImport = (specifier: string) => Promise<any>;
+const dynamicImport: DynamicImport = Function("specifier", "return import(specifier);") as DynamicImport;
+
+async function loadCreateAppAuth(): Promise<CreateAppAuth> {
+  if (createAppAuthFn) {
+    return createAppAuthFn;
+  }
+  const mod = await dynamicImport("@octokit/auth-app");
+  createAppAuthFn = mod.createAppAuth;
+  return createAppAuthFn!;
+}
 
 function normalizePrivateKey(privateKey: string): string {
   return privateKey.replace(/\\n/g, "\n");
@@ -56,6 +68,8 @@ async function getInstallationToken(): Promise<InstallationToken> {
   }
 
   const { appId, installationId, privateKey } = getGitHubConfig();
+
+  const createAppAuth = await loadCreateAppAuth();
 
   const auth = createAppAuth({
     appId,
