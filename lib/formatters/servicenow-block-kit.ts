@@ -286,6 +286,55 @@ function formatJournalEntry(entry: JournalEntry, index: number): string {
 }
 
 /**
+ * Format case as minimal card with essential info and "View Details" button
+ *
+ * @param caseData - ServiceNow case object
+ * @returns Array of Block Kit blocks (minimal, ~3-4 blocks)
+ */
+export function formatCaseAsMinimalCard(caseData: ServiceNowCase): any[] {
+  const blocks: any[] = [];
+
+  const caseNumber = extractDisplayValue(caseData.number);
+  const sysId = extractDisplayValue(caseData.sys_id);
+  const shortDesc = extractDisplayValue(caseData.short_description) || "No description";
+  const priority = extractDisplayValue(caseData.priority);
+  const state = extractDisplayValue(caseData.state);
+
+  // Compact header with case number and priority
+  const priorityEmoji = priority === "1" ? "🔴" : priority === "2" ? "🟠" : priority === "3" ? "🟡" : "🔵";
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `${priorityEmoji} *Case ${caseNumber}* • ${state || "Unknown State"}\n${shortDesc}`
+    }
+  });
+
+  // Button to view full details in ServiceNow
+  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const caseUrl = `${instanceUrl}/nav_to.do?uri=x_mobit_serv_case_service_case.do?sys_id=${sysId}`;
+
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "View Full Details",
+          emoji: true
+        },
+        url: caseUrl,
+        action_id: "view_case_details"
+      }
+    ]
+  });
+
+  return blocks;
+}
+
+/**
  * Format case details into Slack Block Kit blocks
  *
  * @param caseData - ServiceNow case object
@@ -490,6 +539,55 @@ export function generateCaseFallbackText(caseData: ServiceNowCase): string {
   const priority = extractDisplayValue(caseData.priority);
 
   return `Case ${caseNumber}: ${shortDesc} | Status: ${state} | Priority: ${priority}`;
+}
+
+/**
+ * Format incident as minimal card with essential info and "View Details" button
+ *
+ * @param incidentData - ServiceNow incident object
+ * @returns Array of Block Kit blocks (minimal, ~2 blocks)
+ */
+export function formatIncidentAsMinimalCard(incidentData: ServiceNowCase): any[] {
+  const blocks: any[] = [];
+
+  const incidentNumber = extractDisplayValue(incidentData.number);
+  const sysId = extractDisplayValue(incidentData.sys_id);
+  const shortDesc = extractDisplayValue(incidentData.short_description) || "No description";
+  const priority = extractDisplayValue(incidentData.priority);
+  const state = extractDisplayValue(incidentData.state);
+
+  // Compact header with incident number and priority
+  const priorityEmoji = priority === "1" ? "🔴" : priority === "2" ? "🟠" : priority === "3" ? "🟡" : "🔵";
+
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `${priorityEmoji} *Incident ${incidentNumber}* • ${state || "Unknown State"}\n${shortDesc}`
+    }
+  });
+
+  // Button to view full details in ServiceNow
+  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const incidentUrl = `${instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`;
+
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "View Full Details",
+          emoji: true
+        },
+        url: incidentUrl,
+        action_id: "view_incident_details"
+      }
+    ]
+  });
+
+  return blocks;
 }
 
 /**

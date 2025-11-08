@@ -269,73 +269,43 @@ export async function handleNewAppMention(
 
       // Handle both case and incident Block Kit data
       if (parsed._blockKitData.type === "incident_detail") {
-        // Use pre-generated blocks from incident formatter
-        const incidentBlocks = parsed._blockKitData.blocks || blockKitModule.formatIncidentAsBlockKit(parsed._blockKitData.incidentData);
-
         // Get LLM's full text response (with Microsoft Learn guidance, etc.)
         const llmResponse = parsed.text || result;
 
-        // Split LLM response into section blocks (handles 3000 char limit per block)
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, 'mrkdwn');
+        // Create minimal incident card with "View Details" button
+        const minimalBlocks = blockKitModule.formatIncidentAsMinimalCard(parsed._blockKitData.incidentData);
 
-        // Combine LLM text blocks with incident details
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          { type: "divider" },
-          ...incidentBlocks
-        ];
-
-        const fallbackText = `Incident ${parsed._blockKitData.incidentData?.number}: ${parsed._blockKitData.incidentData?.short_description}`;
-
-        console.log('[Handler] Rendering incident Block Kit with LLM response');
+        console.log('[Handler] Sending incident response as plain text + minimal card');
         console.log('[Handler] Incident data:', {
           number: parsed._blockKitData.incidentData?.number,
           llmTextLength: llmResponse?.length,
-          llmBlockCount: llmTextBlocks?.length,
-          incidentBlockCount: incidentBlocks?.length,
-          totalBlockCount: combinedBlocks.length,
-          blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
+          minimalBlockCount: minimalBlocks?.length,
         });
-        console.log('[Handler] First LLM block preview:', JSON.stringify(llmTextBlocks[0], null, 2));
 
-        // Send combined blocks with LLM text split across multiple blocks
-        await setFinalMessage(fallbackText, combinedBlocks);
+        // Combine LLM text with minimal card blocks
+        const combinedText = `${llmResponse}\n\n---`;
+
+        // Send LLM text as markdown + minimal Block Kit card
+        await setFinalMessage(combinedText, minimalBlocks);
       } else if (parsed._blockKitData.type === "case_detail") {
-        // Use existing case formatting
-        const blocks = blockKitModule.formatCaseAsBlockKit(parsed._blockKitData.caseData, {
-          includeJournal: true,
-          journalEntries: parsed._blockKitData.journalEntries,
-          maxJournalEntries: 3,
-        });
-
         // Get LLM's full text response (with analysis, root cause guidance, etc.)
         const llmResponse = parsed.text || result;
 
-        // Split LLM response into section blocks (handles 3000 char limit per block)
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, 'mrkdwn');
+        // Create minimal case card with "View Details" button
+        const minimalBlocks = blockKitModule.formatCaseAsMinimalCard(parsed._blockKitData.caseData);
 
-        // Combine LLM text blocks with case details
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          { type: "divider" },
-          ...blocks
-        ];
-
-        const fallbackText = blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData);
-
-        console.log('[Handler] Rendering case Block Kit with LLM response');
+        console.log('[Handler] Sending case response as plain text + minimal card');
         console.log('[Handler] Case data:', {
           number: parsed._blockKitData.caseData?.number,
           llmTextLength: llmResponse?.length,
-          llmBlockCount: llmTextBlocks?.length,
-          caseBlockCount: blocks?.length,
-          totalBlockCount: combinedBlocks.length,
-          blockTypes: combinedBlocks?.map((b: any) => b.type).join(', ')
+          minimalBlockCount: minimalBlocks?.length,
         });
-        console.log('[Handler] First LLM block preview:', JSON.stringify(llmTextBlocks[0], null, 2));
 
-        // Send combined blocks with LLM text split across multiple blocks
-        await setFinalMessage(fallbackText, combinedBlocks);
+        // Combine LLM text with minimal card blocks
+        const combinedText = `${llmResponse}\n\n---`;
+
+        // Send LLM text as markdown + minimal Block Kit card
+        await setFinalMessage(combinedText, minimalBlocks);
       } else {
         // Unknown type, fallback to text
         console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
