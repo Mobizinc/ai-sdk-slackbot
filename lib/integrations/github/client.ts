@@ -1,7 +1,7 @@
 import { createSign } from "node:crypto";
-import { Octokit } from "@octokit/rest";
 import { getConfigValue } from "../../config";
 import type { ConfigKey } from "../../config/registry";
+import type { Octokit } from "@octokit/rest";
 
 interface InstallationToken {
   token: string;
@@ -140,6 +140,10 @@ async function getInstallationToken(): Promise<InstallationToken> {
 export async function getGitHubClient(): Promise<Octokit> {
   const { apiBaseUrl } = getGitHubConfig();
   const { token } = await getInstallationToken();
+
+  // Use eval to bypass TypeScript's import transformation and get real dynamic import in CommonJS
+  // This allows us to import ES modules (@octokit/rest v21+) from CommonJS code
+  const { Octokit } = await eval('import("@octokit/rest")') as typeof import("@octokit/rest");
 
   return new Octokit({
     auth: token,
