@@ -80,11 +80,11 @@ export class CaseSearchService {
     };
 
     try {
-      const cases = await this.caseRepository.search(criteria);
+      const { cases, totalCount } = await this.caseRepository.search(criteria);
 
       // Calculate metadata
-      const totalFound = offset + cases.length;
-      const hasMore = cases.length >= limit;
+      const totalFound = totalCount; // Use real total from ServiceNow, not offset + length
+      const hasMore = offset + cases.length < totalCount;
       const nextOffset = hasMore ? offset + limit : undefined;
 
       return {

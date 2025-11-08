@@ -30,8 +30,9 @@ export interface CaseRepository {
 
   /**
    * Search for cases matching criteria
+   * Returns cases and total count from ServiceNow (not just page count)
    */
-  search(criteria: CaseSearchCriteria): Promise<Case[]>;
+  search(criteria: CaseSearchCriteria): Promise<{ cases: Case[]; totalCount: number }>;
 
   /**
    * Create a new case

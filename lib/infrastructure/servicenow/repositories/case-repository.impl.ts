@@ -95,7 +95,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
   /**
    * Search for cases matching criteria
    */
-  async search(criteria: CaseSearchCriteria): Promise<Case[]> {
+  async search(criteria: CaseSearchCriteria): Promise<{ cases: Case[]; totalCount: number }> {
     const queryParts: string[] = [];
 
     // Sort configuration (must be first in ServiceNow query)
@@ -205,8 +205,15 @@ export class ServiceNowCaseRepository implements CaseRepository {
       },
     );
 
+    // Extract total count from response headers
+    const totalCount = response.headers?.["x-total-count"]
+      ? parseInt(response.headers["x-total-count"], 10)
+      : 0;
+
     const records = Array.isArray(response.result) ? response.result : [response.result];
-    return records.map((record) => mapCase(record, this.httpClient.getInstanceUrl()));
+    const cases = records.map((record) => mapCase(record, this.httpClient.getInstanceUrl()));
+
+    return { cases, totalCount };
   }
 
   /**
@@ -452,21 +459,24 @@ export class ServiceNowCaseRepository implements CaseRepository {
    * Get cases related to an account
    */
   async findByAccount(accountSysId: string, limit = 100): Promise<Case[]> {
-    return this.search({ account: accountSysId, limit });
+    const { cases } = await this.search({ account: accountSysId, limit });
+    return cases;
   }
 
   /**
    * Get cases related to a caller
    */
   async findByCaller(callerSysId: string, limit = 100): Promise<Case[]> {
-    return this.search({ caller: callerSysId, limit });
+    const { cases } = await this.search({ caller: callerSysId, limit });
+    return cases;
   }
 
   /**
    * Get all open cases
    */
   async findOpen(limit = 100): Promise<Case[]> {
-    return this.search({ state: "open", limit });
+    const { cases } = await this.search({ state: "open", limit });
+    return cases;
   }
 
   /**
