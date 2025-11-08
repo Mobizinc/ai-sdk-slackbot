@@ -84,7 +84,7 @@ describe("handleNewAppMention Block Kit formatting", () => {
       .join(" ");
 
     const blockKitPayload = {
-      text: longSummary,
+      text: JSON.stringify({ text: longSummary }),
       _blockKitData: {
         type: "case_detail",
         caseData: {

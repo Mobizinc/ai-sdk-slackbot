@@ -19,6 +19,26 @@ const clampTextForSlackDisplay = (text: string): string => {
 
 const slackMessaging = getSlackMessagingService();
 
+const extractSummaryText = (raw: unknown): string | null => {
+  if (!raw) return null;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed.text === "string") {
+        return parsed.text.trim();
+      }
+    } catch {
+      // Ignore parse errors and fall through to returning original trimmed text
+    }
+  }
+
+  return trimmed;
+};
+
 const updateStatusUtil = async (
   initialStatus: string,
   event: AppMentionEvent,
@@ -287,8 +307,12 @@ export async function handleNewAppMention(
 
       // Handle both case and incident Block Kit data
       if (parsed._blockKitData.type === "incident_detail") {
-        // Get LLM's full text response (with Microsoft Learn guidance, etc.)
-        const llmResponse = clampTextForSlackDisplay(parsed.text || result);
+        const resolvedText =
+          extractSummaryText(parsed.text) ||
+          extractSummaryText(parsed.summary) ||
+          blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData || {});
+
+        const llmResponse = clampTextForSlackDisplay(resolvedText);
 
         // Create minimal incident card with "View Details" button
         const minimalBlocks = blockKitModule.formatIncidentAsMinimalCard(parsed._blockKitData.incidentData);
@@ -309,8 +333,12 @@ export async function handleNewAppMention(
 
         await setFinalMessage(llmResponse, combinedBlocks);
       } else if (parsed._blockKitData.type === "case_detail") {
-        // Get LLM's full text response (with analysis, root cause guidance, etc.)
-        const llmResponse = clampTextForSlackDisplay(parsed.text || result);
+        const resolvedText =
+          extractSummaryText(parsed.text) ||
+          extractSummaryText(parsed.summary) ||
+          blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData || {});
+
+        const llmResponse = clampTextForSlackDisplay(resolvedText);
 
         // Create minimal case card with "View Details" button
         const minimalBlocks = blockKitModule.formatCaseAsMinimalCard(parsed._blockKitData.caseData);
