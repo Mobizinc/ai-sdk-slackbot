@@ -101,10 +101,10 @@ export class SlackMessagingService {
     const messageKey = `${options.channel}:${options.ts}`;
     const maxRetries = 3;
     let attempt = 0;
+    const fallbackText = this.trimFallbackText(options.text);
 
     while (attempt < maxRetries) {
       try {
-        const fallbackText = this.trimFallbackText(options.text);
 
         // Enforce 3-second rate limit
         const lastUpdate = this.lastUpdateTimes.get(messageKey) || 0;
