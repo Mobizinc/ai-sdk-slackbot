@@ -7,7 +7,13 @@
 import { withLangSmithTrace, traceLLMCall } from "../observability";
 import { getChangeValidationRepository } from "../db/repositories/change-validation-repository";
 import type { ChangeValidation } from "../db/schema";
-import { ServiceNowChangeWebhookSchema, type ServiceNowChangeWebhook } from "../schemas/servicenow-change-webhook";
+import {
+  ServiceNowChangeWebhookSchema,
+  type ServiceNowChangeWebhook,
+  detectComponentType,
+  extractDocumentationFields,
+  type ComponentType
+} from "../schemas/servicenow-change-webhook";
 import { serviceNowClient } from "../tools/servicenow";
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
@@ -68,13 +74,26 @@ class ChangeValidationService {
 
       console.log(`[Change Validation] Received webhook for ${validated.change_number}`);
 
-      // Create DB record
+      // Detect component type and sys_id from payload
+      const component = detectComponentType(validated);
+      console.log(`[Change Validation] Detected component: ${component.type} (${component.sysId || 'no sys_id'})`);
+
+      // Extract documentation fields for archival
+      const documentationFields = extractDocumentationFields(validated);
+
+      // Enrich payload with archived documentation for fallback
+      const enrichedPayload = {
+        ...validated,
+        archived_documentation: documentationFields
+      };
+
+      // Create DB record with detected component type
       const record = await this.repository.create({
         changeNumber: validated.change_number,
         changeSysId: validated.change_sys_id,
-        componentType: validated.component_type,
-        componentSysId: validated.component_sys_id,
-        payload: validated as Record<string, any>,
+        componentType: component.type,  // Use detected type
+        componentSysId: component.sysId, // Use detected sys_id
+        payload: enrichedPayload as Record<string, any>,
         hmacSignature: hmacSignature,
         requestedBy: requestedBy,
         status: "received",
@@ -169,6 +188,21 @@ class ChangeValidationService {
   }
 
   /**
+   * Check if a date string is within the specified number of days
+   */
+  private isRecentlyUpdated(dateStr: string, days: number): boolean {
+    try {
+      const date = new Date(dateStr);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      return date > cutoffDate;
+    } catch (error) {
+      console.warn("[Change Validation] Invalid date for recency check:", dateStr);
+      return false;
+    }
+  }
+
+  /**
    * Collect validation facts from ServiceNow
    * Runs collectors in parallel with timeouts to prevent hanging
    */
@@ -180,6 +214,10 @@ class ChangeValidationService {
       component_sys_id: record.componentSysId,
       collection_errors: [],
     };
+
+    if (record.payload?.archived_documentation) {
+      facts.documentation = record.payload.archived_documentation;
+    }
 
     try {
       // Phase 1: Environment Health Check - UAT Clone Freshness
@@ -318,11 +356,141 @@ class ChangeValidationService {
             has_scope: false,
           };
         }
+      } else if (record.componentType === "std_change_template" && record.componentSysId) {
+        // New: Standard Change Template validation
+        const templateMetadata = await this.withTimeout(
+          serviceNowClient.getTemplateMetadata(record.componentSysId),
+          SERVICENOW_TIMEOUT_MS,
+          "getTemplateMetadata"
+        );
+
+        if (templateMetadata) {
+          const documentation = record.payload?.archived_documentation;
+          facts.template = {
+            ...templateMetadata,
+            documentation: documentation ?? undefined,
+            version: templateMetadata.version ?? record.payload?.std_change_producer_version,
+            component_sys_id: record.componentSysId,
+          };
+
+          // Check if template was recently updated (within 30 days)
+          const lastUpdated =
+            templateMetadata.last_updated ||
+            templateMetadata.version?.last_updated;
+
+          const isRecentlyUpdated = lastUpdated
+            ? this.isRecentlyUpdated(lastUpdated, 30)
+            : false;
+
+          facts.checks = {
+            template_has_workflow: !!templateMetadata.workflow,
+            template_recently_updated: isRecentlyUpdated,
+            template_has_catalog: !!(
+              templateMetadata.producer?.catalog_item ||
+              templateMetadata.catalog_item?.sys_id
+            ),
+            template_is_published: templateMetadata.published === true,
+            template_is_active: templateMetadata.active === true,
+          };
+        } else {
+          facts.collection_errors.push("Template metadata fetch timed out or failed");
+          // Fallback to archived data if available
+          const archivedTemplate = record.payload?.std_change_producer_version;
+          if (archivedTemplate) {
+            facts.template = {
+              archived: true,
+              version: archivedTemplate,
+              documentation: record.payload?.archived_documentation,
+            };
+            facts.checks = {
+              template_has_workflow: false,
+              template_recently_updated: false,
+              template_has_catalog: false,
+              template_is_published: false,
+              template_is_active: false,
+            };
+          } else {
+            facts.checks = {
+              template_has_workflow: false,
+              template_recently_updated: false,
+              template_has_catalog: false,
+              template_is_published: false,
+              template_is_active: false,
+            };
+          }
+        }
+      } else if (record.componentType === "cmdb_ci" && record.componentSysId) {
+        // New: CMDB Configuration Item validation
+        const cmdbDetails = await this.withTimeout(
+          serviceNowClient.getCMDBDetails(record.componentSysId),
+          SERVICENOW_TIMEOUT_MS,
+          "getCMDBDetails"
+        );
+
+        if (cmdbDetails) {
+          facts.cmdb_ci = cmdbDetails;
+
+          facts.checks = {
+            ci_has_owner: !!cmdbDetails.owner,
+            ci_has_environment: !!cmdbDetails.environment,
+            ci_has_relationships: (cmdbDetails.relationships?.length || 0) > 0,
+            ci_is_operational: cmdbDetails.operational_status === "operational" ||
+                              cmdbDetails.operational_status === "1",
+            ci_has_criticality: !!cmdbDetails.business_criticality,
+          };
+        } else {
+          facts.collection_errors.push("CMDB CI fetch timed out or failed");
+          // Fallback to archived data if available
+          const archivedCI = record.payload?.cmdb_ci;
+          if (archivedCI) {
+            facts.cmdb_ci = { archived: true, ...archivedCI };
+            facts.checks = {
+              ci_has_owner: false,
+              ci_has_environment: false,
+              ci_has_relationships: false,
+              ci_is_operational: false,
+              ci_has_criticality: false,
+            };
+          } else {
+            facts.checks = {
+              ci_has_owner: false,
+              ci_has_environment: false,
+              ci_has_relationships: false,
+              ci_is_operational: false,
+              ci_has_criticality: false,
+            };
+          }
+        }
       }
+
+      // Extract and include documentation fields from archived payload
+      const archivedDocs = record.payload?.archived_documentation || {};
+      facts.documentation = {
+        implementation_plan: archivedDocs.implementation_plan || "",
+        rollback_plan: archivedDocs.rollback_plan || "",
+        test_plan: archivedDocs.test_plan || "",
+        justification: archivedDocs.justification || "",
+      };
+
+      // Add checks for documentation completeness
+      if (!facts.checks) {
+        facts.checks = {};
+      }
+      facts.checks.has_implementation_plan = !!facts.documentation.implementation_plan;
+      facts.checks.has_rollback_plan = !!facts.documentation.rollback_plan;
+      facts.checks.has_test_plan = !!facts.documentation.test_plan;
+      facts.checks.has_justification = !!facts.documentation.justification;
+
     } catch (error) {
       console.warn("[Change Validation] Error collecting facts:", error);
       // Continue - facts might be incomplete but validation can proceed
       facts.collection_errors.push(error instanceof Error ? error.message : String(error));
+    }
+
+    // Determine data source for audit trail
+    facts.data_source = facts.collection_errors.length > 0 ? "partial" : "api";
+    if (facts.template?.archived || facts.cmdb_ci?.archived) {
+      facts.data_source = "archived";
     }
 
     return facts;

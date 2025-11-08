@@ -1,0 +1,52 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "duration_ms": 25688,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT. Change CHG0041587 cannot proceed to implementation due to complete absence of required documentation (0/8 checks passing). The change proposes modifications to Deploy/Launch state notifications for a catalog item, but critical details are missing: no implementation plan, no rollback plan, no test plan, and no business justification. Additionally, collection errors prevent validation of the target catalog item's current configuration, and clone freshness data is unavailable, indicating environment readiness cannot be confirmed. The vague description does not clarify scope, affected fulfiller groups, notification recipients, or integration impacts. This creates unacceptable risk to service catalog operations and fulfillment workflows. REQUIRED ACTIONS: (1) Provide complete implementation, rollback, and test plans with sub-production validation evidence, (2) Document business justification and impact analysis, (3) Resolve collection errors and provide fresh clone data, (4) Clarify change classification if this involves business rules/workflows rather than catalog item configuration. Resubmit to CAB only after all documentation requirements are satisfied and testing is complete."
+  },
+  {
+    "change_number": "CHG0041588",
+    "duration_ms": 27799,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - Change CHG0041588 cannot proceed to implementation due to complete absence of required documentation and critical environment readiness failures. The change proposes modifications to Slack SLA messaging (adding days/hours left and spent) but provides zero implementation details, no rollback strategy, no test plan, and no business justification. Catalog item fetch timeout prevents validation of current configuration and dependencies. Clone freshness is unverifiable, blocking pre-production testing requirements. The change title 'Standard Change for ServiceNow Platform Updates' is misleading for what appears to be a catalog item and integration modification. This represents unacceptable risk to SLA notification workflows that support incident, problem, and change management processes. REQUIRED BEFORE RESUBMISSION: Complete all mandatory documentation (implementation, rollback, test plans, and justification), resolve catalog item data collection issues, refresh sub-production clone and complete regression testing, correct change classification and title, coordinate with integration/service desk stakeholders, and define appropriate maintenance window. Recommend engaging ServiceNow technical lead and change manager to reconstruct complete change package before CAB resubmission."
+  },
+  {
+    "change_number": "CHG0041589",
+    "duration_ms": 25110,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - CHG0041589 cannot proceed due to critical documentation gaps and environment validation failures. This change requests updates to Email Inbound Flow but provides ZERO documentation across all mandatory fields (implementation plan, rollback plan, test plan, justification). Additionally, critical data collection errors prevent validation: clone freshness cannot be verified (timeout) and catalog item details are unavailable. Email inbound flows are high-risk components affecting ticket creation workflows, assignment rules, and potentially external integrations. Without understanding WHAT is being changed, HOW it will be tested, and HOW to roll back, approval would expose production to uncontrolled risk. The submitter must provide complete documentation per platform change standards, verify sub-production environment readiness with confirmed clone date, resolve catalog item fetch errors, and clarify whether this truly qualifies as a Standard Change. Recommend scheduling review session with Change Owner to establish proper scope and documentation before resubmission."
+  },
+  {
+    "change_number": "CHG0041590",
+    "duration_ms": 28230,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false,
+      "has_implementation_plan": false,
+      "has_rollback_plan": false,
+      "has_test_plan": false,
+      "has_justification": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active, has_implementation_plan, has_rollback_plan, has_test_plan, has_justification. Please review and correct before proceeding."
+  },
+  {
+    "change_number": "CHG0041592",
+    "duration_ms": 28461,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false,
+      "has_implementation_plan": false,
+      "has_rollback_plan": false,
+      "has_test_plan": false,
+      "has_justification": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active, has_implementation_plan, has_rollback_plan, has_test_plan, has_justification. Please review and correct before proceeding."
+  }
+]

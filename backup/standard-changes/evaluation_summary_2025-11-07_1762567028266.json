@@ -1,0 +1,37 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 222,
+    "error": "Failed query: select \"id\", \"change_number\", \"change_sys_id\", \"component_type\", \"component_sys_id\", \"payload\", \"hmac_signature\", \"requested_by\", \"status\", \"validation_results\", \"failure_reason\", \"created_at\", \"updated_at\", \"processed_at\", \"processing_time_ms\", \"retry_count\" from \"change_validations\" where \"change_validations\".\"change_sys_id\" = $1 limit $2\nparams: 122e7b4ac3492a1066d9bdb4e40131ca,1"
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 241,
+    "error": "Failed query: select \"id\", \"change_number\", \"change_sys_id\", \"component_type\", \"component_sys_id\", \"payload\", \"hmac_signature\", \"requested_by\", \"status\", \"validation_results\", \"failure_reason\", \"created_at\", \"updated_at\", \"processed_at\", \"processing_time_ms\", \"retry_count\" from \"change_validations\" where \"change_validations\".\"change_sys_id\" = $1 limit $2\nparams: 57300c1ec3492a1066d9bdb4e40131a7,1"
+  },
+  {
+    "change_number": "CHG0041589",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 64,
+    "error": "Failed query: select \"id\", \"change_number\", \"change_sys_id\", \"component_type\", \"component_sys_id\", \"payload\", \"hmac_signature\", \"requested_by\", \"status\", \"validation_results\", \"failure_reason\", \"created_at\", \"updated_at\", \"processed_at\", \"processing_time_ms\", \"retry_count\" from \"change_validations\" where \"change_validations\".\"change_sys_id\" = $1 limit $2\nparams: bca20c52c3892a1066d9bdb4e4013181,1"
+  },
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 71,
+    "error": "Failed query: select \"id\", \"change_number\", \"change_sys_id\", \"component_type\", \"component_sys_id\", \"payload\", \"hmac_signature\", \"requested_by\", \"status\", \"validation_results\", \"failure_reason\", \"created_at\", \"updated_at\", \"processed_at\", \"processing_time_ms\", \"retry_count\" from \"change_validations\" where \"change_validations\".\"change_sys_id\" = $1 limit $2\nparams: c274e8aac3452a10ad36b9ff05013102,1"
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 67,
+    "error": "Failed query: select \"id\", \"change_number\", \"change_sys_id\", \"component_type\", \"component_sys_id\", \"payload\", \"hmac_signature\", \"requested_by\", \"status\", \"validation_results\", \"failure_reason\", \"created_at\", \"updated_at\", \"processed_at\", \"processing_time_ms\", \"retry_count\" from \"change_validations\" where \"change_validations\".\"change_sys_id\" = $1 limit $2\nparams: 8c097deac38daa1066d9bdb4e4013108,1"
+  }
+]

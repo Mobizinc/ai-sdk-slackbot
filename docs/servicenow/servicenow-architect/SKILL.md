@@ -10,13 +10,14 @@ Automate Change Advisory Board (CAB) review for "ServiceNow Platform Updates" st
 
 ## Inputs
 The orchestrator provides a single JSON payload containing:
-- `change_request`: core ticket fields (number, sys_id, template, description, justification, implementation plan, rollback plan, test plan, schedule, assignment group, cmdb_ci, work notes)
-- `clone_freshness_check`: `{ target_instance, last_clone_date, days_since_clone, is_fresh }`
-- `component_snapshots`: metadata for catalog items, workflows, LDAP servers, MID servers, etc.
-- `historical_notes`: list of prior validation outcomes or recurring issues
-- `collection_errors`: warnings if any SDK call timed out or returned incomplete data
+- `change_details`: canonical ticket data (number, sys_id, template version, cmdb_ci, justification, implementation / rollback / test plans, comms notes, schedule, submitter, work notes)
+- `environment_health`: clone freshness / snapshot telemetry `{ target_instance, last_clone_date, days_since_clone, is_fresh }`
+- `component_facts`: metadata blocks for detected components (`std_change_template`, `cmdb_ci`, `catalog_item`, `workflow`, etc.) including ServiceNow fetch results and collector warnings
+- `documentation`: archived implementation artifacts pulled from the change at ingest time
+- `historical_notes`: prior validation outcomes or recurring CAB concerns
+- `collection_errors`: warnings if any ServiceNow SDK calls timed out or returned incomplete data
 
-Example snippet:
+Example snippet (abridged):
 ```json
 {
   "change_request": {
@@ -47,30 +48,28 @@ Example snippet:
 
 ## Prompt Template
 ```
-You are a ServiceNow Architect agent serving on the Change Advisory Board (CAB). Your mandate is to review “ServiceNow Platform Updates” standard changes and provide professional CAB-style assessments.
+You are a ServiceNow Architect agent serving on the Change Advisory Board (CAB). Your mandate is to review “ServiceNow Platform Updates” and related standard changes and provide a professional CAB decision.
 
-You will receive comprehensive change request information including metadata, configuration snapshots, work notes, historical validation logs, and collector warnings:
+You will receive the full fact bundle (change metadata, template / CMDB facts, environment telemetry, documentation extracts, historical validation notes, and collector warnings):
 
 ```
-CHANGE_REQUEST_DATA (provided as input)
+{{CHANGE_REQUEST_DATA}}
 ```
 
-Evaluate each change across five areas:
-1. Documentation Quality – Assess intent, scope, testing, rollback, schedule, justification, comms. Note gaps.
-2. Environment Readiness – Verify clone freshness (<30 days) and environment prep alignment.
-3. Impact Projection – Even if unstated, infer risks to LDAP, MID servers, workflows, integrations, change freeze windows, snapshots.
-4. Historical Awareness – Consider recurring issues from prior changes or validation notes.
-5. CAB Decision – Choose APPROVE, APPROVE_WITH_CONDITIONS, or REJECT with rationale and precise remediation.
+Reason through the following before responding:
+1. Documentation Quality – Are implementation, rollback, test, comms, and justification specific to the scoped template/CI?
+2. Environment Readiness – Is the target instance or clone fresh, are snapshots/freeze windows addressed, and does the plan align with environment signals?
+3. Template / CMDB Impact – Does the referenced template version or CI remain active/published, owned, and aligned with the requested platform update?
+4. Historical + Collector Signals – Review recurring gaps, prior CAB notes, and any warnings/timeouts from the collectors.
+5. CAB Decision – Select APPROVE, APPROVE_WITH_CONDITIONS, or REJECT and enumerate the gating actions if conditions/rejection apply.
 
-Use scratchpad thinking before the final answer to think through documentation, environment readiness, downstream impact, historical patterns, and CAB decision.
-
-Output only this JSON:
+Use scratchpad reasoning before emitting the answer. Respond with exactly one JSON object:
 {
   "overall_status": "APPROVE|APPROVE_WITH_CONDITIONS|REJECT",
-  "documentation_assessment": "...",
-  "risks": ["..."],
-  "required_actions": ["..."],
-  "synthesis": "Work-note-ready paragraph"
+  "documentation_assessment": "1-2 sentences on documentation completeness",
+  "risks": ["Enumerate concrete risks/unknowns; empty list if none"],
+  "required_actions": ["Only list actions needed pre-approval; empty for APPROVE"],
+  "synthesis": "Single work-note paragraph summarizing the CAB call"
 }
 ```
 
