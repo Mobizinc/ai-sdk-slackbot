@@ -1,0 +1,8 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "duration_ms": 28755,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - Change CHG0041587 cannot proceed to implementation due to critical documentation failures and data collection issues. This change proposes modifications to Story (STRY) state transition notifications for Deploy/Launch states but provides zero technical documentation. All four critical documentation elements are missing: implementation plan, rollback plan, test plan, and justification. Additionally, catalog item data collection timed out, preventing assessment of current configuration and dependencies, while clone freshness cannot be verified (null values). Notification and workflow changes carry significant risk of downstream impacts to automation, integrations, assignment logic, and reporting. The change must be returned to the requester (SKhalid@mobizinc.com) with mandatory requirements to provide complete implementation details, comprehensive testing approach, rollback procedures, business justification, and resolution of data collection failures. Clone environment must be verified as current (<30 days). Once documentation is complete and environment readiness confirmed, resubmit for CAB review. Current state does not meet minimum standards for platform change evaluation."
+  }
+]

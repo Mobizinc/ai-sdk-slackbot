@@ -1,0 +1,652 @@
+{
+  "metadata": {
+    "extracted_at": "2025-11-07T17:47:36.835Z",
+    "instance_url": "https://mobiz.service-now.com",
+    "change_number": "CHG0041960",
+    "change_sys_id": "1482fec7c3ecb21066d9bdb4e401314f"
+  },
+  "change_request": {
+    "parent": {
+      "display_value": "",
+      "value": ""
+    },
+    "reason": {
+      "display_value": null,
+      "value": ""
+    },
+    "x_mobit_itsm_ent_entitlement": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_jira_number": {
+      "display_value": "STRY0010148",
+      "value": "9d226940c354a6545bcb9df015013102"
+    },
+    "watch_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "upon_reject": {
+      "display_value": "Cancel all future Tasks",
+      "value": "cancel"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-10-29 10:26:23",
+      "value": "2025-10-29 17:26:23"
+    },
+    "type": {
+      "display_value": "Standard",
+      "value": "standard"
+    },
+    "approval_history": {
+      "display_value": "",
+      "value": ""
+    },
+    "skills": {
+      "display_value": "",
+      "value": ""
+    },
+    "number": {
+      "display_value": "CHG0041960",
+      "value": "CHG0041960"
+    },
+    "test_plan": {
+      "display_value": "TBD",
+      "value": "TBD"
+    },
+    "cab_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "requested_by_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_rpt_time_to_resolve": {
+      "display_value": "",
+      "value": ""
+    },
+    "state": {
+      "display_value": "New",
+      "value": "-5"
+    },
+    "sys_created_by": {
+      "display_value": "okhudan@mobizinc.com",
+      "value": "okhudan@mobizinc.com"
+    },
+    "knowledge": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "order": {
+      "display_value": "",
+      "value": ""
+    },
+    "phase": {
+      "display_value": "Requested",
+      "value": "requested"
+    },
+    "cmdb_ci": {
+      "display_value": "ServiceNow - Production",
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+      "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+    },
+    "delivery_plan": {
+      "display_value": "",
+      "value": ""
+    },
+    "contract": {
+      "display_value": "",
+      "value": ""
+    },
+    "impact": {
+      "display_value": "3 - Low",
+      "value": "3"
+    },
+    "active": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "work_notes_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "4 - Low",
+      "value": "4"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!!#/",
+      "value": "!!!/!!#/"
+    },
+    "cab_recommendation": {
+      "display_value": "",
+      "value": ""
+    },
+    "production_system": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_duration": {
+      "display_value": "",
+      "value": ""
+    },
+    "group_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "requested_by": {
+      "display_value": "Oleksandr Khudan",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/538c676f8790dd100fadcbb6dabb350e",
+      "value": "538c676f8790dd100fadcbb6dabb350e"
+    },
+    "change_plan": {
+      "display_value": "",
+      "value": ""
+    },
+    "approval_set": {
+      "display_value": "2025-10-17 03:42:53",
+      "value": "2025-10-17 10:42:53"
+    },
+    "copied_from": {
+      "display_value": "",
+      "value": ""
+    },
+    "implementation_plan": {
+      "display_value": "1. STRY0010148 - Agent work assignment and calendar\r\n2. OK - Calendar Page - post deployment changes\r\n3. OK - AWA Dashboard - post deployment changes\r\n4. Set auto_task_assignment group type to groups that should support that feature\r\n5. OK - Calendar Page - Change tab name\r\n6. OK - AWA Dashboard - action modification\r\n7. OK - Calendar Page - All events filter fix\r\n8. OK - Awa data broker - add initial load for department\r\n9. OK - Calendar Page - Timeline fixes\r\n10. OK - Calendar - global\r\n11. OK - Calendar Page - Filter fix\r\n12. Import \"Mobiz Auto Task Assignment.xml\"",
+      "value": "1. STRY0010148 - Agent work assignment and calendar\r\n2. OK - Calendar Page - post deployment changes\r\n3. OK - AWA Dashboard - post deployment changes\r\n4. Set auto_task_assignment group type to groups that should support that feature\r\n5. OK - Calendar Page - Change tab name\r\n6. OK - AWA Dashboard - action modification\r\n7. OK - Calendar Page - All events filter fix\r\n8. OK - Awa data broker - add initial load for department\r\n9. OK - Calendar Page - Timeline fixes\r\n10. OK - Calendar - global\r\n11. OK - Calendar Page - Filter fix\r\n12. Import \"Mobiz Auto Task Assignment.xml\""
+    },
+    "needs_attention": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "universal_request": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "short_description": {
+      "display_value": "Standard Change for ServiceNow Platform Updates",
+      "value": "Standard Change for ServiceNow Platform Updates"
+    },
+    "correlation_display": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_task": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_start": {
+      "display_value": "",
+      "value": ""
+    },
+    "additional_assignee_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "outside_maintenance_schedule": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "std_change_producer_version": {
+      "display_value": "ServiceNow Platform Updates - 20",
+      "link": "https://mobiz.service-now.com/api/now/table/std_change_producer_version/1951265d87b96510e88deb5e0ebb3510",
+      "value": "1951265d87b96510e88deb5e0ebb3510"
+    },
+    "service_offering": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Change Request",
+      "value": "change_request"
+    },
+    "u_mobiz_response_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "closed_by": {
+      "display_value": "",
+      "value": ""
+    },
+    "follow_up": {
+      "display_value": "",
+      "value": ""
+    },
+    "reassignment_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "review_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "Oleksandr Khudan",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/538c676f8790dd100fadcbb6dabb350e",
+      "value": "538c676f8790dd100fadcbb6dabb350e"
+    },
+    "start_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "sla_due": {
+      "display_value": "UNKNOWN",
+      "value": ""
+    },
+    "comments_and_work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "agile_story": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_business_owner": {
+      "display_value": "",
+      "value": ""
+    },
+    "escalation": {
+      "display_value": "Normal",
+      "value": "0"
+    },
+    "upon_approval": {
+      "display_value": "Proceed to Next Task",
+      "value": "proceed"
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_assigned_to_mobiz": {
+      "display_value": "2025-10-17 03:42:52",
+      "value": "2025-10-17 10:42:52"
+    },
+    "made_sla": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "backout_plan": {
+      "display_value": "Revert the implementation plan",
+      "value": "Revert the implementation plan"
+    },
+    "u_update_set": {
+      "display_value": "",
+      "value": ""
+    },
+    "conflict_status": {
+      "display_value": "Not Run",
+      "value": "Not Run"
+    },
+    "task_effective_number": {
+      "display_value": "CHG0041960",
+      "value": "CHG0041960"
+    },
+    "sys_updated_by": {
+      "display_value": "okhudan@mobizinc.com",
+      "value": "okhudan@mobizinc.com"
+    },
+    "opened_by": {
+      "display_value": "Oleksandr Khudan",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/538c676f8790dd100fadcbb6dabb350e",
+      "value": "538c676f8790dd100fadcbb6dabb350e"
+    },
+    "user_input": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_on": {
+      "display_value": "2025-10-17 03:42:52",
+      "value": "2025-10-17 10:42:52"
+    },
+    "on_hold_task": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Mobiz (MSP)",
+      "link": "https://mobiz.service-now.com/api/now/table/domain/f9b4f143875c1d100fadcbb6dabb356c",
+      "value": "f9b4f143875c1d100fadcbb6dabb356c"
+    },
+    "task_for": {
+      "display_value": "Oleksandr Khudan",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/538c676f8790dd100fadcbb6dabb350e",
+      "value": "538c676f8790dd100fadcbb6dabb350e"
+    },
+    "route_reason": {
+      "display_value": "",
+      "value": ""
+    },
+    "closed_at": {
+      "display_value": "",
+      "value": ""
+    },
+    "review_comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_service": {
+      "display_value": "",
+      "value": ""
+    },
+    "time_worked": {
+      "display_value": "",
+      "value": ""
+    },
+    "chg_model": {
+      "display_value": "Standard",
+      "link": "https://mobiz.service-now.com/api/now/table/chg_model/e55d0bfec343101035ae3f52c1d3ae49",
+      "value": "e55d0bfec343101035ae3f52c1d3ae49"
+    },
+    "expected_start": {
+      "display_value": "",
+      "value": ""
+    },
+    "opened_at": {
+      "display_value": "2025-10-17 03:14:12",
+      "value": "2025-10-17 10:14:12"
+    },
+    "work_end": {
+      "display_value": "",
+      "value": ""
+    },
+    "phase_state": {
+      "display_value": "Open",
+      "value": "open"
+    },
+    "cab_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "close_code": {
+      "display_value": null,
+      "value": ""
+    },
+    "assignment_group": {
+      "display_value": "SN Administrators",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user_group/f0cc73e7474ad91012702d12736d43b2",
+      "value": "f0cc73e7474ad91012702d12736d43b2"
+    },
+    "description": {
+      "display_value": "STRY0010148 - Agent work assignment and calendar",
+      "value": "STRY0010148 - Agent work assignment and calendar"
+    },
+    "on_hold_reason": {
+      "display_value": "",
+      "value": ""
+    },
+    "calendar_duration": {
+      "display_value": "",
+      "value": ""
+    },
+    "close_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_id": {
+      "display_value": "1482fec7c3ecb21066d9bdb4e401314f",
+      "value": "1482fec7c3ecb21066d9bdb4e401314f"
+    },
+    "contact_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "cab_required": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "urgency": {
+      "display_value": "3 - Low",
+      "value": "3"
+    },
+    "scope": {
+      "display_value": "Medium",
+      "value": "3"
+    },
+    "company": {
+      "display_value": "Mobiz IT",
+      "link": "https://mobiz.service-now.com/api/now/table/core_company/2d6a47c7870011100fadcbb6dabb35fb",
+      "value": "2d6a47c7870011100fadcbb6dabb35fb"
+    },
+    "justification": {
+      "display_value": "STRY0010148 - Agent work assignment and calendar",
+      "value": "STRY0010148 - Agent work assignment and calendar"
+    },
+    "activity_due": {
+      "display_value": "UNKNOWN",
+      "value": ""
+    },
+    "action_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "approval": {
+      "display_value": "Approved",
+      "value": "approved"
+    },
+    "due_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "8",
+      "value": "8"
+    },
+    "on_hold": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cab_date_time": {
+      "display_value": "",
+      "value": ""
+    },
+    "conflict_last_run": {
+      "display_value": "",
+      "value": ""
+    },
+    "unauthorized": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "risk": {
+      "display_value": "Moderate",
+      "value": "3"
+    },
+    "category": {
+      "display_value": "Service",
+      "value": "Service"
+    },
+    "risk_impact_analysis": {
+      "display_value": "N/A",
+      "value": "N/A"
+    }
+  },
+  "state_transitions": [],
+  "component_references": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-10-17 03:42:53",
+        "value": "2025-10-17 10:42:53"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "5419fec3c360f21066d9bdb4e40131fa",
+        "value": "5419fec3c360f21066d9bdb4e40131fa"
+      },
+      "sys_updated_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041960",
+        "link": "https://mobiz.service-now.com/api/now/table/task/1482fec7c3ecb21066d9bdb4e401314f",
+        "value": "1482fec7c3ecb21066d9bdb4e401314f"
+      },
+      "sys_created_on": {
+        "display_value": "2025-10-17 03:42:53",
+        "value": "2025-10-17 10:42:53"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "okhudan@mobizinc.com",
+        "value": "okhudan@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "related_records": {
+    "work_notes": [],
+    "comments": [],
+    "attachments": [
+      {
+        "size_bytes": {
+          "display_value": "2505",
+          "value": "2505"
+        },
+        "file_name": {
+          "display_value": "Mobiz Auto Task Assignment.xml",
+          "value": "Mobiz Auto Task Assignment.xml"
+        },
+        "sys_mod_count": {
+          "display_value": "1",
+          "value": "1"
+        },
+        "average_image_color": {
+          "display_value": "",
+          "value": ""
+        },
+        "image_width": {
+          "display_value": "",
+          "value": ""
+        },
+        "sys_updated_on": {
+          "display_value": "2025-10-27 05:24:01",
+          "value": "2025-10-27 12:24:01"
+        },
+        "sys_domain_path": {
+          "display_value": "!!!/!!#/",
+          "value": "!!!/!!#/"
+        },
+        "sys_tags": {
+          "display_value": "",
+          "value": ""
+        },
+        "table_name": {
+          "display_value": "change_request",
+          "value": "change_request"
+        },
+        "encryption_context": {
+          "display_value": "",
+          "value": ""
+        },
+        "sys_id": {
+          "display_value": "1710fe1683f03250ba267000feaad3da",
+          "value": "1710fe1683f03250ba267000feaad3da"
+        },
+        "image_height": {
+          "display_value": "",
+          "value": ""
+        },
+        "sys_updated_by": {
+          "display_value": "system",
+          "value": "system"
+        },
+        "content_type": {
+          "display_value": "application/xml",
+          "value": "application/xml"
+        },
+        "sys_created_on": {
+          "display_value": "2025-10-27 05:24:00",
+          "value": "2025-10-27 12:24:00"
+        },
+        "size_compressed": {
+          "display_value": "1085",
+          "value": "1085"
+        },
+        "sys_domain": {
+          "display_value": "TOP/Mobiz (MSP)",
+          "link": "https://mobiz.service-now.com/api/now/table/domain/f9b4f143875c1d100fadcbb6dabb356c",
+          "value": "f9b4f143875c1d100fadcbb6dabb356c"
+        },
+        "compressed": {
+          "display_value": "true",
+          "value": "true"
+        },
+        "state": {
+          "display_value": "Available",
+          "value": "available"
+        },
+        "table_sys_id": {
+          "display_value": "1482fec7c3ecb21066d9bdb4e401314f",
+          "value": "1482fec7c3ecb21066d9bdb4e401314f"
+        },
+        "chunk_size_bytes": {
+          "display_value": "700,000",
+          "value": "700000"
+        },
+        "hash": {
+          "display_value": "6a90c2d14dd8f05af9275767ad2a5f1e26a18bb1436809cb37c7098ff9c35338",
+          "value": "6a90c2d14dd8f05af9275767ad2a5f1e26a18bb1436809cb37c7098ff9c35338"
+        },
+        "sys_created_by": {
+          "display_value": "okhudan@mobizinc.com",
+          "value": "okhudan@mobizinc.com"
+        }
+      }
+    ]
+  }
+}

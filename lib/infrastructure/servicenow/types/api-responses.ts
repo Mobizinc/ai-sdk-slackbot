@@ -23,7 +23,8 @@ export type ServiceNowField = string | ServiceNowReference;
  * Standard ServiceNow table response wrapper
  */
 export interface ServiceNowTableResponse<T> {
-  result: T | T[];
+  result?: T;
+  headers?: Record<string, string>;
 }
 
 /**

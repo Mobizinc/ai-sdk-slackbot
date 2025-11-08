@@ -1,0 +1,18 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 29260,
+    "overall_status": "REJECT",
+    "synthesis": "This change request is REJECTED due to multiple critical deficiencies that create unacceptable production risk. The target clone is 554 days old (last refreshed May 2024), making any testing results invalid and unreliable. Notification engine modifications require rigorous documentation, yet this change lacks a rollback plan entirely, provides only superficial testing steps, and offers no meaningful business justification. The implementation plan references update set 'SK' and story state notifications but omits deployment schedule, affected components, and integration impacts. With the template's 100% success rate across 505 deployments, this submission falls significantly below expected quality standards. Required actions: (1) Refresh clone to <30 days, (2) Document complete rollback procedure with notification deactivation steps, (3) Expand test plan to validate recipient lists and email content, (4) Provide business justification with measurable outcomes, (5) Identify workflow and integration dependencies, (6) Create stakeholder communication plan. Resubmit after addressing all documentation gaps and environment readiness requirements."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 26486,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT. This change cannot proceed due to critical environmental and documentation deficiencies. The development clone is 554 days stale (last refreshed 2024-05-02), making any testing invalid against current production configurations. Documentation quality is insufficient for platform changes affecting SLA notifications: implementation plan lacks update set details and sequencing, rollback plan is completely absent, test plan only addresses basic UAT scenarios without validating time calculations or production Slack configurations, and justification provides no business context. The change modifies Slack SLA messaging to display days/hours calculations, which impacts critical incident monitoring workflows but lacks adequate testing coverage for edge cases or integration validation. REQUIRED BEFORE RESUBMISSION: (1) Refresh clone to <30 days old, (2) document complete rollback procedure, (3) provide detailed implementation plan with named update sets and installation order, (4) expand test plan to validate time logic and production Slack compatibility, (5) supply business justification with stakeholder approval, (6) define maintenance window and communication plan. Standard template's 100% success rate does not mitigate risks introduced by new message formatting logic not previously deployed through this template."
+  }
+]

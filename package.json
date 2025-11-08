@@ -23,7 +23,9 @@
     "queue:snapshot:dry": "tsx scripts/pull-case-queue-snapshot.ts --dry-run",
     "queue:post": "tsx scripts/post-case-queue-report.ts",
     "queue:leaderboard": "tsx scripts/post-case-leaderboard.ts",
-    "set:app-setting": "tsx scripts/set-app-setting.ts"
+    "set:app-setting": "tsx scripts/set-app-setting.ts",
+    "extract:standard-changes": "tsx scripts/extract-standard-changes.ts",
+    "evaluate:standard-changes": "tsx scripts/evaluate-standard-changes.ts"
   },
   "keywords": [],
   "author": "",

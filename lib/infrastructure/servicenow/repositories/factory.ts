@@ -14,6 +14,7 @@ import { ServiceNowCustomerAccountRepository } from "./customer-account-reposito
 import { ServiceNowChoiceRepository } from "./choice-repository.impl";
 import { ServiceNowProblemRepository } from "./problem-repository.impl";
 import { ServiceNowAssignmentGroupRepository } from "./assignment-group-repository.impl";
+import { ChangeRepository } from "./change-repository.impl";
 import type { CaseRepository } from "./case-repository.interface";
 import type { IncidentRepository } from "./incident-repository.interface";
 import type { KnowledgeRepository } from "./knowledge-repository.interface";
@@ -23,6 +24,7 @@ import type { CustomerAccountRepository } from "./customer-account-repository.in
 import type { ChoiceRepository } from "./choice-repository.interface";
 import type { ProblemRepository } from "./problem-repository.interface";
 import type { AssignmentGroupRepository } from "./assignment-group-repository.interface";
+import { ServiceNowTableAPIClient } from "../client/table-api-client";
 import { config } from "../../../config";
 
 /**
@@ -151,6 +153,8 @@ let customerAccountRepositoryInstance: CustomerAccountRepository | undefined;
 let choiceRepositoryInstance: ChoiceRepository | undefined;
 let problemRepositoryInstance: ProblemRepository | undefined;
 let assignmentGroupRepositoryInstance: AssignmentGroupRepository | undefined;
+let changeRepositoryInstance: ChangeRepository | undefined;
+let tableClientInstance: ServiceNowTableAPIClient | undefined;
 
 /**
  * Get shared HTTP client instance
@@ -160,6 +164,27 @@ export function getHttpClient(): ServiceNowHttpClient {
     httpClientInstance = createHttpClient();
   }
   return httpClientInstance;
+}
+
+export function getTableApiClient(): ServiceNowTableAPIClient {
+  if (!tableClientInstance) {
+    tableClientInstance = new ServiceNowTableAPIClient(getHttpClient());
+  }
+  return tableClientInstance;
+}
+
+export function createChangeRepositoryInstance(
+  tableClient?: ServiceNowTableAPIClient,
+): ChangeRepository {
+  const client = tableClient ?? getTableApiClient();
+  return new ChangeRepository(client);
+}
+
+export function getChangeRepository(): ChangeRepository {
+  if (!changeRepositoryInstance) {
+    changeRepositoryInstance = createChangeRepositoryInstance();
+  }
+  return changeRepositoryInstance;
 }
 
 /**
@@ -242,6 +267,7 @@ export function getAssignmentGroupRepository(): AssignmentGroupRepository {
  */
 export function resetRepositories(): void {
   httpClientInstance = undefined;
+  tableClientInstance = undefined;
   caseRepositoryInstance = undefined;
   incidentRepositoryInstance = undefined;
   knowledgeRepositoryInstance = undefined;
@@ -251,4 +277,5 @@ export function resetRepositories(): void {
   choiceRepositoryInstance = undefined;
   problemRepositoryInstance = undefined;
   assignmentGroupRepositoryInstance = undefined;
+  changeRepositoryInstance = undefined;
 }

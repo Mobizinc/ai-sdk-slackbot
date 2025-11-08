@@ -3671,38 +3671,363 @@ export class ServiceNowClient {
    * Get clone information for an instance
    * Checks when the target instance was last cloned from source
    */
-  public async getCloneInfo(targetInstance: string = 'uat', sourceInstance: string = 'prod'): Promise<{
+  public async getCloneInfo(
+    targetInstance: string = 'mobizuat',
+    sourceInstance: string = 'mobizprod'
+  ): Promise<{
     last_clone_date?: string;
     clone_age_days?: number;
     source_instance?: string;
     target_instance?: string;
+    state?: string;
   } | null> {
     try {
-      // Query clone_instance table for most recent clone from source to target
-      const query = `target_instance=${targetInstance}^source_instance=${sourceInstance}^ORDERBYDESCclone_date`;
-      const path = `/api/now/table/clone_instance?sysparm_query=${encodeURIComponent(query)}&sysparm_limit=1&sysparm_fields=clone_date,source_instance,target_instance,state`;
-
+      const path = `/api/now/table/clone_instance?sysparm_display_value=all&sysparm_limit=50&sysparm_fields=clone_date,completed,scheduled,sys_created_on,source_instance,target_instance,state`;
       const response = await request<{ result: Array<Record<string, any>> }>(path);
 
       if (!response.result || response.result.length === 0) {
         return null;
       }
 
-      const clone = response.result[0];
-      const cloneDate = new Date(clone.clone_date);
+      const normalize = (value: unknown) => (value ?? "").toString().toLowerCase();
+      const targetNeedle = normalize(targetInstance);
+      const sourceNeedle = normalize(sourceInstance);
+
+      const match = response.result.find((clone) => {
+        const targetDisplay = normalize(clone.target_instance?.display_value);
+        const targetValue = normalize(clone.target_instance?.value);
+        const sourceDisplay = normalize(clone.source_instance?.display_value);
+        const sourceValue = normalize(clone.source_instance?.value);
+        const targetMatches =
+          targetNeedle.length === 0 ||
+          targetDisplay.includes(targetNeedle) ||
+          targetValue.includes(targetNeedle);
+        const sourceMatches =
+          sourceNeedle.length === 0 ||
+          sourceDisplay.includes(sourceNeedle) ||
+          sourceValue.includes(sourceNeedle);
+        return targetMatches && sourceMatches;
+      });
+
+      if (!match) {
+        return null;
+      }
+
+      const extractField = (record: Record<string, any>, field: string): string | undefined => {
+        const raw = record?.[field];
+        if (!raw || raw === "") return undefined;
+        if (typeof raw === "string") return raw || undefined;
+        if (typeof raw === "object") {
+          return raw.value || raw.display_value || undefined;
+        }
+        return undefined;
+      };
+
+      const cloneDateRaw =
+        extractField(match, "clone_date") ||
+        extractField(match, "completed") ||
+        extractField(match, "scheduled") ||
+        extractField(match, "sys_created_on") ||
+        extractField(match, "sys_updated_on");
+
+      const cloneDate = cloneDateRaw ? new Date(cloneDateRaw) : null;
       const now = new Date();
-      const ageMs = now.getTime() - cloneDate.getTime();
-      const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+      const ageDays =
+        cloneDate && !Number.isNaN(cloneDate.getTime())
+          ? Math.floor((now.getTime() - cloneDate.getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
 
       return {
-        last_clone_date: clone.clone_date,
+        last_clone_date: cloneDateRaw,
         clone_age_days: ageDays,
-        source_instance: clone.source_instance,
-        target_instance: clone.target_instance,
+        source_instance: extractField(match.source_instance ?? {}, "display_value") || extractField(match.source_instance ?? {}, "value"),
+        target_instance: extractField(match.target_instance ?? {}, "display_value") || extractField(match.target_instance ?? {}, "value"),
+        state: extractField(match.state ?? {}, "value") || extractField(match.state ?? {}, "display_value"),
       };
     } catch (error) {
       console.error(`[ServiceNow] Error fetching clone info for ${targetInstance}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Get Standard Change Template metadata
+   * Fetches template version details, associated record producer, and optional catalog item info
+   */
+  public async getTemplateMetadata(templateVersionSysId: string): Promise<{
+    version?: Record<string, any>;
+    producer?: {
+      sys_id?: string;
+      name?: string;
+      short_description?: string;
+      description?: string;
+      owner?: string;
+      category?: string;
+      workflow?: string;
+      active?: boolean;
+      catalog_item?: string;
+    };
+    catalog_item?: {
+      sys_id?: string;
+      name?: string;
+      workflow?: string;
+      active?: boolean;
+      category?: string;
+      owner?: string;
+    };
+    workflow?: string;
+    last_updated?: string;
+    published?: boolean;
+    active?: boolean;
+    description?: string;
+  } | null> {
+    try {
+      const versionFields = [
+        "sys_id",
+        "name",
+        "sys_updated_on",
+        "percent_successful",
+        "closed_change_count",
+        "unsuccessful_change_count",
+        "std_change_producer",
+        "description",
+      ];
+
+      const versionData = await this.fetchTableRecord("std_change_producer_version", templateVersionSysId, versionFields);
+
+      if (!versionData) {
+        console.warn(`[ServiceNow] Template metadata not found for: ${templateVersionSysId}`);
+        return null;
+      }
+
+      let producerData: Record<string, any> | null = null;
+      if (versionData.std_change_producer?.value) {
+        const producerFields = [
+          "sys_id",
+          "name",
+          "short_description",
+          "description",
+          "owner",
+          "category",
+          "workflow",
+          "active",
+          "catalog_item",
+          "published_ref",
+          "sys_updated_on",
+        ];
+        producerData = await this.fetchTableRecord(
+          "std_change_record_producer",
+          versionData.std_change_producer.value,
+          producerFields
+        );
+      }
+
+      let catalogItemData: Record<string, any> | null = null;
+      const catalogSysId = producerData?.catalog_item?.value || producerData?.catalog_item;
+      if (catalogSysId) {
+        const catalogFields = ["sys_id", "name", "active", "workflow", "category", "owner"];
+        catalogItemData = await this.fetchTableRecord("sc_cat_item", catalogSysId, catalogFields);
+      }
+
+      const toBoolean = (value: any): boolean | undefined => {
+        if (typeof value === "boolean") return value;
+        if (typeof value === "string") {
+          const normalised = value.toLowerCase();
+          if (normalised === "true") return true;
+          if (normalised === "false") return false;
+        }
+        return undefined;
+      };
+
+      const resolveReference = (value: any): string | undefined => {
+        if (!value) return undefined;
+        if (typeof value === "string") return value;
+        return value.display_value || value.value || undefined;
+      };
+
+      const rawValue = (value: any): any => {
+        if (value === null || value === undefined) {
+          return undefined;
+        }
+        if (typeof value === "object") {
+          if (Object.prototype.hasOwnProperty.call(value, "value")) {
+            return value.value;
+          }
+          if (Object.prototype.hasOwnProperty.call(value, "display_value")) {
+            return value.display_value;
+          }
+        }
+        return value;
+      };
+
+      return {
+        version: {
+          sys_id: rawValue(versionData.sys_id),
+          name: rawValue(versionData.name),
+          last_updated: rawValue(versionData.sys_updated_on),
+          percent_successful: rawValue(versionData.percent_successful),
+          closed_change_count: rawValue(versionData.closed_change_count),
+          unsuccessful_change_count: rawValue(versionData.unsuccessful_change_count),
+        },
+        producer: producerData
+          ? {
+              sys_id: rawValue(producerData.sys_id),
+              name: rawValue(producerData.name),
+              short_description: rawValue(producerData.short_description),
+              description: rawValue(producerData.description),
+              owner: resolveReference(producerData.owner),
+              category: resolveReference(producerData.category),
+              workflow: resolveReference(producerData.workflow),
+              active: toBoolean(producerData.active),
+              catalog_item: catalogSysId,
+            }
+          : undefined,
+        catalog_item: catalogItemData
+          ? {
+              sys_id: rawValue(catalogItemData.sys_id),
+              name: rawValue(catalogItemData.name),
+              workflow: resolveReference(catalogItemData.workflow),
+              active: toBoolean(catalogItemData.active),
+              category: resolveReference(catalogItemData.category),
+              owner: resolveReference(catalogItemData.owner),
+            }
+          : undefined,
+        workflow:
+          resolveReference(producerData?.workflow) ||
+          resolveReference(catalogItemData?.workflow),
+        last_updated: rawValue(versionData.sys_updated_on) || rawValue(producerData?.sys_updated_on),
+        description: rawValue(producerData?.description) || rawValue(versionData.description),
+        active: toBoolean(producerData?.active),
+        published: producerData?.published_ref ? true : undefined,
+      };
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching template metadata ${templateVersionSysId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get CMDB Configuration Item details
+   * Fetches CI class, owner, environment, and relationships
+   */
+  public async getCMDBDetails(ciSysId: string): Promise<{
+    class?: string;
+    owner?: string;
+    environment?: string;
+    relationships?: Array<{
+      type: string;
+      target: string;
+    }>;
+    status?: string;
+    operational_status?: string;
+    business_criticality?: string;
+  } | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8-second guard
+
+    try {
+      // Use table API to get CI details (more reliable than CMDB API which requires className)
+      const tablePath = `/api/now/table/cmdb_ci/${ciSysId}?sysparm_fields=sys_id,sys_class_name,owned_by,environment,install_status,operational_status,business_criticality`;
+      const tableResponse = await request<{ result: Record<string, any> }>(tablePath, {
+        signal: controller.signal
+      });
+
+      if (!tableResponse.result) {
+        console.warn(`[ServiceNow] CMDB CI not found: ${ciSysId}`);
+        return null;
+      }
+
+      const data = tableResponse.result;
+
+      // Try to fetch relationships using cmdb_rel_ci table
+      let relationships: Array<{ type: string; target: string }> = [];
+      try {
+        // Query the relationship table for this CI, requesting display values
+        const relPath = `/api/now/table/cmdb_rel_ci?sysparm_query=parent=${ciSysId}^ORchild=${ciSysId}&sysparm_limit=10&sysparm_fields=parent,child,type&sysparm_display_value=all`;
+        const relResponse = await request<{ result: Array<Record<string, any>> }>(relPath, {
+          signal: controller.signal
+        });
+
+        if (relResponse.result && Array.isArray(relResponse.result)) {
+          relationships = relResponse.result.map(rel => {
+            // Extract the parent and child sys_ids from the reference objects
+            const parentSysId = rel.parent?.value || rel.parent;
+            const childSysId = rel.child?.value || rel.child;
+
+            // Determine which CI is the "other" one in the relationship
+            return {
+              type: rel.type?.value || rel.type?.display_value || rel.type || 'unknown',
+              target: parentSysId === ciSysId ? childSysId : parentSysId
+            };
+          });
+        }
+      } catch (error) {
+        console.warn(`[ServiceNow] Could not fetch CI relationships`, error);
+        // Relationships are optional, continue without them
+      }
+
+      return {
+        class: data.sys_class_name || data.className,
+        owner: data.owned_by?.value || data.owned_by,
+        environment: data.environment?.value || data.environment,
+        relationships,
+        status: data.install_status?.value || data.install_status,
+        operational_status: data.operational_status?.value || data.operational_status,
+        business_criticality: data.business_criticality?.value || data.business_criticality
+      };
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[ServiceNow] CMDB CI fetch timed out after 8s: ${ciSysId}`);
+      } else {
+        console.error(`[ServiceNow] Error fetching CMDB CI ${ciSysId}:`, error);
+      }
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async fetchTableRecord(
+    table: string,
+    sysId: string,
+    fields?: string[]
+  ): Promise<Record<string, any> | null> {
+    const params = new URLSearchParams({
+      sysparm_display_value: "all",
+    });
+
+    if (fields && fields.length > 0) {
+      params.set("sysparm_fields", fields.join(","));
+    }
+
+    const path = `/api/now/table/${table}/${sysId}?${params.toString()}`;
+    const response = await this.requestWithTimeout<{ result: Record<string, any> }>(
+      path,
+      `${table}:${sysId}`
+    );
+
+    return response?.result ?? null;
+  }
+
+  private async requestWithTimeout<T>(
+    path: string,
+    operation: string,
+    timeoutMs: number = 8000
+  ): Promise<T | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      return await request<T>(path, { signal: controller.signal });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        console.error(`[ServiceNow] ${operation} fetch timed out after ${timeoutMs}ms`);
+      } else {
+        console.error(`[ServiceNow] Error during ${operation}:`, error);
+      }
+      return null;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }

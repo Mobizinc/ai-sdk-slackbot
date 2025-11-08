@@ -1,0 +1,18 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 25464,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECT. Change CHG0041587 cannot proceed due to critical documentation gaps and environmental uncertainties. Primary concerns: (1) Complete absence of rollback plan for notification workflow modification - this is unacceptable for changes affecting operational communications, (2) No clone information available to verify target environment readiness, (3) Template marked inactive yet being utilized, (4) Implementation and test plans lack sufficient detail for notification changes that could impact fulfiller workflows. The 100% success rate on this template indicates strong historical performance, but current change lacks the rigor expected for platform modifications. Required actions must be completed before resubmission: provide detailed rollback procedures, confirm environment clone status, expand all documentation sections with specific technical steps and validation criteria, clarify template governance status, and document stakeholder communications. Notification changes carry operational risk - thorough preparation is non-negotiable."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 29362,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECTED. This change requires immediate remediation before resubmission. While the template has a strong track record (505 successful implementations), this specific change modifies customer-facing SLA notifications—a critical business function—yet lacks fundamental change management controls. Primary deficiencies: (1) No rollback plan for integration changes affecting Slack messaging, (2) Clone freshness cannot be verified creating untested deployment risk, (3) Implementation plan too vague to assess scope or complexity, (4) Test plan covers only basic happy-path without error handling or performance validation, (5) Business justification insufficient for integration modification. The addition of time calculations to SLA messages introduces computational complexity not reflected in template history. Before CAB reconsideration, submitter must provide: complete rollback procedure, verified clone <30 days old, detailed implementation steps with update set contents, comprehensive test scenarios including failure modes, proper business justification with stakeholder sign-off, Slack integration validation checklist, stakeholder communication plan, and 72-hour post-deployment monitoring strategy. Recommend engaging Slack integration SME and service desk leadership during revision."
+  }
+]

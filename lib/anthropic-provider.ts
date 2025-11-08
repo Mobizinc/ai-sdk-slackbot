@@ -170,10 +170,10 @@ export const MODEL_PRICING = {
  */
 export function calculateCost(
   usage: {
-    input_tokens?: number;
-    output_tokens?: number;
-    cache_creation_input_tokens?: number;
-    cache_read_input_tokens?: number;
+    input_tokens?: number | null;
+    output_tokens?: number | null;
+    cache_creation_input_tokens?: number | null;
+    cache_read_input_tokens?: number | null;
   },
   model: AnthropicModel = getConfiguredModel()
 ): number {
@@ -210,7 +210,16 @@ export function calculateCacheHitRate(usage: {
 /**
  * Format usage metrics for logging
  */
-export function formatUsageMetrics(usage: Anthropic.Usage): string {
+export function formatUsageMetrics(
+  usage:
+    | Anthropic.Usage
+    | {
+        input_tokens?: number | null;
+        output_tokens?: number | null;
+        cache_creation_input_tokens?: number | null;
+        cache_read_input_tokens?: number | null;
+      }
+): string {
   const metrics = [
     `Input: ${usage.input_tokens}`,
     `Output: ${usage.output_tokens}`,

@@ -1,0 +1,41 @@
+[
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 40714,
+    "overall_status": "REJECT",
+    "documentation_assessment": "Configuration gaps detected: template active, template published, template has workflow, cmdb environment defined, has rollback plan, has test plan.",
+    "risks": [
+      "template active",
+      "template published",
+      "template has workflow",
+      "cmdb environment defined",
+      "has rollback plan",
+      "has test plan"
+    ],
+    "required_actions": [
+      "Resolve configuration gap: template active",
+      "Resolve configuration gap: template published",
+      "Resolve configuration gap: template has workflow",
+      "Resolve configuration gap: cmdb environment defined",
+      "Resolve configuration gap: has rollback plan",
+      "Resolve configuration gap: has test plan"
+    ],
+    "synthesis": "❌ Change validation failed. Missing or invalid configuration: template active, template published, template has workflow, cmdb environment defined, has rollback plan, has test plan. Please remediate before proceeding.",
+    "checks": {
+      "template_active": false,
+      "template_published": false,
+      "template_has_workflow": false,
+      "template_recently_updated": true,
+      "template_success_rate_95": true,
+      "cmdb_owner_defined": true,
+      "cmdb_environment_defined": false,
+      "cmdb_operational": true,
+      "has_implementation_plan": true,
+      "has_rollback_plan": false,
+      "has_test_plan": false,
+      "has_justification": true
+    }
+  }
+]

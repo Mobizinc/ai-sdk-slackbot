@@ -1,0 +1,61 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 10052,
+    "overall_status": "REJECT",
+    "checks": {
+      "template_has_workflow": false,
+      "template_recently_updated": true,
+      "template_has_catalog": false,
+      "template_is_published": true,
+      "template_is_active": false,
+      "has_implementation_plan": true,
+      "has_rollback_plan": false,
+      "has_test_plan": true,
+      "has_justification": true
+    },
+    "synthesis": "❌ Change validation failed. Missing or invalid configuration: template has workflow, template has catalog, template is active, has rollback plan. Please remediate before proceeding."
+  },
+  {
+    "change_number": "CHG0041588",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 27753,
+    "overall_status": "REJECT",
+    "synthesis": "CAB Decision: REJECT - Change CHG0041588 cannot proceed due to critical deficiencies that create unacceptable production risk. The 554-day stale clone invalidates all sub-production testing, and the complete absence of a rollback plan for a notification integration change violates change management standards. Documentation quality is insufficient: implementation plan lacks technical specificity (affected components, update set dependencies, Slack API details), justification provides no business context beyond 'Requested by Igor,' and testing coverage omits error scenarios and performance validation. Before resubmission: (1) refresh development clone to <30 days, (2) document comprehensive rollback procedures, (3) provide detailed technical implementation steps with dependency chain, (4) expand test plan to cover negative cases and API rate limiting, and (5) develop stakeholder communication plan. The template shows 100% success rate across 505 changes, but this specific instantiation requires substantial remediation to meet that standard. Recommend assignee coordinate with platform team on clone refresh timeline and engage Igor for complete business requirements documentation."
+  },
+  {
+    "change_number": "CHG0041589",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 25544,
+    "overall_status": "REJECT",
+    "synthesis": "CAB DECISION: REJECT - Change CHG0041589 cannot be approved in current state. While addressing a legitimate functional gap (CC emails not populating incident watchlists), this change presents unacceptable risk due to extreme clone staleness (554 days vs 30-day requirement) and absent rollback/test plans. Inbound email processing is a critical platform function affecting incident creation, routing, and notifications. Required remediation: (1) Clone mobizdev environment immediately, (2) Develop rollback procedure for update set VZ; STRY0011026, (3) Create test plan validating CC parsing, watchlist updates, and notification integrity, (4) Complete environment snapshot, (5) Schedule maintenance window with Service Desk coordination, (6) Advance from Draft state with complete CAB documentation. Template's 100% success rate across 505 changes demonstrates process maturity, but this instance requires foundational documentation before reconsideration. Resubmit after addressing mandatory actions."
+  },
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 30818,
+    "overall_status": "REJECT",
+    "synthesis": "RECOMMENDATION: REJECT - Change CHG0041590 cannot proceed to CAB approval due to critical documentation gaps and extreme environment staleness. The 554-day clone age creates unacceptable deployment risk, and the absence of rollback/test plans violates mandatory change management standards. While the intent to correct offboarding description logic is valid, the implementation approach lacks necessary rigor for production deployment affecting HR workflows and mailbox access revocation automation. Required remediation: (1) Refresh development instance to <30 days clone age, (2) Complete comprehensive rollback and test plans including HR validation scenarios, (3) Document specific update sets and deployment sequence in implementation plan, (4) Define maintenance window and communication strategy for HR stakeholders, (5) Validate in refreshed environment before resubmitting. The template's 100% success rate demonstrates organizational capability for quality changes - this submission must meet that established standard. Recommend requester collaborate with platform owner to address deficiencies and resubmit with complete documentation for expedited review."
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 27372,
+    "overall_status": "REJECT",
+    "synthesis": "CHG0041592 is REJECTED due to critical deficiencies that present unacceptable risk. This change incorrectly uses the 'ServiceNow Platform Updates' standard change template while actually implementing expense routing logic modifications and PDF generation deactivation - fundamentally different work requiring different controls. The 554-day-old clone environment is unsuitable for validation. Documentation is severely inadequate: implementation plan marked 'N/A' despite complex routing changes, no rollback plan exists, test plan marked 'N/A' for financial workflow modifications, and justification provides no business case beyond 'Requested by Igor'. The proposed changes to route PAK currency expenses to HR and deactivate PDF logic carry significant risk to financial operations, compliance, integrations, and audit trails without proper testing, stakeholder approval, or communication planning. Required remediation: reclassify to appropriate change template, refresh clone environment, develop complete implementation/rollback/test plans with stakeholder sign-off, conduct comprehensive impact analysis on HR/Finance/Compliance functions, and return to CAB with proper documentation and approvals. This change cannot proceed in its current state."
+  },
+  {
+    "change_number": "CHG0041593",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 28036,
+    "overall_status": "REJECT",
+    "synthesis": "REJECTED - Change CHG0041593 cannot proceed to implementation due to critical documentation and environmental deficiencies. The 554-day clone age makes validation impossible and violates foundational change management principles. Documentation quality is unacceptable for a user-facing platform change: implementation plan states 'N/A', rollback plan is empty, test plan states 'N/A', and justification is a single name with no business context. The change description indicates hiding Comments/Work Notes fields in CSM/FSM Workspace but provides zero technical detail on implementation method, scope, or user impact. Before resubmitting, the change owner must: (1) refresh the mobizdev clone to <30 days, (2) document complete technical implementation procedures with specific workspace and configuration details, (3) create a detailed rollback plan, (4) develop a comprehensive test plan including user acceptance criteria, (5) provide formal business justification with stakeholder approvals, (6) validate Activity Stream functionality as the replacement mechanism, and (7) create user communication"
+  }
+]

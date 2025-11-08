@@ -397,7 +397,10 @@ export class CaseTriageService {
             },
             assignedTo: webhook.assigned_to,
             assignmentGroup: webhook.assignment_group,
-            companyName: webhook.account_id, // Use account_id as company name
+            // Use account_id for human-readable client name (fallback to account field if account_id not present)
+            companyName: webhook.account_id || webhook.account,
+            // Include caller/requester information
+            contactName: webhook.caller_id,
           });
 
           console.log(`[Case Triage] Escalation check completed for ${webhook.case_number}`);

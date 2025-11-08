@@ -1,0 +1,1258 @@
+{
+  "metadata": {
+    "extracted_at": "2025-11-07T17:47:36.847Z",
+    "instance_url": "https://mobiz.service-now.com",
+    "change_number": "CHG0041747",
+    "change_sys_id": "b47914fcc36ea610a01d5673e401312b"
+  },
+  "change_request": {
+    "parent": {
+      "display_value": "",
+      "value": ""
+    },
+    "reason": {
+      "display_value": null,
+      "value": ""
+    },
+    "x_mobit_itsm_ent_entitlement": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_jira_number": {
+      "display_value": "STRY0010726",
+      "value": "130287e2c354e294a01d5673e401311c"
+    },
+    "watch_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "upon_reject": {
+      "display_value": "Cancel all future Tasks",
+      "value": "cancel"
+    },
+    "sys_updated_on": {
+      "display_value": "2025-07-02 06:30:34",
+      "value": "2025-07-02 13:30:34"
+    },
+    "type": {
+      "display_value": "Standard",
+      "value": "standard"
+    },
+    "approval_history": {
+      "display_value": "",
+      "value": ""
+    },
+    "skills": {
+      "display_value": "",
+      "value": ""
+    },
+    "number": {
+      "display_value": "CHG0041747",
+      "value": "CHG0041747"
+    },
+    "test_plan": {
+      "display_value": "",
+      "value": ""
+    },
+    "cab_delegate": {
+      "display_value": "",
+      "value": ""
+    },
+    "requested_by_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_rpt_time_to_resolve": {
+      "display_value": "16 Minutes",
+      "value": "1970-01-01 00:16:59"
+    },
+    "state": {
+      "display_value": "Closed",
+      "value": "3"
+    },
+    "sys_created_by": {
+      "display_value": "AKummail@mobizinc.com",
+      "value": "AKummail@mobizinc.com"
+    },
+    "knowledge": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "order": {
+      "display_value": "",
+      "value": ""
+    },
+    "phase": {
+      "display_value": "Requested",
+      "value": "requested"
+    },
+    "cmdb_ci": {
+      "display_value": "ServiceNow - Production",
+      "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+      "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+    },
+    "delivery_plan": {
+      "display_value": "",
+      "value": ""
+    },
+    "contract": {
+      "display_value": "",
+      "value": ""
+    },
+    "impact": {
+      "display_value": "3 - Low",
+      "value": "3"
+    },
+    "active": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "work_notes_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "priority": {
+      "display_value": "4 - Low",
+      "value": "4"
+    },
+    "sys_domain_path": {
+      "display_value": "!!!/!!#/",
+      "value": "!!!/!!#/"
+    },
+    "cab_recommendation": {
+      "display_value": "",
+      "value": ""
+    },
+    "production_system": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "review_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_duration": {
+      "display_value": "",
+      "value": ""
+    },
+    "group_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "requested_by": {
+      "display_value": "Ali Kummail",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+      "value": "a3d9d547473e691012702d12736d434b"
+    },
+    "change_plan": {
+      "display_value": "",
+      "value": ""
+    },
+    "approval_set": {
+      "display_value": "2025-07-02 06:24:06",
+      "value": "2025-07-02 13:24:06"
+    },
+    "copied_from": {
+      "display_value": "",
+      "value": ""
+    },
+    "implementation_plan": {
+      "display_value": "Install Update set AK;STRY0010726;Share Agile board with Clients,AK;STRY0010726;Share Agile board with Clients -PM App",
+      "value": "Install Update set AK;STRY0010726;Share Agile board with Clients,AK;STRY0010726;Share Agile board with Clients -PM App"
+    },
+    "needs_attention": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "universal_request": {
+      "display_value": "",
+      "value": ""
+    },
+    "end_date": {
+      "display_value": "2025-07-02 06:24:02",
+      "value": "2025-07-02 13:24:02"
+    },
+    "short_description": {
+      "display_value": "Standard Change for ServiceNow Platform Updates",
+      "value": "Standard Change for ServiceNow Platform Updates"
+    },
+    "correlation_display": {
+      "display_value": "",
+      "value": ""
+    },
+    "delivery_task": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_start": {
+      "display_value": "2025-07-02 06:25:52",
+      "value": "2025-07-02 13:25:52"
+    },
+    "additional_assignee_list": {
+      "display_value": "",
+      "value": ""
+    },
+    "outside_maintenance_schedule": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "std_change_producer_version": {
+      "display_value": "ServiceNow Platform Updates - 20",
+      "link": "https://mobiz.service-now.com/api/now/table/std_change_producer_version/1951265d87b96510e88deb5e0ebb3510",
+      "value": "1951265d87b96510e88deb5e0ebb3510"
+    },
+    "service_offering": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_class_name": {
+      "display_value": "Change Request",
+      "value": "change_request"
+    },
+    "u_mobiz_response_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "closed_by": {
+      "display_value": "Ali Kummail",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+      "value": "a3d9d547473e691012702d12736d434b"
+    },
+    "follow_up": {
+      "display_value": "",
+      "value": ""
+    },
+    "reassignment_count": {
+      "display_value": "0",
+      "value": "0"
+    },
+    "review_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "assigned_to": {
+      "display_value": "Ali Kummail",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+      "value": "a3d9d547473e691012702d12736d434b"
+    },
+    "start_date": {
+      "display_value": "2025-07-02 06:24:00",
+      "value": "2025-07-02 13:24:00"
+    },
+    "sla_due": {
+      "display_value": "UNKNOWN",
+      "value": ""
+    },
+    "comments_and_work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "agile_story": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_business_owner": {
+      "display_value": "Igor Kochetkov",
+      "value": "959c6b6f8790dd100fadcbb6dabb3516"
+    },
+    "escalation": {
+      "display_value": "Normal",
+      "value": "0"
+    },
+    "upon_approval": {
+      "display_value": "Proceed to Next Task",
+      "value": "proceed"
+    },
+    "correlation_id": {
+      "display_value": "",
+      "value": ""
+    },
+    "u_assigned_to_mobiz": {
+      "display_value": "2025-07-02 06:24:05",
+      "value": "2025-07-02 13:24:05"
+    },
+    "made_sla": {
+      "display_value": "true",
+      "value": "true"
+    },
+    "backout_plan": {
+      "display_value": "Uninstall update set AK;STRY0010726;Share Agile board with Clients, AK;STRY0010726;Share Agile board with Clients -PM App",
+      "value": "Uninstall update set AK;STRY0010726;Share Agile board with Clients, AK;STRY0010726;Share Agile board with Clients -PM App"
+    },
+    "u_update_set": {
+      "display_value": "AK;STRY0010726;Share Agile board with Clients, AK;STRY0010726;Share Agile board with Clients -PM App",
+      "value": "8c8c9034c3aea610a01d5673e4013196,6f7c9034c3aea610a01d5673e4013119"
+    },
+    "conflict_status": {
+      "display_value": "No Conflict",
+      "value": "No Conflict"
+    },
+    "task_effective_number": {
+      "display_value": "CHG0041747",
+      "value": "CHG0041747"
+    },
+    "sys_updated_by": {
+      "display_value": "AKummail@mobizinc.com",
+      "value": "AKummail@mobizinc.com"
+    },
+    "opened_by": {
+      "display_value": "Ali Kummail",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+      "value": "a3d9d547473e691012702d12736d434b"
+    },
+    "user_input": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_created_on": {
+      "display_value": "2025-07-02 06:24:05",
+      "value": "2025-07-02 13:24:05"
+    },
+    "on_hold_task": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_domain": {
+      "display_value": "TOP/Mobiz (MSP)",
+      "link": "https://mobiz.service-now.com/api/now/table/domain/f9b4f143875c1d100fadcbb6dabb356c",
+      "value": "f9b4f143875c1d100fadcbb6dabb356c"
+    },
+    "task_for": {
+      "display_value": "Ali Kummail",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+      "value": "a3d9d547473e691012702d12736d434b"
+    },
+    "route_reason": {
+      "display_value": "",
+      "value": ""
+    },
+    "closed_at": {
+      "display_value": "2025-07-02 06:30:34",
+      "value": "2025-07-02 13:30:34"
+    },
+    "review_comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "business_service": {
+      "display_value": "",
+      "value": ""
+    },
+    "time_worked": {
+      "display_value": "",
+      "value": ""
+    },
+    "chg_model": {
+      "display_value": "Standard",
+      "link": "https://mobiz.service-now.com/api/now/table/chg_model/e55d0bfec343101035ae3f52c1d3ae49",
+      "value": "e55d0bfec343101035ae3f52c1d3ae49"
+    },
+    "expected_start": {
+      "display_value": "",
+      "value": ""
+    },
+    "opened_at": {
+      "display_value": "2025-07-02 06:13:35",
+      "value": "2025-07-02 13:13:35"
+    },
+    "work_end": {
+      "display_value": "2025-07-02 06:30:14",
+      "value": "2025-07-02 13:30:14"
+    },
+    "phase_state": {
+      "display_value": "Open",
+      "value": "open"
+    },
+    "cab_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "work_notes": {
+      "display_value": "",
+      "value": ""
+    },
+    "close_code": {
+      "display_value": "Successful",
+      "value": "successful"
+    },
+    "assignment_group": {
+      "display_value": "SN Administrators",
+      "link": "https://mobiz.service-now.com/api/now/table/sys_user_group/f0cc73e7474ad91012702d12736d43b2",
+      "value": "f0cc73e7474ad91012702d12736d43b2"
+    },
+    "description": {
+      "display_value": "This change introduces a new mechanism in ServiceNow for securely sharing Agile Visual Task Boards (VTB) with external clients. A button labeled \"Share Agile Board\" will be added to enable project managers to initiate the sharing process. When used, the selected clients will be granted internal roles, all Agile artifacts will be moved to the client's domain, and the clients will be automatically added to the project's default Agile team. Additionally, a second button titled \"Add Clients to Board\" will be available for project managers to add more clients after the board has already been shared. To support external user onboarding, a new catalog item called \"Agile Board Access Request\" will be introduced. This allows external users to request board access, and upon approval by the project manager, the requestor will be automatically added to the Agile team. This workflow ensures smooth collaboration between internal teams and external stakeholders.",
+      "value": "This change introduces a new mechanism in ServiceNow for securely sharing Agile Visual Task Boards (VTB) with external clients. A button labeled \"Share Agile Board\" will be added to enable project managers to initiate the sharing process. When used, the selected clients will be granted internal roles, all Agile artifacts will be moved to the client's domain, and the clients will be automatically added to the project's default Agile team. Additionally, a second button titled \"Add Clients to Board\" will be available for project managers to add more clients after the board has already been shared. To support external user onboarding, a new catalog item called \"Agile Board Access Request\" will be introduced. This allows external users to request board access, and upon approval by the project manager, the requestor will be automatically added to the Agile team. This workflow ensures smooth collaboration between internal teams and external stakeholders."
+    },
+    "on_hold_reason": {
+      "display_value": "",
+      "value": ""
+    },
+    "calendar_duration": {
+      "display_value": "",
+      "value": ""
+    },
+    "close_notes": {
+      "display_value": "ok",
+      "value": "ok"
+    },
+    "sys_id": {
+      "display_value": "b47914fcc36ea610a01d5673e401312b",
+      "value": "b47914fcc36ea610a01d5673e401312b"
+    },
+    "contact_type": {
+      "display_value": null,
+      "value": ""
+    },
+    "cab_required": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "urgency": {
+      "display_value": "3 - Low",
+      "value": "3"
+    },
+    "scope": {
+      "display_value": "Medium",
+      "value": "3"
+    },
+    "company": {
+      "display_value": "Mobiz IT",
+      "link": "https://mobiz.service-now.com/api/now/table/core_company/2d6a47c7870011100fadcbb6dabb35fb",
+      "value": "2d6a47c7870011100fadcbb6dabb35fb"
+    },
+    "justification": {
+      "display_value": "The proposed change is essential for enabling structured and secure collaboration with external clients on Agile projects. By automating the sharing and access management process, it reduces manual administrative tasks for project managers and ensures that client users are appropriately scoped and added to the correct Agile team and domain. This promotes better transparency, accelerates delivery, and aligns with our goal of improving client engagement and project visibility without compromising governance or data separation standards.",
+      "value": "The proposed change is essential for enabling structured and secure collaboration with external clients on Agile projects. By automating the sharing and access management process, it reduces manual administrative tasks for project managers and ensures that client users are appropriately scoped and added to the correct Agile team and domain. This promotes better transparency, accelerates delivery, and aligns with our goal of improving client engagement and project visibility without compromising governance or data separation standards."
+    },
+    "activity_due": {
+      "display_value": "UNKNOWN",
+      "value": ""
+    },
+    "action_status": {
+      "display_value": "",
+      "value": ""
+    },
+    "comments": {
+      "display_value": "",
+      "value": ""
+    },
+    "approval": {
+      "display_value": "Approved",
+      "value": "approved"
+    },
+    "due_date": {
+      "display_value": "",
+      "value": ""
+    },
+    "sys_mod_count": {
+      "display_value": "12",
+      "value": "12"
+    },
+    "on_hold": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "sys_tags": {
+      "display_value": "",
+      "value": ""
+    },
+    "cab_date_time": {
+      "display_value": "",
+      "value": ""
+    },
+    "conflict_last_run": {
+      "display_value": "2025-07-02 06:30:15",
+      "value": "2025-07-02 13:30:15"
+    },
+    "unauthorized": {
+      "display_value": "false",
+      "value": "false"
+    },
+    "location": {
+      "display_value": "",
+      "value": ""
+    },
+    "risk": {
+      "display_value": "Moderate",
+      "value": "3"
+    },
+    "category": {
+      "display_value": "Service",
+      "value": "Service"
+    },
+    "risk_impact_analysis": {
+      "display_value": "N/A",
+      "value": "N/A"
+    }
+  },
+  "state_transitions": [
+    {
+      "parent": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "planned_end_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "u_assigned_to_mobiz": {
+        "display_value": "2025-07-02 06:30:06",
+        "value": "2025-07-02 13:30:06"
+      },
+      "made_sla": {
+        "display_value": "true",
+        "value": "true"
+      },
+      "x_mobit_itsm_ent_entitlement": {
+        "display_value": "",
+        "value": ""
+      },
+      "watch_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "upon_reject": {
+        "display_value": "Cancel all future Tasks",
+        "value": "cancel"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-02 06:30:06",
+        "value": "2025-07-02 13:30:06"
+      },
+      "task_effective_number": {
+        "display_value": "CTASK0012761",
+        "value": "CTASK0012761"
+      },
+      "approval_history": {
+        "display_value": "",
+        "value": ""
+      },
+      "skills": {
+        "display_value": "",
+        "value": ""
+      },
+      "number": {
+        "display_value": "CTASK0012761",
+        "value": "CTASK0012761"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "opened_by": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "user_input": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-02 06:25:52",
+        "value": "2025-07-02 13:25:52"
+      },
+      "sys_domain": {
+        "display_value": "TOP/Mobiz (MSP)",
+        "link": "https://mobiz.service-now.com/api/now/table/domain/f9b4f143875c1d100fadcbb6dabb356c",
+        "value": "f9b4f143875c1d100fadcbb6dabb356c"
+      },
+      "u_rpt_time_to_resolve": {
+        "display_value": "4 Minutes",
+        "value": "1970-01-01 00:04:14"
+      },
+      "state": {
+        "display_value": "Closed",
+        "value": "3"
+      },
+      "task_for": {
+        "display_value": "",
+        "value": ""
+      },
+      "route_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "knowledge": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "order": {
+        "display_value": "",
+        "value": ""
+      },
+      "closed_at": {
+        "display_value": "2025-07-02 06:30:06",
+        "value": "2025-07-02 13:30:06"
+      },
+      "cmdb_ci": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "contract": {
+        "display_value": "",
+        "value": ""
+      },
+      "impact": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "active": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "work_notes_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "business_service": {
+        "display_value": "",
+        "value": ""
+      },
+      "priority": {
+        "display_value": "3 - Moderate",
+        "value": "3"
+      },
+      "sys_domain_path": {
+        "display_value": "!!!/!!#/",
+        "value": "!!!/!!#/"
+      },
+      "time_worked": {
+        "display_value": "",
+        "value": ""
+      },
+      "expected_start": {
+        "display_value": "",
+        "value": ""
+      },
+      "opened_at": {
+        "display_value": "2025-07-02 06:25:52",
+        "value": "2025-07-02 13:25:52"
+      },
+      "business_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "group_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_end": {
+        "display_value": "2025-07-02 06:30:06",
+        "value": "2025-07-02 13:30:06"
+      },
+      "planned_start_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval_set": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "needs_attention": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "universal_request": {
+        "display_value": "",
+        "value": ""
+      },
+      "short_description": {
+        "display_value": "Post implementation testing",
+        "value": "Post implementation testing"
+      },
+      "close_code": {
+        "display_value": "Successful",
+        "value": "successful"
+      },
+      "correlation_display": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_task": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_start": {
+        "display_value": "",
+        "value": ""
+      },
+      "assignment_group": {
+        "display_value": "SN Administrators",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user_group/f0cc73e7474ad91012702d12736d43b2",
+        "value": "f0cc73e7474ad91012702d12736d43b2"
+      },
+      "additional_assignee_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "description": {
+        "display_value": "Post implementation testing",
+        "value": "Post implementation testing"
+      },
+      "on_hold_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "calendar_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "close_notes": {
+        "display_value": "ok",
+        "value": "ok"
+      },
+      "service_offering": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_class_name": {
+        "display_value": "Change Task",
+        "value": "change_task"
+      },
+      "u_mobiz_response_type": {
+        "display_value": null,
+        "value": ""
+      },
+      "closed_by": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "follow_up": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_id": {
+        "display_value": "384cd8f0c3aea610a01d5673e4013136",
+        "value": "384cd8f0c3aea610a01d5673e4013136"
+      },
+      "contact_type": {
+        "display_value": null,
+        "value": ""
+      },
+      "urgency": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "company": {
+        "display_value": "Mobiz IT",
+        "link": "https://mobiz.service-now.com/api/now/table/core_company/2d6a47c7870011100fadcbb6dabb35fb",
+        "value": "2d6a47c7870011100fadcbb6dabb35fb"
+      },
+      "reassignment_count": {
+        "display_value": "1",
+        "value": "1"
+      },
+      "activity_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "action_status": {
+        "display_value": "",
+        "value": ""
+      },
+      "assigned_to": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "comments": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval": {
+        "display_value": "Not Yet Requested",
+        "value": "not requested"
+      },
+      "sla_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "comments_and_work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "due_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_mod_count": {
+        "display_value": "2",
+        "value": "2"
+      },
+      "on_hold": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "agile_story": {
+        "display_value": "",
+        "value": ""
+      },
+      "escalation": {
+        "display_value": "Normal",
+        "value": "0"
+      },
+      "upon_approval": {
+        "display_value": "Proceed to Next Task",
+        "value": "proceed"
+      },
+      "correlation_id": {
+        "display_value": "",
+        "value": ""
+      },
+      "change_task_type": {
+        "display_value": "Testing",
+        "value": "testing"
+      },
+      "location": {
+        "display_value": "",
+        "value": ""
+      },
+      "change_request": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/change_request/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "created_from": {
+        "display_value": "Flow",
+        "value": "flow"
+      }
+    },
+    {
+      "parent": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "planned_end_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "u_assigned_to_mobiz": {
+        "display_value": "2025-07-02 06:30:14",
+        "value": "2025-07-02 13:30:14"
+      },
+      "made_sla": {
+        "display_value": "true",
+        "value": "true"
+      },
+      "x_mobit_itsm_ent_entitlement": {
+        "display_value": "",
+        "value": ""
+      },
+      "watch_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "upon_reject": {
+        "display_value": "Cancel all future Tasks",
+        "value": "cancel"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-02 06:30:14",
+        "value": "2025-07-02 13:30:14"
+      },
+      "task_effective_number": {
+        "display_value": "CTASK0012762",
+        "value": "CTASK0012762"
+      },
+      "approval_history": {
+        "display_value": "",
+        "value": ""
+      },
+      "skills": {
+        "display_value": "",
+        "value": ""
+      },
+      "number": {
+        "display_value": "CTASK0012762",
+        "value": "CTASK0012762"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "opened_by": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "user_input": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-02 06:25:52",
+        "value": "2025-07-02 13:25:52"
+      },
+      "sys_domain": {
+        "display_value": "TOP/Mobiz (MSP)",
+        "link": "https://mobiz.service-now.com/api/now/table/domain/f9b4f143875c1d100fadcbb6dabb356c",
+        "value": "f9b4f143875c1d100fadcbb6dabb356c"
+      },
+      "u_rpt_time_to_resolve": {
+        "display_value": "4 Minutes",
+        "value": "1970-01-01 00:04:22"
+      },
+      "state": {
+        "display_value": "Closed",
+        "value": "3"
+      },
+      "task_for": {
+        "display_value": "",
+        "value": ""
+      },
+      "route_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "knowledge": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "order": {
+        "display_value": "",
+        "value": ""
+      },
+      "closed_at": {
+        "display_value": "2025-07-02 06:30:14",
+        "value": "2025-07-02 13:30:14"
+      },
+      "cmdb_ci": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "contract": {
+        "display_value": "",
+        "value": ""
+      },
+      "impact": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "active": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "work_notes_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "business_service": {
+        "display_value": "",
+        "value": ""
+      },
+      "priority": {
+        "display_value": "3 - Moderate",
+        "value": "3"
+      },
+      "sys_domain_path": {
+        "display_value": "!!!/!!#/",
+        "value": "!!!/!!#/"
+      },
+      "time_worked": {
+        "display_value": "",
+        "value": ""
+      },
+      "expected_start": {
+        "display_value": "",
+        "value": ""
+      },
+      "opened_at": {
+        "display_value": "2025-07-02 06:25:52",
+        "value": "2025-07-02 13:25:52"
+      },
+      "business_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "group_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_end": {
+        "display_value": "2025-07-02 06:30:14",
+        "value": "2025-07-02 13:30:14"
+      },
+      "planned_start_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval_set": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "needs_attention": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "universal_request": {
+        "display_value": "",
+        "value": ""
+      },
+      "short_description": {
+        "display_value": "Implement",
+        "value": "Implement"
+      },
+      "close_code": {
+        "display_value": "Successful",
+        "value": "successful"
+      },
+      "correlation_display": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_task": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_start": {
+        "display_value": "",
+        "value": ""
+      },
+      "assignment_group": {
+        "display_value": "SN Administrators",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user_group/f0cc73e7474ad91012702d12736d43b2",
+        "value": "f0cc73e7474ad91012702d12736d43b2"
+      },
+      "additional_assignee_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "description": {
+        "display_value": "Implement",
+        "value": "Implement"
+      },
+      "on_hold_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "calendar_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "close_notes": {
+        "display_value": "ok",
+        "value": "ok"
+      },
+      "service_offering": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_class_name": {
+        "display_value": "Change Task",
+        "value": "change_task"
+      },
+      "u_mobiz_response_type": {
+        "display_value": null,
+        "value": ""
+      },
+      "closed_by": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "follow_up": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_id": {
+        "display_value": "3c4cd8f0c3aea610a01d5673e4013149",
+        "value": "3c4cd8f0c3aea610a01d5673e4013149"
+      },
+      "contact_type": {
+        "display_value": null,
+        "value": ""
+      },
+      "urgency": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "company": {
+        "display_value": "Mobiz IT",
+        "link": "https://mobiz.service-now.com/api/now/table/core_company/2d6a47c7870011100fadcbb6dabb35fb",
+        "value": "2d6a47c7870011100fadcbb6dabb35fb"
+      },
+      "reassignment_count": {
+        "display_value": "1",
+        "value": "1"
+      },
+      "activity_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "action_status": {
+        "display_value": "",
+        "value": ""
+      },
+      "assigned_to": {
+        "display_value": "Ali Kummail",
+        "link": "https://mobiz.service-now.com/api/now/table/sys_user/a3d9d547473e691012702d12736d434b",
+        "value": "a3d9d547473e691012702d12736d434b"
+      },
+      "comments": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval": {
+        "display_value": "Not Yet Requested",
+        "value": "not requested"
+      },
+      "sla_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "comments_and_work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "due_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_mod_count": {
+        "display_value": "2",
+        "value": "2"
+      },
+      "on_hold": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "agile_story": {
+        "display_value": "",
+        "value": ""
+      },
+      "escalation": {
+        "display_value": "Normal",
+        "value": "0"
+      },
+      "upon_approval": {
+        "display_value": "Proceed to Next Task",
+        "value": "proceed"
+      },
+      "correlation_id": {
+        "display_value": "",
+        "value": ""
+      },
+      "change_task_type": {
+        "display_value": "Implementation",
+        "value": "implementation"
+      },
+      "location": {
+        "display_value": "",
+        "value": ""
+      },
+      "change_request": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/change_request/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "created_from": {
+        "display_value": "Flow",
+        "value": "flow"
+      }
+    }
+  ],
+  "component_references": [
+    {
+      "applied": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_mod_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "sys_updated_on": {
+        "display_value": "2025-07-02 06:24:06",
+        "value": "2025-07-02 13:24:06"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "applied_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "ci_item": {
+        "display_value": "ServiceNow - Production",
+        "link": "https://mobiz.service-now.com/api/now/table/cmdb_ci/73a10e0b87e8e910e88deb5e0ebb3578",
+        "value": "73a10e0b87e8e910e88deb5e0ebb3578"
+      },
+      "sys_id": {
+        "display_value": "32dbdcb0c3aea610a01d5673e4013164",
+        "value": "32dbdcb0c3aea610a01d5673e4013164"
+      },
+      "sys_updated_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "task": {
+        "display_value": "CHG0041747",
+        "link": "https://mobiz.service-now.com/api/now/table/task/b47914fcc36ea610a01d5673e401312b",
+        "value": "b47914fcc36ea610a01d5673e401312b"
+      },
+      "sys_created_on": {
+        "display_value": "2025-07-02 06:24:06",
+        "value": "2025-07-02 13:24:06"
+      },
+      "xml": {
+        "display_value": "",
+        "value": ""
+      },
+      "manual_proposed_change": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "sys_created_by": {
+        "display_value": "AKummail@mobizinc.com",
+        "value": "AKummail@mobizinc.com"
+      },
+      "added_from_dynamic_ci": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ],
+  "related_records": {
+    "work_notes": [],
+    "comments": [],
+    "attachments": []
+  }
+}

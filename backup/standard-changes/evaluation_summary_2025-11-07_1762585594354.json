@@ -1,0 +1,82 @@
+[
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 70802,
+    "overall_status": "REJECT",
+    "documentation_assessment": "Configuration gaps detected: template active, template published, template has workflow, cmdb environment defined, has rollback plan, has test plan.",
+    "risks": [
+      "template active",
+      "template published",
+      "template has workflow",
+      "cmdb environment defined",
+      "has rollback plan",
+      "has test plan"
+    ],
+    "required_actions": [
+      "Resolve configuration gap: template active",
+      "Resolve configuration gap: template published",
+      "Resolve configuration gap: template has workflow",
+      "Resolve configuration gap: cmdb environment defined",
+      "Resolve configuration gap: has rollback plan",
+      "Resolve configuration gap: has test plan"
+    ],
+    "synthesis": "❌ Change validation failed. Missing or invalid configuration: template active, template published, template has workflow, cmdb environment defined, has rollback plan, has test plan. Please remediate before proceeding.",
+    "checks": {
+      "template_active": false,
+      "template_published": false,
+      "template_has_workflow": false,
+      "template_recently_updated": true,
+      "template_success_rate_95": true,
+      "cmdb_owner_defined": true,
+      "cmdb_environment_defined": false,
+      "cmdb_operational": true,
+      "has_implementation_plan": true,
+      "has_rollback_plan": false,
+      "has_test_plan": false,
+      "has_justification": true
+    }
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 182463,
+    "overall_status": "REJECT",
+    "documentation_assessment": "Critical documentation deficiencies render CHG0041592 unapprovable. Implementation plan marked 'N/A' despite concrete technical work (expense routing logic modification + PDF generation deactivation). Rollback plan completely absent—mandatory for financial workflow changes affecting audit trails and SOX compliance. Test plan marked 'N/A' for changes impacting expense processing and downstream integrations. Justification 'Requested by Igor' provides no business case, urgency rationale, stakeholder alignment, or compliance consideration. Most concerning: fundamental template misclassification—this change is categorized as 'ServiceNow Platform Updates' when actual scope is expense management application configuration. The description explicitly states 'Expense Item Routing - When currency is PAK - ticket should go to Human Resources instead of Accounting & deactive logic to generate PDFs'—this is NOT a platform update but application logic modification requiring different change controls.",
+    "risks": [
+      "CRITICAL: Template misclassification constitutes governance bypass—'ServiceNow Platform Updates' template has fundamentally different risk profile, review requirements, and approval thresholds than financial application logic modifications affecting expense workflows",
+      "CRITICAL: Template producer is inactive (active: false) and unpublished (published_ref empty), indicating this template should not accept new changes—505 historical changes with 100% success rate are now deprecated",
+      "CRITICAL: Change already closed with state '3' (Closed) and 'Successful' close code dated April 24, 2025, yet contains ELEVEN automated rejection work notes spanning November 7-8, 2025—clear evidence of governance bypass, unauthorized implementation, or attempted reactivation without addressing any identified deficiencies; requires immediate audit investigation",
+      "CRITICAL: Clone freshness data unavailable for target instance 'mobizuat' (status: 'not_found')—makes environment validation impossible and configuration drift risk unquantifiable; cannot proceed without verified test environment",
+      "CRITICAL: Zero rollback plan for financial workflow changes—inability to restore routing logic or PDF functionality creates unacceptable risk for financial operations with potential SOX, audit trail, and regulatory compliance implications",
+      "CRITICAL: Expense routing change from Accounting to HR for PAK currency creates unvalidated workflow disruption affecting financial processes, approval chains, SLA compliance, organizational accountability, segregation of duties, and financial controls without documented testing or stakeholder approval",
+      "CRITICAL: PDF generation deactivation may break downstream systems consuming expense documentation including ERP integrations, audit systems, compliance repositories, reporting tools, reimbursement processing, tax documentation, and regulatory filing systems—no integration endpoint analysis performed",
+      "HIGH: CMDB CI 'ServiceNow - Production' has empty environment field (environment: '') despite being operational Web Application—violates CMDB data quality standards and prevents environment-based risk assessment",
+      "HIGH: No template workflow defined (workflow: '')—standard changes should have automated approval workflows to enforce governance controls",
+      "HIGH: HR team readiness unconfirmed—no evidence of capacity planning, training, process documentation, system access provisioning, workload impact analysis, or approval delegation setup for handling PAK currency expenses",
+      "HIGH: Accounting team impact unexplored—workload reduction/reallocation, handoff procedures, system access adjustments, process documentation updates, and financial controls modifications not addressed",
+      "HIGH: Compliance and audit implications unassessed—currency-specific routing may violate financial controls, segregation of duties principles, regulatory requirements (SOX 404), or audit trail integrity requirements",
+      "MEDIUM: Collection error reported: 'Clone info unavailable for target instance mobizuat'—data collection infrastructure issue may indicate broader environment visibility problems",
+      "MEDIUM: Update set reference 'AZ;STRY0011125;Expense Item - sc_task routing + deactivate PDFs generation' explicitly confirms scope mismatch with template categorization",
+      "MEDIUM: No communication plan for affected parties including Finance teams, HR personnel, end users submitting PAK expenses, downstream system owners, auditors, compliance officers, and external partners"
+    ],
+    "required_actions": [
+      "IMMEDIATE: REJECT change and prevent any implementation—this is application configuration change fraudulently misclassified as platform update to bypass appropriate change controls",
+      "MANDATORY: Escalate to Change Management leadership, audit team, and governance office for investigation of potential governance bypass—change shows state '3' (Closed) with 'Successful' close code dated April 24, 2025, yet contains ELEVEN automated rejection work notes from November 7-8, 2025; determine if unauthorized implementation occurred or if reactivation attempt is underway without remediation; review change audit trail, access logs, and deployment history",
+      "MANDATORY: Reclassify to appropriate standard change template for expense management application modifications OR elevate to normal change requiring full CAB review with Finance, HR, and Compliance stakeholder presence and formal approvals",
+      "MANDATORY: Obtain and verify clone freshness for mobizuat target instance—must be <30 days old before any testing proceeds; current 'not_found' status makes validation impossible; investigate why clone data unavailable and resolve collection infrastructure issue",
+      "MANDATORY: Develop comprehensive implementation plan documenting: business rule modifications for PAK currency detection, assignment group routing changes from Accounting to HR with affected workflows, PDF generation logic deactivation steps, affected tables/fields/scripts, configuration backup procedures, deployment sequence with dependencies",
+      "MANDATORY: Create detailed rollback plan with: step-by-step restoration of original routing logic, PDF generation reactivation procedures, database rollback scripts if applicable, verification testing procedures, maximum rollback time window (recommend <1 hour for financial systems), rollback decision criteria and approval authority",
+      "MANDATORY: Document complete test plan covering: PAK currency expense submission scenarios across all expense types, routing validation to HR group with approval workflow integrity, non-PAK currency regression testing to ensure no unintended impacts, PDF deactivation verification, integration endpoint testing (ERP, reporting, audit systems), performance impact assessment, audit trail validation",
+      "MANDATORY: Replace justification with complete business case: identify Igor's role/authority level, document business driver for currency-specific routing change, explain rationale for HR vs Accounting assignment for PAK expenses, quantify affected transaction volume and user population, detail expected benefits and efficiency gains, address compliance requirements and financial controls impact",
+      "MANDATORY: Conduct comprehensive impact analysis covering: HR group capacity and training needs for PAK currency expense handling, Accounting team workflow adjustments and resource reallocation, affected user population and submission patterns, downstream system dependencies (ERP integration contracts, reporting pipelines, audit/compliance tools), regulatory and compliance implications (SOX controls, audit trail requirements), communication and change management requirements",
+      "MANDATORY: Obtain formal stakeholder approvals with documented sign-offs: Finance leadership approval for workflow routing changes, HR leadership approval confirming capacity and readiness, Compliance/Audit approval verifying financial controls integrity, System integration owners confirming PDF removal impact acceptable—all approvals must be documented in change record before CAB review",
+      "MANDATORY: Update CMDB CI 'ServiceNow - Production' to include valid environment classification (Production) to enable proper risk assessment",
+      "RECOMMENDED: Investigate and resolve template producer inactive status—if template legitimately deprecated, archive it and create new active template; if inadvertently deactivated, restore to active/published state with proper workflow assignment",
+      "RECOMMENDED: Develop communication plan for affected parties with timelines: Finance teams notification of routing change and PDF removal, HR personnel training on PAK expense handling procedures, End user guidance for PAK currency expense submissions, Downstream system owners notification of PDF deactivation, Auditors and compliance officers briefed on workflow changes and control impacts"
+    ],
+    "synthesis": "CHG0041592 is REJECTED due to fraudulent template misclassification, critical documentation failures, inactive template usage, missing clone freshness data, and suspicious change state (closed April 2025 yet contains eleven November 2025 automated rejections suggesting governance bypass). This expense management application change cannot proceed under 'ServiceNow Platform Updates' template—requires reclassification, audit investigation, complete documentation remediation, stakeholder approvals, and verified test environment before CAB reconsideration."
+  }
+]

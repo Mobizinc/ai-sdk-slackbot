@@ -1,0 +1,57 @@
+[
+  {
+    "change_number": "CHG0041590",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 28604,
+    "overall_status": "REJECT",
+    "documentation_assessment": "CRITICAL DEFICIENCIES - This change fails fundamental documentation standards required for production deployment. Implementation plan ('Install Update sets') lacks deployment sequence, specific component identification, duration estimates, and pre-deployment validation steps. While backout_plan field contains 'Backout Update sets', this provides no actionable recovery procedure - missing update set sys_ids, revert sequence, validation checkpoints, or rollback duration estimates. NO test plan provided despite test_plan field being empty, eliminating visibility into validation scope, test scenarios executed, or acceptance criteria met. Justification states desired outcome but omits business impact analysis, stakeholder authorization evidence, urgency rationale, or cost of inaction. The u_update_set field references two specific update sets ('SR; AllCare offboarding request' and 'SR; AllCare Update User Cat Item') but implementation plan doesn't detail deployment order, dependencies, or affected components. Most critically: change state shows CLOSED since 2025-04-30 (6+ months ago), yet automated validation runs occurred 2025-11-07/08 - indicating either post-implementation audit, data integrity issue, or improper change record reuse requiring immediate clarification before any CAB assessment proceeds.",
+    "risks": [
+      "CRITICAL: Change record shows CLOSED state (state: 3, closed_at: 2025-04-30 09:32:01, close_code: successful) yet being evaluated 2025-11-08 - 6+ months post-closure. This indicates either: (1) retroactive audit of implemented change, (2) data corruption/integrity issue, (3) improper record reuse, or (4) failed rollback requiring reassessment. Context must be established before CAB review - if change already deployed, production state analysis required; if record error, correct state before evaluation.",
+      "CRITICAL: Clone freshness check returns 'not_found' with no clone record for target instance 'mobizuat' - unable to verify environment readiness. Prior validation notes reference 554-day clone age (18.4 months stale) for 'mobizdev' instance, but current data shows collection_errors indicating clone info unavailable. This creates unacceptable deployment risk as environment drift between development and production cannot be assessed.",
+      "CRITICAL: Zero rollback plan beyond generic 'Backout Update sets' statement eliminates recovery path if deployment corrupts HR offboarding workflows, breaks mailbox access revocation triggers in Exchange/O365 integrations, or introduces description field logic errors affecting active offboarding tickets. Without specific update set revert procedures, validation steps, and rollback duration estimates, production recovery capability is compromised.",
+      "HIGH: Empty test plan (test_plan field null) means validation approach completely unknown - no evidence that HR offboarding scenarios, shared mailbox revocation workflows, description field population logic, LDAP deprovisioning triggers, or Exchange mailbox delegation removal automation were tested before production deployment (if already deployed) or are planned for testing (if pending deployment).",
+      "HIGH: Modification to offboarding description field logic affects critical HR deprovisioning workflows - risks breaking LDAP listener triggers that parse description text for workflow routing, Exchange/O365 mailbox delegation removal automation dependent on description field values, downstream HR systems consuming description data, or audit/compliance reporting extracting description patterns for offboarding validation.",
+      "HIGH: Update set deployment to production without confirmed environment refresh risks installing code developed against outdated schema, missing dependencies introduced in intervening platform updates, conflicting with recent customizations to shared mailbox catalog items, or overwriting production hotfixes applied since development began.",
+      "MEDIUM: Template shows inactive status (active: false) and unpublished state (template_is_published: false) despite 100% success rate across 505 closed changes - suggests template deprecated or under review. Questionable whether template should be used for new changes without platform owner confirmation of template validity.",
+      "MEDIUM: No maintenance window specified in change record - if deployment pending, could impact active HR offboarding requests in-flight causing description field inconsistencies, workflow processing errors during update set installation, or service disruption during peak HR activity periods (month-end, year-end offboarding cycles).",
+      "MEDIUM: Missing communication plan leaves HR stakeholders unaware of changed description behavior - potential confusion in offboarding ticket validation, reporting discrepancies between old/new description formats, or training gaps for HR staff validating offboarding requests post-deployment.",
+      "LOW: Conflict status shows"
+    ],
+    "required_actions": [
+      "Provide complete documentation (implementation, rollback, test plans) before resubmission."
+    ],
+    "synthesis": "❌ Automated validation failed; documentation and readiness details are incomplete."
+  },
+  {
+    "change_number": "CHG0041592",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 21947,
+    "overall_status": "REJECT",
+    "documentation_assessment": "CHG0041592 exhibits critical documentation failures and fundamental template misuse that render it unapprovable. The change is categorized under 'ServiceNow Platform Updates' standard template when actual scope involves expense management application configuration—specifically routing PAK currency expenses from Accounting to HR and deactivating PDF generation logic. This represents fraudulent misclassification to bypass appropriate change controls. Implementation plan marked 'N/A' despite concrete technical work requiring business rule modifications, workflow routing changes, and configuration updates. Rollback plan completely absent—mandatory for financial workflow changes affecting audit trails and compliance. Test plan marked 'N/A' for changes impacting expense processing and potential downstream integrations. Justification 'Requested by Igor' provides zero business case, urgency rationale, stakeholder alignment, or compliance consideration. Update set reference 'AZ;STRY0011125;Expense Item - sc_task routing + deactivate PDFs generation' explicitly confirms scope mismatch. Template producer inactive (active: false) indicates this template should not be used for new changes. Change state '3' (Closed) with 'Successful' close code contradicts multiple automated rejection work notes from November 2025, suggesting governance bypass or unauthorized implementation attempt.",
+    "risks": [
+      "No clone freshness data available for mobizuat target instance—cannot validate environment readiness or configuration drift risk",
+      "Template misclassification bypasses appropriate change controls—'Platform Updates' template has fundamentally different risk profile than application logic modifications affecting financial workflows",
+      "Expense routing change from Accounting to HR for PAK currency creates unvalidated workflow disruption affecting financial processes, approval chains, SLA compliance, organizational accountability, and segregation of duties without documented testing or stakeholder approval",
+      "PDF generation deactivation may break downstream systems consuming expense documentation including ERP integrations, audit systems, compliance repositories, reporting tools, reimbursement processing, and tax documentation—no integration endpoint analysis performed",
+      "Zero rollback plan means inability to restore routing logic or PDF functionality when business disruption occurs—unacceptable for financial operations with potential SOX and audit trail implications",
+      "HR team readiness unconfirmed—no evidence of capacity planning, training, process documentation, system access provisioning, or workload impact analysis for handling PAK currency expenses",
+      "Accounting team impact unexplored—workload reduction/reallocation, handoff procedures, system access adjustments, process documentation, and financial controls not addressed",
+      "Compliance and audit implications unassessed—currency-specific routing may violate financial controls, segregation of duties, regulatory requirements (SOX), or audit trail integrity",
+      "Integration cascade failures likely—financial reporting systems, expense analytics, compliance systems consuming PDF outputs not identified, tested, or notified",
+      "No communication plan for affected parties including Finance teams, HR personnel, end users submitting PAK expenses, downstream system owners, auditors, and compliance officers",
+      "Change already closed with 'Successful' status but contains three automated rejection work notes (Nov 7-8, 2025)—suggests governance bypass, unauthorized implementation, or attempted reactivation without remediation",
+      "Template producer inactive status combined with 100% success rate across 505 changes suggests established pattern—however current change fundamentally violates template intent and scope boundaries"
+    ],
+    "required_actions": [
+      "IMMEDIATE: REJECT change and prevent any implementation under current template classification—this is application configuration change fraudulently misclassified as platform update",
+      "MANDATORY: Reclassify to appropriate standard change template for expense management application modifications OR elevate to normal change requiring full CAB review with Finance, HR, and Compliance stakeholder presence and formal approvals",
+      "Obtain and verify clone freshness for mobizuat target instance—must be <30 days old before any testing proceeds; current 'not_found' status makes validation impossible",
+      "Investigate change state discrepancy—change shows state '3' (Closed) with 'Successful' close code dated April 24, 2025, but contains three automated rejection work notes from November 7-8, 2025; determine if this represents governance bypass or unauthorized reactivation attempt",
+      "Develop comprehensive implementation plan documenting: business rule modifications for PAK currency detection, assignment group routing changes from Accounting to HR with affected workflows, PDF generation logic deactivation steps, affected tables/fields/scripts, configuration backup procedures, deployment sequence with dependencies",
+      "Create detailed rollback plan with:"
+    ],
+    "synthesis": "❌ Automated validation failed; documentation and readiness details are incomplete."
+  }
+]

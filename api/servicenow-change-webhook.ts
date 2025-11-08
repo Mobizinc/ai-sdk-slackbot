@@ -18,9 +18,11 @@ import { getQStashClient, getWorkerUrl, isQStashEnabled } from "../lib/queue/qst
 import { withLangSmithTrace } from "../lib/observability";
 import { ServiceNowChangeWebhookSchema } from "../lib/schemas/servicenow-change-webhook";
 import { authenticateWebhookRequest, buildErrorResponse } from "../lib/utils/webhook-helpers";
+import { ServiceNowParser } from "../lib/utils/servicenow-parser";
 
 // Initialize services
 const changeValidationService = getChangeValidationService();
+const serviceNowParser = new ServiceNowParser();
 
 // Configuration
 const WEBHOOK_SECRET = process.env.SERVICENOW_WEBHOOK_SECRET;
@@ -109,19 +111,26 @@ const postImpl = withLangSmithTrace(
 
       console.log(`[Change Webhook] Authenticated via ${authResult.method}`);
 
-      // Parse JSON payload
-      let webhookData: unknown;
-      try {
-        webhookData = JSON.parse(payload);
-      } catch (error) {
-        console.error("[Change Webhook] Failed to parse JSON:", error);
+      // Parse JSON payload using resilient parser
+      const parsed = serviceNowParser.parse(payload);
+      if (!parsed.success || !parsed.data) {
+        console.error("[Change Webhook] Failed to parse ServiceNow payload:", parsed.error);
         return buildErrorResponse({
           type: "parse_error",
-          message: "Invalid JSON payload",
-          details: { error: error instanceof Error ? error.message : String(error) },
+          message: "Invalid ServiceNow payload",
+          details: {
+            error: parsed.error instanceof Error ? parsed.error.message : String(parsed.error),
+            strategy: parsed.strategy,
+          },
           statusCode: 400,
         });
       }
+
+      if (parsed.warnings && parsed.warnings.length > 0) {
+        console.warn("[Change Webhook] Parser warnings:", parsed.warnings);
+      }
+
+      const webhookData = parsed.data;
 
       // Validate schema
       let validated;

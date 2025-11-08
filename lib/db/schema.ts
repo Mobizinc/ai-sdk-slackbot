@@ -1069,9 +1069,12 @@ export const changeValidations = pgTable(
     // Validation lifecycle
     status: text("status").notNull().default("received"), // received, processing, completed, failed
     validationResults: jsonb("validation_results").$type<{
-      overall_status: "PASSED" | "FAILED" | "WARNING";
-      checks: Record<string, boolean>;
+      overall_status: "APPROVE" | "APPROVE_WITH_CONDITIONS" | "REJECT";
+      documentation_assessment?: string;
+      risks?: string[];
+      required_actions?: string[];
       synthesis?: string;
+      checks?: Record<string, boolean>;
     }>(),
     failureReason: text("failure_reason"),
     // Timing

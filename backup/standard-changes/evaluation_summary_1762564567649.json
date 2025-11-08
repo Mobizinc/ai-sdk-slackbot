@@ -1,0 +1,8 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "duration_ms": 24197,
+    "overall_status": "REJECT",
+    "synthesis": "Change CHG0041587 is REJECTED due to insufficient documentation and environmental concerns that prevent proper risk assessment. The change lacks all required planning artifacts (implementation, rollback, test plans, and justification), making it impossible to evaluate execution safety or business alignment. Clone freshness verification failed, preventing validation of environment readiness. The template's inactive/unpublished status and absence of workflow integration raise questions about production readiness. The description discrepancy between 'Platform Updates' and 'STRY state notification changes' suggests scope confusion. Before resubmission, the requestor must provide complete documentation per CAB standards, resolve environment verification issues, clarify template status, and demonstrate sub-production testing of the notification logic to ensure no unintended impacts to story workflows or fulfiller assignment processes."
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "duration_ms": 4,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active. Please review and correct before proceeding."
+  },
+  {
+    "change_number": "CHG0041588",
+    "duration_ms": 0,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active. Please review and correct before proceeding."
+  },
+  {
+    "change_number": "CHG0041589",
+    "duration_ms": 0,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active. Please review and correct before proceeding."
+  },
+  {
+    "change_number": "CHG0041590",
+    "duration_ms": 0,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active. Please review and correct before proceeding."
+  },
+  {
+    "change_number": "CHG0041592",
+    "duration_ms": 0,
+    "overall_status": "FAILED",
+    "checks": {
+      "has_name": false,
+      "has_category": false,
+      "has_workflow": false,
+      "is_active": false
+    },
+    "synthesis": "❌ Change validation FAILED. Missing or invalid configuration: has_name, has_category, has_workflow, is_active. Please review and correct before proceeding."
+  }
+]

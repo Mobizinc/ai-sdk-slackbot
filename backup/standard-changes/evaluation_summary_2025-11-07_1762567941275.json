@@ -1,0 +1,10 @@
+[
+  {
+    "change_number": "CHG0041587",
+    "component_type": "std_change_template",
+    "component_sys_id": "1951265d87b96510e88deb5e0ebb3510",
+    "duration_ms": 30320,
+    "overall_status": "REJECT",
+    "synthesis": "Change CHG0041587 is REJECTED due to multiple critical deficiencies that create unacceptable implementation risk. Primary concerns: (1) Clone information unavailable - cannot validate environment readiness per CAB prerequisites; (2) Missing rollback plan for notification workflow change affecting business-critical fulfiller communications; (3) Inadequate implementation plan lacking update set identification, environment specification, and deployment procedures; (4) Superficial test plan failing to validate notification accuracy, recipient correctness, or performance impact; (5) Insufficient justification and missing business case; (6) No defined schedule or stakeholder communication plan. The change modifies STRY state transition notifications to Deploy/Launch states - a high-impact area where defects could cause mail storms or missed critical notifications to fulfillers. Template status shows inactive despite production use (requires resolution). Requestor must address all mandatory required actions, complete full sub-production testing cycle with documented results, and resubmit with comprehensive documentation before CAB reconsideration. Historical template success rate (100% across 505 changes) cannot compensate for current submission's documentation gaps and validation deficiencies."
+  }
+]
