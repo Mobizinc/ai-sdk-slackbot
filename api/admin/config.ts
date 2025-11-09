@@ -92,7 +92,7 @@ export async function GET(request: Request): Promise<Response> {
       headers: {
         "Content-Type": "application/json",
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://admin.mobiz.solutions",
         "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
@@ -107,7 +107,7 @@ export async function OPTIONS(): Promise<Response> {
   return new Response(null, {
     status: 204,
     headers: {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": "https://admin.mobiz.solutions",
       "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
@@ -177,7 +177,7 @@ export async function PATCH(request: Request): Promise<Response> {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://admin.mobiz.solutions",
         "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
       },
