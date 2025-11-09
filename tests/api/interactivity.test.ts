@@ -17,13 +17,20 @@ vi.mock("../../lib/slack-utils", () => ({
   verifyRequest: vi.fn().mockResolvedValue(undefined),
 }));
 
+const { slackMessagingServiceMock } = vi.hoisted(() => {
+  return {
+    slackMessagingServiceMock: {
+      getBotUserId: vi.fn().mockResolvedValue("U123BOT"),
+      postMessage: vi.fn(),
+      updateMessage: vi.fn(),
+      openView: vi.fn(),
+      openConversation: vi.fn().mockResolvedValue({ channelId: "D123" }),
+    },
+  };
+});
+
 vi.mock("../../lib/services/slack-messaging", () => ({
-  getSlackMessagingService: vi.fn(() => ({
-    getBotUserId: vi.fn().mockResolvedValue("U123BOT"),
-    postMessage: vi.fn(),
-    updateMessage: vi.fn(),
-    openView: vi.fn(),
-  })),
+  getSlackMessagingService: vi.fn(() => slackMessagingServiceMock),
 }));
 
 vi.mock("../../lib/services/escalation-service", () => ({
@@ -40,11 +47,17 @@ vi.mock("../../lib/handle-kb-approval", () => ({
   })),
 }));
 
+const { incidentClarificationServiceMock } = vi.hoisted(() => {
+  return {
+    incidentClarificationServiceMock: {
+      handleClarificationResponse: vi.fn().mockResolvedValue({ success: true, message: "Success" }),
+      handleSkipAction: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
+
 vi.mock("../../lib/services/incident-clarification-service", () => ({
-  getIncidentClarificationService: vi.fn(() => ({
-    handleClarificationResponse: vi.fn().mockResolvedValue({ success: true, message: "Success" }),
-    handleSkipAction: vi.fn().mockResolvedValue(undefined),
-  })),
+  getIncidentClarificationService: vi.fn(() => incidentClarificationServiceMock),
 }));
 
 vi.mock("../../lib/db/init", () => ({
@@ -55,10 +68,15 @@ describe("Interactivity API Security", () => {
   let mockSlackMessaging: any;
   let mockEscalationService: any;
   let mockKBManager: any;
+  let mockClarificationService: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSlackMessaging = getSlackMessagingService();
+    mockSlackMessaging = slackMessagingServiceMock;
+    mockSlackMessaging.openConversation.mockResolvedValue({ channelId: "D123" });
+    mockClarificationService = incidentClarificationServiceMock;
+    mockClarificationService.handleClarificationResponse.mockResolvedValue({ success: true, message: "Success" });
+    mockClarificationService.handleSkipAction.mockResolvedValue(undefined);
     mockEscalationService = getEscalationService();
     mockKBManager = getKBApprovalManager();
   });
@@ -653,11 +671,6 @@ describe("Interactivity API Security", () => {
   });
 
   describe("Incident Enrichment Button Handlers", () => {
-    let mockClarificationService: any;
-
-    beforeEach(() => {
-      mockClarificationService = getIncidentClarificationService();
-    });
 
     it("✓ Routes select_ci_* actions to handleIncidentEnrichmentAction", async () => {
       const payload = {
@@ -861,12 +874,14 @@ describe("Interactivity API Security", () => {
       expect(mockClarificationService.handleSkipAction).toHaveBeenCalledWith("incident_sys_id_123");
     });
 
-    it("✓ Updates Slack message with confirmation", async () => {
+    it("✓ Sends DM confirmation when CI is linked", async () => {
       const mockClarificationService = getIncidentClarificationService();
       (mockClarificationService.handleClarificationResponse as any).mockResolvedValue({
         success: true,
         message: "Successfully linked CI: test-ci",
       });
+      const dmChannel = "D_CI_SUCCESS";
+      mockSlackMessaging.openConversation.mockResolvedValueOnce({ channelId: dmChannel });
 
       const payload = {
         type: "block_actions",
@@ -903,20 +918,12 @@ describe("Interactivity API Security", () => {
 
       await POST(request);
 
-      expect(mockSlackMessaging.updateMessage).toHaveBeenCalledWith({
-        channel: "C123456",
-        ts: "1234567890.123456",
-        text: "CI linked by <@U123>: test-ci",
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "✓ CI linked by <@U123>: *test-ci*\n\nSuccessfully linked CI: test-ci",
-            },
-          },
-        ],
+      expect(mockSlackMessaging.openConversation).toHaveBeenCalledWith("U123");
+      expect(mockSlackMessaging.postMessage).toHaveBeenCalledWith({
+        channel: dmChannel,
+        text: expect.stringContaining("CI linked by <@U123>: *test-ci*"),
       });
+      expect(mockSlackMessaging.updateMessage).not.toHaveBeenCalled();
     });
 
     it("✓ Handles parse errors gracefully", async () => {
@@ -951,12 +958,12 @@ describe("Interactivity API Security", () => {
       const response = await POST(request);
       expect(response.status).toBe(200);
 
-      // Should post error message
+      // Should send DM error message
       expect(mockSlackMessaging.postMessage).toHaveBeenCalledWith({
-        channel: "C123456",
-        threadTs: "1234567890.123456",
+        channel: "D123",
         text: "Error processing CI selection - invalid button data",
       });
+      expect(mockSlackMessaging.updateMessage).not.toHaveBeenCalled();
     });
 
     it("✓ Posts error message on failure", async () => {
@@ -1002,10 +1009,10 @@ describe("Interactivity API Security", () => {
       await POST(request);
 
       expect(mockSlackMessaging.postMessage).toHaveBeenCalledWith({
-        channel: "C123456",
-        threadTs: "1234567890.123456",
-        text: "Error linking CI: CI linking failed",
+        channel: "D123",
+        text: "⚠️ Error linking CI: CI linking failed",
       });
+      expect(mockSlackMessaging.updateMessage).not.toHaveBeenCalled();
     });
   });
 

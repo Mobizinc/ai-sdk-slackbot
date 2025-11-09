@@ -82,9 +82,10 @@ export async function generateProjectInitiationDraft(options: ProjectInitiationO
   const output = llmOutput ?? fallbackOutput;
 
   // Ensure we always have usable Block Kit blocks
+  const fallbackBlocks = await buildProjectBlocks(project);
   const blockKitBlocks = Array.isArray(output.blockKit?.blocks) && output.blockKit!.blocks.length > 0
     ? output.blockKit!.blocks
-    : buildProjectBlocks(project);
+    : fallbackBlocks;
 
   const draftedAt = new Date().toISOString();
   let requestId: string | undefined;

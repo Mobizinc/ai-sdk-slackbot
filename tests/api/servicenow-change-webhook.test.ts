@@ -18,13 +18,22 @@ describe("ServiceNow Change Webhook (/api/servicenow-change-webhook)", () => {
   const createMockRequest = (
     body: string,
     headers: Record<string, string> = {}
-  ): Request => ({
-    json: vi.fn().mockResolvedValue(JSON.parse(body)),
-    text: vi.fn().mockResolvedValue(body),
-    headers: new Map(Object.entries(headers)),
-    url: "http://localhost/api/servicenow-change-webhook",
-    method: "POST",
-  } as any);
+  ): Request => {
+    const jsonMock = vi.fn();
+    try {
+      jsonMock.mockResolvedValue(JSON.parse(body));
+    } catch (error) {
+      jsonMock.mockRejectedValue(error);
+    }
+
+    return {
+      json: jsonMock,
+      text: vi.fn().mockResolvedValue(body),
+      headers: new Map(Object.entries(headers)),
+      url: "http://localhost/api/servicenow-change-webhook",
+      method: "POST",
+    } as any;
+  };
 
   const validChangePayload = {
     change_sys_id: "CHG0000001",
@@ -146,7 +155,7 @@ describe("ServiceNow Change Webhook (/api/servicenow-change-webhook)", () => {
       const request = createMockRequest(payload);
 
       // Should fail without authentication headers
-      expect(request.headers.get("x-servicenow-signature")).toBeNull();
+      expect(request.headers.get("x-servicenow-signature")).toBeUndefined();
     });
 
     it("should support API key authentication as alternative to HMAC", async () => {
@@ -480,15 +489,15 @@ describe("ServiceNow Change Webhook (/api/servicenow-change-webhook)", () => {
 
   describe("Observability and Logging", () => {
     it("should capture request timing information", async () => {
-      const payload = JSON.stringify(validChangePayload);
-
-      // Expected response includes duration
-      const expectedResponse = {
-        duration_ms: expect.any(Number),
+      const start = Date.now();
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const observedResponse = {
+        duration_ms: Date.now() - start,
       };
 
-      expect(expectedResponse).toHaveProperty("duration_ms");
-      expect(typeof expectedResponse.duration_ms).toBe("number");
+      expect(observedResponse).toHaveProperty("duration_ms");
+      expect(typeof observedResponse.duration_ms).toBe("number");
+      expect(observedResponse.duration_ms).toBeGreaterThanOrEqual(0);
     });
 
     it("should include request_id for tracing", async () => {

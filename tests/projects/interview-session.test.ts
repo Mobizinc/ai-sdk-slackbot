@@ -13,6 +13,15 @@ const mocks = vi.hoisted(() => ({
     { id: "generated_async", prompt: "Share a time you handled async workflows." },
     { id: "generated_learning", prompt: "What do you want to learn on this project?" },
   ]),
+  findInterestMock: vi.fn(),
+  createInterestMock: vi.fn(),
+  updateInterestStatusMock: vi.fn(),
+  getActiveInterestCountMock: vi.fn(),
+  checkCapacityMock: vi.fn(),
+  getInterestByIdMock: vi.fn(),
+  scoreInterviewEnhancedMock: vi.fn(),
+  waitlistAcceptedMock: vi.fn(),
+  waitlistRejectedMock: vi.fn(),
 }));
 
 vi.mock("../../lib/db/client", () => ({
@@ -52,6 +61,7 @@ vi.mock("../../lib/projects/matching-service", () => ({
     summary: "Strong alignment with project goals.",
     recommendedTasks: ["Help triage backlog issues"],
   })),
+  scoreInterviewEnhanced: mocks.scoreInterviewEnhancedMock,
 }));
 
 vi.mock("../../lib/projects/interview-events", () => ({
@@ -60,6 +70,23 @@ vi.mock("../../lib/projects/interview-events", () => ({
 
 vi.mock("../../lib/projects/question-generator", () => ({
   generateInterviewQuestions: mocks.generateInterviewQuestions,
+}));
+
+vi.mock("../../lib/db/repositories/interest-repository", () => ({
+  findInterest: mocks.findInterestMock,
+  createInterest: mocks.createInterestMock,
+  updateInterestStatus: mocks.updateInterestStatusMock,
+  getActiveInterestCount: mocks.getActiveInterestCountMock,
+  getInterestById: mocks.getInterestByIdMock,
+}));
+
+vi.mock("../../lib/projects/capacity", () => ({
+  checkCapacity: mocks.checkCapacityMock,
+}));
+
+vi.mock("../../lib/projects/waitlist-service", () => ({
+  onInterviewAccepted: mocks.waitlistAcceptedMock,
+  onInterviewRejected: mocks.waitlistRejectedMock,
 }));
 
 import { startInterviewSession, handleInterviewResponse } from "../../lib/projects/interview-session";
@@ -87,9 +114,16 @@ describe("project interview session", () => {
     getStateByChannelMock,
     updatePayloadMock,
     markProcessedMock,
-    emitProjectInterviewCompleted,
-    generateInterviewQuestions,
-  } = mocks;
+  emitProjectInterviewCompleted,
+  generateInterviewQuestions,
+  findInterestMock,
+  createInterestMock,
+  updateInterestStatusMock,
+  checkCapacityMock,
+  scoreInterviewEnhancedMock,
+  waitlistAcceptedMock,
+  waitlistRejectedMock,
+} = mocks;
 
   beforeEach(() => {
     postMessageMock.mockReset();
@@ -100,6 +134,29 @@ describe("project interview session", () => {
     markProcessedMock.mockReset();
     emitProjectInterviewCompleted.mockReset();
     generateInterviewQuestions.mockClear();
+    findInterestMock.mockReset();
+    createInterestMock.mockReset();
+    updateInterestStatusMock.mockReset();
+    checkCapacityMock.mockReset();
+    scoreInterviewEnhancedMock.mockReset();
+    waitlistAcceptedMock.mockReset();
+    waitlistRejectedMock.mockReset();
+
+    // Default mocks
+    findInterestMock.mockResolvedValue(null); // No existing interest
+    createInterestMock.mockResolvedValue({ id: "interest-123", status: "pending" });
+    updateInterestStatusMock.mockResolvedValue({ id: "interest-123" });
+    checkCapacityMock.mockResolvedValue(true); // Has capacity
+    scoreInterviewEnhancedMock.mockResolvedValue({
+      score: 85,
+      summary: "Strong alignment with project goals.",
+      recommendedTasks: ["Help triage backlog issues"],
+      concerns: undefined,
+      skillGaps: ["Next.js"],
+      onboardingRecommendations: ["Complete onboarding doc"],
+      strengths: ["TypeScript"],
+      timeToProductivity: "1-2 weeks",
+    });
   });
 
   it("starts an interview session when no active session exists", async () => {
@@ -169,5 +226,101 @@ describe("project interview session", () => {
     expect(handled).toBe(true);
     expect(updatePayloadMock).toHaveBeenCalled();
     expect(postMessageMock).toHaveBeenCalled();
+  });
+
+  it("blocks duplicate applications", async () => {
+    openConversationMock.mockResolvedValue({ channelId: "D123" });
+    postMessageMock.mockResolvedValue({ ok: true, ts: "111" });
+
+    // User has already applied and is not abandoned
+    findInterestMock.mockResolvedValue({
+      id: "interest-existing",
+      status: "pending",
+      projectId: sampleProject.id,
+    });
+
+    await startInterviewSession({
+      project: sampleProject,
+      userId: "U123",
+      userName: "Interested User",
+      initiatedBy: "U123",
+    });
+
+    // Should send message about already applied
+    expect(postMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("already applied"),
+      })
+    );
+
+    // Should NOT create new interest or start interview
+    expect(createInterestMock).not.toHaveBeenCalled();
+  });
+
+  it("allows retry for abandoned applications", async () => {
+    openConversationMock.mockResolvedValue({ channelId: "D123" });
+    postMessageMock.mockResolvedValue({ ok: true, ts: "111" });
+    getStateByChannelMock.mockResolvedValue(null);
+
+    // User previously abandoned application
+    findInterestMock.mockResolvedValue({
+      id: "interest-abandoned",
+      status: "abandoned",
+      projectId: sampleProject.id,
+    });
+
+    await startInterviewSession({
+      project: sampleProject,
+      userId: "U123",
+      userName: "Interested User",
+      initiatedBy: "U123",
+    });
+
+    // Should update status to interviewing
+    expect(updateInterestStatusMock).toHaveBeenCalledWith("interest-abandoned", "interviewing");
+  });
+
+  it("adds user to waitlist when project is at capacity", async () => {
+    openConversationMock.mockResolvedValue({ channelId: "D123" });
+    postMessageMock.mockResolvedValue({ ok: true, ts: "111" });
+
+    // Project is at capacity
+    checkCapacityMock.mockResolvedValue(false);
+
+    await startInterviewSession({
+      project: sampleProject,
+      userId: "U123",
+      userName: "Interested User",
+      initiatedBy: "U123",
+    });
+
+    // Should create waitlist interest
+    expect(createInterestMock).toHaveBeenCalledWith(sampleProject.id, "U123", "waitlist");
+
+    // Should send waitlist message
+    expect(postMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining("full capacity"),
+      })
+    );
+  });
+
+  it("creates interest record on successful start", async () => {
+    openConversationMock.mockResolvedValue({ channelId: "D123" });
+    postMessageMock.mockResolvedValue({ ok: true, ts: "111" });
+    getStateByChannelMock.mockResolvedValue(null);
+
+    await startInterviewSession({
+      project: sampleProject,
+      userId: "U123",
+      userName: "Interested User",
+      initiatedBy: "U123",
+    });
+
+    // Should create interest
+    expect(createInterestMock).toHaveBeenCalledWith(sampleProject.id, "U123", "pending");
+
+    // Should update to interviewing
+    expect(updateInterestStatusMock).toHaveBeenCalledWith("interest-123", "interviewing");
   });
 });

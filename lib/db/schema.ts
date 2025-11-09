@@ -851,6 +851,11 @@ export const projectInterviews = pgTable(
     matchSummary: text("match_summary").notNull(),
     recommendedTasks: jsonb("recommended_tasks").$type<string[]>().default([]).notNull(),
     concerns: text("concerns"),
+    skillGaps: jsonb("skill_gaps").$type<string[]>().default([]).notNull(),
+    onboardingRecommendations: jsonb("onboarding_recommendations").$type<string[]>().default([]).notNull(),
+    strengths: jsonb("strengths").$type<string[]>().default([]).notNull(),
+    timeToProductivity: text("time_to_productivity"),
+    interestId: uuid("interest_id"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     completedAt: timestamp("completed_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -863,11 +868,41 @@ export const projectInterviews = pgTable(
     candidateIdx: index("idx_project_interviews_candidate").on(table.candidateSlackId),
     completedIdx: index("idx_project_interviews_completed_at").on(table.completedAt),
     statusIdx: index("idx_project_interviews_status").on(table.status),
+    interestIdx: index("idx_project_interviews_interest").on(table.interestId),
   }),
 );
 
 export type ProjectInterview = typeof projectInterviews.$inferSelect;
 export type NewProjectInterview = typeof projectInterviews.$inferInsert;
+
+/**
+ * Project Interests Table
+ * Tracks candidate interest in projects and their status through the application process.
+ * Supports duplicate prevention and capacity management.
+ */
+export const projectInterests = pgTable(
+  "project_interests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: text("project_id").notNull(),
+    candidateSlackId: text("candidate_slack_id").notNull(),
+    status: text("status").notNull().default("pending"), // pending, interviewing, accepted, rejected, abandoned, waitlist
+    interviewId: uuid("interview_id"), // FK to projectInterviews
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    abandonedAt: timestamp("abandoned_at", { withTimezone: true }), // when interview was abandoned
+  },
+  (table) => ({
+    projectIdx: index("idx_project_interests_project").on(table.projectId),
+    candidateIdx: index("idx_project_interests_candidate").on(table.candidateSlackId),
+    statusIdx: index("idx_project_interests_status").on(table.status),
+    projectCandidateIdx: index("idx_project_interests_project_candidate").on(table.projectId, table.candidateSlackId),
+    createdAtIdx: index("idx_project_interests_created_at").on(table.createdAt),
+  }),
+);
+
+export type ProjectInterest = typeof projectInterests.$inferSelect;
+export type NewProjectInterest = typeof projectInterests.$inferInsert;
 
 export const projectStandups = pgTable(
   "project_standups",

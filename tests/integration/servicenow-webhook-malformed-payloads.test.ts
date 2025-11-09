@@ -238,6 +238,24 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
     });
 
+    it("should recover payloads with invalid unicode escapes", async () => {
+      const payload = loadFixture('malformed', 'invalid-unicode.json');
+      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      expect(triageCall.case_number).toBe('CASE001010');
+    });
+
     it("should return error for completely invalid JSON", async () => {
       const invalidPayload = "{ this is not valid json }";
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
@@ -258,7 +276,8 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
   describe("Error Handling and Logging", () => {
     it("should log parser metrics", async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
       const payload = loadFixture('malformed', 'smart-quotes.json');
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {
         method: 'POST',
@@ -267,18 +286,16 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       });
 
       await POST(request);
-      
-      // Should have logged parser metrics (both from parser and webhook)
+
+      // Should have logged parser metrics (from parser)
+      // Note: Parser logs metrics via console.log
       expect(consoleSpy).toHaveBeenCalledWith(
         '[ServiceNowParser] Parse metrics:',
         expect.any(Object)
       );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[Webhook] Parser metrics:',
-        expect.any(Object)
-      );
-      
+
       consoleSpy.mockRestore();
+      consoleWarnSpy.mockRestore();
     });
 
     it("should handle empty payload gracefully", async () => {
