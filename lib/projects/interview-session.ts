@@ -2,7 +2,7 @@ import type { GenericMessageEvent } from "../slack-event-types";
 import { getSlackMessagingService, type SlackMessagingService } from "../services/slack-messaging";
 import { getInteractiveStateManager } from "../services/interactive-state-manager";
 import { getProjectById } from "./catalog";
-import { scoreInterviewAgainstProject, scoreInterviewEnhanced, type MatchScore, type EnhancedMatchScore } from "./matching-service";
+import { scoreInterviewAgainstProject, type MatchScore, type EnhancedMatchScore } from "./matching-service";
 import type {
   InterviewAnswer,
   InterviewQuestion,
