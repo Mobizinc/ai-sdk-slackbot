@@ -54,6 +54,7 @@ import { getProjectById } from "../lib/projects/catalog";
 import { sendProjectLearnMore, startInterviewSession } from "../lib/projects/interview-session";
 import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
 import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
+import * as interestRepository from "../lib/db/repositories/interest-repository";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -140,6 +141,76 @@ export async function POST(request: Request) {
 }
 
 /**
+ * Handle project waitlist signup
+ * User clicks "Join Waitlist" button when project is at capacity
+ */
+async function handleProjectWaitlistSignup(project: any, userId: string, userName?: string): Promise<void> {
+  try {
+    // Check if user already on waitlist
+    const existingInterest = await interestRepository.findInterest(project.id, userId);
+
+    if (existingInterest) {
+      if (existingInterest.status === "waitlist") {
+        // Already on waitlist
+        const dmConversation = await slackMessaging.openConversation(userId);
+        if (dmConversation.channelId) {
+          await slackMessaging.postMessage({
+            channel: dmConversation.channelId,
+            text: `You're already on the waitlist for *${project.name}*. We'll notify you as soon as a slot opens up!`,
+          });
+        }
+        return;
+      } else if (existingInterest.status !== "abandoned") {
+        // User already has an active interest
+        const dmConversation = await slackMessaging.openConversation(userId);
+        if (dmConversation.channelId) {
+          await slackMessaging.postMessage({
+            channel: dmConversation.channelId,
+            text: `You've already expressed interest in *${project.name}*. We'll get back to you soon!`,
+          });
+        }
+        return;
+      }
+    }
+
+    // Add to waitlist
+    const interest = await interestRepository.createInterest(project.id, userId, "waitlist");
+
+    if (interest) {
+      const dmConversation = await slackMessaging.openConversation(userId);
+      if (dmConversation.channelId) {
+        const waitlist = await interestRepository.getWaitlist(project.id);
+        const position = waitlist.findIndex((i) => i.id === interest.id) + 1;
+
+        await slackMessaging.postMessage({
+          channel: dmConversation.channelId,
+          text: [
+            `Great! You've been added to the waitlist for *${project.name}*.`,
+            `You're #${position} in line.`,
+            "We'll send you a message as soon as a slot opens up. Thanks for your interest!",
+          ].join("\n"),
+        });
+      }
+    }
+  } catch (error) {
+    console.error("[Project Waitlist] Failed to add user to waitlist", {
+      projectId: project.id,
+      userId,
+      error,
+    });
+
+    // Still send a response to the user
+    const dmConversation = await slackMessaging.openConversation(userId);
+    if (dmConversation.channelId) {
+      await slackMessaging.postMessage({
+        channel: dmConversation.channelId,
+        text: `Thanks for your interest in *${project.name}*! We'll be in touch soon.`,
+      });
+    }
+  }
+}
+
+/**
  * Handle block action interactions (button clicks, etc.)
  */
 async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
@@ -164,7 +235,7 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
       await handleIncidentEnrichmentAction(actionId, value, payload);
     }
 
-    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE) {
+    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE || actionId === ProjectActions.WAITLIST) {
       const parsed = (() => {
         try {
           return JSON.parse(value || "{}");
@@ -204,6 +275,11 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
             userId: payload.user.id,
           }),
         );
+      }
+
+      if (actionId === ProjectActions.WAITLIST) {
+        // Handle waitlist signup
+        enqueueBackgroundTask(handleProjectWaitlistSignup(project, payload.user.id, payload.user.name));
       }
     }
 

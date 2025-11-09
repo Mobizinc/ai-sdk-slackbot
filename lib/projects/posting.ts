@@ -8,6 +8,7 @@ import {
   createSectionBlock,
 } from "../utils/message-styling";
 import type { ProjectDefinition } from "./types";
+import { getProjectCapacityStatus, formatCapacityMessage } from "./capacity";
 
 export interface PostProjectOpportunityOptions {
   project: ProjectDefinition;
@@ -20,6 +21,7 @@ export interface PostProjectOpportunityOptions {
 
 const INTEREST_ACTION_ID = "project_button_interest";
 const LEARN_MORE_ACTION_ID = "project_button_learn_more";
+const WAITLIST_ACTION_ID = "project_button_waitlist";
 
 function formatList(items: string[]): string {
   return items.map((item) => `• ${item}`).join("\n");
@@ -39,7 +41,7 @@ function buildOpenTasks(project: ProjectDefinition): string | null {
   return `*Open tasks*\n${formatList(project.openTasks)}`;
 }
 
-export function buildProjectBlocks(project: ProjectDefinition) {
+export async function buildProjectBlocks(project: ProjectDefinition) {
   const fields = [];
 
   if (project.techStack?.length) {
@@ -101,33 +103,52 @@ export function buildProjectBlocks(project: ProjectDefinition) {
 
   blocks.push(createDivider());
 
+  // Check capacity status for button state
+  const capacityStatus = await getProjectCapacityStatus(project);
+
   const actionValue = JSON.stringify({
     projectId: project.id,
   });
 
-  blocks.push(
-    createActionsBlock([
-      {
-        text: "🚀 I'm Interested",
-        actionId: INTEREST_ACTION_ID,
-        value: actionValue,
-        style: "primary",
-      },
-      {
-        text: "📚 Learn More",
-        actionId: LEARN_MORE_ACTION_ID,
-        value: actionValue,
-      },
-    ]),
-  );
+  // Build action buttons based on capacity
+  const actionButtons: any[] = [];
 
+  if (capacityStatus.isFull) {
+    // Project is full - show waitlist button
+    actionButtons.push({
+      text: `⏳ Join Waitlist (${capacityStatus.waitlistSize} waiting)`,
+      actionId: WAITLIST_ACTION_ID,
+      value: actionValue,
+    });
+  } else {
+    // Project has capacity - show interest button
+    actionButtons.push({
+      text: "🚀 I'm Interested",
+      actionId: INTEREST_ACTION_ID,
+      value: actionValue,
+      style: "primary",
+    });
+  }
+
+  // Always include learn more button
+  actionButtons.push({
+    text: "📚 Learn More",
+    actionId: LEARN_MORE_ACTION_ID,
+    value: actionValue,
+  });
+
+  blocks.push(createActionsBlock(actionButtons));
+
+  // Build context with capacity information
   const contextParts: string[] = [];
   if (project.mentor?.name) {
     contextParts.push(`Mentor: ${project.mentor.name}`);
   }
-  if (project.maxCandidates) {
-    contextParts.push(`Slots: ${project.maxCandidates}`);
-  }
+
+  // Add capacity status
+  const capacityMessage = formatCapacityMessage(capacityStatus);
+  contextParts.push(capacityMessage);
+
   if (project.githubUrl) {
     contextParts.push(`<${project.githubUrl}|GitHub Repo>`);
   }
@@ -148,7 +169,7 @@ export function buildProjectBlocks(project: ProjectDefinition) {
 export async function postProjectOpportunity(options: PostProjectOpportunityOptions): Promise<MessageResult> {
   const { project, channelId, slackMessaging } = options;
 
-  const blocks = buildProjectBlocks(project);
+  const blocks = await buildProjectBlocks(project);
   const textFallback = `${project.name} project opportunity`;
 
   const result = await slackMessaging.postMessage({
@@ -183,4 +204,5 @@ export async function postProjectOpportunity(options: PostProjectOpportunityOpti
 export const ProjectActions = {
   INTEREST: INTEREST_ACTION_ID,
   LEARN_MORE: LEARN_MORE_ACTION_ID,
+  WAITLIST: WAITLIST_ACTION_ID,
 } as const;

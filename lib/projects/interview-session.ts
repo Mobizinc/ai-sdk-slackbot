@@ -2,7 +2,7 @@ import type { GenericMessageEvent } from "../slack-event-types";
 import { getSlackMessagingService, type SlackMessagingService } from "../services/slack-messaging";
 import { getInteractiveStateManager } from "../services/interactive-state-manager";
 import { getProjectById } from "./catalog";
-import { scoreInterviewAgainstProject, type MatchScore } from "./matching-service";
+import { scoreInterviewAgainstProject, scoreInterviewEnhanced, type MatchScore, type EnhancedMatchScore } from "./matching-service";
 import type {
   InterviewAnswer,
   InterviewQuestion,
@@ -13,6 +13,8 @@ import { getDb } from "../db/client";
 import { projectInterviews } from "../db/schema";
 import { emitProjectInterviewCompleted } from "./interview-events";
 import { generateInterviewQuestions } from "./question-generator";
+import * as interestRepository from "../db/repositories/interest-repository";
+import { checkCapacity } from "./capacity";
 
 interface StartInterviewOptions {
   project: ProjectDefinition;
@@ -20,6 +22,7 @@ interface StartInterviewOptions {
   userName?: string;
   initiatedBy: string;
   sourceMessageTs?: string;
+  interestId?: string; // Link to project interest record
 }
 
 interface LearnMoreOptions {
@@ -144,6 +147,59 @@ async function ensureNoActiveInterview(channelId: string): Promise<boolean> {
 export async function startInterviewSession(options: StartInterviewOptions): Promise<void> {
   const { project, userId, initiatedBy } = options;
 
+  // Check for duplicate applications (allow retry only if previous was abandoned)
+  const existingInterest = await interestRepository.findInterest(project.id, userId);
+  if (existingInterest) {
+    // If already has active interest or completed, block unless abandoned
+    if (existingInterest.status !== "abandoned") {
+      // Already applied or interviewing - block
+      const dmConversation = await slackMessaging.openConversation(userId);
+      if (dmConversation.channelId) {
+        await slackMessaging.postMessage({
+          channel: dmConversation.channelId,
+          text: `You've already applied to *${project.name}*. We'll get back to you once the mentor reviews your application.`,
+        });
+      }
+      return;
+    }
+    // Otherwise allow retry for abandoned application
+  }
+
+  // Check project capacity
+  const hasCapacity = await checkCapacity(project);
+  if (!hasCapacity) {
+    // Create/update interest as waitlist
+    let interest = existingInterest;
+    if (!interest) {
+      interest = await interestRepository.createInterest(project.id, userId, "waitlist");
+    } else {
+      await interestRepository.updateInterestStatus(interest.id, "waitlist");
+    }
+
+    const dmConversation = await slackMessaging.openConversation(userId);
+    if (dmConversation.channelId) {
+      await slackMessaging.postMessage({
+        channel: dmConversation.channelId,
+        text: `*${project.name}* is currently at full capacity. You've been added to the waitlist. We'll notify you if a slot opens up!`,
+      });
+    }
+    return;
+  }
+
+  // Create or update interest record
+  let interest = existingInterest;
+  if (!interest) {
+    interest = await interestRepository.createInterest(project.id, userId, "pending");
+  }
+
+  if (!interest) {
+    console.error("[Project Interview] Failed to create interest record", {
+      projectId: project.id,
+      userId,
+    });
+    throw new Error("Failed to register interest");
+  }
+
   let questionSource: InterviewSessionState["questionSource"] = "config";
   let generatorModel: string | undefined;
 
@@ -190,6 +246,9 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     return;
   }
 
+  // Update interest status to interviewing
+  await interestRepository.updateInterestStatus(interest.id, "interviewing");
+
   const firstQuestion = questions[0];
   const totalQuestions = questions.length;
   const messageText = buildIntroMessage(project, firstQuestion, 0, totalQuestions);
@@ -203,7 +262,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     throw new Error("Failed to start interview session (missing message timestamp)");
   }
 
-  const sessionState: InterviewSessionState = {
+  const sessionState: any = {
     projectId: project.id,
     userId,
     userName: options.userName,
@@ -215,6 +274,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource,
     generatorModel,
     startedAt: new Date().toISOString(),
+    interestId: interest.id, // Link to interest record
   };
 
   await stateManager.saveState(
@@ -228,6 +288,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
         initiatedBy,
         projectId: project.id,
         sourceMessageTs: options.sourceMessageTs,
+        interestId: interest.id,
       },
     },
   );
@@ -349,6 +410,7 @@ export async function handleInterviewResponse(
       scoringPrompt: payload.scoringPrompt,
       questionSource: payload.questionSource ?? "default",
       generatorModel: payload.generatorModel,
+      interestId: (payload as any).interestId, // From sessionState
     }),
   ]);
 
@@ -390,12 +452,13 @@ interface PersistInterviewResultOptions {
   mentorId?: string;
   answers: InterviewAnswer[];
   questions: InterviewQuestion[];
-  matchSummary: MatchScore;
+  matchSummary: MatchScore | EnhancedMatchScore;
   startedAt: string;
   completedAt: string;
   scoringPrompt?: string;
   questionSource: InterviewSessionState["questionSource"];
   generatorModel?: string;
+  interestId?: string; // Link to interest record
 }
 
 async function persistInterviewResult(options: PersistInterviewResultOptions): Promise<void> {
@@ -406,7 +469,11 @@ async function persistInterviewResult(options: PersistInterviewResultOptions): P
   }
 
   try {
-    await db.insert(projectInterviews).values({
+    // Extract enhanced fields if they exist
+    const isEnhanced = "skillGaps" in options.matchSummary;
+    const matchSummary = options.matchSummary as any;
+
+    const result = await db.insert(projectInterviews).values({
       projectId: options.projectId,
       candidateSlackId: options.candidateId,
       mentorSlackId: options.mentorId ?? null,
@@ -417,11 +484,23 @@ async function persistInterviewResult(options: PersistInterviewResultOptions): P
       matchSummary: options.matchSummary.summary,
       recommendedTasks: options.matchSummary.recommendedTasks,
       concerns: options.matchSummary.concerns ?? null,
+      skillGaps: isEnhanced ? matchSummary.skillGaps ?? [] : [],
+      onboardingRecommendations: isEnhanced ? matchSummary.onboardingRecommendations ?? [] : [],
+      strengths: isEnhanced ? matchSummary.strengths ?? [] : [],
+      timeToProductivity: isEnhanced ? matchSummary.timeToProductivity ?? null : null,
+      interestId: options.interestId ? undefined : undefined, // Will be set by interview handler
       startedAt: new Date(options.startedAt),
       completedAt: new Date(options.completedAt),
       questionSource: options.questionSource,
       generatorModel: options.generatorModel ?? null,
-    });
+    }).returning();
+
+    // Update interest status based on match score
+    if (options.interestId) {
+      const interviewId = result[0]?.id;
+      const status = options.matchSummary.score >= 70 ? "accepted" : "rejected";
+      await interestRepository.updateInterestStatus(options.interestId, status, interviewId);
+    }
   } catch (error) {
     console.error("[Project Interview] Failed to persist interview result", error);
   }
