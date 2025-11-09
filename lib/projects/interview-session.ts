@@ -262,11 +262,9 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource = "default";
   }
 
-  if (!interest) {
-    throw new Error("Interest record missing for interview start");
-  }
+  const activeInterest = interest!;
 
-  if (interest.status === "waitlist") {
+  if (activeInterest.status === "waitlist") {
     throw new Error("Cannot start interview while candidate is on the waitlist");
   }
 
@@ -287,7 +285,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
   }
 
   // Update interest status to interviewing
-  await interestRepository.updateInterestStatus(interest.id, "interviewing");
+  await interestRepository.updateInterestStatus(activeInterest.id, "interviewing");
 
   const firstQuestion = questions[0];
   const totalQuestions = questions.length;
@@ -314,7 +312,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource,
     generatorModel,
     startedAt: new Date().toISOString(),
-    interestId: interest.id, // Link to interest record
+    interestId: activeInterest.id, // Link to interest record
   };
 
   await stateManager.saveState(
@@ -328,7 +326,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
         initiatedBy,
         projectId: project.id,
         sourceMessageTs: options.sourceMessageTs,
-        interestId: interest.id,
+        interestId: activeInterest.id,
       },
     },
   );
