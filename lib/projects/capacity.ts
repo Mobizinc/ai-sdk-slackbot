@@ -21,7 +21,7 @@ export interface CapacityStatus {
  */
 export async function checkCapacity(project: ProjectDefinition): Promise<boolean> {
   // No limit if maxCandidates not set
-  if (!project.maxCandidates) {
+  if (project.maxCandidates == null) {
     return true;
   }
 
@@ -42,14 +42,15 @@ export async function checkCapacity(project: ProjectDefinition): Promise<boolean
 export async function getProjectCapacityStatus(
   project: ProjectDefinition,
 ): Promise<CapacityStatus> {
-  const maxCandidates = project.maxCandidates || null;
+  const maxCandidates = project.maxCandidates ?? null;
+  const hasCapacityLimit = maxCandidates !== null;
 
   try {
     const activeCount = await getActiveInterestCount(project.id);
     const waitlist = await getWaitlist(project.id);
 
-    const isFull = maxCandidates ? activeCount >= maxCandidates : false;
-    const availableSlots = maxCandidates ? Math.max(0, maxCandidates - activeCount) : Infinity;
+    const isFull = hasCapacityLimit ? activeCount >= maxCandidates : false;
+    const availableSlots = hasCapacityLimit ? Math.max(0, maxCandidates - activeCount) : Infinity;
 
     return {
       maxCandidates,
@@ -69,7 +70,7 @@ export async function getProjectCapacityStatus(
       maxCandidates,
       currentApplications: 0,
       isFull: false,
-      availableSlots: maxCandidates || -1,
+      availableSlots: maxCandidates ?? -1,
       waitlistSize: 0,
       canApply: true,
     };
@@ -81,7 +82,7 @@ export async function getProjectCapacityStatus(
  * Returns a human-readable message about project capacity
  */
 export function formatCapacityMessage(status: CapacityStatus): string {
-  if (!status.maxCandidates) {
+  if (status.maxCandidates == null) {
     return "Unlimited slots available";
   }
 
@@ -145,7 +146,7 @@ export function calculateNewAvailableSlots(
   currentStatus: CapacityStatus,
   action: "accept" | "reject" | "abandon",
 ): number {
-  if (!currentStatus.maxCandidates) {
+  if (currentStatus.maxCandidates == null) {
     return 0;
   }
 

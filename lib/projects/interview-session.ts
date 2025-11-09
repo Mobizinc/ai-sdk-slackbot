@@ -204,7 +204,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     const hasCapacity = await checkCapacity(project);
     if (!hasCapacity) {
       if (!interest) {
-        interest = await interestRepository.createInterest(project.id, userId, "waitlist");
+        await interestRepository.createInterest(project.id, userId, "waitlist");
       } else {
         await interestRepository.updateInterestStatus(interest.id, "waitlist");
       }
@@ -536,7 +536,7 @@ async function persistInterviewResult(options: PersistInterviewResultOptions): P
       onboardingRecommendations: isEnhanced ? matchSummary.onboardingRecommendations ?? [] : [],
       strengths: isEnhanced ? matchSummary.strengths ?? [] : [],
       timeToProductivity: isEnhanced ? matchSummary.timeToProductivity ?? null : null,
-      interestId: options.interestId ?? null,
+      interestId: options.interestId ?? undefined,
       startedAt: new Date(options.startedAt),
       completedAt: new Date(options.completedAt),
       questionSource: options.questionSource,

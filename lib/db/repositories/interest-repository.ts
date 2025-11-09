@@ -1,4 +1,4 @@
-import { and, eq, ne, desc, gte, lte } from "drizzle-orm";
+import { and, eq, ne, desc } from "drizzle-orm";
 import { getDb } from "../client";
 import {
   projectInterests,

@@ -29,7 +29,7 @@ export async function setupCronJobs(): Promise<void> {
     // Schedule: Every 6 hours (0, 6, 12, 18 UTC)
     const abandonmentSweepSchedule = "0 */6 * * *";
 
-    const task = cron.schedule(abandonmentSweepSchedule, async () => {
+    cron.schedule(abandonmentSweepSchedule, async () => {
       console.log("[Cron] Running interview abandonment sweep...");
       try {
         const result = await sweepAbandonedInterviews();

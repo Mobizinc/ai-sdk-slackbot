@@ -16,6 +16,7 @@ export interface InterestButtonResult {
   status: "interview_started" | "already_applied" | "waitlisted";
   message: string;
   interest?: ProjectInterest;
+  interestId?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export interface WaitlistButtonResult {
   message: string;
   position?: number;
   interest?: ProjectInterest;
+  interestId?: string;
 }
 
 /**
@@ -49,6 +51,7 @@ export async function handleInterestButtonClick(
         status: "already_applied",
         message: `You've already applied to *${project.name}*. We'll review your application soon.`,
         interest: existingInterest ?? undefined,
+        interestId: existingInterest?.id,
       };
     }
 
@@ -70,6 +73,7 @@ export async function handleInterestButtonClick(
         status: "waitlisted",
         message: `*${project.name}* is currently at full capacity. You've been added to the waitlist!`,
         interest: interest ?? undefined,
+        interestId: interest?.id,
       };
     }
 
@@ -92,6 +96,7 @@ export async function handleInterestButtonClick(
       status: "interview_started",
       message: `Starting interview for *${project.name}*...`,
       interest,
+      interestId: interest.id,
     };
   } catch (error) {
     console.error("[Project Interactivity] Error handling interest button click", {
@@ -126,6 +131,7 @@ export async function handleWaitlistButtonClick(
         message: `You're already on the waitlist at position #${position}.`,
         position,
         interest: existingInterest,
+        interestId: existingInterest.id,
       };
     }
 
@@ -135,6 +141,7 @@ export async function handleWaitlistButtonClick(
         status: "already_applied",
         message: `You've already applied to *${project.name}*. We'll review your application soon.`,
         interest: existingInterest,
+        interestId: existingInterest.id,
       };
     }
 
@@ -160,6 +167,7 @@ export async function handleWaitlistButtonClick(
       message: `You've been added to the waitlist at position #${position}. We'll notify you when a slot opens!`,
       position,
       interest,
+      interestId: interest.id,
     };
   } catch (error) {
     console.error("[Project Interactivity] Error handling waitlist button click", {

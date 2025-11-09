@@ -1,0 +1,9 @@
+{
+  "case_number": "CASE001010",
+  "sys_id": "sys_invalid_unicode",
+  "short_description": "Payload contains invalid unicode escape",
+  "description": "Windows path C:\usern throws parser errors.",
+  "priority": "3",
+  "category": "Software",
+  "state": "New"
+}

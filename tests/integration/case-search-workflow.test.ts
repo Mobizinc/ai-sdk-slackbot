@@ -28,7 +28,7 @@ import type { Case } from '../../lib/infrastructure/servicenow/types/domain-mode
 // Mock repository
 vi.mock('../../lib/infrastructure/servicenow/repositories/factory', () => ({
   getCaseRepository: () => ({
-    search: vi.fn().mockResolvedValue([]),
+    search: vi.fn().mockResolvedValue({ cases: [], totalCount: 0 }),
   }),
 }));
 
@@ -59,7 +59,7 @@ describe('Case Search Workflow Integration', () => {
         createMockCase({ number: 'CASE003', priority: '3', ageDays: 5 }),
       ];
 
-      mockRepo.search.mockResolvedValue(mockCases);
+      mockRepo.search.mockResolvedValue({ cases: mockCases, totalCount: 3 });
 
       // 1. Execute search
       const searchResult = await service.searchWithMetadata({
@@ -256,7 +256,7 @@ describe('Case Search Workflow Integration', () => {
         createMockCase({ number: `CASE${String(i + 1).padStart(3, '0')}` })
       );
 
-      mockRepo.search.mockResolvedValue(page1Cases);
+      mockRepo.search.mockResolvedValue({ cases: page1Cases, totalCount: 15 });
 
       const page1Result = await service.searchWithMetadata({
         accountName: 'Altus',
@@ -288,7 +288,7 @@ describe('Case Search Workflow Integration', () => {
         createMockCase({ number: `CASE${String(i + 11).padStart(3, '0')}` })
       );
 
-      mockRepo.search.mockResolvedValue(page2Cases);
+      mockRepo.search.mockResolvedValue({ cases: page2Cases, totalCount: 15 });
 
       const page2Result = await service.searchWithMetadata({
         accountName: 'Altus',
