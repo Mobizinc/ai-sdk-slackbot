@@ -9,7 +9,7 @@
  * Usage: GET /api/admin/debug-github-env
  */
 
-import { config as runtimeConfig } from "../../lib/config";
+import { config as runtimeConfig, CONFIG_DEFINITIONS } from "../../lib/config";
 
 interface DebugResult {
   timestamp: string;
@@ -145,13 +145,13 @@ export async function GET(request: Request): Promise<Response> {
         GITHUB_APP_ID: maskSensitiveValue(rawAppId),
         GITHUB_INSTALLATION_ID: maskSensitiveValue(rawInstallationId),
         GITHUB_APP_PRIVATE_KEY: maskSensitiveValue(rawPrivateKey),
-        GITHUB_API_BASE_URL: rawApiBaseUrl || "https://api.github.com (default)",
+        GITHUB_API_BASE_URL: rawApiBaseUrl || `${CONFIG_DEFINITIONS.githubApiBaseUrl.default} (default)`,
       },
       parsedConfigValues: {
         githubAppId: maskSensitiveValue(configAppId),
         githubInstallationId: maskSensitiveValue(configInstallationId),
         githubAppPrivateKey: maskSensitiveValue(configPrivateKey),
-        githubApiBaseUrl: configApiBaseUrl || "https://api.github.com",
+        githubApiBaseUrl: configApiBaseUrl || CONFIG_DEFINITIONS.githubApiBaseUrl.default,
       },
       diagnosis: {
         allVariablesSet,
