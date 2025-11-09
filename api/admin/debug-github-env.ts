@@ -117,6 +117,12 @@ export async function GET(request: Request): Promise<Response> {
     if (!rawPrivateKey) missingVariables.push("GITHUB_APP_PRIVATE_KEY");
     else if (rawPrivateKey.trim() === "") emptyVariables.push("GITHUB_APP_PRIVATE_KEY");
 
+    // Check GITHUB_API_BASE_URL if it's explicitly set
+    if (typeof rawApiBaseUrl !== "undefined") {
+      if (rawApiBaseUrl.trim() === "") {
+        emptyVariables.push("GITHUB_API_BASE_URL");
+      }
+    }
     const allVariablesSet = missingVariables.length === 0 && emptyVariables.length === 0;
 
     let recommendation = "";
