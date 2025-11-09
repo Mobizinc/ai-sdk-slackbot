@@ -183,10 +183,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
             try {
               // Strip _blockKitData before sending to LLM to avoid bloating the context
               // Block Kit formatting is handled separately in the Slack handler
-              const cleanOutput = result.output && typeof result.output === 'object' && '_blockKitData' in result.output
-                ? Object.fromEntries(Object.entries(result.output).filter(([key]) => key !== '_blockKitData'))
-                : result.output;
-              content = JSON.stringify(cleanOutput);
+              content = JSON.stringify(result.output);
             } catch (error) {
               console.warn("[Agent] Failed to stringify tool output:", error);
               content = "";
