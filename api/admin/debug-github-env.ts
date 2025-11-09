@@ -142,13 +142,13 @@ export async function GET(request: Request): Promise<Response> {
       timestamp: new Date().toISOString(),
       environment: runtimeConfig.vercelEnv || "development",
       rawEnvironmentVariables: {
-        GITHUB_APP_ID: maskSensitiveValue(rawAppId),
+        GITHUB_APP_ID: rawAppId || "(not set)",
         GITHUB_INSTALLATION_ID: maskSensitiveValue(rawInstallationId),
         GITHUB_APP_PRIVATE_KEY: maskSensitiveValue(rawPrivateKey),
-        GITHUB_API_BASE_URL: rawApiBaseUrl || `${CONFIG_DEFINITIONS.githubApiBaseUrl.default} (default)`,
+        GITHUB_API_BASE_URL: rawApiBaseUrl || "https://api.github.com (default)",
       },
       parsedConfigValues: {
-        githubAppId: maskSensitiveValue(configAppId),
+        githubAppId: configAppId || "(not set)",
         githubInstallationId: maskSensitiveValue(configInstallationId),
         githubAppPrivateKey: maskSensitiveValue(configPrivateKey),
         githubApiBaseUrl: configApiBaseUrl || CONFIG_DEFINITIONS.githubApiBaseUrl.default,
