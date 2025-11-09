@@ -99,10 +99,10 @@ export async function GET(request: Request): Promise<Response> {
     const rawApiBaseUrl = process.env.GITHUB_API_BASE_URL;
 
     // Check parsed config values
-    const configAppId = typeof runtimeConfig.githubAppId === "string" ? runtimeConfig.githubAppId : "";
-    const configInstallationId = typeof runtimeConfig.githubInstallationId === "string" ? runtimeConfig.githubInstallationId : "";
-    const configPrivateKey = typeof runtimeConfig.githubAppPrivateKey === "string" ? runtimeConfig.githubAppPrivateKey : "";
-    const configApiBaseUrl = typeof runtimeConfig.githubApiBaseUrl === "string" ? runtimeConfig.githubApiBaseUrl : "";
+    const configAppId = runtimeConfig.githubAppId;
+    const configInstallationId = runtimeConfig.githubInstallationId;
+    const configPrivateKey = runtimeConfig.githubAppPrivateKey;
+    const configApiBaseUrl = runtimeConfig.githubApiBaseUrl;
 
     // Build diagnosis
     const missingVariables: string[] = [];
