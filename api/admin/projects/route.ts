@@ -48,18 +48,33 @@ function authorize(request: Request): Response | null {
   return null;
 }
 
-const corsHeaders = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-  "Access-Control-Allow-Origin": "https://admin.mobiz.solutions",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+const ALLOWED_ORIGINS = [
+  "https://admin.mobiz.solutions",
+  "https://dev.admin.mobiz.solutions",
+];
 
-export async function OPTIONS(): Promise<Response> {
+function getAllowedOrigin(request: Request): string {
+  const origin = request.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return origin;
+  }
+  return ALLOWED_ORIGINS[0]; // Default to production
+}
+
+function getCorsHeaders(request: Request): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Access-Control-Allow-Origin": getAllowedOrigin(request),
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(request),
   });
 }
 
@@ -115,7 +130,7 @@ export async function GET(request: Request): Promise<Response> {
       }),
       {
         status: 200,
-        headers: corsHeaders,
+        headers: getCorsHeaders(request),
       },
     );
   } catch (error) {
@@ -127,7 +142,7 @@ export async function GET(request: Request): Promise<Response> {
       }),
       {
         status: 500,
-        headers: corsHeaders,
+        headers: getCorsHeaders(request),
       },
     );
   }
@@ -151,7 +166,7 @@ export async function POST(request: Request): Promise<Response> {
         }),
         {
           status: 400,
-          headers: corsHeaders,
+          headers: getCorsHeaders(request),
         },
       );
     }
@@ -193,14 +208,14 @@ export async function POST(request: Request): Promise<Response> {
         }),
         {
           status: 500,
-          headers: corsHeaders,
+          headers: getCorsHeaders(request),
         },
       );
     }
 
     return new Response(JSON.stringify({ project: created }), {
       status: 201,
-      headers: corsHeaders,
+      headers: getCorsHeaders(request),
     });
   } catch (error) {
     console.error("[AdminAPI] Failed to create project", error);
@@ -211,7 +226,7 @@ export async function POST(request: Request): Promise<Response> {
       }),
       {
         status: 500,
-        headers: corsHeaders,
+        headers: getCorsHeaders(request),
       },
     );
   }
