@@ -297,7 +297,9 @@ export async function handleNewAppMention(
     );
   }
 
-  // Extract plain text from result (handle JSON-wrapped responses)
+  // Extract plain text from result (handle JSON-wrapped responses from tools)
+  // Some tools may return {text: "...", ...} which extractSummaryText unwraps.
+  // If result is not a JSON object with a 'text' field, fallback to the original result.
   const plainText = extractSummaryText(result) || result;
   await setFinalMessage(plainText);
 
