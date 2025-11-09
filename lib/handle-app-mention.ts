@@ -297,79 +297,9 @@ export async function handleNewAppMention(
     );
   }
 
-  // Check if result contains Block Kit data (JSON-encoded response)
-  try {
-    const parsed = JSON.parse(result);
-    if (parsed._blockKitData) {
-      console.log('[Handler] Block Kit data detected, formatting with Block Kit');
-
-      const blockKitModule = await import("./formatters/servicenow-block-kit");
-
-      // Handle both case and incident Block Kit data
-      if (parsed._blockKitData.type === "incident_detail") {
-        const resolvedText =
-          extractSummaryText(parsed.text) ||
-          extractSummaryText(parsed.summary) ||
-          blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData || {});
-
-        const llmResponse = clampTextForSlackDisplay(resolvedText);
-
-        // Create minimal incident card with "View Details" button
-        const minimalBlocks = blockKitModule.formatIncidentAsMinimalCard(parsed._blockKitData.incidentData);
-
-        console.log('[Handler] Sending incident response as plain text + minimal card');
-        console.log('[Handler] Incident data:', {
-          number: parsed._blockKitData.incidentData?.number,
-          llmTextLength: llmResponse?.length,
-          minimalBlockCount: minimalBlocks?.length,
-        });
-
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
-          ...minimalBlocks,
-        ];
-
-        await setFinalMessage(llmResponse, combinedBlocks);
-      } else if (parsed._blockKitData.type === "case_detail") {
-        const resolvedText =
-          extractSummaryText(parsed.text) ||
-          extractSummaryText(parsed.summary) ||
-          blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData || {});
-
-        const llmResponse = clampTextForSlackDisplay(resolvedText);
-
-        // Create minimal case card with "View Details" button
-        const minimalBlocks = blockKitModule.formatCaseAsMinimalCard(parsed._blockKitData.caseData);
-
-        console.log('[Handler] Sending case response as plain text + minimal card');
-        console.log('[Handler] Case data:', {
-          number: parsed._blockKitData.caseData?.number,
-          llmTextLength: llmResponse?.length,
-          minimalBlockCount: minimalBlocks?.length,
-        });
-
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
-          ...minimalBlocks,
-        ];
-
-        await setFinalMessage(llmResponse, combinedBlocks);
-      } else {
-        // Unknown type, fallback to text
-        console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
-        await setFinalMessage(parsed.text || result);
-      }
-    } else {
-      await setFinalMessage(parsed.text || result);
-    }
-  } catch {
-    // Not JSON or no Block Kit data - use as plain text
-    await setFinalMessage(result);
-  }
+  // Extract plain text from result (handle JSON-wrapped responses)
+  const plainText = extractSummaryText(result) || result;
+  await setFinalMessage(plainText);
 
   // After responding, check for case numbers and trigger intelligent workflow
   const contextManager = getContextManager();
