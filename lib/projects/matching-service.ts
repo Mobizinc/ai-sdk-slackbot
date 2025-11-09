@@ -14,7 +14,9 @@ export interface MatchScore {
 
 export type { EnhancedMatchScore };
 
-const chatService = AnthropicChatService.getInstance();
+function getChatService() {
+  return AnthropicChatService.getInstance();
+}
 const DEFAULT_SCORING_PROMPT =
   "You evaluate candidate interviews for internal mentoring projects. " +
   "Review the project requirements and interview transcript, then provide a JSON evaluation with keys: " +
@@ -23,6 +25,9 @@ const DEFAULT_SCORING_PROMPT =
   "`onboardingRecommendations` (array of resources/tutorials to review before starting), " +
   "`strengths` (array of specific skills/experiences matching project needs), " +
   "`timeToProductivity` (estimated timeline: 'immediate', '1-2 weeks', '3-4 weeks', or '1-2 months')";
+
+const ENHANCED_RESPONSE_INSTRUCTIONS =
+  "Return JSON only with keys: score, summary, recommendedTasks, concerns, skillGaps, onboardingRecommendations, strengths, timeToProductivity.";
 
 function buildEvaluationPrompt(project: ProjectDefinition, answers: InterviewAnswer[]): string {
   const answerLines = answers
@@ -144,6 +149,7 @@ export async function scoreInterviewAgainstProject(
   const prompt = buildEvaluationPrompt(project, answers);
   const systemPrompt = scoringPrompt?.trim().length ? scoringPrompt : DEFAULT_SCORING_PROMPT;
 
+  const chatService = getChatService();
   const response = await chatService.send({
     messages: [
       {
@@ -174,6 +180,7 @@ export async function scoreInterviewEnhanced(
   const prompt = buildEvaluationPrompt(project, answers);
   const systemPrompt = scoringPrompt?.trim().length ? scoringPrompt : DEFAULT_SCORING_PROMPT;
 
+  const chatService = getChatService();
   const response = await chatService.send({
     messages: [
       {
@@ -182,7 +189,7 @@ export async function scoreInterviewEnhanced(
       },
       {
         role: "user",
-        content: prompt + "\nReturn JSON only.",
+        content: `${prompt}\n${ENHANCED_RESPONSE_INSTRUCTIONS}`,
       },
     ],
     temperature: 0.2,

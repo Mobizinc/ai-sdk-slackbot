@@ -16,17 +16,21 @@ describe("Interest Repository", () => {
 
   describe("createInterest", () => {
     it("should create a new interest record", async () => {
+      const mockReturning = vi.fn().mockResolvedValue([
+        {
+          id: "interest-1",
+          projectId: "proj-1",
+          candidateSlackId: "user-1",
+          status: "pending",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+
       const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue([
-          {
-            id: "interest-1",
-            projectId: "proj-1",
-            candidateSlackId: "user-1",
-            status: "pending",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ]),
+        values: vi.fn().mockReturnValue({
+          returning: mockReturning,
+        }),
       });
 
       const mockDb = {
@@ -45,7 +49,11 @@ describe("Interest Repository", () => {
 
     it("should handle database errors gracefully", async () => {
       const mockDb = {
-        insert: vi.fn().mockRejectedValue(new Error("DB Error")),
+        insert: vi.fn().mockReturnValue({
+          values: vi.fn().mockReturnValue({
+            returning: vi.fn().mockRejectedValue(new Error("DB Error")),
+          }),
+        }),
       };
 
       vi.spyOn(db, "getDb").mockReturnValue(mockDb as any);

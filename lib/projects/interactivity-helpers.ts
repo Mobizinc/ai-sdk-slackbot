@@ -7,7 +7,7 @@
 import { getSlackMessagingService } from "../services/slack-messaging";
 import * as interestRepository from "../db/repositories/interest-repository";
 import { checkCapacity } from "./capacity";
-import type { ProjectDefinition } from "./types";
+import type { ProjectDefinition, ProjectInterest } from "./types";
 
 /**
  * Result of "I'm Interested" button click
@@ -15,7 +15,7 @@ import type { ProjectDefinition } from "./types";
 export interface InterestButtonResult {
   status: "interview_started" | "already_applied" | "waitlisted";
   message: string;
-  interestId?: string;
+  interest?: ProjectInterest;
 }
 
 /**
@@ -25,6 +25,7 @@ export interface WaitlistButtonResult {
   status: "waitlisted" | "already_waiting" | "already_applied";
   message: string;
   position?: number;
+  interest?: ProjectInterest;
 }
 
 /**
@@ -47,6 +48,7 @@ export async function handleInterestButtonClick(
       return {
         status: "already_applied",
         message: `You've already applied to *${project.name}*. We'll review your application soon.`,
+        interest: existingInterest ?? undefined,
       };
     }
 
@@ -67,7 +69,7 @@ export async function handleInterestButtonClick(
       return {
         status: "waitlisted",
         message: `*${project.name}* is currently at full capacity. You've been added to the waitlist!`,
-        interestId: interest?.id,
+        interest: interest ?? undefined,
       };
     }
 
@@ -89,7 +91,7 @@ export async function handleInterestButtonClick(
     return {
       status: "interview_started",
       message: `Starting interview for *${project.name}*...`,
-      interestId: interest.id,
+      interest,
     };
   } catch (error) {
     console.error("[Project Interactivity] Error handling interest button click", {
@@ -123,6 +125,7 @@ export async function handleWaitlistButtonClick(
         status: "already_waiting",
         message: `You're already on the waitlist at position #${position}.`,
         position,
+        interest: existingInterest,
       };
     }
 
@@ -131,6 +134,7 @@ export async function handleWaitlistButtonClick(
       return {
         status: "already_applied",
         message: `You've already applied to *${project.name}*. We'll review your application soon.`,
+        interest: existingInterest,
       };
     }
 
@@ -155,7 +159,7 @@ export async function handleWaitlistButtonClick(
       status: "waitlisted",
       message: `You've been added to the waitlist at position #${position}. We'll notify you when a slot opens!`,
       position,
-      interestId: interest.id,
+      interest,
     };
   } catch (error) {
     console.error("[Project Interactivity] Error handling waitlist button click", {
@@ -195,12 +199,7 @@ export async function sendButtonActionFeedback(
       already_waiting: "⏳",
     }[result.status] || "📝";
 
-    const position =
-      result.status === "waitlisted" && "position" in result && result.position
-        ? ` (Position #${result.position})`
-        : "";
-
-    const dmText = `${emoji} ${result.message}${position}`;
+    const dmText = `${emoji} ${result.message}`;
 
     await slackMessaging.postMessage({
       channel: dmConversation.channelId,

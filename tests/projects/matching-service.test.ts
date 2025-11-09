@@ -5,13 +5,12 @@ import type { ProjectDefinition, InterviewAnswer } from "../../lib/projects/type
 // Mock the Anthropic chat service
 vi.mock("../../lib/services/anthropic-chat", () => ({
   AnthropicChatService: {
-    getInstance: vi.fn(() => ({
-      send: vi.fn(),
-    })),
+    getInstance: vi.fn(),
   },
 }));
 
 import { AnthropicChatService } from "../../lib/services/anthropic-chat";
+const getInstanceMock = AnthropicChatService.getInstance as unknown as ReturnType<typeof vi.fn>;
 
 const mockProject: ProjectDefinition = {
   id: "test-project",
@@ -42,11 +41,12 @@ const mockAnswers: InterviewAnswer[] = [
 ];
 
 describe("Matching Service", () => {
-  let mockChatService: any;
+  let mockChatService: { send: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockChatService = AnthropicChatService.getInstance();
     vi.clearAllMocks();
+    mockChatService = { send: vi.fn() };
+    getInstanceMock.mockReturnValue(mockChatService);
   });
 
   describe("scoreInterviewAgainstProject (legacy)", () => {
@@ -276,7 +276,7 @@ describe("Matching Service", () => {
           strengths: ["React", "TypeScript", "JavaScript", "Problem solving"],
           timeToProductivity: "3-4 weeks",
         }),
-      };
+      });
 
       const result = await scoreInterviewEnhanced(mockProject, mockAnswers);
 

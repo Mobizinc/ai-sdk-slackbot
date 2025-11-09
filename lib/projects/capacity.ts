@@ -124,8 +124,14 @@ export async function isProjectAcceptingApplications(
   }
 
   // Check if project hasn't expired
-  if (project.expiresDate && new Date() > project.expiresDate) {
-    return false;
+  if (project.expiresDate) {
+    const expires =
+      typeof project.expiresDate === "string"
+        ? new Date(project.expiresDate)
+        : new Date(project.expiresDate);
+    if (!Number.isNaN(expires.getTime()) && new Date() > expires) {
+      return false;
+    }
   }
 
   return true;

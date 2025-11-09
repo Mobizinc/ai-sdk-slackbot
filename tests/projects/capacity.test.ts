@@ -162,7 +162,7 @@ describe("Capacity Management", () => {
       const message = capacity.formatCapacityMessage(status);
 
       expect(message).toContain("3 slots");
-      expect(message).toContain("🟢");
+      expect(message).toContain("🟡");
     });
 
     it("should show warning for single slot", () => {

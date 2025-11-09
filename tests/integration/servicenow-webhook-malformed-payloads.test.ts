@@ -238,6 +238,24 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
     });
 
+    it("should recover payloads with invalid unicode escapes", async () => {
+      const payload = loadFixture('malformed', 'invalid-unicode.json');
+      const request = new Request('http://localhost:3000/api/servicenow-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      expect(triageCall.case_number).toBe('CASE001010');
+    });
+
     it("should return error for completely invalid JSON", async () => {
       const invalidPayload = "{ this is not valid json }";
       const request = new Request('http://localhost:3000/api/servicenow-webhook', {

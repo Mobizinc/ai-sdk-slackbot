@@ -23,6 +23,14 @@ export function fixInvalidEscapeSequences(payload: string): string {
 }
 
 /**
+ * Fix invalid unicode escape sequences like \user or \u12GZ by escaping the backslash.
+ * Ensures JSON.parse sees them as literal strings rather than invalid unicode sequences.
+ */
+export function fixInvalidUnicodeEscapes(payload: string): string {
+  return payload.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
+}
+
+/**
  * Remove trailing commas before closing braces/brackets.
  * This fixes malformed JSON like {"key": "value",}
  */
@@ -240,16 +248,19 @@ export function sanitizeServiceNowPayload(payload: string): string {
   // 4. Remove NULL characters and dangerous unicode (only affects chars outside strings now)
   sanitized = removeNullCharacters(sanitized);
 
-  // 5. Fix invalid escape sequences (like L:\)
+  // 5. Fix invalid unicode escapes (like \user)
+  sanitized = fixInvalidUnicodeEscapes(sanitized);
+
+  // 6. Fix invalid escape sequences (like L:\)
   sanitized = fixInvalidEscapeSequences(sanitized);
 
-  // 6. Remove trailing commas before closing braces/brackets
+  // 7. Remove trailing commas before closing braces/brackets
   sanitized = removeTrailingCommas(sanitized);
 
-  // 7. Fix missing commas between fields
+  // 8. Fix missing commas between fields
   sanitized = fixMissingCommas(sanitized);
 
-  // 8. Attempt to fix incomplete JSON (last resort)
+  // 9. Attempt to fix incomplete JSON (last resort)
   sanitized = fixIncompletePayload(sanitized);
 
   return sanitized;

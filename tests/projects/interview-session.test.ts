@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   updateInterestStatusMock: vi.fn(),
   getActiveInterestCountMock: vi.fn(),
   checkCapacityMock: vi.fn(),
+  getInterestByIdMock: vi.fn(),
+  scoreInterviewEnhancedMock: vi.fn(),
+  waitlistAcceptedMock: vi.fn(),
+  waitlistRejectedMock: vi.fn(),
 }));
 
 vi.mock("../../lib/db/client", () => ({
@@ -57,6 +61,7 @@ vi.mock("../../lib/projects/matching-service", () => ({
     summary: "Strong alignment with project goals.",
     recommendedTasks: ["Help triage backlog issues"],
   })),
+  scoreInterviewEnhanced: mocks.scoreInterviewEnhancedMock,
 }));
 
 vi.mock("../../lib/projects/interview-events", () => ({
@@ -72,10 +77,16 @@ vi.mock("../../lib/db/repositories/interest-repository", () => ({
   createInterest: mocks.createInterestMock,
   updateInterestStatus: mocks.updateInterestStatusMock,
   getActiveInterestCount: mocks.getActiveInterestCountMock,
+  getInterestById: mocks.getInterestByIdMock,
 }));
 
 vi.mock("../../lib/projects/capacity", () => ({
   checkCapacity: mocks.checkCapacityMock,
+}));
+
+vi.mock("../../lib/projects/waitlist-service", () => ({
+  onInterviewAccepted: mocks.waitlistAcceptedMock,
+  onInterviewRejected: mocks.waitlistRejectedMock,
 }));
 
 import { startInterviewSession, handleInterviewResponse } from "../../lib/projects/interview-session";
@@ -103,13 +114,16 @@ describe("project interview session", () => {
     getStateByChannelMock,
     updatePayloadMock,
     markProcessedMock,
-    emitProjectInterviewCompleted,
-    generateInterviewQuestions,
-    findInterestMock,
-    createInterestMock,
-    updateInterestStatusMock,
-    checkCapacityMock,
-  } = mocks;
+  emitProjectInterviewCompleted,
+  generateInterviewQuestions,
+  findInterestMock,
+  createInterestMock,
+  updateInterestStatusMock,
+  checkCapacityMock,
+  scoreInterviewEnhancedMock,
+  waitlistAcceptedMock,
+  waitlistRejectedMock,
+} = mocks;
 
   beforeEach(() => {
     postMessageMock.mockReset();
@@ -124,12 +138,25 @@ describe("project interview session", () => {
     createInterestMock.mockReset();
     updateInterestStatusMock.mockReset();
     checkCapacityMock.mockReset();
+    scoreInterviewEnhancedMock.mockReset();
+    waitlistAcceptedMock.mockReset();
+    waitlistRejectedMock.mockReset();
 
     // Default mocks
     findInterestMock.mockResolvedValue(null); // No existing interest
     createInterestMock.mockResolvedValue({ id: "interest-123", status: "pending" });
     updateInterestStatusMock.mockResolvedValue({ id: "interest-123" });
     checkCapacityMock.mockResolvedValue(true); // Has capacity
+    scoreInterviewEnhancedMock.mockResolvedValue({
+      score: 85,
+      summary: "Strong alignment with project goals.",
+      recommendedTasks: ["Help triage backlog issues"],
+      concerns: undefined,
+      skillGaps: ["Next.js"],
+      onboardingRecommendations: ["Complete onboarding doc"],
+      strengths: ["TypeScript"],
+      timeToProductivity: "1-2 weeks",
+    });
   });
 
   it("starts an interview session when no active session exists", async () => {

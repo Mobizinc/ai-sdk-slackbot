@@ -121,14 +121,18 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
 
       const statusCode = isEmptyObject ? 422 : 400;
       const errorType = isEmptyObject ? 'validation_error' : 'parse_error';
+      const parserDetails = parseResult.error?.message;
       const errorMessage = isEmptyObject
         ? 'Invalid webhook payload schema - payload cannot be empty'
-        : parseResult.error?.message || 'Failed to parse payload';
+        : 'Failed to parse payload';
 
       return buildErrorResponse({
         type: errorType,
         message: errorMessage,
-        details: parseResult.metadata,
+        details: {
+          ...parseResult.metadata,
+          parserError: parserDetails,
+        },
         statusCode,
       });
     }

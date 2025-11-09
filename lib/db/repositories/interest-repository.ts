@@ -114,6 +114,31 @@ export async function hasActiveInterest(
 }
 
 /**
+ * Fetch an interest record by id
+ */
+export async function getInterestById(interestId: string): Promise<ProjectInterest | null> {
+  const db = getDb();
+  if (!db) {
+    return null;
+  }
+
+  try {
+    const [interest] = await db
+      .select()
+      .from(projectInterests)
+      .where(eq(projectInterests.id, interestId))
+      .limit(1);
+    return interest ?? null;
+  } catch (error) {
+    console.error("[InterestRepository] Failed to fetch interest by id", {
+      interestId,
+      error,
+    });
+    return null;
+  }
+}
+
+/**
  * Update interest status (e.g., pending → interviewing → accepted/rejected)
  */
 export async function updateInterestStatus(
@@ -176,6 +201,7 @@ export async function getActiveInterestCount(projectId: string): Promise<number>
           eq(projectInterests.projectId, projectId),
           ne(projectInterests.status, "abandoned"),
           ne(projectInterests.status, "waitlist"),
+          ne(projectInterests.status, "rejected"),
         ),
       );
     return interests.length;
