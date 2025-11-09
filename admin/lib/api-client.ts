@@ -375,13 +375,30 @@ export interface CatalogRedirectStatsResponse {
 }
 
 export interface StandupConfig extends JsonObject {
+  enabled?: boolean
+  channelId?: string
+  schedule?: {
+    frequency: "daily" | "weekdays" | "weekly"
+    timeUtc: string
+    dayOfWeek?: number
+  }
+  // Legacy fields (for backwards compatibility)
   cadence?: string
   time?: string
-  channelId?: string
+  // Participant configuration
   participants?: string[]
   includeMentor?: boolean
   includeAcceptedCandidates?: boolean
+  // Question configuration
+  questions?: Array<{
+    id: string
+    prompt: string
+    helper?: string
+  }>
+  // Timing configuration
+  collectionWindowMinutes?: number
   reminderMinutesBeforeDue?: number
+  maxReminders?: number
 }
 
 const resolveBaseUrl = (): string => {
