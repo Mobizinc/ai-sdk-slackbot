@@ -21,7 +21,6 @@ import {
   type ServiceNowCaseWebhook,
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
-import { withLangSmithTrace } from '../lib/observability';
 import {
   authenticateWebhookRequest,
   parseWebhookPayload,
@@ -81,7 +80,7 @@ async function tryEnqueueCase(webhookData: ServiceNowCaseWebhook): Promise<Respo
  * Main webhook handler
  * Original: api/app/routers/webhooks.py:379-531
  */
-const postImpl = withLangSmithTrace(async (request: Request) => {
+async function postImpl(request: Request) {
   const startTime = Date.now();
 
   try {
@@ -214,15 +213,7 @@ const postImpl = withLangSmithTrace(async (request: Request) => {
       statusCode: 500,
     });
   }
-}, {
-  name: "servicenow_webhook_handler",
-  runType: "chain",
-  tags: {
-    component: "api",
-    operation: "webhook",
-    service: "servicenow",
-  },
-});
+}
 
 export const POST = postImpl;
 
