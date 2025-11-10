@@ -160,11 +160,23 @@ export async function getGitHubClient(): Promise<Octokit> {
   const { apiBaseUrl } = getGitHubConfig();
   const { token } = await getInstallationToken();
 
-  // Use eval to bypass TypeScript's import transformation and get real dynamic import in CommonJS
-  // This allows us to import ES modules (@octokit/rest v21+) from CommonJS code
-  const { Octokit } = await eval('import("@octokit/rest")') as typeof import("@octokit/rest");
+  // Use dynamic import to load ESM module from CommonJS
+  // The type assertion helps TypeScript understand the import
+  let OctokitClass: typeof Octokit;
 
-  return new Octokit({
+  try {
+    // Try dynamic import first (works in Node.js and modern environments)
+    const module = await import("@octokit/rest");
+    OctokitClass = module.Octokit;
+  } catch (error) {
+    // Fallback for environments that don't support dynamic import
+    // This shouldn't happen in Node.js 14+, but provides a safety net
+    console.error("[GitHub Client] Dynamic import failed, attempting eval fallback:", error);
+    const module = await eval('import("@octokit/rest")') as typeof import("@octokit/rest");
+    OctokitClass = module.Octokit;
+  }
+
+  return new OctokitClass({
     auth: token,
     baseUrl: apiBaseUrl,
   });
