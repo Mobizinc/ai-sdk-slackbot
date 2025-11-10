@@ -151,7 +151,7 @@ export function StandupConfigDialog({
                 <p className="font-medium">How to find a Channel ID:</p>
                 <ol className="list-decimal ml-4 mt-1 space-y-1">
                   <li>Right-click on the channel in Slack</li>
-                  <li>Select "View channel details"</li>
+                  <li>Select &ldquo;View channel details&rdquo;</li>
                   <li>Scroll to the bottom and copy the Channel ID</li>
                 </ol>
                 <p className="mt-2">

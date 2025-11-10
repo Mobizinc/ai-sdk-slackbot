@@ -52,7 +52,7 @@ function authorize(request: Request): Response | null {
     return null;
   }
 
-  const adminToken = runtimeConfig.ADMIN_API_TOKEN;
+  const adminToken = runtimeConfig.adminApiToken;
   if (!adminToken) {
     return new Response(
       "Admin debug API is disabled in production. Set ADMIN_API_TOKEN to enable.",

@@ -120,7 +120,7 @@ export async function isProjectAcceptingApplications(
   }
 
   // Check if project is active (not expired, not archived)
-  if (project.status !== "active" && project.status !== "posted") {
+  if (project.status !== "active") {
     return false;
   }
 

@@ -32,6 +32,9 @@ importers:
       '@octokit/rest':
         specifier: ^21.1.1
         version: 21.1.1
+      '@radix-ui/react-switch':
+        specifier: ^1.2.6
+        version: 1.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@slack/web-api':
         specifier: ^7.9.3
         version: 7.9.3
@@ -59,6 +62,9 @@ importers:
       mssql:
         specifier: ^11.0.0
         version: 11.0.1
+      node-cron:
+        specifier: ^4.2.1
+        version: 4.2.1
       openai:
         specifier: ^6.2.0
         version: 6.2.0(zod@3.25.76)
@@ -75,6 +81,9 @@ importers:
       '@types/node':
         specifier: ^20.11.17
         version: 20.17.22
+      '@types/node-cron':
+        specifier: ^3.0.11
+        version: 3.0.11
       '@vitest/coverage-v8':
         specifier: ^1.6.1
         version: 1.6.1(vitest@1.6.1(@types/node@20.17.22))
@@ -1660,6 +1669,9 @@ packages:
 
   '@types/mssql@9.1.8':
     resolution: {integrity: sha512-mt9h5jWj+DYE5jxnKaWSV/GqDf9FV52XYVk6T3XZF69noEe+JJV6MKirii48l81+cjmAkSq+qeKX+k61fHkYrQ==}
+
+  '@types/node-cron@3.0.11':
+    resolution: {integrity: sha512-0ikrnug3/IyneSHqCBeslAhlK2aBfYek1fGo4bP4QnZPmiqSGRK+Oy7ZMisLWkesffJvQ1cqAcBnJC+8+nxIAg==}
 
   '@types/node@20.17.22':
     resolution: {integrity: sha512-9RV2zST+0s3EhfrMZIhrz2bhuhBwxgkbHEwP2gtGWPjBzVQjifMzJ9exw7aDZhR1wbpj8zBrfp3bo8oJcGiUUw==}
@@ -3438,6 +3450,10 @@ packages:
         optional: true
       sass:
         optional: true
+
+  node-cron@4.2.1:
+    resolution: {integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==}
+    engines: {node: '>=6.0.0'}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -5796,6 +5812,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@types/node-cron@3.0.11': {}
+
   '@types/node@20.17.22':
     dependencies:
       undici-types: 6.19.8
@@ -7770,6 +7788,8 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
+
+  node-cron@4.2.1: {}
 
   node-fetch@2.7.0:
     dependencies:
