@@ -181,8 +181,6 @@ export async function runAgent(params: RunnerParams): Promise<string> {
             content = "";
           } else {
             try {
-              // Strip _blockKitData before sending to LLM to avoid bloating the context
-              // This metadata is no longer used for formatting as we use plain text responses
               content = JSON.stringify(result.output);
             } catch (error) {
               console.warn("[Agent] Failed to stringify tool output:", error);

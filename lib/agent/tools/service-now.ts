@@ -450,11 +450,6 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
               return {
                 case: caseRecord,
                 journals: [],
-               _blockKitData: {
-                 type: "case_detail",
-                 case: caseRecord,
-                 journalEntries: [],
-               },
               };
             }
 
@@ -485,12 +480,6 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 rawData: formatted?.rawData,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
-                _blockKitData: {
-                  type: "incident_detail",
-                  incidentData: formatted?.rawData,
-                  blocks: formatted?.blocks,
-                  fallbackText: formatted?.fallbackText,
-                },
               };
             }
           }
@@ -498,12 +487,6 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
           return {
             summary: formatted?.summary,
             rawData: formatted?.rawData,
-            _blockKitData: {
-              type: "incident_detail",
-              incidentData: formatted?.rawData,
-              blocks: formatted?.blocks,
-              fallbackText: formatted?.fallbackText,
-            },
           };
         }
 
@@ -583,25 +566,14 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
                 journals: journalEntries,
                 _attachmentBlocks: imageBlocks,
                 _attachmentCount: imageBlocks.length,
-                 _blockKitData: {
-                   type: "case_detail",
-                   case: caseRecord,
-                   journalEntries,
-                 },
               };
             }
           }
 
           // Return raw case data for LLM to analyze directly
-          // Block Kit formatting happens separately in the handler
           return {
             case: caseRecord,
             journals: journalEntries,
-            _blockKitData: {
-              type: "case_detail",
-              case: caseRecord,
-              journalEntries,
-            },
           };
         }
 
@@ -779,11 +751,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
 
           return {
             summary: formatted?.summary,
-            _blockKitData: {
-              cases: results,
-              total: results.length,
-              filters: appliedFilters,
-            },
+            results: results,
+            total: results.length,
+            filters: appliedFilters,
           };
         }
 
