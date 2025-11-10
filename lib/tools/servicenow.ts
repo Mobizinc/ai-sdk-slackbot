@@ -1787,7 +1787,22 @@ export class ServiceNowClient {
         });
         return;
       } catch (error) {
-        // Log error but don't crash - fall back to old path
+        // Check if it's a 404-related error
+        const is404Error = error instanceof Error &&
+          (error.message.includes('404') ||
+           error.message.includes('not found') ||
+           error.message.includes('Not Found'));
+
+        if (is404Error) {
+          // Don't fall back to OLD path if it's a 404 - the OLD path will also fail
+          console.error(`[ServiceNow] NEW path: Record not found (404) - skipping OLD path fallback`, {
+            sysId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+
+        // For other errors, fall back to OLD path
         console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
           sysId,
           error: error instanceof Error ? error.message : String(error),
@@ -1806,12 +1821,32 @@ export class ServiceNowClient {
       { work_notes: workNote } :
       { comments: workNote };
 
-    await request(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
+    try {
+      await request(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
 
-    console.log(`[ServiceNow] OLD path: Successfully added work note`, { sysId });
+      console.log(`[ServiceNow] OLD path: Successfully added work note`, { sysId });
+    } catch (error) {
+      // Check if it's a 404-related error
+      const is404Error = error instanceof Error &&
+        (error.message.includes('404') ||
+         error.message.includes('not found') ||
+         error.message.includes('Not Found') ||
+         error.message.includes('No Record found'));
+
+      if (is404Error) {
+        console.error(`[ServiceNow] OLD path: Record not found (404) - record may not exist or ACL restricts access`, {
+          sysId,
+          table,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      // Re-throw the error to let the caller handle it
+      throw error;
+    }
   }
 
   /**
