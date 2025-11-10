@@ -1576,6 +1576,8 @@ export class ServiceNowClient {
       assignedTo?: string;
       openedAfter?: string;
       openedBefore?: string;
+      sysDomain?: string;
+      includeChildDomains?: boolean;
       sortBy?: 'opened_at' | 'priority' | 'updated_on' | 'state';
       sortOrder?: 'asc' | 'desc';
     },
@@ -1613,6 +1615,8 @@ export class ServiceNowClient {
           state: input.state,
           assignmentGroup: input.assignmentGroup,
           assignedTo: input.assignedTo,
+          sysDomain: input.sysDomain,
+          includeChildDomains: input.includeChildDomains,
           sortBy: input.sortBy,
           sortOrder: input.sortOrder,
         };

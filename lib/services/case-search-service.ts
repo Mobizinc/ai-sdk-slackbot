@@ -21,6 +21,8 @@ export interface CaseSearchFilters {
   updatedBefore?: string; // NEW: For stale case detection
   updatedAfter?: string;
   activeOnly?: boolean;
+  sysDomain?: string; // NEW: Domain sys_id for multi-tenant filtering
+  includeChildDomains?: boolean; // NEW: Include child domains in hierarchical search
   sortBy?: CaseSearchCriteria["sortBy"];
   sortOrder?: CaseSearchCriteria["sortOrder"];
   limit?: number;
@@ -73,6 +75,8 @@ export class CaseSearchService {
       updatedAfter: parseDate(filters.updatedAfter),
       updatedBefore: parseDate(filters.updatedBefore),
       activeOnly: filters.activeOnly,
+      sysDomain: filters.sysDomain,
+      includeChildDomains: filters.includeChildDomains,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
       limit,
@@ -161,6 +165,10 @@ export class CaseSearchService {
     if (filters.openedBefore) parts.push(`Opened before: ${parseDate(filters.openedBefore)?.toLocaleDateString()}`);
     if (filters.updatedBefore) parts.push(`Updated before: ${parseDate(filters.updatedBefore)?.toLocaleDateString()}`);
     if (filters.updatedAfter) parts.push(`Updated after: ${parseDate(filters.updatedAfter)?.toLocaleDateString()}`);
+    if (filters.sysDomain) {
+      const domainType = filters.includeChildDomains ? "Domain (with children)" : "Domain";
+      parts.push(`${domainType}: ${filters.sysDomain}`);
+    }
 
     return parts.length > 0 ? parts.join(" | ") : "No filters applied";
   }

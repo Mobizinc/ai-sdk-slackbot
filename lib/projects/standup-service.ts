@@ -309,6 +309,29 @@ export async function triggerStandupManually(project: ProjectDefinition, config:
 }
 
 async function createStandupRun(project: ProjectDefinition, config: StandupConfig, scheduledFor: Date): Promise<StandupCreateResult | null> {
+  // Validate channel before creating standup
+  const channelId = config.channelId ?? project.channelId;
+  if (channelId) {
+    try {
+      const channelInfo = await slackMessaging.getConversationInfo(channelId);
+      if (!channelInfo || !channelInfo.channel) {
+        console.error(
+          `[Standup] Channel ${channelId} not found or bot not in channel for project ${project.id}. Standup creation aborted.`,
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `[Standup] Failed to validate channel ${channelId} for project ${project.id}:`,
+        error,
+      );
+      return null;
+    }
+  } else {
+    console.warn(`[Standup] No channel configured for project ${project.id}; standup creation skipped`);
+    return null;
+  }
+
   const participants = await resolveStandupParticipants(project, config);
   if (participants.length === 0) {
     console.warn(`[Standup] No participants configured for project ${project.id}`);
@@ -844,11 +867,39 @@ async function postStandupSummary(
 
   const channelId = config.channelId ?? project.channelId;
   if (channelId) {
-    await slackMessaging.postMessage({
-      channel: channelId,
-      text: `Stand-up summary for ${project.name}`,
-      blocks,
-    });
+    // Validate channel exists before posting
+    try {
+      const channelInfo = await slackMessaging.getConversationInfo(channelId);
+      if (!channelInfo || !channelInfo.channel) {
+        console.error(
+          `[Standup] Channel ${channelId} not found or bot not in channel for project ${project.id}`,
+        );
+        throw new Error(
+          `Channel ${channelId} not found. Please verify the channel ID and ensure the bot is a member of the channel.`,
+        );
+      }
+
+      await slackMessaging.postMessage({
+        channel: channelId,
+        text: `Stand-up summary for ${project.name}`,
+        blocks,
+      });
+    } catch (error) {
+      console.error(`[Standup] Failed to post summary to channel ${channelId}:`, error);
+      // Update standup status to failed instead of completed
+      await db
+        .update(projectStandups)
+        .set({
+          status: "failed",
+          metadata: {
+            ...standup.metadata,
+            error: error instanceof Error ? error.message : "Failed to post summary to channel",
+            channelId,
+          } as Record<string, unknown>,
+        })
+        .where(eq(projectStandups.id, standup.id));
+      throw error; // Re-throw to prevent marking as completed below
+    }
   } else {
     console.warn(`[Standup] No channel configured for project ${project.id}; summary skipped`);
   }

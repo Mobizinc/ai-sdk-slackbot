@@ -232,8 +232,9 @@ describe("GitHub Issue Service", () => {
         brd: mockBRD,
       };
 
+      // With improved error handling, authentication errors now preserve the original error message
       await expect(createGitHubIssue(params)).rejects.toThrow(
-        "GitHub App is not configured. Please set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_INSTALLATION_ID environment variables to enable feedback collection."
+        "GitHub integration failed: Invalid installation ID"
       );
     });
   });

@@ -553,15 +553,31 @@ describe("Business Contexts API", () => {
   });
 
   describe("CORS Support", () => {
-    it("should handle OPTIONS preflight requests", async () => {
+    it("should handle OPTIONS preflight requests with default origin", async () => {
       const request = new Request("https://example.com/api/business-contexts", {
         method: "OPTIONS",
       });
 
       const response = await OPTIONS(request);
-      
+
       expect(response.status).toBe(200);
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://admin.mobiz.solutions');
+      expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
+      expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
+    });
+
+    it("should handle OPTIONS preflight requests with matching origin", async () => {
+      const request = new Request("https://example.com/api/business-contexts", {
+        method: "OPTIONS",
+        headers: {
+          "origin": "https://dev.admin.mobiz.solutions",
+        },
+      });
+
+      const response = await OPTIONS(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://dev.admin.mobiz.solutions');
       expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
       expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
     });
@@ -577,10 +593,27 @@ describe("Business Contexts API", () => {
       });
 
       const response = await GET(request);
-      
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://admin.mobiz.solutions');
       expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE, OPTIONS');
       expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
+    });
+
+    it("should use default origin for non-whitelisted origin", async () => {
+      mockRepository.getAllActive.mockResolvedValue([]);
+
+      const request = new Request("https://example.com/api/business-contexts", {
+        method: "GET",
+        headers: {
+          "authorization": "Bearer test-admin-token",
+          "origin": "https://evil.com",
+        },
+      });
+
+      const response = await GET(request);
+
+      // Should fall back to default origin, not echo the evil origin
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://admin.mobiz.solutions');
     });
   });
 

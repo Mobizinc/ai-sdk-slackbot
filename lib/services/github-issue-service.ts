@@ -25,33 +25,58 @@ export interface CreatedIssue {
  * Creates a GitHub issue from a BRD
  */
 export async function createGitHubIssue(params: CreateIssueParams): Promise<CreatedIssue> {
+  console.info("[GitHub Issue Service] Attempting to authenticate with GitHub App...");
+
   let client;
   try {
     client = await getGitHubClient();
+    console.info("[GitHub Issue Service] ✅ Successfully authenticated with GitHub");
   } catch (error) {
-    throw new Error(
-      "GitHub App is not configured. Please set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_INSTALLATION_ID environment variables to enable feedback collection."
-    );
+    // Distinguish between missing configuration and authentication/network errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[GitHub Issue Service] ❌ GitHub authentication failed:", errorMessage);
+
+    // If it's a configuration error (missing credentials), provide helpful setup message
+    if (errorMessage.includes("incomplete") || errorMessage.includes("not configured")) {
+      throw new Error(
+        "GitHub App is not configured. Please set GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, and GITHUB_INSTALLATION_ID environment variables to enable feedback collection."
+      );
+    }
+
+    // For authentication/network errors, preserve the original error message
+    // This helps diagnose issues like invalid credentials, expired tokens, network failures, etc.
+    throw new Error(`GitHub integration failed: ${errorMessage}`);
   }
 
   const { owner, repo } = getRepoConfig();
+  console.info(`[GitHub Issue Service] Creating issue in repository: ${owner}/${repo}`);
 
   const body = formatIssueBody(params.brd, params.slackThreadUrl, params.requestedBy);
   const labels = getIssueLabels();
 
-  const response = await client.issues.create({
-    owner,
-    repo,
-    title: params.brd.title,
-    body,
-    labels,
-  });
+  try {
+    const response = await client.issues.create({
+      owner,
+      repo,
+      title: params.brd.title,
+      body,
+      labels,
+    });
 
-  return {
-    number: response.data.number,
-    htmlUrl: response.data.html_url,
-    title: response.data.title,
-  };
+    console.info(
+      `[GitHub Issue Service] ✅ Successfully created issue #${response.data.number}: ${response.data.title}`
+    );
+
+    return {
+      number: response.data.number,
+      htmlUrl: response.data.html_url,
+      title: response.data.title,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[GitHub Issue Service] ❌ Failed to create GitHub issue:", errorMessage);
+    throw error;
+  }
 }
 
 /**

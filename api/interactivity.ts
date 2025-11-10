@@ -52,8 +52,14 @@ import { enqueueBackgroundTask } from "../lib/background-tasks";
 import { ProjectActions } from "../lib/projects/posting";
 import { getProjectById } from "../lib/projects/catalog";
 import { sendProjectLearnMore, startInterviewSession } from "../lib/projects/interview-session";
+import {
+  handleInterestButtonClick,
+  handleWaitlistButtonClick,
+  sendButtonActionFeedback,
+} from "../lib/projects/interactivity-helpers";
 import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
 import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
+import type { ProjectDefinition } from "../lib/projects/types";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -139,6 +145,80 @@ export async function POST(request: Request) {
   }
 }
 
+async function processInterestAction(project: ProjectDefinition, payload: BlockActionsPayload): Promise<void> {
+  try {
+    const result = await handleInterestButtonClick(
+      project,
+      payload.user.id,
+      payload.user.name ?? payload.user.username,
+    );
+    await sendButtonActionFeedback(payload.user.id, project.name, result);
+
+    if (result.status === "interview_started" && result.interest) {
+      await startInterviewSession({
+        project,
+        userId: payload.user.id,
+        userName: payload.user.name,
+        initiatedBy: payload.user.id,
+        sourceMessageTs: payload.message?.ts,
+        interestId: result.interest.id,
+        interest: result.interest,
+        skipPrechecks: true,
+      });
+    }
+  } catch (error) {
+    console.error("[Project Interactivity] Failed to process interest click", {
+      projectId: project.id,
+      userId: payload.user.id,
+      error,
+    });
+    const dmConversation = await slackMessaging.openConversation(payload.user.id);
+    if (dmConversation.channelId) {
+      await slackMessaging.postMessage({
+        channel: dmConversation.channelId,
+        text: `Something went wrong starting your interview for *${project.name}*. Please try again in a moment.`,
+      });
+    }
+  }
+}
+
+async function processWaitlistAction(project: ProjectDefinition, payload: BlockActionsPayload): Promise<void> {
+  try {
+    const result = await handleWaitlistButtonClick(project, payload.user.id);
+    await sendButtonActionFeedback(payload.user.id, project.name, result);
+  } catch (error) {
+    console.error("[Project Interactivity] Failed to process waitlist click", {
+      projectId: project.id,
+      userId: payload.user.id,
+      error,
+    });
+    const dmConversation = await slackMessaging.openConversation(payload.user.id);
+    if (dmConversation.channelId) {
+      await slackMessaging.postMessage({
+        channel: dmConversation.channelId,
+        text: `We couldn't add you to the waitlist for *${project.name}*. Please try again soon.`,
+      });
+    }
+  }
+}
+
+async function sendIncidentEnrichmentFeedback(userId: string, message: string): Promise<void> {
+  try {
+    const dmConversation = await slackMessaging.openConversation(userId);
+    if (!dmConversation.channelId) {
+      console.warn("[Incident Enrichment] Unable to open DM channel", { userId });
+      return;
+    }
+
+    await slackMessaging.postMessage({
+      channel: dmConversation.channelId,
+      text: message,
+    });
+  } catch (error) {
+    console.error("[Incident Enrichment] Failed to send DM feedback", { userId, error });
+  }
+}
+
 /**
  * Handle block action interactions (button clicks, etc.)
  */
@@ -164,7 +244,7 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
       await handleIncidentEnrichmentAction(actionId, value, payload);
     }
 
-    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE) {
+    if (actionId === ProjectActions.INTEREST || actionId === ProjectActions.LEARN_MORE || actionId === ProjectActions.WAITLIST) {
       const parsed = (() => {
         try {
           return JSON.parse(value || "{}");
@@ -186,15 +266,7 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
       }
 
       if (actionId === ProjectActions.INTEREST) {
-        enqueueBackgroundTask(
-          startInterviewSession({
-            project,
-            userId: payload.user.id,
-            userName: payload.user.name,
-            initiatedBy: payload.user.id,
-            sourceMessageTs: payload.message?.ts,
-          }),
-        );
+        enqueueBackgroundTask(processInterestAction(project, payload));
       }
 
       if (actionId === ProjectActions.LEARN_MORE) {
@@ -204,6 +276,10 @@ async function handleBlockActions(payload: BlockActionsPayload): Promise<void> {
             userId: payload.user.id,
           }),
         );
+      }
+
+      if (actionId === ProjectActions.WAITLIST) {
+        enqueueBackgroundTask(processWaitlistAction(project, payload));
       }
     }
 
@@ -858,11 +934,7 @@ async function handleIncidentEnrichmentAction(
       parsedValue = JSON.parse(value);
     } catch (error) {
       console.error("[Interactivity] Failed to parse enrichment button value:", error);
-      await slackMessaging.postMessage({
-        channel: container.channel_id,
-        threadTs: container.message_ts,
-        text: "Error processing CI selection - invalid button data",
-      });
+      await sendIncidentEnrichmentFeedback(user.id, "Error processing CI selection - invalid button data");
       return;
     }
 
@@ -874,21 +946,10 @@ async function handleIncidentEnrichmentAction(
 
       await clarificationService.handleSkipAction(parsedValue.incident_sys_id);
 
-      // Update Slack message to show action was taken
-      await slackMessaging.updateMessage({
-        channel: container.channel_id,
-        ts: container.message_ts,
-        text: `CI linking skipped by <@${user.id}>. Incident will need manual CI linking in ServiceNow.`,
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `✓ CI linking skipped by <@${user.id}>.\n\nIncident will need manual CI linking in ServiceNow if needed.`,
-            },
-          },
-        ],
-      });
+      await sendIncidentEnrichmentFeedback(
+        user.id,
+        `⏭️ You skipped CI linking for this incident. If needed, link the CI manually in ServiceNow.`,
+      );
     } else if (actionId.startsWith("select_ci_")) {
       // User selected a CI
       const incidentSysId = parsedValue.incident_sys_id;
@@ -907,38 +968,22 @@ async function handleIncidentEnrichmentAction(
         respondedBy: user.id,
       });
 
-      // Update Slack message to show action was taken
       if (result.success) {
-        await slackMessaging.updateMessage({
-          channel: container.channel_id,
-          ts: container.message_ts,
-          text: `CI linked by <@${user.id}>: ${ciName}`,
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: `✓ CI linked by <@${user.id}>: *${ciName}*\n\n${result.message}`,
-              },
-            },
-          ],
-        });
+        await sendIncidentEnrichmentFeedback(
+          user.id,
+          `✅ CI linked by <@${user.id}>: *${ciName}*\n${result.message}`,
+        );
       } else {
-        await slackMessaging.postMessage({
-          channel: container.channel_id,
-          threadTs: container.message_ts,
-          text: `Error linking CI: ${result.message}`,
-        });
+        await sendIncidentEnrichmentFeedback(user.id, `⚠️ Error linking CI: ${result.message}`);
       }
     }
   } catch (error) {
     console.error(`[Interactivity] Error handling incident enrichment action:`, error);
 
-    await slackMessaging.postMessage({
-      channel: container.channel_id,
-      threadTs: container.message_ts,
-      text: `Error processing CI selection: ${error instanceof Error ? error.message : "Unknown error"}`,
-    });
+    await sendIncidentEnrichmentFeedback(
+      payload.user.id,
+      `⚠️ Error processing CI selection: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 

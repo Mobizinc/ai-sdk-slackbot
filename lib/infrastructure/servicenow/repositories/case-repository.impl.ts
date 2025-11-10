@@ -189,6 +189,17 @@ export class ServiceNowCaseRepository implements CaseRepository {
       queryParts.push(`active=${criteria.activeOnly ? 'true' : 'false'}`);
     }
 
+    // Domain filtering (multi-tenant support)
+    if (criteria.sysDomain) {
+      if (criteria.includeChildDomains) {
+        // Hierarchical domain search: includes domain and all child domains
+        queryParts.push(`sys_domainRELATIVE${criteria.sysDomain}`);
+      } else {
+        // Exact domain match
+        queryParts.push(`sys_domain=${criteria.sysDomain}`);
+      }
+    }
+
     // If no filters specified (only sort parameter), default to active cases only
     if (queryParts.length === 1 && queryParts[0].startsWith('ORDERBY')) {
       queryParts.push('active=true');

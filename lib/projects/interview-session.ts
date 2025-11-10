@@ -8,11 +8,15 @@ import type {
   InterviewQuestion,
   InterviewSessionState,
   ProjectDefinition,
+  ProjectInterest,
 } from "./types";
 import { getDb } from "../db/client";
 import { projectInterviews } from "../db/schema";
 import { emitProjectInterviewCompleted } from "./interview-events";
 import { generateInterviewQuestions } from "./question-generator";
+import * as interestRepository from "../db/repositories/interest-repository";
+import { checkCapacity } from "./capacity";
+import * as waitlistService from "./waitlist-service";
 
 interface StartInterviewOptions {
   project: ProjectDefinition;
@@ -20,6 +24,9 @@ interface StartInterviewOptions {
   userName?: string;
   initiatedBy: string;
   sourceMessageTs?: string;
+  interestId?: string; // Link to project interest record
+  interest?: ProjectInterest;
+  skipPrechecks?: boolean;
 }
 
 interface LearnMoreOptions {
@@ -75,12 +82,7 @@ function buildQuestionMessage(question: InterviewQuestion, index: number, total:
   return `*Question ${index + 1} of ${total}:* ${question.prompt}${helperSuffix}`;
 }
 
-function buildCandidateSummaryMessage(matchSummary: {
-  score: number;
-  summary: string;
-  recommendedTasks: string[];
-  concerns?: string;
-}): string {
+function buildCandidateSummaryMessage(matchSummary: MatchScore | EnhancedMatchScore): string {
   const lines = [
     "Thanks! That's all the questions I had.",
     `*Preliminary match score:* ${matchSummary.score}/100`,
@@ -99,17 +101,21 @@ function buildCandidateSummaryMessage(matchSummary: {
     lines.push("", `*Notes:* ${matchSummary.concerns}`);
   }
 
+  if ("skillGaps" in matchSummary && matchSummary.skillGaps.length > 0) {
+    lines.push("", "*Skill gaps to focus on:*", ...matchSummary.skillGaps.map((gap) => `• ${gap}`));
+  }
+
   lines.push("", "We'll sync with the mentor and get back to you shortly.");
 
   return lines.join("\n");
 }
 
-function buildMentorNotificationMessage(project: ProjectDefinition, candidateId: string, answers: InterviewAnswer[], matchSummary: {
-  score: number;
-  summary: string;
-  recommendedTasks: string[];
-  concerns?: string;
-}): string {
+function buildMentorNotificationMessage(
+  project: ProjectDefinition,
+  candidateId: string,
+  answers: InterviewAnswer[],
+  matchSummary: MatchScore | EnhancedMatchScore,
+): string {
   const answerLines = answers
     .map((answer, index) => `*Q${index + 1} (${answer.questionId}):* ${answer.response}`)
     .join("\n");
@@ -121,6 +127,29 @@ function buildMentorNotificationMessage(project: ProjectDefinition, candidateId:
 
   const concernLine = matchSummary.concerns ? `*Potential risks:* ${matchSummary.concerns}\n` : "";
 
+  const extraSections: string[] = [];
+  if ("skillGaps" in matchSummary && matchSummary.skillGaps.length > 0) {
+    extraSections.push(
+      "*Skill gaps:*",
+      matchSummary.skillGaps.map((gap) => `• ${gap}`).join("\n"),
+    );
+  }
+  if ("strengths" in matchSummary && matchSummary.strengths.length > 0) {
+    extraSections.push(
+      "*Strengths:*",
+      matchSummary.strengths.map((strength) => `• ${strength}`).join("\n"),
+    );
+  }
+  if ("onboardingRecommendations" in matchSummary && matchSummary.onboardingRecommendations.length > 0) {
+    extraSections.push(
+      "*Onboarding recommendations:*",
+      matchSummary.onboardingRecommendations.map((rec) => `• ${rec}`).join("\n"),
+    );
+  }
+  if ("timeToProductivity" in matchSummary && matchSummary.timeToProductivity) {
+    extraSections.push(`*Estimated time to productivity:* ${matchSummary.timeToProductivity}`);
+  }
+
   return [
     `New candidate interested in *${project.name}*`,
     `• Candidate: <@${candidateId}>`,
@@ -129,6 +158,7 @@ function buildMentorNotificationMessage(project: ProjectDefinition, candidateId:
     "",
     tasksSection,
     concernLine,
+    extraSections.length > 0 ? extraSections.join("\n") : "",
     "*Interview transcript:*",
     answerLines,
   ]
@@ -143,6 +173,64 @@ async function ensureNoActiveInterview(channelId: string): Promise<boolean> {
 
 export async function startInterviewSession(options: StartInterviewOptions): Promise<void> {
   const { project, userId, initiatedBy } = options;
+
+  const bypassPrechecks = options.skipPrechecks ?? false;
+  let interest: ProjectInterest | null = options.interest ?? null;
+
+  if (bypassPrechecks) {
+    if (!interest && options.interestId) {
+      interest = await interestRepository.getInterestById(options.interestId);
+    }
+    if (!interest) {
+      throw new Error("Interest record required when skipping prechecks");
+    }
+  } else {
+    // Check for duplicate applications (allow retry only if previous was abandoned)
+    const existingInterest = await interestRepository.findInterest(project.id, userId);
+    if (existingInterest) {
+      if (existingInterest.status !== "abandoned") {
+        const dmConversation = await slackMessaging.openConversation(userId);
+        if (dmConversation.channelId) {
+          await slackMessaging.postMessage({
+            channel: dmConversation.channelId,
+            text: `You've already applied to *${project.name}*. We'll get back to you once the mentor reviews your application.`,
+          });
+        }
+        return;
+      }
+      interest = existingInterest;
+    }
+
+    const hasCapacity = await checkCapacity(project);
+    if (!hasCapacity) {
+      if (!interest) {
+        await interestRepository.createInterest(project.id, userId, "waitlist");
+      } else {
+        await interestRepository.updateInterestStatus(interest.id, "waitlist");
+      }
+
+      const dmConversation = await slackMessaging.openConversation(userId);
+      if (dmConversation.channelId) {
+        await slackMessaging.postMessage({
+          channel: dmConversation.channelId,
+          text: `*${project.name}* is currently at full capacity. You've been added to the waitlist. We'll notify you if a slot opens up!`,
+        });
+      }
+      return;
+    }
+
+    if (!interest) {
+      interest = await interestRepository.createInterest(project.id, userId, "pending");
+    }
+
+    if (!interest) {
+      console.error("[Project Interview] Failed to create interest record", {
+        projectId: project.id,
+        userId,
+      });
+      throw new Error("Failed to register interest");
+    }
+  }
 
   let questionSource: InterviewSessionState["questionSource"] = "config";
   let generatorModel: string | undefined;
@@ -174,6 +262,14 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource = "default";
   }
 
+  if (!interest) {
+    throw new Error("Interest record missing for interview start");
+  }
+
+  if (interest.status === "waitlist") {
+    throw new Error("Cannot start interview while candidate is on the waitlist");
+  }
+
   const questions = configuredQuestions.map((question) => ({ ...question }));
 
   const dmConversation = await slackMessaging.openConversation(userId);
@@ -190,6 +286,9 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     return;
   }
 
+  // Update interest status to interviewing
+  await interestRepository.updateInterestStatus(interest.id, "interviewing");
+
   const firstQuestion = questions[0];
   const totalQuestions = questions.length;
   const messageText = buildIntroMessage(project, firstQuestion, 0, totalQuestions);
@@ -203,7 +302,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     throw new Error("Failed to start interview session (missing message timestamp)");
   }
 
-  const sessionState: InterviewSessionState = {
+  const sessionState: any = {
     projectId: project.id,
     userId,
     userName: options.userName,
@@ -215,6 +314,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource,
     generatorModel,
     startedAt: new Date().toISOString(),
+    interestId: interest.id, // Link to interest record
   };
 
   await stateManager.saveState(
@@ -228,6 +328,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
         initiatedBy,
         projectId: project.id,
         sourceMessageTs: options.sourceMessageTs,
+        interestId: interest.id,
       },
     },
   );
@@ -318,16 +419,24 @@ export async function handleInterviewResponse(
     return true;
   }
 
-  let matchSummary: Awaited<ReturnType<typeof scoreInterviewAgainstProject>>;
+  let matchSummary: MatchScore | EnhancedMatchScore | null = null;
   try {
-    matchSummary = await scoreInterviewAgainstProject(project, updatedAnswers, payload.scoringPrompt);
+    matchSummary = await scoreInterviewEnhanced(project, updatedAnswers, payload.scoringPrompt);
   } catch (error) {
-    console.error("[Project Interview] Failed to score interview", error);
-    matchSummary = {
-      score: 50,
-      summary: "Automatic scoring was unavailable. Mentor review is required.",
-      recommendedTasks: [],
-    };
+    console.warn("[Project Interview] Enhanced scoring failed, falling back", error);
+  }
+
+  if (!matchSummary) {
+    try {
+      matchSummary = await scoreInterviewAgainstProject(project, updatedAnswers, payload.scoringPrompt);
+    } catch (legacyError) {
+      console.error("[Project Interview] Failed to score interview", legacyError);
+      matchSummary = {
+        score: 50,
+        summary: "Automatic scoring was unavailable. Mentor review is required.",
+        recommendedTasks: [],
+      };
+    }
   }
 
   const completedAt = new Date().toISOString();
@@ -349,6 +458,7 @@ export async function handleInterviewResponse(
       scoringPrompt: payload.scoringPrompt,
       questionSource: payload.questionSource ?? "default",
       generatorModel: payload.generatorModel,
+      interestId: (payload as any).interestId, // From sessionState
     }),
   ]);
 
@@ -390,12 +500,13 @@ interface PersistInterviewResultOptions {
   mentorId?: string;
   answers: InterviewAnswer[];
   questions: InterviewQuestion[];
-  matchSummary: MatchScore;
+  matchSummary: MatchScore | EnhancedMatchScore;
   startedAt: string;
   completedAt: string;
   scoringPrompt?: string;
   questionSource: InterviewSessionState["questionSource"];
   generatorModel?: string;
+  interestId?: string; // Link to interest record
 }
 
 async function persistInterviewResult(options: PersistInterviewResultOptions): Promise<void> {
@@ -406,7 +517,11 @@ async function persistInterviewResult(options: PersistInterviewResultOptions): P
   }
 
   try {
-    await db.insert(projectInterviews).values({
+    // Extract enhanced fields if they exist
+    const isEnhanced = "skillGaps" in options.matchSummary;
+    const matchSummary = options.matchSummary as any;
+
+    const result = await db.insert(projectInterviews).values({
       projectId: options.projectId,
       candidateSlackId: options.candidateId,
       mentorSlackId: options.mentorId ?? null,
@@ -417,11 +532,28 @@ async function persistInterviewResult(options: PersistInterviewResultOptions): P
       matchSummary: options.matchSummary.summary,
       recommendedTasks: options.matchSummary.recommendedTasks,
       concerns: options.matchSummary.concerns ?? null,
+      skillGaps: isEnhanced ? matchSummary.skillGaps ?? [] : [],
+      onboardingRecommendations: isEnhanced ? matchSummary.onboardingRecommendations ?? [] : [],
+      strengths: isEnhanced ? matchSummary.strengths ?? [] : [],
+      timeToProductivity: isEnhanced ? matchSummary.timeToProductivity ?? null : null,
+      interestId: options.interestId ?? undefined,
       startedAt: new Date(options.startedAt),
       completedAt: new Date(options.completedAt),
       questionSource: options.questionSource,
       generatorModel: options.generatorModel ?? null,
-    });
+    }).returning();
+
+    // Update interest status based on match score
+    if (options.interestId) {
+      const interviewId = result[0]?.id;
+      const status = options.matchSummary.score >= 70 ? "accepted" : "rejected";
+      await interestRepository.updateInterestStatus(options.interestId, status, interviewId);
+      if (status === "accepted") {
+        await waitlistService.onInterviewAccepted(options.projectId, options.candidateId);
+      } else {
+        await waitlistService.onInterviewRejected(options.projectId, options.candidateId);
+      }
+    }
   } catch (error) {
     console.error("[Project Interview] Failed to persist interview result", error);
   }

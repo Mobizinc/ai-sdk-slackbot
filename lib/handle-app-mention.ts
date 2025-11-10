@@ -6,16 +6,8 @@ import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
-
-const SLACK_DISPLAY_TEXT_LIMIT = 12000;
-
-const clampTextForSlackDisplay = (text: string): string => {
-  if (!text) return text;
-  if (text.length <= SLACK_DISPLAY_TEXT_LIMIT) {
-    return text;
-  }
-  return `${text.slice(0, SLACK_DISPLAY_TEXT_LIMIT - 1)}…`;
-};
+import { createStatusUpdater, clampTextForSlackDisplay } from "./utils/slack-status-updater";
+import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -39,103 +31,6 @@ const extractSummaryText = (raw: unknown): string | null => {
   return trimmed;
 };
 
-const updateStatusUtil = async (
-  initialStatus: string,
-  event: AppMentionEvent,
-) => {
-  // Create initial message with dedicated status block
-  const initialMessage = await slackMessaging.postMessage({
-    channel: event.channel,
-    threadTs: event.thread_ts ?? event.ts,
-    text: "Processing your request...",
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: "_Processing your request..._"
-        }
-      },
-      {
-        type: "context",
-        block_id: "status_block",
-        elements: [
-          {
-            type: "mrkdwn",
-            text: `⏳ ${initialStatus}`
-          }
-        ]
-      }
-    ]
-  });
-
-  if (!initialMessage || !initialMessage.ts)
-    throw new Error("Failed to post initial message");
-
-  const statusEmojis: Record<string, string> = {
-    'is thinking...': '⏳',
-    'thinking': '⏳',
-    'calling-tool': '🔧',
-    'is looking up': '🔍',
-    'is searching': '🔎',
-    'is fetching': '📥',
-    'analyzing': '🧠',
-    'is gathering': '📊',
-  };
-
-  // Non-destructive status update - only updates the status block
-  const updateStatus = async (status: string) => {
-    // Find matching emoji
-    const emojiKey = Object.keys(statusEmojis).find(key => status.includes(key)) || '';
-    const emoji = statusEmojis[emojiKey] || '⚙️';
-
-    await slackMessaging.updateMessage({
-      channel: event.channel,
-      ts: initialMessage.ts as string,
-      text: "Processing your request...",
-      blocks: [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "_Processing your request..._"
-          }
-        },
-        {
-          type: "context",
-          block_id: "status_block",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `${emoji} ${status}`
-            }
-          ]
-        }
-      ]
-    });
-  };
-
-  // Destructive final update - replaces entire message with final content
-  const setFinalMessage = async (text: string, blocks?: any[]) => {
-    const displayText = clampTextForSlackDisplay(text);
-    let finalBlocks = blocks;
-
-    if ((!finalBlocks || finalBlocks.length === 0) && displayText && displayText.length > 2800) {
-      const { splitTextIntoSectionBlocks } = await import("./formatters/servicenow-block-kit");
-      finalBlocks = splitTextIntoSectionBlocks(displayText, "mrkdwn");
-    }
-
-    await slackMessaging.updateMessage({
-      channel: event.channel,
-      ts: initialMessage.ts as string,
-      text: displayText,
-      blocks: finalBlocks,
-    });
-  };
-
-  return { updateStatus, setFinalMessage };
-};
-
 export async function handleNewAppMention(
   event: AppMentionEvent,
   botUserId: string,
@@ -147,7 +42,11 @@ export async function handleNewAppMention(
   }
 
   const { thread_ts, channel } = event;
-  const { updateStatus, setFinalMessage } = await updateStatusUtil("is thinking...", event);
+  const { updateStatus, setFinalMessage } = await createStatusUpdater(
+    event.channel,
+    event.thread_ts ?? event.ts,
+    "is thinking..."
+  );
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:
@@ -272,8 +171,12 @@ export async function handleNewAppMention(
       return;
 
     } catch (error) {
-      console.error(`[App Mention] Triage failed for ${caseNumber}:`, error);
-      await setFinalMessage(`Failed to triage case ${caseNumber}. ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await setErrorWithStatusUpdater(
+        { setFinalMessage },
+        error,
+        `Failed to triage case ${caseNumber}`,
+        "[App Mention]"
+      );
       return;
     }
   }
@@ -297,79 +200,11 @@ export async function handleNewAppMention(
     );
   }
 
-  // Check if result contains Block Kit data (JSON-encoded response)
-  try {
-    const parsed = JSON.parse(result);
-    if (parsed._blockKitData) {
-      console.log('[Handler] Block Kit data detected, formatting with Block Kit');
-
-      const blockKitModule = await import("./formatters/servicenow-block-kit");
-
-      // Handle both case and incident Block Kit data
-      if (parsed._blockKitData.type === "incident_detail") {
-        const resolvedText =
-          extractSummaryText(parsed.text) ||
-          extractSummaryText(parsed.summary) ||
-          blockKitModule.generateIncidentFallbackText(parsed._blockKitData.incidentData || {});
-
-        const llmResponse = clampTextForSlackDisplay(resolvedText);
-
-        // Create minimal incident card with "View Details" button
-        const minimalBlocks = blockKitModule.formatIncidentAsMinimalCard(parsed._blockKitData.incidentData);
-
-        console.log('[Handler] Sending incident response as plain text + minimal card');
-        console.log('[Handler] Incident data:', {
-          number: parsed._blockKitData.incidentData?.number,
-          llmTextLength: llmResponse?.length,
-          minimalBlockCount: minimalBlocks?.length,
-        });
-
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
-          ...minimalBlocks,
-        ];
-
-        await setFinalMessage(llmResponse, combinedBlocks);
-      } else if (parsed._blockKitData.type === "case_detail") {
-        const resolvedText =
-          extractSummaryText(parsed.text) ||
-          extractSummaryText(parsed.summary) ||
-          blockKitModule.generateCaseFallbackText(parsed._blockKitData.caseData || {});
-
-        const llmResponse = clampTextForSlackDisplay(resolvedText);
-
-        // Create minimal case card with "View Details" button
-        const minimalBlocks = blockKitModule.formatCaseAsMinimalCard(parsed._blockKitData.caseData);
-
-        console.log('[Handler] Sending case response as plain text + minimal card');
-        console.log('[Handler] Case data:', {
-          number: parsed._blockKitData.caseData?.number,
-          llmTextLength: llmResponse?.length,
-          minimalBlockCount: minimalBlocks?.length,
-        });
-
-        const llmTextBlocks = blockKitModule.splitTextIntoSectionBlocks(llmResponse, "mrkdwn");
-        const combinedBlocks = [
-          ...llmTextBlocks,
-          ...(llmTextBlocks.length > 0 ? [{ type: "divider" }] : []),
-          ...minimalBlocks,
-        ];
-
-        await setFinalMessage(llmResponse, combinedBlocks);
-      } else {
-        // Unknown type, fallback to text
-        console.warn('[Handler] Unknown Block Kit type:', parsed._blockKitData.type);
-        await setFinalMessage(parsed.text || result);
-      }
-    } else {
-      await setFinalMessage(parsed.text || result);
-    }
-  } catch {
-    // Not JSON or no Block Kit data - use as plain text
-    await setFinalMessage(result);
-  }
+  // Extract plain text from result (handle JSON-wrapped responses from tools)
+  // Some tools may return {text: "...", ...} which extractSummaryText unwraps.
+  // If result is not a JSON object with a 'text' field, fallback to the original result.
+  const plainText = extractSummaryText(result) || result;
+  await setFinalMessage(plainText);
 
   // After responding, check for case numbers and trigger intelligent workflow
   const contextManager = getContextManager();
