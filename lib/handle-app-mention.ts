@@ -16,18 +16,6 @@ const extractSummaryText = (raw: unknown): string | null => {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
-
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed.text === "string") {
-        return parsed.text.trim();
-      }
-    } catch {
-      // Ignore parse errors and fall through to returning original trimmed text
-    }
-  }
-
   return trimmed;
 };
 
@@ -200,9 +188,7 @@ export async function handleNewAppMention(
     );
   }
 
-  // Extract plain text from result (handle JSON-wrapped responses from tools)
-  // Some tools may return {text: "...", ...} which extractSummaryText unwraps.
-  // If result is not a JSON object with a 'text' field, fallback to the original result.
+  // Extract and trim plain text from result
   const plainText = extractSummaryText(result) || result;
   await setFinalMessage(plainText);
 
