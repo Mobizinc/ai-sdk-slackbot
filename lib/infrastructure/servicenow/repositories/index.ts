@@ -11,6 +11,7 @@ export * from "./problem-repository.interface";
 export * from "./knowledge-repository.interface";
 export * from "./catalog-repository.interface";
 export * from "./assignment-group-repository.interface";
+export * from "./spm-repository.interface";
 export * from "./change-repository.impl";
 export * from "./case-repository.impl";
 export * from "./incident-repository.impl";
@@ -21,6 +22,7 @@ export * from "./customer-account-repository.impl";
 export * from "./choice-repository.impl";
 export * from "./problem-repository.impl";
 export * from "./assignment-group-repository.impl";
+export * from "./spm-repository.impl";
 export * from "./factory";
 
 // Re-export ServiceNowContext for convenience
