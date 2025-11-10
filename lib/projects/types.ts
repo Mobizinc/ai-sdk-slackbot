@@ -191,3 +191,46 @@ export interface InterviewSessionState {
   generatorModel?: string;
   startedAt: string;
 }
+
+/**
+ * Enhanced Match Score with detailed candidate evaluation
+ * Includes skill gaps, onboarding recommendations, strengths, and time-to-productivity
+ */
+export interface EnhancedMatchScore {
+  score: number; // 0-100
+  summary: string; // 2-3 sentence assessment
+  recommendedTasks: string[]; // specific tasks candidate can start with
+  concerns?: string; // optional concerns or risks
+  skillGaps: string[]; // required/nice-to-have skills they're missing or weak in
+  onboardingRecommendations: string[]; // resources, tutorials, training recommendations
+  strengths: string[]; // specific skills/experiences that match project needs
+  timeToProductivity: string; // immediate, 1-2 weeks, 3-4 weeks, 1-2 months, etc.
+}
+
+/**
+ * Project Interest Status enum
+ * Tracks candidate progress through application/interview workflow
+ */
+export enum ProjectInterestStatus {
+  PENDING = "pending", // user clicked interested, hasn't started interview
+  INTERVIEWING = "interviewing", // interview in progress
+  ACCEPTED = "accepted", // interview completed with good score
+  REJECTED = "rejected", // interview completed but not a good fit
+  ABANDONED = "abandoned", // user started but didn't complete interview
+  WAITLIST = "waitlist", // project full, candidate added to waitlist
+}
+
+/**
+ * Project Interest with status tracking
+ * Used for duplicate prevention and capacity management
+ */
+export interface ProjectInterest {
+  id: string;
+  projectId: string;
+  candidateSlackId: string;
+  status: ProjectInterestStatus | string;
+  interviewId: string | null; // FK to projectInterviews
+  createdAt: Date;
+  updatedAt: Date;
+  abandonedAt: Date | null; // when interview was abandoned
+}
