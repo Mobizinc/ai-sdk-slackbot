@@ -6,7 +6,7 @@
  * Runs as periodic cron job (every 6 hours)
  */
 
-import { and, isNull, lt } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { projectInterviews } from "../db/schema";
 import { getSlackMessagingService } from "../services/slack-messaging";
@@ -281,7 +281,7 @@ export async function fixInconsistencies(): Promise<{ fixed: number; errors: num
           await db
             .update(projectInterviews)
             .set({ interestId: interest.id })
-            .where((t) => t.id === interview.id);
+            .where(eq(projectInterviews.id, interview.id));
 
           fixed++;
         }
