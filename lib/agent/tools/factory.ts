@@ -25,6 +25,7 @@ import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
 import { createVeloCloudTool } from "./velocloud";
 import { createFeedbackCollectionTool } from "./feedback-collection";
+import { createDescribeCapabilitiesTool } from "./describe-capabilities";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -42,6 +43,7 @@ export type { CaseSearchInput } from "./case-search";
 export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
 export type { FeedbackCollectionInput } from "./feedback-collection";
+export type { DescribeCapabilitiesInput } from "./describe-capabilities";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -56,21 +58,36 @@ export type { AgentToolFactoryParams } from "./shared";
  * @returns Record of all available tools keyed by name
  */
 export function createAgentTools(params: AgentToolFactoryParams) {
-  return {
+  // Create all tools as a single object
+  // describeCapabilities gets access to all tools via closure for true introspection
+  const tools = {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
     serviceNow: createServiceNowTool(params),
     searchSimilarCases: createSearchTool(params),
-    searchCases: createCaseSearchTool(params), // NEW: Case search with filters
+    searchCases: createCaseSearchTool(params),
     generateKBArticle: createKnowledgeBaseTool(params),
     proposeContextUpdate: createContextUpdateTool(params),
     fetchCurrentIssues: createCurrentIssuesTool(params),
     microsoftLearnSearch: createMicrosoftLearnTool(params),
     triageCase: createTriageTool(params),
-    caseAggregation: createCaseAggregationTool(params), // NEW: Case aggregations
-    getFirewallStatus: createFortiManagerMonitorTool(params), // NEW: FortiManager monitoring
-    queryVelocloud: createVeloCloudTool(params), // NEW: VeloCloud REST queries
-    collectFeatureFeedback: createFeedbackCollectionTool(params), // NEW: Feature feedback collection
+    caseAggregation: createCaseAggregationTool(params),
+    getFirewallStatus: createFortiManagerMonitorTool(params),
+    queryVelocloud: createVeloCloudTool(params),
+    collectFeatureFeedback: createFeedbackCollectionTool(params),
+  };
+
+  // Create describeCapabilities with access to all other tools for runtime introspection
+  // This enables true dynamic discovery without hardcoded metadata
+  const describeCapabilities = createDescribeCapabilitiesTool(
+    params,
+    () => tools as any // Return all tools for introspection
+  );
+
+  // Return complete tool set with describeCapabilities at the front for priority
+  return {
+    describeCapabilities,
+    ...tools,
   };
 }
 
