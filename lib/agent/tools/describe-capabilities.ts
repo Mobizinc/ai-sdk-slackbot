@@ -2,15 +2,17 @@
  * Describe Capabilities Tool
  *
  * Provides dynamic help information about bot capabilities by introspecting:
- * - Available agent tools (with their descriptions)
+ * - Available agent tools (by reading their actual definitions)
  * - Registered features from the feature registry
  *
  * This ensures help information is always up-to-date as tools and features evolve.
+ * Tools are introspected at runtime - no hardcoded metadata needed!
  */
 
 import { z } from "zod";
 import { createTool, type AgentToolFactoryParams } from "./shared";
-import { FEATURE_REGISTRY, getAllFeatures } from "../feature-registry";
+import { FEATURE_REGISTRY } from "../feature-registry";
+import type { AnthropicToolDefinition } from "./anthropic-tools";
 
 export type DescribeCapabilitiesInput = {
   scope?: "all" | "tools" | "features" | "category";
@@ -34,130 +36,37 @@ const describeCapabilitiesInputSchema = z.object({
 });
 
 /**
- * Tool metadata for documentation purposes
- * This will be included in the help output
+ * Tool categories for better organization
+ * Maps tool names to logical categories
  */
-const AGENT_TOOL_METADATA = [
-  {
-    name: "getWeather",
-    category: "Utilities",
-    description: "Fetch real-time weather data for any location using coordinates",
-    usage: "Ask about current weather conditions",
-    examples: ["What's the weather in San Francisco?", "Current temperature in New York"],
-  },
-  {
-    name: "searchWeb",
-    category: "Research",
-    description: "Search the web using Exa API for current information",
-    usage: "Ask questions requiring current web information",
-    examples: ["Search for latest Azure outages", "Find documentation for FortiGate policies"],
-  },
-  {
-    name: "serviceNow",
-    category: "Case Management",
-    description: "Query ServiceNow for cases, incidents, knowledge articles, and CMDB information",
-    usage: "Request case details, search KB, lookup infrastructure",
-    examples: [
-      "Get details for SCS0048475",
-      "Search ServiceNow KB for Exchange quota",
-      "Look up server-prod-01 in CMDB",
-    ],
-  },
-  {
-    name: "searchSimilarCases",
-    category: "Case Management",
-    description: "Find similar past cases using AI-powered pattern matching",
-    usage: "Look for cases similar to current issue",
-    examples: ["Find similar cases to SCS0048475", "Have we seen this Exchange error before?"],
-  },
-  {
-    name: "searchCases",
-    category: "Case Management",
-    description: "Advanced case search with filters (client, assignment group, date range, priority, status)",
-    usage: "Search for cases with specific criteria",
-    examples: [
-      "Show open P1 cases for Altus",
-      "Find cases assigned to Mobiz IT from last week",
-      "Cases opened after November 1st with high priority",
-    ],
-  },
-  {
-    name: "generateKBArticle",
-    category: "Knowledge Management",
-    description: "Generate knowledge base articles from resolved cases",
-    usage: "Automatic when cases are resolved, or request explicitly",
-    examples: ["Create KB article for SCS0048475", "Generate documentation from this resolution"],
-  },
-  {
-    name: "proposeContextUpdate",
-    category: "Infrastructure Management",
-    description: "Propose CMDB updates when infrastructure information is missing or incorrect",
-    usage: "Automatic when gaps detected, or suggest updates",
-    examples: ["Bot detects missing server details and proposes CMDB update"],
-  },
-  {
-    name: "fetchCurrentIssues",
-    category: "Monitoring",
-    description: "Check current Microsoft service health and known outages",
-    usage: "Ask about current outages or service status",
-    examples: [
-      "Are there any Microsoft outages right now?",
-      "Check Azure service health",
-      "Current M365 issues",
-    ],
-  },
-  {
-    name: "microsoftLearnSearch",
-    category: "Documentation",
-    description: "Search official Microsoft Learn documentation for Azure, M365, PowerShell, etc.",
-    usage: "Get official Microsoft guidance on any topic",
-    examples: [
-      "How to request Azure quota in CSP?",
-      "Microsoft guidance on Exchange mailbox quotas",
-      "PowerShell commands for Entra ID user management",
-    ],
-  },
-  {
-    name: "triageCase",
-    category: "Case Management",
-    description: "AI-driven case classification with urgency assessment, similar cases, and KB article recommendations",
-    usage: "Triage command or automatic analysis",
-    examples: ["@Assistant triage SCS0048475", "Classify and analyze INC0012345"],
-  },
-  {
-    name: "caseAggregation",
-    category: "Analytics",
-    description: "Analyze multiple cases for patterns, trends, and stale case detection",
-    usage: "Ask for case analysis or trends",
-    examples: ["Show me stale cases for Altus", "Analyze open cases by priority"],
-  },
-  {
-    name: "getFirewallStatus",
-    category: "Infrastructure Monitoring",
-    description: "Query FortiManager for firewall status, policies, and configuration",
-    usage: "Ask about firewall status or policies",
-    examples: ["What's the status of firewall-prod-01?", "Check FortiManager policies"],
-  },
-  {
-    name: "queryVelocloud",
-    category: "Infrastructure Monitoring",
-    description: "Query VeloCloud SD-WAN for edge status, connectivity, and performance metrics",
-    usage: "Ask about VeloCloud edges or connectivity",
-    examples: ["VeloCloud status for Site-A", "Check VeloCloud edge connectivity"],
-  },
-  {
-    name: "collectFeatureFeedback",
-    category: "Feedback",
-    description: "Collect feature requests and feedback from users",
-    usage: "Suggest new features or improvements",
-    examples: [
-      "I wish the bot could do X",
-      "Feature request: track deployment schedules",
-    ],
-  },
-];
+const TOOL_CATEGORIES: Record<string, string> = {
+  describeCapabilities: "Help",
+  getWeather: "Utilities",
+  searchWeb: "Research",
+  serviceNow: "Case Management",
+  searchSimilarCases: "Case Management",
+  searchCases: "Case Management",
+  generateKBArticle: "Knowledge Management",
+  proposeContextUpdate: "Infrastructure Management",
+  fetchCurrentIssues: "Monitoring",
+  microsoftLearnSearch: "Documentation",
+  triageCase: "Case Management",
+  caseAggregation: "Analytics",
+  getFirewallStatus: "Infrastructure Monitoring",
+  queryVelocloud: "Infrastructure Monitoring",
+  collectFeatureFeedback: "Feedback",
+};
 
-export function createDescribeCapabilitiesTool(params: AgentToolFactoryParams) {
+/**
+ * Creates the describe capabilities tool with access to all registered tools
+ *
+ * @param params - Standard tool factory params
+ * @param getTools - Function that returns all registered tools for introspection
+ */
+export function createDescribeCapabilitiesTool(
+  params: AgentToolFactoryParams,
+  getTools?: () => Record<string, AnthropicToolDefinition>
+) {
   const { updateStatus } = params;
 
   return createTool({
@@ -180,23 +89,48 @@ export function createDescribeCapabilitiesTool(params: AgentToolFactoryParams) {
       // Filter by query if provided
       const matchesQuery = (text: string) => {
         if (!query) return true;
-        return text.toLowerCase().includes(query.toLowerCase());
+        return text.toLowerCase().indexOf(query.toLowerCase()) !== -1;
       };
 
-      // Include agent tools
+      // Introspect agent tools at runtime
       if (scope === "all" || scope === "tools") {
-        const toolsToInclude = AGENT_TOOL_METADATA.filter(
-          (tool) =>
-            matchesQuery(tool.name) ||
-            matchesQuery(tool.description) ||
-            matchesQuery(tool.category)
-        );
+        const tools = getTools ? getTools() : {};
+        const toolsArray = Object.entries(tools)
+          .filter(([name]) => name !== "describe_capabilities") // Don't include self
+          .map(([name, tool]) => ({
+            name,
+            category: TOOL_CATEGORIES[name] || "Other",
+            description: tool.description,
+            // Could also extract schema info if needed: tool.inputSchema
+          }))
+          .filter(
+            (tool) =>
+              matchesQuery(tool.name) ||
+              matchesQuery(tool.description) ||
+              matchesQuery(tool.category)
+          );
+
+        // Group tools by category
+        const toolsByCategory: Record<string, any[]> = {};
+        for (const tool of toolsArray) {
+          if (!toolsByCategory[tool.category]) {
+            toolsByCategory[tool.category] = [];
+          }
+          toolsByCategory[tool.category].push({
+            name: tool.name,
+            description: tool.description,
+          });
+        }
 
         result.agent_tools = {
           description:
-            "Tools the AI agent can use to retrieve information and perform actions",
-          count: toolsToInclude.length,
-          tools: toolsToInclude,
+            "Tools the AI agent can use to retrieve information and perform actions. These are dynamically discovered from registered tools.",
+          total_count: toolsArray.length,
+          categories: Object.entries(toolsByCategory).map(([cat, tools]) => ({
+            category: cat,
+            tool_count: tools.length,
+            tools,
+          })),
         };
       }
 
@@ -204,7 +138,7 @@ export function createDescribeCapabilitiesTool(params: AgentToolFactoryParams) {
       if (scope === "all" || scope === "features" || scope === "category") {
         if (scope === "category" && category) {
           // Get specific category
-          const categoryData = FEATURE_REGISTRY.find((c) => c.category === category);
+          const categoryData = FEATURE_REGISTRY.filter((c) => c.category === category)[0];
           if (categoryData) {
             const features = categoryData.features.filter(
               (f) => matchesQuery(f.name) || matchesQuery(f.description)
