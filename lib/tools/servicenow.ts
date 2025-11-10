@@ -1778,15 +1778,7 @@ export class ServiceNowClient {
     if (useNewPath) {
       // NEW PATH: Use repository pattern
       try {
-        // First, verify the record exists to avoid 404 errors
         const caseRepo = this.getCaseRepo();
-        const caseExists = await caseRepo.findBySysId(sysId);
-
-        if (!caseExists) {
-          console.warn(`[ServiceNow] NEW path: Case not found for sys_id ${sysId} - cannot add work note`);
-          throw new Error(`Case with sys_id ${sysId} not found in table`);
-        }
-
         await caseRepo.addWorkNote(sysId, workNote, workNotes);
 
         console.log(`[ServiceNow] NEW path: Successfully added work note`, {
