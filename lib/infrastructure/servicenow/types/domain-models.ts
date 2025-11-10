@@ -329,3 +329,141 @@ export interface CISearchCriteria {
   location?: string;
   limit?: number;
 }
+
+/**
+ * SPM (Service Portfolio Management) Project entity
+ * Represents a project from the pm_project table
+ */
+export interface SPMProject {
+  sysId: string;
+  number: string;
+  shortDescription: string;
+  description?: string;
+  state: string; // -5=Pending, -4=Open, -3=Work in Progress, 0=Closed Complete, 1=Closed Incomplete, 2=Closed Cancelled
+  priority?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedToSysId?: string;
+  assignmentGroup?: string;
+  assignmentGroupName?: string;
+  assignmentGroupSysId?: string;
+  parent?: string; // Parent project sys_id
+  parentNumber?: string;
+  openedAt?: Date;
+  closedAt?: Date;
+  dueDate?: Date;
+  startDate?: Date;
+  endDate?: Date;
+  percentComplete?: number;
+  cost?: number;
+  projectManager?: string;
+  projectManagerName?: string;
+  projectManagerSysId?: string;
+  sponsor?: string;
+  sponsorName?: string;
+  portfolio?: string;
+  portfolioName?: string;
+  lifecycleStage?: string;
+  active?: boolean;
+  url: string;
+}
+
+/**
+ * SPM Epic entity (child of project)
+ * Represents an epic from the pm_epic or rm_epic table
+ */
+export interface SPMEpic {
+  sysId: string;
+  number: string;
+  shortDescription: string;
+  description?: string;
+  state: string;
+  parent: string; // Project sys_id
+  parentNumber?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  priority?: string;
+  percentComplete?: number;
+  dueDate?: Date;
+  url: string;
+}
+
+/**
+ * SPM Story entity (child of epic)
+ * Represents a story from the rm_story table
+ */
+export interface SPMStory {
+  sysId: string;
+  number: string;
+  shortDescription: string;
+  description?: string;
+  state: string;
+  parent: string; // Epic sys_id
+  parentNumber?: string;
+  assignedTo?: string;
+  assignedToName?: string;
+  priority?: string;
+  storyPoints?: number;
+  sprintSysId?: string;
+  url: string;
+}
+
+/**
+ * Input for creating a new SPM project
+ */
+export interface CreateSPMProjectInput {
+  shortDescription: string;
+  description?: string;
+  assignedTo?: string; // User sys_id or user name
+  assignmentGroup?: string; // Group sys_id or group name
+  priority?: string;
+  parent?: string; // Parent project sys_id
+  dueDate?: string; // ISO date string
+  startDate?: string; // ISO date string
+  projectManager?: string; // User sys_id or user name
+  sponsor?: string; // User sys_id or user name
+  portfolio?: string; // Portfolio sys_id
+  lifecycleStage?: string;
+}
+
+/**
+ * Input for updating an SPM project
+ */
+export interface UpdateSPMProjectInput {
+  shortDescription?: string;
+  description?: string;
+  state?: string;
+  assignedTo?: string;
+  assignmentGroup?: string;
+  percentComplete?: number;
+  priority?: string;
+  dueDate?: string;
+  projectManager?: string;
+  sponsor?: string;
+  lifecycleStage?: string;
+}
+
+/**
+ * Criteria for searching SPM projects
+ */
+export interface SPMSearchCriteria {
+  number?: string;
+  shortDescription?: string;
+  query?: string; // Full-text search
+  state?: string;
+  priority?: string;
+  assignedTo?: string; // User name or sys_id
+  assignmentGroup?: string; // Group name or sys_id
+  projectManager?: string; // User name or sys_id
+  parent?: string; // Parent project sys_id
+  portfolio?: string; // Portfolio sys_id
+  lifecycleStage?: string;
+  activeOnly?: boolean;
+  openedAfter?: Date;
+  openedBefore?: Date;
+  dueBefore?: Date;
+  sortBy?: 'number' | 'opened_at' | 'due_date' | 'priority' | 'percent_complete';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
