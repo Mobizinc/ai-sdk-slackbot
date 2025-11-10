@@ -328,7 +328,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'searchKnowledge': Find KB articles (requires query)\n" +
       "- 'searchConfigurationItem': CMDB lookup - search for CIs by name, IP, class, company, location, environment, status, or owner group\n" +
       "- 'getCIRelationships': Get related CIs for a specific CI (requires ciSysId, optional relationshipType filter)\n" +
-      "- 'searchCases': Advanced filtering when you DON'T have an exact number (use filters: companyName, priority, state, assignmentGroup, etc.)\n\n" +
+      "- 'searchCases': DEPRECATED - Use the 'search_cases' tool instead for case filtering. This action is kept for backward compatibility only.\n\n" +
       "**Natural Language Query Examples for searchConfigurationItem:**\n" +
       "- 'server PROD-WEB-01' → ciName: 'PROD-WEB-01', ciClassName: 'cmdb_ci_server'\n" +
       "- 'CIs in Chicago' → ciLocation: 'Chicago'\n" +
@@ -342,7 +342,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'non-operational devices' → ciOperationalStatus: '2'\n\n" +
       "**When to Use Each:**\n" +
       "- Use getCase/getIncident ONLY when user provides a specific case number\n" +
-      "- Use searchCases when filtering by customer, status, or other criteria without a specific number\n\n" +
+      "- For case filtering by customer, status, or other criteria, use the 'search_cases' tool (NOT this tool's searchCases action)\n\n" +
       "**CRITICAL: Avoid Redundant Calls**\n" +
       "- INC prefix (e.g., INC0168060) → ALWAYS use 'getIncident' ONLY, never getCase\n" +
       "- SCS/CS prefix (e.g., SCS1234567) → ALWAYS use 'getCase' ONLY, never getIncident\n" +
