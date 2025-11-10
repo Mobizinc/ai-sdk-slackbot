@@ -25,6 +25,7 @@ import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
 import { createVeloCloudTool } from "./velocloud";
 import { createFeedbackCollectionTool } from "./feedback-collection";
+import { createDescribeCapabilitiesTool } from "./describe-capabilities";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -42,6 +43,7 @@ export type { CaseSearchInput } from "./case-search";
 export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
 export type { FeedbackCollectionInput } from "./feedback-collection";
+export type { DescribeCapabilitiesInput } from "./describe-capabilities";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -57,6 +59,7 @@ export type { AgentToolFactoryParams } from "./shared";
  */
 export function createAgentTools(params: AgentToolFactoryParams) {
   return {
+    describeCapabilities: createDescribeCapabilitiesTool(params), // NEW: Dynamic help system
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
     serviceNow: createServiceNowTool(params),
