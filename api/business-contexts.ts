@@ -13,15 +13,29 @@ function getQueryParam(url: string, param: string): string | null {
   return urlObj.searchParams.get(param);
 }
 
+const ALLOWED_ORIGINS = [
+  "https://admin.mobiz.solutions",
+  "https://dev.admin.mobiz.solutions",
+];
+
+function getAllowedOrigin(request: Request): string {
+  const origin = request.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return origin;
+  }
+  return ALLOWED_ORIGINS[0]; // Default to production
+}
+
 // Helper to create JSON response
-function jsonResponse(data: any, status: number = 200) {
+function jsonResponse(request: Request, data: any, status: number = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': getAllowedOrigin(request),
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Credentials': 'true',
     },
   });
 }
@@ -35,14 +49,14 @@ function checkAuth(request: Request) {
   if (!isDevelopment) {
     // In production, require admin token
     if (!adminToken) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
       }, 503);
     }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "Unauthorized. Provide Bearer token in Authorization header.",
       }, 401);
@@ -50,7 +64,7 @@ function checkAuth(request: Request) {
 
     const token = authHeader.substring(7);
     if (token !== adminToken) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "Forbidden. Invalid admin token.",
       }, 403);
@@ -74,7 +88,7 @@ export async function GET(request: Request) {
     if (!id) {
       // List all contexts
       const contexts = await repository.getAllActive();
-      return jsonResponse({
+      return jsonResponse(request, {
         success: true,
         data: contexts,
         count: contexts.length,
@@ -84,20 +98,20 @@ export async function GET(request: Request) {
       const context = await repository.findById(parseInt(id));
 
       if (!context) {
-        return jsonResponse({
+        return jsonResponse(request, {
           success: false,
           error: "Business context not found",
         }, 404);
       }
 
-      return jsonResponse({
+      return jsonResponse(request, {
         success: true,
         data: context,
       });
     }
   } catch (error) {
     console.error("[Business Contexts API] GET Error:", error);
-    return jsonResponse({
+    return jsonResponse(request, {
       success: false,
       error: error instanceof Error ? error.message : "Internal server error",
     }, 500);
@@ -117,7 +131,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!data.entityName || !data.entityType) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "entityName and entityType are required",
       }, 400);
@@ -126,7 +140,7 @@ export async function POST(request: Request) {
     // Check if entity already exists
     const existing = await repository.findByName(data.entityName);
     if (existing) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: `Entity "${data.entityName}" already exists. Use PUT to update.`,
       }, 409);
@@ -134,14 +148,14 @@ export async function POST(request: Request) {
 
     const created = await repository.create(data);
 
-    return jsonResponse({
+    return jsonResponse(request, {
       success: true,
       data: created,
       message: `Created ${data.entityName}`,
     }, 201);
   } catch (error) {
     console.error("[Business Contexts API] POST Error:", error);
-    return jsonResponse({
+    return jsonResponse(request, {
       success: false,
       error: error instanceof Error ? error.message : "Internal server error",
     }, 500);
@@ -159,7 +173,7 @@ export async function PUT(request: Request) {
   try {
     const id = getQueryParam(request.url, 'id');
     if (!id) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "id query parameter is required",
       }, 400);
@@ -169,7 +183,7 @@ export async function PUT(request: Request) {
 
     const existing = await repository.findById(parseInt(id));
     if (!existing) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "Business context not found",
       }, 404);
@@ -177,14 +191,14 @@ export async function PUT(request: Request) {
 
     const updated = await repository.update(parseInt(id), updates);
 
-    return jsonResponse({
+    return jsonResponse(request, {
       success: true,
       data: updated,
       message: `Updated ${existing.entityName}`,
     });
   } catch (error) {
     console.error("[Business Contexts API] PUT Error:", error);
-    return jsonResponse({
+    return jsonResponse(request, {
       success: false,
       error: error instanceof Error ? error.message : "Internal server error",
     }, 500);
@@ -193,7 +207,7 @@ export async function PUT(request: Request) {
 
 // OPTIONS handler - CORS preflight
 export async function OPTIONS(request: Request) {
-  return jsonResponse({ ok: true });
+  return jsonResponse(request, { ok: true });
 }
 
 // DELETE handler - Delete context
@@ -207,7 +221,7 @@ export async function DELETE(request: Request) {
   try {
     const id = getQueryParam(request.url, 'id');
     if (!id) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "id query parameter is required",
       }, 400);
@@ -215,7 +229,7 @@ export async function DELETE(request: Request) {
 
     const existing = await repository.findById(parseInt(id));
     if (!existing) {
-      return jsonResponse({
+      return jsonResponse(request, {
         success: false,
         error: "Business context not found",
       }, 404);
@@ -223,13 +237,13 @@ export async function DELETE(request: Request) {
 
     await repository.delete(parseInt(id));
 
-    return jsonResponse({
+    return jsonResponse(request, {
       success: true,
       message: `Deleted ${existing.entityName}`,
     });
   } catch (error) {
     console.error("[Business Contexts API] DELETE Error:", error);
-    return jsonResponse({
+    return jsonResponse(request, {
       success: false,
       error: error instanceof Error ? error.message : "Internal server error",
     }, 500);

@@ -7,7 +7,7 @@ import {
   extractCaseNumbers,
   hasCaseNumbers,
   extractCaseNumbersWithPositions,
-} from "../lib/passive/detectors/case-number-extractor";
+} from "../lib/utils/case-number-extractor";
 
 describe("Case Number Extractor", () => {
   describe("extractCaseNumbers", () => {

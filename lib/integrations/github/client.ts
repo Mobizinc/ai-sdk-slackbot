@@ -33,8 +33,23 @@ function getGitHubConfig() {
   const privateKey = getStringConfigValue("githubAppPrivateKey");
   const apiBaseUrl = getStringConfigValue("githubApiBaseUrl") ?? "https://api.github.com";
 
+  // Log which values are present (without exposing sensitive data)
+  console.info("[GitHub Client] Configuration check:", {
+    appId: appId ? "✓ present" : "✗ missing",
+    installationId: installationIdRaw ? "✓ present" : "✗ missing",
+    privateKey: privateKey ? `✓ present (${privateKey.length} chars)` : "✗ missing",
+    apiBaseUrl,
+  });
+
   if (!appId || !installationIdRaw || !privateKey) {
-    throw new Error("GitHub App configuration is incomplete. Ensure app id, installation id, and private key are set.");
+    const missing = [];
+    if (!appId) missing.push("GITHUB_APP_ID");
+    if (!installationIdRaw) missing.push("GITHUB_INSTALLATION_ID");
+    if (!privateKey) missing.push("GITHUB_APP_PRIVATE_KEY");
+
+    throw new Error(
+      `GitHub App configuration is incomplete. Missing environment variables: ${missing.join(", ")}`
+    );
   }
 
   const installationId = Number.parseInt(installationIdRaw, 10);
@@ -87,6 +102,8 @@ async function fetchInstallationToken(params: {
   privateKey: string;
   apiBaseUrl: string;
 }): Promise<{ token: string; expiresAt: number }> {
+  console.info(`[GitHub Client] Fetching installation token for app ${params.appId}, installation ${params.installationId}`);
+
   const jwt = createJwt(params);
   const url = `${params.apiBaseUrl.replace(/\/$/, "")}/app/installations/${params.installationId}/access_tokens`;
 
@@ -101,6 +118,7 @@ async function fetchInstallationToken(params: {
 
   if (!response.ok) {
     const bodyText = await response.text().catch(() => "");
+    console.error(`[GitHub Client] ❌ Failed to fetch installation token (HTTP ${response.status})`, bodyText);
     throw new Error(
       `Failed to fetch GitHub installation token (status ${response.status}): ${
         bodyText || response.statusText
@@ -115,6 +133,7 @@ async function fetchInstallationToken(params: {
   }
 
   const expiresAt = new Date(body.expires_at).getTime() - TOKEN_REFRESH_BUFFER_MS;
+  console.info(`[GitHub Client] ✅ Successfully fetched installation token (expires: ${body.expires_at})`);
   return { token: body.token, expiresAt };
 }
 

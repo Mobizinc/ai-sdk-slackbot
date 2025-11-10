@@ -255,7 +255,7 @@ describe("TriageStorage", () => {
     it("should save all entity types correctly", async () => {
       const count = await storage.saveEntities("SCS0012345", "abc123", mockClassificationWithEntities);
 
-      expect(count).toBe(8); // 2 IPs + 2 systems + 1 user + 2 software + 1 error + 1 network device
+      expect(count).toBe(9); // 2 IPs + 2 systems + 1 user + 2 software + 1 error + 1 network device
       expect(mockRepository.saveDiscoveredEntities).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
@@ -378,7 +378,7 @@ describe("TriageStorage", () => {
       await storage.saveEntities("SCS0012345", "abc123", mockClassificationWithEntities);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        "[Case Triage Storage] Stored 8 entities for SCS0012345:",
+        "[Case Triage Storage] Stored 9 entities for SCS0012345:",
         expect.objectContaining({
           IP_ADDRESS: 2,
           SYSTEM: 2,

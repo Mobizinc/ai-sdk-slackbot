@@ -55,6 +55,29 @@ function authorize(request: Request): Response | null {
   return null;
 }
 
+const ALLOWED_ORIGINS = [
+  "https://admin.mobiz.solutions",
+  "https://dev.admin.mobiz.solutions",
+];
+
+function getAllowedOrigin(request: Request): string {
+  const origin = request.headers.get("origin");
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    return origin;
+  }
+  return ALLOWED_ORIGINS[0]; // Default to production
+}
+
+function getCorsHeaders(request: Request): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Access-Control-Allow-Origin": getAllowedOrigin(request),
+    "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
 function buildConfigResponse(config: Record<ConfigKey, unknown>): ConfigResponse {
   const metadata: Partial<Record<ConfigKey, ConfigDefinition>> = {};
   const settings: Partial<Record<ConfigKey, unknown>> = {};
@@ -89,13 +112,7 @@ export async function GET(request: Request): Promise<Response> {
     const config = await getConfig();
     return new Response(JSON.stringify(buildConfigResponse(config)), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: getCorsHeaders(request),
     });
   } catch (error) {
     console.error("[Admin Config] Failed to load configuration:", error);
@@ -103,14 +120,10 @@ export async function GET(request: Request): Promise<Response> {
   }
 }
 
-export async function OPTIONS(): Promise<Response> {
+export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    },
+    headers: getCorsHeaders(request),
   });
 }
 
@@ -175,12 +188,7 @@ export async function PATCH(request: Request): Promise<Response> {
 
     return new Response(JSON.stringify(buildConfigResponse(config)), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: getCorsHeaders(request),
     });
   } catch (error) {
     console.error("[Admin Config] Failed to persist configuration:", error);

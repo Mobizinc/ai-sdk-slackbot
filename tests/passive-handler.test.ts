@@ -11,8 +11,8 @@ import {
 import type { GenericMessageEvent } from "../lib/slack-event-types";
 
 // Mock all dependencies
-vi.mock("../lib/passive/detectors/case-number-extractor");
-vi.mock("../lib/passive/detectors/resolution-detector");
+vi.mock("../lib/utils/case-number-extractor");
+vi.mock("../lib/utils/resolution-detector");
 vi.mock("../lib/passive/actions/add-to-context");
 vi.mock("../lib/passive/actions/post-assistance");
 vi.mock("../lib/passive/actions/trigger-kb-workflow");

@@ -7,7 +7,7 @@
  * This is a pure function with no side effects, making it easy to test.
  */
 
-import { normalizeCaseId } from "../../utils/case-number-normalizer";
+import { normalizeCaseId } from "./case-number-normalizer";
 
 /**
  * Supported case number patterns

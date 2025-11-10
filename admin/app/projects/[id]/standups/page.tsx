@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Calendar, Users, Play, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Users, Play, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, Settings } from "lucide-react";
 import { apiClient, type Standup, type StandupConfig, type StandupResponse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { StandupConfigDialog } from "@/components/standup-config-dialog";
 
 export default function StandupsPage() {
   const params = useParams();
@@ -13,17 +14,23 @@ export default function StandupsPage() {
 
   const [standups, setStandups] = useState<Standup[]>([]);
   const [config, setConfig] = useState<StandupConfig | null>(null);
+  const [projectChannelId, setProjectChannelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [expandedStandup, setExpandedStandup] = useState<string | null>(null);
   const [standupResponses, setStandupResponses] = useState<Record<string, StandupResponse[]>>({});
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
 
   const loadStandups = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getProjectStandups(projectId);
-      setStandups(data.standups);
-      setConfig(data.config);
+      const [standupData, projectData] = await Promise.all([
+        apiClient.getProjectStandups(projectId),
+        apiClient.getProject(projectId),
+      ]);
+      setStandups(standupData.standups);
+      setConfig(standupData.config);
+      setProjectChannelId(projectData.channelId);
     } catch (error) {
       console.error("Failed to load standups:", error);
       toast.error("Failed to load standups");
@@ -106,38 +113,82 @@ export default function StandupsPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Standup Configuration</h2>
-          <Button onClick={handleTriggerStandup} disabled={triggering} className="gap-2">
-            <Play className="w-4 h-4" />
-            {triggering ? "Triggering..." : "Trigger Standup Now"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfigDialogOpen(true)}
+              className="gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Configure
+            </Button>
+            <Button onClick={handleTriggerStandup} disabled={triggering || !config?.enabled} className="gap-2">
+              <Play className="w-4 h-4" />
+              {triggering ? "Triggering..." : "Trigger Standup Now"}
+            </Button>
+          </div>
         </div>
 
         {config ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <span className="text-sm font-medium text-gray-500">Cadence</span>
-              <p className="text-gray-900 mt-1">{config.cadence || "Not configured"}</p>
-            </div>
-            <div>
-              <span className="text-sm font-medium text-gray-500">Time</span>
-              <p className="text-gray-900 mt-1">{config.time || "Not configured"}</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <span className="text-sm font-medium text-gray-500">Status</span>
+                <p className="text-gray-900 mt-1">
+                  {config.enabled ? (
+                    <span className="text-green-600">Enabled</span>
+                  ) : (
+                    <span className="text-gray-400">Disabled</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-500">Frequency</span>
+                <p className="text-gray-900 mt-1">
+                  {config.schedule?.frequency || config.cadence || "Not configured"}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-500">Time (UTC)</span>
+                <p className="text-gray-900 mt-1">
+                  {config.schedule?.timeUtc || config.time || "Not configured"}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-500">Participants</span>
+                <p className="text-gray-900 mt-1">{config.participants?.length || 0}</p>
+              </div>
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500">Channel</span>
-              <p className="text-gray-900 mt-1 font-mono text-sm">{config.channelId || "Not configured"}</p>
-            </div>
-            <div>
-              <span className="text-sm font-medium text-gray-500">Participants</span>
-              <p className="text-gray-900 mt-1">{config.participants?.length || 0}</p>
+              <p className="text-gray-900 mt-1 font-mono text-sm">
+                {config.channelId || projectChannelId || "Not configured"}
+                {config.channelId && config.channelId !== projectChannelId && (
+                  <span className="text-xs text-gray-500 ml-2">(override)</span>
+                )}
+              </p>
             </div>
           </div>
         ) : (
           <div className="text-center py-4">
             <p className="text-gray-500 mb-3">No standup configuration found</p>
-            <Button variant="outline">Configure Standups</Button>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(true)}>
+              <Settings className="w-4 h-4 mr-2" />
+              Configure Standups
+            </Button>
           </div>
         )}
       </div>
+
+      {/* Config Dialog */}
+      <StandupConfigDialog
+        projectId={projectId}
+        currentConfig={config}
+        projectChannelId={projectChannelId}
+        open={configDialogOpen}
+        onOpenChange={setConfigDialogOpen}
+        onSuccess={loadStandups}
+      />
 
       {/* Upcoming Standups */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -231,6 +282,24 @@ export default function StandupsPage() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-200 p-4 bg-gray-50">
+                    {/* Error Display for Failed Standups */}
+                    {standup.status === "failed" && standup.metadata?.error && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-red-900 mb-1">Standup Failed</h4>
+                            <p className="text-sm text-red-700">{String(standup.metadata.error)}</p>
+                            {standup.metadata.channelId && (
+                              <p className="text-xs text-red-600 mt-1 font-mono">
+                                Channel: {String(standup.metadata.channelId)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {responses.length > 0 ? (
                       <div className="space-y-3">
                         <h4 className="text-sm font-medium text-gray-900 mb-2">Participant Responses</h4>
