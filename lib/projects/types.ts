@@ -229,8 +229,8 @@ export interface ProjectInterest {
   projectId: string;
   candidateSlackId: string;
   status: ProjectInterestStatus | string;
-  interviewId?: string; // FK to projectInterviews
+  interviewId: string | null; // FK to projectInterviews
   createdAt: Date;
   updatedAt: Date;
-  abandonedAt?: Date; // when interview was abandoned
+  abandonedAt: Date | null; // when interview was abandoned
 }
