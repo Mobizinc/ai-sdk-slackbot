@@ -98,11 +98,12 @@ export const SPM_TABLES = {
  * Helper function to check if a project is active (not closed)
  */
 export function isSPMProjectActive(state: string): boolean {
-  return ![
+  const closedStates = [
     SPM_PROJECT_STATES.CLOSED_COMPLETE,
     SPM_PROJECT_STATES.CLOSED_INCOMPLETE,
     SPM_PROJECT_STATES.CLOSED_CANCELLED,
-  ].includes(state as SPMProjectState);
+  ] as const;
+  return !closedStates.includes(state as any);
 }
 
 /**
