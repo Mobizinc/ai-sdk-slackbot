@@ -5,7 +5,7 @@
  * search functionality with friendly filter names for agent tooling.
  */
 
-import { getCaseRepository } from "../infrastructure/servicenow/repositories/factory";
+import { getCaseRepository, getCustomerAccountRepository } from "../infrastructure/servicenow/repositories/factory";
 import type { Case, CaseSearchCriteria } from "../infrastructure/servicenow/types/domain-models";
 
 export interface CaseSearchFilters {
@@ -54,6 +54,7 @@ function parseDate(value?: string): Date | undefined {
 
 export class CaseSearchService {
   private readonly caseRepository = getCaseRepository();
+  private readonly customerAccountRepository = getCustomerAccountRepository();
 
   /**
    * Search cases with metadata (preferred for new code)
@@ -84,7 +85,14 @@ export class CaseSearchService {
     };
 
     try {
-      const { cases, totalCount } = await this.caseRepository.search(criteria);
+      const searchResult: any = await this.caseRepository.search(criteria);
+      const cases: Case[] = Array.isArray(searchResult)
+        ? searchResult
+        : searchResult?.cases ?? [];
+      const totalCount: number =
+        typeof searchResult?.totalCount === "number"
+          ? searchResult.totalCount
+          : offset + cases.length;
 
       // Calculate metadata
       const totalFound = totalCount; // Use real total from ServiceNow, not offset + length
@@ -171,6 +179,30 @@ export class CaseSearchService {
     }
 
     return parts.length > 0 ? parts.join(" | ") : "No filters applied";
+  }
+
+  /**
+   * Suggest customer account names similar to the provided input
+   */
+  async suggestCustomerNames(partialName: string, limit: number = 5): Promise<string[]> {
+    if (!partialName || !partialName.trim()) {
+      return [];
+    }
+
+    try {
+      const matches = await this.customerAccountRepository.searchByName(partialName, { limit });
+      const unique = Array.from(
+        new Set(
+          matches
+            .map((account) => account.name?.trim())
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+      return unique.slice(0, limit);
+    } catch (error) {
+      console.warn(`[CaseSearchService] Failed to suggest customers for "${partialName}":`, error);
+      return [];
+    }
   }
 }
 

@@ -6,10 +6,13 @@
  */
 
 import type { CoreMessage } from "./types";
-import { getContextManager } from "../context-manager";
-import { getBusinessContextService } from "../services/business-context-service";
+import { getContextManager, type CaseContext } from "../context-manager";
+import { getBusinessContextService, type BusinessEntityContext } from "../services/business-context-service";
 import { getSearchFacadeService } from "../services/search-facade";
 import { getSlackMessagingService } from "../services/slack-messaging";
+import type { SimilarCase } from "../services/azure-search";
+import { getConfigValue } from "../config";
+import { generateDiscoveryContextPack } from "./discovery/context-pack";
 
 export interface ContextLoaderInput {
   messages: CoreMessage[];
@@ -118,6 +121,25 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
       if (similarCases.length > 0) {
         metadata.similarCases = similarCases;
       }
+    }
+  }
+
+  if (getConfigValue("discoveryContextPackEnabled")) {
+    try {
+      const discoveryPack = await generateDiscoveryContextPack({
+        channelId: input.channelId,
+        threadTs: input.threadTs,
+        caseNumbers,
+        companyName: typeof metadata.companyName === "string" ? metadata.companyName : undefined,
+        messages: input.messages,
+        businessContext: (metadata.businessContext ?? null) as BusinessEntityContext | null,
+        caseContext: metadata.caseContext as CaseContext | undefined,
+        similarCases: metadata.similarCases as SimilarCase[] | undefined,
+        threadHistory: metadata.threadHistory as CoreMessage[] | undefined,
+      });
+      metadata.discovery = discoveryPack;
+    } catch (error) {
+      console.warn("[Context Loader] Failed to generate discovery context pack:", error);
     }
   }
 

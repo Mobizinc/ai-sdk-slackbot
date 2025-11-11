@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import { caseSearchService, type CaseSearchFilters } from "../../services/case-search-service";
-import { buildSearchResultsMessage } from "../../services/case-search-ui-builder";
+import { buildFilterPromptMessage, buildSearchResultsMessage } from "../../services/case-search-ui-builder";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 
 /**
@@ -121,7 +121,16 @@ Returns paginated results with Slack-formatted display. Supports sorting and fil
         );
 
         // Build Slack display
-        const display = buildSearchResultsMessage(result);
+        let display = buildSearchResultsMessage(result);
+
+        if (result.totalFound === 0 && filters.accountName) {
+          const customerSuggestions = await caseSearchService.suggestCustomerNames(filters.accountName, 5);
+          if (customerSuggestions.length > 0) {
+            display = buildFilterPromptMessage(filters.accountName, {
+              customers: customerSuggestions,
+            });
+          }
+        }
 
         return {
           success: true,

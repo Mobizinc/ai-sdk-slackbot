@@ -66,6 +66,27 @@ export const CONFIG_DEFINITIONS = {
     group: "assistant",
     description: "Maximum number of tool execution iterations allowed in agent runner.",
   },
+  discoveryContextPackEnabled: {
+    envVar: "DISCOVERY_CONTEXT_PACK_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "discovery",
+    description: "Enable deterministic discovery context pack generation.",
+  },
+  discoverySlackMessageLimit: {
+    envVar: "DISCOVERY_SLACK_MESSAGE_LIMIT",
+    type: "number",
+    default: 5,
+    group: "discovery",
+    description: "Number of recent Slack messages to include in discovery context packs.",
+  },
+  discoverySimilarCasesTopK: {
+    envVar: "DISCOVERY_SIMILAR_CASES_TOP_K",
+    type: "number",
+    default: 3,
+    group: "discovery",
+    description: "Number of similar cases to fetch for discovery context packs.",
+  },
   kbSimilarCasesTopK: {
     envVar: "KB_SIMILAR_CASES_TOP_K",
     type: "number",

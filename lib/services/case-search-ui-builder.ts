@@ -76,8 +76,11 @@ export function buildSearchResultsMessage(result: CaseSearchResult): {
 
   blocks.push(createDivider());
 
-  // Case list (compact format)
-  for (const caseItem of result.cases) {
+  // Case list (compact format) - limit to stay within block count
+  const maxCases = 45; // Leave room for header, dividers, and action blocks
+  const casesToShow = result.cases.slice(0, maxCases);
+  
+  for (const caseItem of casesToShow) {
     const caseBlock = buildCompactCaseBlock(caseItem);
     blocks.push(caseBlock);
   }
@@ -373,8 +376,8 @@ export function buildFilterPromptMessage(
   blocks.push(
     createHeaderBlock(`${MessageEmojis.QUESTION} Need More Details`),
     createSectionBlock(
-      `I found your query: "${sanitizeMrkdwn(originalQuery)}"\n\n` +
-      `To help you better, which filter would you like to apply?`
+      `I couldn't find active cases matching "${sanitizeMrkdwn(originalQuery)}".\n\n` +
+      `Try one of these filters to refine the search:`
     )
   );
 

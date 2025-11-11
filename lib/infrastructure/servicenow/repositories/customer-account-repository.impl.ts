@@ -3,6 +3,7 @@ import type { CustomerAccountRepository } from "./customer-account-repository.in
 import type { CustomerAccount } from "../types/domain-models";
 import type { CustomerAccountRecord } from "../types/api-responses";
 import { mapCustomerAccount } from "../client/mappers";
+import { buildFlexibleLikeQuery } from "./query-builders";
 
 export class ServiceNowCustomerAccountRepository implements CustomerAccountRepository {
   constructor(
@@ -41,5 +42,26 @@ export class ServiceNowCustomerAccountRepository implements CustomerAccountRepos
     }
 
     return mapCustomerAccount(record, this.httpClient.getInstanceUrl());
+  }
+
+  async searchByName(name: string, options?: { limit?: number }): Promise<CustomerAccount[]> {
+    const clause = buildFlexibleLikeQuery("name", name);
+    if (!clause) {
+      return [];
+    }
+
+    const response = await this.httpClient.get<CustomerAccountRecord>(
+      "/api/now/table/customer_account",
+      {
+        sysparm_query: clause,
+        sysparm_limit: Math.min(Math.max(options?.limit ?? 10, 1), 25),
+        sysparm_display_value: "all",
+      },
+    );
+
+    const records = Array.isArray(response.result) ? response.result : [response.result];
+    return records
+      .filter((record): record is CustomerAccountRecord => Boolean(record))
+      .map((record) => mapCustomerAccount(record, this.httpClient.getInstanceUrl()));
   }
 }

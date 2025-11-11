@@ -136,6 +136,8 @@ describe("handler utils", () => {
         "please review",
         "can you check",
         "take a look at",
+        "can you look",
+        "can you take a look",
         "could you review",
         "please handle",
         "assigning",

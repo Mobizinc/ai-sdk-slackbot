@@ -372,41 +372,59 @@ export class ServiceNowSPMRepository implements SPMRepository {
    * Find related epics for a project
    */
   async findRelatedEpics(projectSysId: string): Promise<SPMEpic[]> {
-    const response = await this.httpClient.get<any>(
-      `/api/now/table/${this.epicTable}`,
-      {
-        sysparm_query: `parent=${projectSysId}^ORDERBYnumber`,
-        sysparm_display_value: "all",
-      },
-    );
+    try {
+      const response = await this.httpClient.get<any>(
+        `/api/now/table/${this.epicTable}`,
+        {
+          sysparm_query: `parent=${projectSysId}^ORDERBYnumber`,
+          sysparm_display_value: "all",
+        },
+      );
 
-    const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
-    return records.map((record) => this.mapEpic(record));
+      const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
+      return records.map((record) => this.mapEpic(record));
+    } catch (error: any) {
+      // Gracefully handle missing table (e.g., pm_epic not installed in this instance)
+      if (error.message?.includes(`Invalid table ${this.epicTable}`)) {
+        console.log(`[ServiceNow SPM] ${this.epicTable} table not available in this instance`);
+        return [];
+      }
+      throw error;
+    }
   }
 
   /**
    * Find related stories for a project (via epics)
    */
   async findRelatedStories(projectSysId: string): Promise<SPMStory[]> {
-    // First get all epics for the project
-    const epics = await this.findRelatedEpics(projectSysId);
-    if (epics.length === 0) {
-      return [];
+    try {
+      // First get all epics for the project
+      const epics = await this.findRelatedEpics(projectSysId);
+      if (epics.length === 0) {
+        return [];
+      }
+
+      const epicSysIds = epics.map(epic => epic.sysId);
+      const query = `parentIN${epicSysIds.join(',')}^ORDERBYnumber`;
+
+      const response = await this.httpClient.get<any>(
+        `/api/now/table/${this.storyTable}`,
+        {
+          sysparm_query: query,
+          sysparm_display_value: "all",
+        },
+      );
+
+      const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
+      return records.map((record) => this.mapStory(record));
+    } catch (error: any) {
+      // Gracefully handle missing table (e.g., rm_story not installed in this instance)
+      if (error.message?.includes(`Invalid table ${this.storyTable}`)) {
+        console.log(`[ServiceNow SPM] ${this.storyTable} table not available in this instance`);
+        return [];
+      }
+      throw error;
     }
-
-    const epicSysIds = epics.map(epic => epic.sysId);
-    const query = `parentIN${epicSysIds.join(',')}^ORDERBYnumber`;
-
-    const response = await this.httpClient.get<any>(
-      `/api/now/table/${this.storyTable}`,
-      {
-        sysparm_query: query,
-        sysparm_display_value: "all",
-      },
-    );
-
-    const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
-    return records.map((record) => this.mapStory(record));
   }
 
   /**
