@@ -49,11 +49,22 @@ export type ServiceNowToolInput = {
     | "searchKnowledge"
     | "searchConfigurationItem"
     | "getCIRelationships"
-    | "searchCases";
+    | "searchCases"
+    | "searchProjects"
+    | "getProject"
+    | "getProjectEpics"
+    | "getProjectStories";
   number?: string;
   caseSysId?: string;
   query?: string;
   limit?: number;
+  projectNumber?: string;
+  projectSysId?: string;
+  projectName?: string;
+  projectState?: string;
+  projectPriority?: string;
+  projectManager?: string;
+  projectActiveOnly?: boolean;
   ciName?: string;
   ipAddress?: string;
   ciSysId?: string;
@@ -91,6 +102,10 @@ const serviceNowInputSchema = z
       "searchConfigurationItem",
       "getCIRelationships",
       "searchCases",
+      "searchProjects",
+      "getProject",
+      "getProjectEpics",
+      "getProjectStories",
     ]),
     number: z
       .string()
@@ -214,6 +229,34 @@ const serviceNowInputSchema = z
       .array(z.string())
       .optional()
       .describe("Filter attachments by MIME type (e.g., ['image/png', 'image/jpeg']). Defaults to all image types if not specified."),
+    projectNumber: z
+      .string()
+      .optional()
+      .describe("REQUIRED for getProject action. Project number to look up (e.g., PRJ0100115). Used for retrieving specific project details."),
+    projectSysId: z
+      .string()
+      .optional()
+      .describe("REQUIRED for getProjectEpics and getProjectStories actions. Project sys_id to find related epics or stories."),
+    projectName: z
+      .string()
+      .optional()
+      .describe("Fuzzy search by project name/description for searchProjects action. Supports partial matching (e.g., 'Migration' will match 'Azure Migration Project')."),
+    projectState: z
+      .string()
+      .optional()
+      .describe("Filter projects by state for searchProjects action. Values: 'Pending' (-5), 'Open' (-4), 'Work in Progress' (-3), 'On Hold' (-2), 'Closed Complete' (0), 'Closed Incomplete' (1), 'Closed Cancelled' (2)."),
+    projectPriority: z
+      .string()
+      .optional()
+      .describe("Filter projects by priority for searchProjects action. Values: '1' (Critical), '2' (High), '3' (Moderate), '4' (Low), '5' (Planning)."),
+    projectManager: z
+      .string()
+      .optional()
+      .describe("Filter projects by project manager name (partial match) for searchProjects action."),
+    projectActiveOnly: z
+      .boolean()
+      .optional()
+      .describe("Only return active (non-closed) projects for searchProjects action. Default: false (returns all projects)."),
   })
   .describe("ServiceNow action parameters");
 
@@ -314,7 +357,7 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "servicenow_action",
     description:
-      "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, and configuration items (CMDB).\n\n" +
+      "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, configuration items (CMDB), and SPM projects.\n\n" +
       "**IMPORTANT: Parameter Extraction Rules**\n" +
       "- For 'getIncident' or 'getCase' actions, the 'number' parameter is REQUIRED and MUST be extracted from the user's message\n" +
       "- Case numbers appear in formats like: INC0012345, SCS1234567, CS0098765, or just numeric portions like '49764'\n" +
@@ -328,7 +371,11 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       "- 'searchKnowledge': Find KB articles (requires query)\n" +
       "- 'searchConfigurationItem': CMDB lookup - search for CIs by name, IP, class, company, location, environment, status, or owner group\n" +
       "- 'getCIRelationships': Get related CIs for a specific CI (requires ciSysId, optional relationshipType filter)\n" +
-      "- 'searchCases': DEPRECATED - Use the 'search_cases' tool instead for case filtering. This action is kept for backward compatibility only.\n\n" +
+      "- 'searchCases': DEPRECATED - Use the 'search_cases' tool instead for case filtering. This action is kept for backward compatibility only.\n" +
+      "- 'searchProjects': Search SPM projects with flexible filters (projectName, projectState, projectPriority, projectManager, projectActiveOnly)\n" +
+      "- 'getProject': Get specific project details BY NUMBER (projectNumber parameter REQUIRED, e.g., PRJ0100115)\n" +
+      "- 'getProjectEpics': Get epics related to a project (projectSysId REQUIRED)\n" +
+      "- 'getProjectStories': Get stories related to a project (projectSysId REQUIRED)\n\n" +
       "**Natural Language Query Examples for searchConfigurationItem:**\n" +
       "- 'server PROD-WEB-01' → ciName: 'PROD-WEB-01', ciClassName: 'cmdb_ci_server'\n" +
       "- 'CIs in Chicago' → ciLocation: 'Chicago'\n" +
@@ -382,6 +429,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       includeAttachments,
       maxAttachments,
       attachmentTypes,
+      projectNumber,
+      projectSysId,
+      projectName,
+      projectState,
+      projectPriority,
+      projectManager,
+      projectActiveOnly,
     }: ServiceNowToolInput) => {
       if (!serviceNowClient.isConfigured()) {
         return {
@@ -399,6 +453,9 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
       if (ipAddress) logParams.ipAddress = ipAddress;
       if (companyName) logParams.companyName = companyName;
       if (includeAttachments) logParams.includeAttachments = includeAttachments;
+      if (projectNumber) logParams.projectNumber = projectNumber;
+      if (projectSysId) logParams.projectSysId = projectSysId;
+      if (projectName) logParams.projectName = projectName;
 
       console.log(`[ServiceNow Tool] Invoking action with parameters:`, logParams);
 
@@ -754,6 +811,100 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             results: results,
             total: results.length,
             filters: appliedFilters,
+          };
+        }
+
+        if (action === "searchProjects") {
+          updateStatus?.(`is searching SPM projects${projectName ? ` for "${projectName}"` : ""}...`);
+
+          const criteria: any = {
+            limit: limit ?? 25,
+            sortBy: 'opened_at',
+            sortOrder: 'desc',
+          };
+
+          if (projectName) {
+            criteria.query = projectName;
+          }
+          if (projectState) {
+            criteria.state = projectState;
+          }
+          if (projectPriority) {
+            criteria.priority = projectPriority;
+          }
+          if (projectManager) {
+            criteria.projectManager = projectManager;
+          }
+          if (projectActiveOnly !== undefined) {
+            criteria.activeOnly = projectActiveOnly;
+          }
+
+          const searchResults = await serviceNowClient.searchSPMProjects(criteria, snContext);
+
+          return {
+            projects: searchResults.projects,
+            totalCount: searchResults.totalCount,
+            filters: criteria,
+            message: `Found ${searchResults.totalCount} project(s) matching criteria`,
+          };
+        }
+
+        if (action === "getProject") {
+          if (!projectNumber) {
+            throw new Error(
+              "projectNumber is required to retrieve a ServiceNow project.",
+            );
+          }
+
+          updateStatus?.(`is looking up project ${projectNumber} in ServiceNow...`);
+
+          const project = await serviceNowClient.getSPMProject(projectNumber, snContext);
+          if (!project) {
+            return {
+              project: null,
+              message: `Project ${projectNumber} was not found in ServiceNow. This project number may be incorrect or the project may not exist in the system.`,
+            };
+          }
+
+          return {
+            project,
+            message: `Successfully retrieved project ${project.number}: ${project.shortDescription}`,
+          };
+        }
+
+        if (action === "getProjectEpics") {
+          if (!projectSysId) {
+            throw new Error(
+              "projectSysId is required to retrieve project epics.",
+            );
+          }
+
+          updateStatus?.(`is fetching epics for project...`);
+
+          const epics = await serviceNowClient.getSPMProjectEpics(projectSysId, snContext);
+
+          return {
+            epics,
+            totalCount: epics.length,
+            message: `Found ${epics.length} epic(s) for this project`,
+          };
+        }
+
+        if (action === "getProjectStories") {
+          if (!projectSysId) {
+            throw new Error(
+              "projectSysId is required to retrieve project stories.",
+            );
+          }
+
+          updateStatus?.(`is fetching stories for project...`);
+
+          const stories = await serviceNowClient.getSPMProjectStories(projectSysId, snContext);
+
+          return {
+            stories,
+            totalCount: stories.length,
+            message: `Found ${stories.length} story/stories for this project`,
           };
         }
 
