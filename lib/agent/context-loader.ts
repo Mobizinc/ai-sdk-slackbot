@@ -13,6 +13,7 @@ import { getSlackMessagingService } from "../services/slack-messaging";
 import type { SimilarCase } from "../services/azure-search";
 import { getConfigValue } from "../config";
 import { generateDiscoveryContextPack } from "./discovery/context-pack";
+import { createChildSpan } from "../observability";
 
 export interface ContextLoaderInput {
   messages: CoreMessage[];
@@ -125,6 +126,21 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
   }
 
   if (getConfigValue("discoveryContextPackEnabled")) {
+    const discoverySpan = await createChildSpan({
+      name: "discovery_context_pack_generation",
+      runType: "chain",
+      metadata: {
+        caseNumberCount: caseNumbers.length,
+        companyName: metadata.companyName,
+        hasBusinessContext: !!metadata.businessContext,
+        hasSimilarCases: (metadata.similarCases as any[] ?? []).length > 0,
+      },
+      tags: {
+        component: "discovery_agent",
+        phase: "context_loading",
+      },
+    });
+
     try {
       const discoveryPack = await generateDiscoveryContextPack({
         channelId: input.channelId,
@@ -138,8 +154,23 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
         threadHistory: metadata.threadHistory as CoreMessage[] | undefined,
       });
       metadata.discovery = discoveryPack;
+
+      if (discoverySpan) {
+        await discoverySpan.end({
+          outputs: {
+            hasCMDBHits: discoveryPack.cmdbHits ? discoveryPack.cmdbHits.total : 0,
+            policyAlertCount: discoveryPack.policyAlerts ? discoveryPack.policyAlerts.length : 0,
+            similarCasesCount: discoveryPack.similarCases ? discoveryPack.similarCases.total : 0,
+          },
+        });
+      }
     } catch (error) {
       console.warn("[Context Loader] Failed to generate discovery context pack:", error);
+      if (discoverySpan) {
+        await discoverySpan.end({
+          error: error as Error,
+        });
+      }
     }
   }
 

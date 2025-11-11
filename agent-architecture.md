@@ -66,28 +66,44 @@ Multiple teams can progress simultaneously because the architecture layers are l
 
 Each stream can progress independently as long as shared touchpoints (e.g., `lib/tools/servicenow.ts`, schema migrations) are coordinated via feature flags and reviewed interfaces.
 
-## Discovery Agent (Deterministic Context Gathering)
+## Discovery Agent (Deterministic Context Gathering) - ✅ IMPLEMENTED
 
-- **Purpose**  
+- **Purpose**
   Compile the richest possible factual context before we invoke any LLM reasoning. Provides upstream grounding for classification, escalation, and future analytics.
 
-- **Inputs**  
-  - Case number, sys_id, channel metadata  
-  - Business context repository entries (client profile, key contacts, technology stack)  
-  - ServiceNow history (recent cases for same client, resolved patterns)  
-  - CMDB/CI matches (by name, IP, keywords in journals)  
-  - Slack thread excerpts (recent human updates, pinned info)  
+- **Inputs**
+  - Case number, sys_id, channel metadata
+  - Business context repository entries (client profile, key contacts, technology stack)
+  - ServiceNow history (recent cases for same client, resolved patterns)
+  - CMDB/CI matches (by name, IP, keywords in journals)
+  - Slack thread excerpts (recent human updates, pinned info)
   - Policy signals (maintenance windows, SLA breaches, high-risk customers)
 
-- **Responsibilities**  
-  - Gather and sanitize data from the above sources deterministically (no LLM).  
-  - Summarize each source into compact, structured snippets (e.g., top similar cases with resolution, CI owner group, last three Slack messages).  
-  - De-duplicate and prioritize signals (recent over stale, high severity first).  
-  - Emit a `context_pack` payload attached to the case/session for downstream agents.  
+- **Responsibilities**
+  - Gather and sanitize data from the above sources deterministically (no LLM).
+  - Summarize each source into compact, structured snippets (e.g., top similar cases with resolution, CI owner group, last three Slack messages).
+  - De-duplicate and prioritize signals (recent over stale, high severity first).
+  - Emit a `context_pack` payload attached to the case/session for downstream agents.
   - Cache results briefly to avoid hammering APIs if multiple agents need the same info.
 
-- **Outputs**  
+- **Outputs**
   Structured JSON object containing `business_context`, `recent_cases`, `cmdb_hits`, `slack_recent`, `policy_alerts`, and other optional sections. Stored in the context store and passed to the classification agent invocation.
+
+- **Implementation Status** (as of 2025-01-15)
+  - ✅ Core context pack generation (`lib/agent/discovery/context-pack.ts`)
+  - ✅ CMDB/CI matching via keyword extraction (IP, FQDN, CI names) using existing CMDB repository
+  - ✅ Policy signals service (`lib/services/policy-signals.ts`):
+    - SLA breach detection (priority-based thresholds)
+    - High-risk/VIP customer identification
+    - Critical service level detection
+    - After-hours/weekend activity tracking
+    - Maintenance window detection (placeholder for future ServiceNow integration)
+  - ✅ In-memory LRU cache (`lib/agent/discovery/context-cache.ts`) with 15-minute TTL, 100-item capacity
+  - ✅ Integrated into orchestrator: context-loader generates, prompt-builder formats and injects into system prompt
+  - ✅ LangSmith observability spans for discovery phase
+  - ✅ Feature-flagged rollout with 7 configuration keys in registry
+  - ✅ Unit tests for policy signals service
+  - 📝 Future: Enhance CMDB matching with related CI traversal, integrate maintenance window detection with ServiceNow change_request table
 
 ## Classification Sub-Agent (Haiku 4.5)
 

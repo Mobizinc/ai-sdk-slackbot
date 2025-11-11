@@ -6,6 +6,15 @@ import { getContextManager } from "../../context-manager";
 import type { SimilarCase } from "../../services/azure-search";
 import { getSearchFacadeService } from "../../services/search-facade";
 import { getConfigValue } from "../../config";
+import type { ConfigurationItem } from "../../infrastructure/servicenow/types/domain-models";
+import { getCmdbRepository } from "../../infrastructure/servicenow/repositories";
+import type { PolicySignal } from "../../services/policy-signals";
+import { detectPolicySignals } from "../../services/policy-signals";
+import {
+  getDiscoveryContextCache,
+  generateCacheKey,
+  isCachingEnabled,
+} from "./context-cache";
 
 export interface DiscoveryContextPackMetadata {
   caseNumbers: string[];
@@ -37,6 +46,17 @@ export interface DiscoverySimilarCaseSummary {
   url?: string;
 }
 
+export interface DiscoveryCMDBHitSummary {
+  name: string;
+  className?: string;
+  ipAddresses?: string[];
+  environment?: string;
+  status?: string;
+  ownerGroup?: string;
+  url?: string;
+  matchReason: string;
+}
+
 export interface DiscoveryContextPack {
   generatedAt: string;
   metadata: DiscoveryContextPackMetadata;
@@ -57,7 +77,11 @@ export interface DiscoveryContextPack {
     total: number;
     cases: DiscoverySimilarCaseSummary[];
   };
-  policyAlerts?: string[];
+  cmdbHits?: {
+    total: number;
+    items: DiscoveryCMDBHitSummary[];
+  };
+  policyAlerts?: PolicySignal[];
 }
 
 export interface GenerateDiscoveryContextPackOptions {
@@ -70,6 +94,8 @@ export interface GenerateDiscoveryContextPackOptions {
   caseContext?: CaseContext;
   similarCases?: SimilarCase[];
   threadHistory?: CoreMessage[];
+  caseData?: any; // Case or Incident data for policy signals
+  journalText?: string; // Combined journal text for keyword extraction
 }
 
 const MAX_MESSAGE_PREVIEW_LENGTH = 280;
@@ -77,6 +103,26 @@ const MAX_MESSAGE_PREVIEW_LENGTH = 280;
 export async function generateDiscoveryContextPack(
   options: GenerateDiscoveryContextPackOptions
 ): Promise<DiscoveryContextPack> {
+  // Check cache first
+  if (isCachingEnabled()) {
+    const cacheKey = generateCacheKey({
+      caseNumber: options.caseNumbers?.[0],
+      channelId: options.channelId,
+      threadTs: options.threadTs,
+      companyName: options.companyName,
+    });
+
+    const cache = getDiscoveryContextCache();
+    const cached = cache.get(cacheKey);
+
+    if (cached) {
+      console.log(`[Discovery] Cache hit for key: ${cacheKey}`);
+      return cached;
+    }
+
+    console.log(`[Discovery] Cache miss for key: ${cacheKey}, generating fresh pack`);
+  }
+
   const metadata: DiscoveryContextPackMetadata = {
     caseNumbers: options.caseNumbers ?? [],
     channelId: options.channelId,
@@ -116,6 +162,43 @@ export async function generateDiscoveryContextPack(
         url: item.filename,
       })),
     };
+  }
+
+  // CMDB/CI matching - extract keywords and search for configuration items
+  const cmdbHits = await resolveCMDBHits(options, slackSummary);
+  if (cmdbHits.length > 0) {
+    pack.cmdbHits = {
+      total: cmdbHits.length,
+      items: cmdbHits.map((ci) => ({
+        name: ci.name ?? "Unknown",
+        className: ci.className,
+        ipAddresses: ci.ipAddresses,
+        environment: ci.environment,
+        status: ci.status,
+        ownerGroup: ci.ownerGroup,
+        url: ci.url,
+        matchReason: ci.matchReason,
+      })),
+    };
+  }
+
+  // Policy signals - maintenance windows, SLA breaches, high-risk customers
+  const policySignals = await resolvePolicySignals(options, businessContext);
+  if (policySignals.signals.length > 0) {
+    pack.policyAlerts = policySignals.signals;
+  }
+
+  // Cache the generated pack
+  if (isCachingEnabled()) {
+    const cacheKey = generateCacheKey({
+      caseNumber: options.caseNumbers?.[0],
+      channelId: options.channelId,
+      threadTs: options.threadTs,
+      companyName: options.companyName,
+    });
+
+    const cache = getDiscoveryContextCache();
+    cache.set(cacheKey, pack);
   }
 
   return pack;
@@ -248,6 +331,147 @@ async function resolveSimilarCases(
     console.warn("[Discovery] Similar case lookup failed:", error);
     return [];
   }
+}
+
+async function resolveCMDBHits(
+  options: GenerateDiscoveryContextPackOptions,
+  slackSummary: { messages: DiscoverySlackMessageSummary[] }
+): Promise<Array<ConfigurationItem & { matchReason: string }>> {
+  // Feature flag check
+  const enabled = getConfigValue("discoveryContextPackEnabled");
+  if (!enabled) {
+    return [];
+  }
+
+  try {
+    const cmdbRepo = getCmdbRepository();
+
+    // Extract text from journals and Slack messages
+    const textSources: string[] = [];
+
+    if (options.journalText) {
+      textSources.push(options.journalText);
+    }
+
+    slackSummary.messages.forEach((msg) => {
+      textSources.push(msg.text);
+    });
+
+    const combinedText = textSources.join("\n").slice(0, 2000); // Limit to 2000 chars
+
+    // Extract potential CI names, IP addresses, and FQDNs
+    const keywords = extractCMDBKeywords(combinedText);
+
+    const foundCIs: Array<ConfigurationItem & { matchReason: string }> = [];
+    const seenSysIds = new Set<string>();
+
+    // Search by IP addresses
+    for (const ip of keywords.ipAddresses.slice(0, 3)) {
+      try {
+        const results = await cmdbRepo.findByIpAddress(ip);
+        for (const ci of results) {
+          if (!seenSysIds.has(ci.sysId)) {
+            foundCIs.push({ ...ci, matchReason: `IP: ${ip}` });
+            seenSysIds.add(ci.sysId);
+          }
+        }
+      } catch (error) {
+        console.warn(`[Discovery] CMDB search by IP ${ip} failed:`, error);
+      }
+    }
+
+    // Search by FQDNs
+    for (const fqdn of keywords.fqdns.slice(0, 3)) {
+      try {
+        const results = await cmdbRepo.findByFqdn(fqdn);
+        for (const ci of results) {
+          if (!seenSysIds.has(ci.sysId)) {
+            foundCIs.push({ ...ci, matchReason: `FQDN: ${fqdn}` });
+            seenSysIds.add(ci.sysId);
+          }
+        }
+      } catch (error) {
+        console.warn(`[Discovery] CMDB search by FQDN ${fqdn} failed:`, error);
+      }
+    }
+
+    // Search by CI names (if company context available)
+    if (options.companyName) {
+      for (const name of keywords.potentialCINames.slice(0, 2)) {
+        try {
+          const results = await cmdbRepo.search({
+            name,
+            company: options.companyName,
+            limit: 3,
+          });
+          for (const ci of results) {
+            if (!seenSysIds.has(ci.sysId)) {
+              foundCIs.push({ ...ci, matchReason: `Name: ${name}` });
+              seenSysIds.add(ci.sysId);
+            }
+          }
+        } catch (error) {
+          console.warn(`[Discovery] CMDB search by name ${name} failed:`, error);
+        }
+      }
+    }
+
+    // Limit total CIs to avoid bloat
+    return foundCIs.slice(0, 5);
+  } catch (error) {
+    console.warn("[Discovery] CMDB resolution failed:", error);
+    return [];
+  }
+}
+
+async function resolvePolicySignals(
+  options: GenerateDiscoveryContextPackOptions,
+  businessContext: BusinessEntityContext | null
+): Promise<{ signals: PolicySignal[] }> {
+  try {
+    const result = await detectPolicySignals({
+      caseOrIncident: options.caseData,
+      businessContext,
+      channelId: options.channelId,
+    });
+
+    return { signals: result.signals };
+  } catch (error) {
+    console.warn("[Discovery] Policy signals detection failed:", error);
+    return { signals: [] };
+  }
+}
+
+/**
+ * Extract potential CMDB keywords from text
+ */
+function extractCMDBKeywords(text: string): {
+  ipAddresses: string[];
+  fqdns: string[];
+  potentialCINames: string[];
+} {
+  const ipv4Regex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
+  const fqdnRegex = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\b/gi;
+
+  const ipAddresses = Array.from(new Set(text.match(ipv4Regex) ?? []));
+  const fqdns = Array.from(
+    new Set(
+      (text.match(fqdnRegex) ?? []).filter(
+        (fqdn) => fqdn.includes(".") && fqdn.split(".").length >= 2
+      )
+    )
+  );
+
+  // Extract potential CI names (servers, switches, routers)
+  // Look for patterns like: SERVERNAME-01, SWITCH-CORE-01, RTR-EDGE-01
+  const ciNameRegex = /\b[A-Z]{2,}[-_][A-Z0-9-_]+\b/g;
+  const potentialCINames = Array.from(new Set(text.match(ciNameRegex) ?? []));
+
+  return {
+    ipAddresses: ipAddresses.slice(0, 5),
+    fqdns: fqdns.slice(0, 5),
+    potentialCINames: potentialCINames.slice(0, 5),
+  };
 }
 
 function normalizeMessageContent(content: CoreMessage["content"]): string {

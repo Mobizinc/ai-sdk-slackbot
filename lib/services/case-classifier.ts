@@ -104,6 +104,19 @@ export interface CaseClassification {
   kb_articles_count?: number;
 }
 
+/**
+ * TODO: Refactor as callable sub-agent (agent-architecture.md)
+ *
+ * Future improvements to align with target architecture:
+ * 1. Accept DiscoveryContextPack as structured input (from lib/agent/discovery/context-pack.ts)
+ * 2. Consume CMDB hits and policy alerts from discovery pack
+ * 3. Separate into orchestrator-invocable agent with clear input/output contract
+ * 4. Use discovery pack's business context, similar cases, and policy signals
+ * 5. Return structured JSON output for ServiceNow orchestration agent
+ *
+ * Current state: Monolithic service with embedded data fetching
+ * Target state: Stateless sub-agent that consumes pre-gathered discovery context
+ */
 export class CaseClassifier {
   private businessContextService = getBusinessContextService();
   private searchClient = createAzureSearchClient(); // NEW: Use vector search client with MSP attribution
