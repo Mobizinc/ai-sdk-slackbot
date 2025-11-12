@@ -48,6 +48,10 @@ export function isDelegationMessage(event: GenericMessageEvent): boolean {
   // Delegation phrases
   const delegationPhrases = [
     'please take a look',
+    'can you take a look',
+    'could you take a look',
+    'can you look',
+    'could you look',
     'can you review',
     'please review',
     'please check',

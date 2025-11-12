@@ -8,8 +8,30 @@ import { getContextManager } from "../../lib/context-manager";
 import { getBusinessContextService } from "../../lib/services/business-context-service";
 import { getSearchFacadeService } from "../../lib/services/search-facade";
 import { getSlackMessagingService } from "../../lib/services/slack-messaging";
+import { generateDiscoveryContextPack } from "../../lib/agent/discovery/context-pack";
 
 // Mock dependencies
+const configValues: Record<string, any> = {
+  discoveryContextPackEnabled: false,
+  discoverySlackMessageLimit: 5,
+  discoverySimilarCasesTopK: 3,
+};
+
+vi.mock("../../lib/config", () => ({
+  getConfigValue: vi.fn((key: string) => configValues[key]),
+  getConfig: vi.fn(),
+  getConfigSync: vi.fn(),
+  config: {},
+}));
+
+vi.mock("../../lib/agent/discovery/context-pack", () => ({
+  generateDiscoveryContextPack: vi.fn().mockResolvedValue({
+    generatedAt: "2024-01-01T00:00:00.000Z",
+    metadata: { caseNumbers: [] },
+    policyAlerts: [],
+  }),
+}));
+
 vi.mock("../../lib/context-manager");
 vi.mock("../../lib/services/business-context-service");
 vi.mock("../../lib/services/search-facade");
@@ -25,6 +47,12 @@ describe("Context Loader", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    configValues.discoveryContextPackEnabled = false;
+    (generateDiscoveryContextPack as unknown as vi.Mock).mockResolvedValue({
+      generatedAt: "2024-01-01T00:00:00.000Z",
+      metadata: { caseNumbers: [] },
+      policyAlerts: [],
+    });
 
     // Setup context manager mock
     mockContextManager = {
@@ -213,6 +241,27 @@ describe("Context Loader", () => {
     });
   });
 
+  describe("Discovery Context Pack Integration", () => {
+    it("should attach discovery pack when feature enabled", async () => {
+      configValues.discoveryContextPackEnabled = true;
+      (generateDiscoveryContextPack as unknown as vi.Mock).mockResolvedValue({
+        generatedAt: "2025-01-01T00:00:00.000Z",
+        metadata: { caseNumbers: [] },
+        policyAlerts: [],
+        businessContext: { entityName: "Acme" },
+      });
+
+      const result = await loadContext({
+        messages: [{ role: "user", content: "Test message" }],
+      });
+
+      expect(generateDiscoveryContextPack).toHaveBeenCalled();
+      expect(result.metadata.discovery).toEqual(
+        expect.objectContaining({ businessContext: { entityName: "Acme" } })
+      );
+    });
+  });
+
   describe("Business Context Enrichment", () => {
     it("should load business context when company is identified", async () => {
       mockContextManager.extractCaseNumbers.mockReturnValue(["SCS0001234"]);
@@ -263,7 +312,7 @@ describe("Context Loader", () => {
       });
 
       // Should continue without business context
-      expect(result.metadata.businessContext).toBeUndefined();
+      expect(result.metadata.businessContext).toBeNull();
     });
   });
 

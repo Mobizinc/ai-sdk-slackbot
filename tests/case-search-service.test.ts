@@ -11,18 +11,25 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CaseSearchService } from '../lib/services/case-search-service';
-import type { Case } from '../lib/infrastructure/servicenow/types/domain-models';
+import type { Case, CustomerAccount } from '../lib/infrastructure/servicenow/types/domain-models';
 
-// Mock the repository
-vi.mock('../lib/infrastructure/servicenow/repositories/factory', () => ({
-  getCaseRepository: () => ({
+const { mockCaseRepository, mockCustomerAccountRepository } = vi.hoisted(() => ({
+  mockCaseRepository: {
     search: vi.fn(),
-  }),
+  },
+  mockCustomerAccountRepository: {
+    searchByName: vi.fn(),
+  },
+}));
+
+// Mock the repositories
+vi.mock('../lib/infrastructure/servicenow/repositories/factory', () => ({
+  getCaseRepository: () => mockCaseRepository,
+  getCustomerAccountRepository: () => mockCustomerAccountRepository,
 }));
 
 describe('CaseSearchService', () => {
   let service: CaseSearchService;
-  let mockRepository: any;
 
   const createMockCase = (overrides: Partial<Case> = {}): Case => ({
     sysId: 'sys123',
@@ -34,14 +41,23 @@ describe('CaseSearchService', () => {
     updatedOn: new Date('2025-01-15'),
     ageDays: 27,
     assignedTo: 'John Doe',
-    assignmentGroup: 'IT Support',
-    url: 'https://instance.service-now.com/case/sys123',
+  assignmentGroup: 'IT Support',
+  url: 'https://instance.service-now.com/case/sys123',
+  ...overrides,
+});
+
+  const createMockAccount = (overrides: Partial<CustomerAccount> = {}): CustomerAccount => ({
+    sysId: 'acc123',
+    number: 'ACC123',
+    name: 'Default Corp',
+    url: 'https://instance.service-now.com/nav_to.do?uri=customer_account.do?sys_id=acc123',
     ...overrides,
   });
 
   beforeEach(() => {
+    mockCaseRepository.search.mockReset();
+    mockCustomerAccountRepository.searchByName.mockReset();
     service = new CaseSearchService();
-    mockRepository = (service as any).caseRepository;
   });
 
   describe('searchWithMetadata', () => {
@@ -52,7 +68,7 @@ describe('CaseSearchService', () => {
         createMockCase({ number: 'CASE003' }),
       ];
 
-      mockRepository.search.mockResolvedValue(mockCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: mockCases, totalCount: mockCases.length });
 
       const result = await service.searchWithMetadata({
         accountName: 'Altus',
@@ -72,7 +88,7 @@ describe('CaseSearchService', () => {
         createMockCase({ number: `CASE${String(i + 1).padStart(3, '0')}` })
       );
 
-      mockRepository.search.mockResolvedValue(mockCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: mockCases, totalCount: 25 });
 
       const result = await service.searchWithMetadata({
         limit: 10,
@@ -88,7 +104,7 @@ describe('CaseSearchService', () => {
         createMockCase({ number: 'CASE012' }),
       ];
 
-      mockRepository.search.mockResolvedValue(mockCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: mockCases, totalCount: 12 });
 
       const result = await service.searchWithMetadata({
         limit: 10,
@@ -100,28 +116,28 @@ describe('CaseSearchService', () => {
       expect(result.hasMore).toBe(false);
     });
 
-    it('should apply default limit of 10', async () => {
-      mockRepository.search.mockResolvedValue([]);
+    it('should apply default limit of 25', async () => {
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       await service.searchWithMetadata({});
 
-      expect(mockRepository.search).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 10 })
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 25 })
       );
     });
 
     it('should cap limit at 50', async () => {
-      mockRepository.search.mockResolvedValue([]);
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       await service.searchWithMetadata({ limit: 100 });
 
-      expect(mockRepository.search).toHaveBeenCalledWith(
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({ limit: 50 })
       );
     });
 
     it('should handle search errors gracefully', async () => {
-      mockRepository.search.mockRejectedValue(new Error('ServiceNow unavailable'));
+      mockCaseRepository.search.mockRejectedValue(new Error('ServiceNow unavailable'));
 
       const result = await service.searchWithMetadata({
         accountName: 'Altus',
@@ -133,7 +149,7 @@ describe('CaseSearchService', () => {
     });
 
     it('should pass all filters to repository', async () => {
-      mockRepository.search.mockResolvedValue([]);
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       await service.searchWithMetadata({
         accountName: 'Altus',
@@ -151,7 +167,7 @@ describe('CaseSearchService', () => {
         sortOrder: 'asc',
       });
 
-      expect(mockRepository.search).toHaveBeenCalledWith(
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           accountName: 'Altus',
           companyName: 'Altus Group',
@@ -184,12 +200,12 @@ describe('CaseSearchService', () => {
         }),
       ];
 
-      mockRepository.search.mockResolvedValue(staleCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: staleCases, totalCount: staleCases.length });
 
       const result = await service.findStaleCases(7, 25);
 
       expect(result).toHaveLength(2);
-      expect(mockRepository.search).toHaveBeenCalledWith(
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           updatedBefore: expect.any(Date),
           activeOnly: true,
@@ -201,11 +217,11 @@ describe('CaseSearchService', () => {
     });
 
     it('should use custom stale threshold', async () => {
-      mockRepository.search.mockResolvedValue([]);
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       await service.findStaleCases(14, 25);
 
-      const call = mockRepository.search.mock.calls[0][0];
+      const call = mockCaseRepository.search.mock.calls[0][0];
       const updatedBefore = call.updatedBefore as Date;
       const expectedThreshold = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
@@ -229,12 +245,12 @@ describe('CaseSearchService', () => {
         }),
       ];
 
-      mockRepository.search.mockResolvedValue(oldestCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: oldestCases, totalCount: oldestCases.length });
 
       const result = await service.findOldestCases(10);
 
       expect(result).toHaveLength(2);
-      expect(mockRepository.search).toHaveBeenCalledWith(
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           activeOnly: true,
           sortBy: 'opened_at',
@@ -292,7 +308,7 @@ describe('CaseSearchService', () => {
         createMockCase({ number: 'CASE002' }),
       ];
 
-      mockRepository.search.mockResolvedValue(mockCases);
+      mockCaseRepository.search.mockResolvedValue({ cases: mockCases, totalCount: mockCases.length });
 
       const result = await service.search({ accountName: 'Altus' });
 
@@ -302,9 +318,31 @@ describe('CaseSearchService', () => {
     });
   });
 
+  describe('suggestCustomerNames', () => {
+    it('should provide unique suggestions from customer account repository', async () => {
+      mockCustomerAccountRepository.searchByName.mockResolvedValue([
+        createMockAccount({ name: 'Ma Williams' }),
+        createMockAccount({ name: 'Ma-Williams Company', sysId: 'acc456', number: 'ACC456' }),
+        createMockAccount({ name: 'Ma Williams', sysId: 'acc789', number: 'ACC789' }),
+      ]);
+
+      const suggestions = await service.suggestCustomerNames('Ma-Williams');
+
+      expect(mockCustomerAccountRepository.searchByName).toHaveBeenCalledWith('Ma-Williams', { limit: 5 });
+      expect(suggestions).toEqual(['Ma Williams', 'Ma-Williams Company']);
+    });
+
+    it('should handle repository failures gracefully', async () => {
+      mockCustomerAccountRepository.searchByName.mockRejectedValue(new Error('timeout'));
+
+      const suggestions = await service.suggestCustomerNames('Altus');
+      expect(suggestions).toEqual([]);
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle empty result set', async () => {
-      mockRepository.search.mockResolvedValue([]);
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       const result = await service.searchWithMetadata({
         accountName: 'NonexistentCustomer',
@@ -316,13 +354,13 @@ describe('CaseSearchService', () => {
     });
 
     it('should handle invalid date strings gracefully', async () => {
-      mockRepository.search.mockResolvedValue([]);
+      mockCaseRepository.search.mockResolvedValue({ cases: [], totalCount: 0 });
 
       await service.searchWithMetadata({
         openedAfter: 'invalid-date',
       });
 
-      expect(mockRepository.search).toHaveBeenCalledWith(
+      expect(mockCaseRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           openedAfter: undefined, // Invalid date should be undefined
         })
@@ -330,7 +368,7 @@ describe('CaseSearchService', () => {
     });
 
     it('should handle repository returning null/undefined', async () => {
-      mockRepository.search.mockResolvedValue(null);
+      mockCaseRepository.search.mockResolvedValue(null);
 
       const result = await service.searchWithMetadata({});
 

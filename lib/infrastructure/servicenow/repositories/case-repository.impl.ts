@@ -17,6 +17,7 @@ import type {
 import type { CaseRecord, IncidentRecord, ServiceNowTableResponse } from "../types/api-responses";
 import { mapCase, mapIncident, parseServiceNowDate, extractDisplayValue } from "../client/mappers";
 import { ServiceNowNotFoundError } from "../errors";
+import { buildFlexibleLikeQuery } from "./query-builders";
 
 /**
  * Configuration for Case Repository
@@ -124,12 +125,18 @@ export class ServiceNowCaseRepository implements CaseRepository {
 
     if (criteria.accountName) {
       // Account by display name (searches account.name reference field)
-      queryParts.push(`account.nameLIKE${criteria.accountName}`);
+      const clause = buildFlexibleLikeQuery("account.name", criteria.accountName);
+      if (clause) {
+        queryParts.push(clause);
+      }
     }
 
     if (criteria.companyName) {
       // Company by display name (searches company.name reference field)
-      queryParts.push(`company.nameLIKE${criteria.companyName}`);
+      const clause = buildFlexibleLikeQuery("company.name", criteria.companyName);
+      if (clause) {
+        queryParts.push(clause);
+      }
     }
 
     if (criteria.caller) {
@@ -160,12 +167,18 @@ export class ServiceNowCaseRepository implements CaseRepository {
 
     if (criteria.assignmentGroup) {
       // Assignment group by display name
-      queryParts.push(`assignment_group.nameLIKE${criteria.assignmentGroup}`);
+      const clause = buildFlexibleLikeQuery("assignment_group.name", criteria.assignmentGroup);
+      if (clause) {
+        queryParts.push(clause);
+      }
     }
 
     if (criteria.assignedTo) {
       // Assigned user by display name
-      queryParts.push(`assigned_to.nameLIKE${criteria.assignedTo}`);
+      const clause = buildFlexibleLikeQuery("assigned_to.name", criteria.assignedTo);
+      if (clause) {
+        queryParts.push(clause);
+      }
     }
 
     if (criteria.openedAfter) {

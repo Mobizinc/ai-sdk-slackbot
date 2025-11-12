@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import { caseSearchService, type CaseSearchFilters } from "../../services/case-search-service";
-import { buildSearchResultsMessage } from "../../services/case-search-ui-builder";
+import { buildFilterPromptMessage, buildSearchResultsMessage } from "../../services/case-search-ui-builder";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 
 /**
@@ -19,7 +19,7 @@ import { createTool, type AgentToolFactoryParams } from "./shared";
  */
 const CaseSearchInputSchema = z.object({
   // Entity filters
-  customer: z.string().optional().describe("Customer or company name to filter by"),
+  customer: z.string().optional().describe("Customer or account name to filter by (e.g., 'Ma-Williams', 'Mawilliams', 'Altus'). Use this parameter when user asks to 'filter by customer', 'list tickets for [customer]', or 'show cases for [customer]'. Supports partial name matching."),
   assignmentGroup: z.string().optional().describe("Assignment group or queue name"),
   assignedTo: z.string().optional().describe("Assignee name or 'me' for current user"),
 
@@ -68,6 +68,9 @@ export function createCaseSearchTool(params: AgentToolFactoryParams) {
     name: "search_cases",
     description: `Search ServiceNow cases with flexible filtering. Use this tool for queries like:
 - "show open cases for Altus"
+- "list tickets for Ma-Williams"
+- "filter by customer Mawilliams"
+- "show cases for customer X"
 - "cases assigned to John Doe"
 - "high priority tickets"
 - "cases in IT Support queue"
@@ -75,6 +78,8 @@ export function createCaseSearchTool(params: AgentToolFactoryParams) {
 - "cases not updated in 3 days" (use updatedBefore)
 - "search for email sync issues"
 - "show cases in Altus domain" (multi-tenant filtering)
+
+IMPORTANT: When users ask to "filter by customer", "list tickets for [customer]", or "show cases for [customer]", ALWAYS extract the customer name and pass it in the 'customer' parameter.
 
 Returns paginated results with Slack-formatted display. Supports sorting and filtering by customer, queue, assignee, priority, state, keywords, opened dates, updated dates, and domain (multi-tenant).`,
 
@@ -116,7 +121,16 @@ Returns paginated results with Slack-formatted display. Supports sorting and fil
         );
 
         // Build Slack display
-        const display = buildSearchResultsMessage(result);
+        let display = buildSearchResultsMessage(result);
+
+        if (result.totalFound === 0 && filters.accountName) {
+          const customerSuggestions = await caseSearchService.suggestCustomerNames(filters.accountName, 5);
+          if (customerSuggestions.length > 0) {
+            display = buildFilterPromptMessage(filters.accountName, {
+              customers: customerSuggestions,
+            });
+          }
+        }
 
         return {
           success: true,

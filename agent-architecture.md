@@ -17,6 +17,55 @@
 - **Supervisor**  
   Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.
 
+## Implementation Strategy (Incremental Rollout)
+
+To reach the target architecture without destabilizing the current production workflow, we layer capabilities behind feature flags and thin orchestration adapters. Each new capability should plug into the existing `context → prompt → agent → formatter` loop instead of replacing it outright.
+
+1. **Stabilize Core Loop**
+   - Keep `lib/agent/orchestrator.ts` as the single entry point.
+   - Extend the context loader with new metadata (`discovery`, `spm`, `policySignals`) but leave the outer flow unchanged until each signal proves reliable.
+
+2. **Shadow Services Behind Flags**
+   - **Discovery Pack:** Build `discoveryRunner.generateContextPack()` that deterministically aggregates business context, recent Slack traffic, CMDB hits, similar cases, and (optionally) SPM project summaries. Start by logging/attaching metadata, then inject into prompts once validated.
+   - **Supervisor:** Add a policy validator that inspects outbound Slack/work-note payloads and logs warnings. When confidence is high, flip the flag to enforce blocking behavior.
+   - **SPM Consumers:** Surface SPM data as optional sections (“experimental project summary”) before making it part of the canonical response.
+
+3. **Adapter-First Design**
+   - Introduce thin facades named after architectural components (e.g., `discoveryService`, `policySupervisor`, `spmContextLoader`). Internal implementations can evolve without forcing cascading changes across callers.
+
+4. **Leverage Existing Deterministic Modules**
+   - Reuse the business-context service, search facade, context manager, and new SPM repositories to assemble the `context_pack`. Avoid large monolith rewrites; compose smaller services.
+
+5. **Passive Flow Caution**
+   - Route new passive behaviors through the existing `lib/passive/actions` and KB state machine so debouncing and throttling continue to work. Test for regressions such as “passive mention” before enabling globally.
+
+6. **Release Process**
+   - Ship each capability under a dedicated feature flag, exercise it on a small set of channels/customers, then promote to GA.
+   - Maintain snapshot tests/integration tests comparing legacy vs new outputs to detect regressions quickly.
+
+## Parallel Workstreams
+
+Multiple teams can progress simultaneously because the architecture layers are loosely coupled:
+
+1. **ServiceNow SPM Enablement**
+   - Complete Phase 1 plumbing (repository implementation, factory wiring, `lib/tools/servicenow.ts` helpers) for `pm_project`, `pm_epic`, and `rm_story`.
+   - Phase 2 introduces DB tables (`spm_projects`, `project_links`) for caching/linking internal initiatives; release behind a flag.
+   - Phase 3 feeds SPM data into stand-up context, strategic evaluations, and discovery packs.
+
+2. **Discovery Agent Prototype**
+   - Build the deterministic `context_pack` generator (business context, Slack excerpts, ServiceNow history, CMDB hits, policy alerts, optional SPM project summaries).
+   - Initially attach packs to `context.metadata` without altering prompts; once stable, integrate into prompt builder + stand-up tooling.
+
+3. **Supervisor / Policy QA**
+   - Implement a validator that runs post-formatting and logs policy violations (missing sections, duplicate escalations, stale guidance).
+   - Later phases can block outbound messages, auto-patch payloads, or raise operator alerts via `/review-latest`.
+
+4. **Agent Consumers (Stand-up, Strategy, Initiation)**
+   - Adapt `lib/projects/standup-context.ts`, `standup-service.ts`, `strategy/demand-intel.ts`, and initiation services to consume discovery packs + SPM repositories.
+   - Start by enriching stand-up IssueReferences with SPM stories; expand to project creation flows once write-paths are proven.
+
+Each stream can progress independently as long as shared touchpoints (e.g., `lib/tools/servicenow.ts`, schema migrations) are coordinated via feature flags and reviewed interfaces.
+
 ## Discovery Agent (Deterministic Context Gathering)
 
 - **Purpose**  

@@ -15,6 +15,7 @@ import { ServiceNowChoiceRepository } from "./choice-repository.impl";
 import { ServiceNowProblemRepository } from "./problem-repository.impl";
 import { ServiceNowAssignmentGroupRepository } from "./assignment-group-repository.impl";
 import { ChangeRepository } from "./change-repository.impl";
+import { ServiceNowSPMRepository, type SPMRepositoryConfig } from "./spm-repository.impl";
 import type { CaseRepository } from "./case-repository.interface";
 import type { IncidentRepository } from "./incident-repository.interface";
 import type { KnowledgeRepository } from "./knowledge-repository.interface";
@@ -24,6 +25,7 @@ import type { CustomerAccountRepository } from "./customer-account-repository.in
 import type { ChoiceRepository } from "./choice-repository.interface";
 import type { ProblemRepository } from "./problem-repository.interface";
 import type { AssignmentGroupRepository } from "./assignment-group-repository.interface";
+import type { SPMRepository } from "./spm-repository.interface";
 import { ServiceNowTableAPIClient } from "../client/table-api-client";
 import { config } from "../../../config";
 
@@ -140,6 +142,25 @@ export function createAssignmentGroupRepository(
 }
 
 /**
+ * Create SPMRepository with default configuration
+ */
+export function createSPMRepository(
+  httpClient?: ServiceNowHttpClient,
+  repoConfig?: Partial<SPMRepositoryConfig>,
+): SPMRepository {
+  const client = httpClient ?? createHttpClient();
+
+  const repositoryConfig: Partial<SPMRepositoryConfig> = {
+    projectTable: repoConfig?.projectTable ?? "pm_project",
+    epicTable: repoConfig?.epicTable ?? "pm_epic",
+    storyTable: repoConfig?.storyTable ?? "rm_story",
+    journalTable: repoConfig?.journalTable ?? "sys_journal_field",
+  };
+
+  return new ServiceNowSPMRepository(client, repositoryConfig);
+}
+
+/**
  * Singleton instances for production use
  * These are created lazily and cached
  */
@@ -154,6 +175,7 @@ let choiceRepositoryInstance: ChoiceRepository | undefined;
 let problemRepositoryInstance: ProblemRepository | undefined;
 let assignmentGroupRepositoryInstance: AssignmentGroupRepository | undefined;
 let changeRepositoryInstance: ChangeRepository | undefined;
+let spmRepositoryInstance: SPMRepository | undefined;
 let tableClientInstance: ServiceNowTableAPIClient | undefined;
 
 /**
@@ -263,6 +285,16 @@ export function getAssignmentGroupRepository(): AssignmentGroupRepository {
 }
 
 /**
+ * Get shared SPMRepository instance
+ */
+export function getSPMRepository(): SPMRepository {
+  if (!spmRepositoryInstance) {
+    spmRepositoryInstance = createSPMRepository(getHttpClient());
+  }
+  return spmRepositoryInstance;
+}
+
+/**
  * Reset singleton instances (useful for testing)
  */
 export function resetRepositories(): void {
@@ -278,4 +310,5 @@ export function resetRepositories(): void {
   problemRepositoryInstance = undefined;
   assignmentGroupRepositoryInstance = undefined;
   changeRepositoryInstance = undefined;
+  spmRepositoryInstance = undefined;
 }

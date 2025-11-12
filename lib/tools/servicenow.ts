@@ -11,12 +11,19 @@ import type {
   CustomerAccountRepository,
   ChoiceRepository,
   ProblemRepository,
+  SPMRepository,
 } from "../infrastructure/servicenow/repositories";
 import type {
   Case,
   Incident,
   ConfigurationItem,
   Choice,
+  SPMProject,
+  SPMEpic,
+  SPMStory,
+  CreateSPMProjectInput,
+  UpdateSPMProjectInput,
+  SPMSearchCriteria,
 } from "../infrastructure/servicenow/types";
 import {
   getCaseRepository,
@@ -27,6 +34,7 @@ import {
   getCustomerAccountRepository,
   getChoiceRepository,
   getProblemRepository,
+  getSPMRepository,
   type ServiceNowContext,
 } from "../infrastructure/servicenow/repositories";
 
@@ -429,6 +437,7 @@ export class ServiceNowClient {
   private customerAccountRepository: CustomerAccountRepository | null = null;
   private choiceRepository: ChoiceRepository | null = null;
   private problemRepository: ProblemRepository | null = null;
+  private spmRepository: SPMRepository | null = null;
 
   /**
    * Get or initialize the case repository
@@ -496,6 +505,16 @@ export class ServiceNowClient {
       this.problemRepository = getProblemRepository();
     }
     return this.problemRepository;
+  }
+
+  /**
+   * Get or initialize the SPM repository
+   */
+  private getSPMRepo(): SPMRepository {
+    if (!this.spmRepository) {
+      this.spmRepository = getSPMRepository();
+    }
+    return this.spmRepository;
   }
 
   /**
@@ -1787,7 +1806,22 @@ export class ServiceNowClient {
         });
         return;
       } catch (error) {
-        // Log error but don't crash - fall back to old path
+        // Check if it's a 404-related error
+        const is404Error = error instanceof Error &&
+          (error.message.includes('404') ||
+           error.message.includes('not found') ||
+           error.message.includes('Not Found'));
+
+        if (is404Error) {
+          // Don't fall back to OLD path if it's a 404 - the OLD path will also fail
+          console.error(`[ServiceNow] NEW path: Record not found (404) - skipping OLD path fallback`, {
+            sysId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+
+        // For other errors, fall back to OLD path
         console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
           sysId,
           error: error instanceof Error ? error.message : String(error),
@@ -1806,12 +1840,32 @@ export class ServiceNowClient {
       { work_notes: workNote } :
       { comments: workNote };
 
-    await request(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
+    try {
+      await request(endpoint, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
 
-    console.log(`[ServiceNow] OLD path: Successfully added work note`, { sysId });
+      console.log(`[ServiceNow] OLD path: Successfully added work note`, { sysId });
+    } catch (error) {
+      // Check if it's a 404-related error
+      const is404Error = error instanceof Error &&
+        (error.message.includes('404') ||
+         error.message.includes('not found') ||
+         error.message.includes('Not Found') ||
+         error.message.includes('No Record found'));
+
+      if (is404Error) {
+        console.error(`[ServiceNow] OLD path: Record not found (404) - record may not exist or ACL restricts access`, {
+          sysId,
+          table,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      // Re-throw the error to let the caller handle it
+      throw error;
+    }
   }
 
   /**
@@ -4032,6 +4086,242 @@ export class ServiceNowClient {
       return null;
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  /**
+   * ============================================
+   * SPM (Service Portfolio Management) Methods
+   * ============================================
+   */
+
+  /**
+   * Get an SPM project by number
+   * @param number - Project number (e.g., "PRJ0001234")
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProject(number: string, context?: ServiceNowContext): Promise<SPMProject | null> {
+    try {
+      const repo = this.getSPMRepo();
+      const project = await repo.findByNumber(number);
+      return project;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching SPM project ${number}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get an SPM project by sys_id
+   * @param sysId - Project sys_id
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProjectBySysId(sysId: string, context?: ServiceNowContext): Promise<SPMProject | null> {
+    try {
+      const repo = this.getSPMRepo();
+      const project = await repo.findBySysId(sysId);
+      return project;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching SPM project by sys_id ${sysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for SPM projects matching criteria
+   * @param criteria - Search criteria
+   * @param context - Optional ServiceNow context
+   */
+  public async searchSPMProjects(
+    criteria: SPMSearchCriteria,
+    context?: ServiceNowContext,
+  ): Promise<{ projects: SPMProject[]; totalCount: number }> {
+    try {
+      const repo = this.getSPMRepo();
+      const result = await repo.search(criteria);
+      return result;
+    } catch (error) {
+      console.error(`[ServiceNow] Error searching SPM projects:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get SPM projects by state
+   * @param state - Project state (e.g., "-3" for Work in Progress)
+   * @param limit - Maximum number of results
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProjectsByState(
+    state: string,
+    limit?: number,
+    context?: ServiceNowContext,
+  ): Promise<SPMProject[]> {
+    try {
+      const repo = this.getSPMRepo();
+      const projects = await repo.findByState(state, limit);
+      return projects;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching SPM projects by state ${state}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get SPM projects by assignment
+   * @param assignedTo - User sys_id or user name
+   * @param assignmentGroup - Group sys_id or group name
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProjectsByAssignment(
+    assignedTo?: string,
+    assignmentGroup?: string,
+    context?: ServiceNowContext,
+  ): Promise<SPMProject[]> {
+    try {
+      const repo = this.getSPMRepo();
+      const projects = await repo.findByAssignment(assignedTo, assignmentGroup);
+      return projects;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching SPM projects by assignment:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active SPM projects (not closed/cancelled)
+   * @param limit - Maximum number of results
+   * @param context - Optional ServiceNow context
+   */
+  public async getActiveSPMProjects(limit?: number, context?: ServiceNowContext): Promise<SPMProject[]> {
+    try {
+      const repo = this.getSPMRepo();
+      const projects = await repo.findActive(limit);
+      return projects;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching active SPM projects:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new SPM project
+   * @param input - Project creation input
+   * @param context - Optional ServiceNow context
+   */
+  public async createSPMProject(
+    input: CreateSPMProjectInput,
+    context?: ServiceNowContext,
+  ): Promise<SPMProject> {
+    try {
+      const repo = this.getSPMRepo();
+      const project = await repo.create(input);
+      console.log(`[ServiceNow] Created SPM project ${project.number} (${project.sysId})`);
+      return project;
+    } catch (error) {
+      console.error(`[ServiceNow] Error creating SPM project:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing SPM project
+   * @param sysId - Project sys_id
+   * @param updates - Project updates
+   * @param context - Optional ServiceNow context
+   */
+  public async updateSPMProject(
+    sysId: string,
+    updates: UpdateSPMProjectInput,
+    context?: ServiceNowContext,
+  ): Promise<SPMProject> {
+    try {
+      const repo = this.getSPMRepo();
+      const project = await repo.update(sysId, updates);
+      console.log(`[ServiceNow] Updated SPM project ${project.number} (${sysId})`);
+      return project;
+    } catch (error) {
+      console.error(`[ServiceNow] Error updating SPM project ${sysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a work note to an SPM project
+   * @param sysId - Project sys_id
+   * @param note - Work note text
+   * @param isInternal - If true, adds internal work note; if false, adds comment
+   * @param context - Optional ServiceNow context
+   */
+  public async addSPMProjectWorkNote(
+    sysId: string,
+    note: string,
+    isInternal: boolean = true,
+    context?: ServiceNowContext,
+  ): Promise<void> {
+    try {
+      const repo = this.getSPMRepo();
+      await repo.addWorkNote(sysId, note, isInternal);
+      console.log(`[ServiceNow] Added work note to SPM project ${sysId}`);
+    } catch (error) {
+      console.error(`[ServiceNow] Error adding work note to SPM project ${sysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get epics for an SPM project
+   * @param projectSysId - Project sys_id
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProjectEpics(projectSysId: string, context?: ServiceNowContext): Promise<SPMEpic[]> {
+    try {
+      const repo = this.getSPMRepo();
+      const epics = await repo.findRelatedEpics(projectSysId);
+      return epics;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching epics for project ${projectSysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get stories for an SPM project (via epics)
+   * @param projectSysId - Project sys_id
+   * @param context - Optional ServiceNow context
+   */
+  public async getSPMProjectStories(projectSysId: string, context?: ServiceNowContext): Promise<SPMStory[]> {
+    try {
+      const repo = this.getSPMRepo();
+      const stories = await repo.findRelatedStories(projectSysId);
+      return stories;
+    } catch (error) {
+      console.error(`[ServiceNow] Error fetching stories for project ${projectSysId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Close an SPM project
+   * @param sysId - Project sys_id
+   * @param complete - If true, marks as complete; if false, marks as incomplete
+   * @param closeNotes - Optional close notes
+   * @param context - Optional ServiceNow context
+   */
+  public async closeSPMProject(
+    sysId: string,
+    complete: boolean = true,
+    closeNotes?: string,
+    context?: ServiceNowContext,
+  ): Promise<SPMProject> {
+    try {
+      const repo = this.getSPMRepo();
+      const project = await repo.close(sysId, complete, closeNotes);
+      console.log(`[ServiceNow] Closed SPM project ${project.number} (${sysId}) as ${complete ? 'complete' : 'incomplete'}`);
+      return project;
+    } catch (error) {
+      console.error(`[ServiceNow] Error closing SPM project ${sysId}:`, error);
+      throw error;
     }
   }
 }
