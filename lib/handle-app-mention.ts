@@ -8,6 +8,7 @@ import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
 import { createStatusUpdater, clampTextForSlackDisplay } from "./utils/slack-status-updater";
 import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
+import { reviewSlackArtifact } from "./supervisor";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -70,7 +71,7 @@ export async function handleNewAppMention(
 
       // Perform triage
       const caseTriageService = getCaseTriageService();
-      const triageResult = await caseTriageService.triageCase(
+      const classificationStage = await caseTriageService.runClassificationStage(
         {
           case_number: caseDetails.number,
           sys_id: caseDetails.sys_id,
@@ -97,6 +98,16 @@ export async function handleNewAppMention(
           writeToServiceNow: false, // Don't write from @mention (manual triage is read-only)
         }
       );
+
+      const triageResult = {
+        caseNumber: classificationStage.core.caseNumber,
+        classification: classificationStage.core.classification,
+        similarCases: classificationStage.core.similarCases,
+        kbArticles: classificationStage.core.kbArticles,
+        recordTypeSuggestion: classificationStage.core.recordTypeSuggestion,
+        processingTimeMs: classificationStage.core.processingTimeMs,
+        cached: classificationStage.core.cached,
+      };
 
       // Format response
       const classification = triageResult.classification;
@@ -154,6 +165,22 @@ export async function handleNewAppMention(
         response += ` (cached)`;
       }
       response += `_`;
+
+      const supervisorDecision = await reviewSlackArtifact({
+        channelId: channel,
+        threadTs: thread_ts ?? event.ts,
+        caseNumber,
+        content: response,
+        classification,
+      });
+
+      if (supervisorDecision.status === "blocked") {
+        const reason = supervisorDecision.reason ?? "Response held for supervisor review.";
+        await setFinalMessage(
+          `${reason} Use \`/review-latest\` to approve or provide updated guidance.`
+        );
+        return;
+      }
 
       await setFinalMessage(response);
       return;

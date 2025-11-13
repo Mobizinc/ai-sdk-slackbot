@@ -137,6 +137,15 @@ export const FEATURE_REGISTRY: FeatureCategory[] = [
           "Navigate results with Next/Previous buttons",
         ],
       },
+      {
+        name: "Supervisor Review",
+        description: "Review and approve blocked Slack responses or ServiceNow writes that require human oversight",
+        usage: "Slash command: /review-latest [list|approve <state_id>|reject <state_id>]",
+        examples: [
+          "/review-latest list",
+          "/review-latest approve abc123",
+        ],
+      },
     ],
   },
   {

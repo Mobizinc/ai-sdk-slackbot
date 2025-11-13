@@ -141,7 +141,7 @@ async function handleSyncCase(
   webhookData: ServiceNowCaseWebhook,
   startTime: number
 ): Promise<Response> {
-  const triageResult = await caseTriageService.triageCase(webhookData, {
+  const classificationStage = await caseTriageService.runClassificationStage(webhookData, {
     enableCaching: true,
     enableSimilarCases: true,
     enableKBArticles: true,
@@ -149,6 +149,11 @@ async function handleSyncCase(
     enableWorkflowRouting: true,
     writeToServiceNow: true,
     enableCatalogRedirect: true,
+  });
+
+  const triageResult = await caseTriageService.applyDeterministicActions(classificationStage, {
+    enableCatalogRedirect: true,
+    writeToServiceNow: true,
   });
 
   const processingTime = Date.now() - startTime;

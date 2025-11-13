@@ -65,7 +65,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
 
         const caseTriageService = getCaseTriageService();
 
-        const triageResult = await caseTriageService.triageCase(
+        const classificationStage = await caseTriageService.runClassificationStage(
           {
             case_number: caseDetails.number,
             sys_id: caseDetails.sys_id,
@@ -92,6 +92,16 @@ export function createTriageTool(params: AgentToolFactoryParams) {
             writeToServiceNow: false,
           }
         );
+
+        const triageResult = {
+          caseNumber: classificationStage.core.caseNumber,
+          classification: classificationStage.core.classification,
+          similarCases: classificationStage.core.similarCases,
+          kbArticles: classificationStage.core.kbArticles,
+          processingTimeMs: classificationStage.core.processingTimeMs,
+          cached: classificationStage.core.cached,
+          recordTypeSuggestion: classificationStage.core.recordTypeSuggestion,
+        };
 
         const classification = triageResult.classification;
         const confidencePercent = Math.round((classification.confidence_score || 0) * 100);

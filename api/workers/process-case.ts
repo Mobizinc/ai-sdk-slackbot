@@ -161,12 +161,16 @@ const postWorkerImpl = withLangSmithTrace(async (request: Request) => {
     // EXECUTE FULL TRIAGE WORKFLOW
     // ============================================================================
     // No recent classification found - proceed with normal processing
-    const triageResult = await caseTriageService.triageCase(webhookData, {
+    const classificationStage = await caseTriageService.runClassificationStage(webhookData, {
       enableCaching: true,
       enableSimilarCases: true,
       enableKBArticles: true,
       enableBusinessContext: true,
       enableWorkflowRouting: true,
+      writeToServiceNow: true,
+    });
+
+    const triageResult = await caseTriageService.applyDeterministicActions(classificationStage, {
       writeToServiceNow: true,
     });
 

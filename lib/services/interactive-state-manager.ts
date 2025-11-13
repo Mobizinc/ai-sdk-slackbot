@@ -83,6 +83,20 @@ export interface CaseSearchStatePayload {
 }
 
 /**
+ * Supervisor review payload
+ */
+export interface SupervisorReviewStatePayload {
+  artifactType: "slack_message" | "servicenow_work_note";
+  caseNumber?: string;
+  channelId?: string;
+  threadTs?: string;
+  content: string;
+  reason: string;
+  metadata?: Record<string, any>;
+  blockedAt: string;
+}
+
+/**
  * Type-safe state payloads by type
  */
 export type StatePayloadByType = {
@@ -93,6 +107,7 @@ export type StatePayloadByType = {
   case_search: CaseSearchStatePayload;
   project_interview: InterviewSessionState;
   project_standup: StandupSessionState;
+  supervisor_review: SupervisorReviewStatePayload;
 };
 
 /**

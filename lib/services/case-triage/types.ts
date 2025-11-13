@@ -5,8 +5,9 @@
  */
 
 import type { CaseClassification } from "../case-classifier";
-import type { SimilarCaseResult } from "../../schemas/servicenow-webhook";
+import type { SimilarCaseResult, ServiceNowCaseWebhook, WorkflowDecision } from "../../schemas/servicenow-webhook";
 import type { KBArticle } from "../kb-article-search";
+import type { ClassificationConfig } from "./constants";
 
 export interface CaseTriageOptions {
   /**
@@ -95,6 +96,43 @@ export interface CaseTriageResult {
   catalogRedirected: boolean;
   catalogRedirectReason?: string;
   catalogItemsProvided?: number;
+}
+
+export interface ClassificationStageCoreResult {
+  caseNumber: string;
+  caseSysId: string;
+  workflowId: string;
+  classification: CaseClassification;
+  similarCases: SimilarCaseResult[];
+  kbArticles: KBArticle[];
+  processingTimeMs: number;
+  cached: boolean;
+  cacheReason?: string;
+  queueTimeMs?: number;
+  recordTypeSuggestion?: CaseTriageResult["recordTypeSuggestion"];
+}
+
+export interface ClassificationStageMetadata {
+  webhook: ServiceNowCaseWebhook;
+  workflowDecision: WorkflowDecision;
+  inboundId?: number | null;
+  snContext: Record<string, unknown>;
+  workNoteContent?: string;
+  rawClassificationResult: any;
+  fullConfig: ClassificationConfig;
+  startTime: number;
+  classificationTimeMs: number;
+  sideEffectsAlreadyApplied: boolean;
+  retrievalStats?: {
+    categoriesFetchMs: number;
+    applicationsFetchMs: number;
+  };
+}
+
+export interface ClassificationStageResult {
+  core: ClassificationStageCoreResult;
+  metadata: ClassificationStageMetadata;
+  completedResult?: CaseTriageResult;
 }
 
 /**
