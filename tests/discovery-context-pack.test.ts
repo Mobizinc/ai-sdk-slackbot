@@ -100,6 +100,7 @@ describe("generateDiscoveryContextPack", () => {
     expect(pack.caseContext?.caseNumber).toBe("SCS001");
     expect(pack.slackRecent?.messages.length).toBe(2);
     expect(pack.similarCases?.cases[0].caseNumber).toBe("SCS100");
+    expect(pack.schemaVersion).toBe("1.0.0");
   });
 
   it("fetches business context when not provided", async () => {

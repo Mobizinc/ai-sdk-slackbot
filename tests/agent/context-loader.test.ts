@@ -17,6 +17,11 @@ const configValues: Record<string, any> = {
   discoverySimilarCasesTopK: 3,
 };
 
+const mockCaseRepository = {
+  findByNumber: vi.fn().mockResolvedValue(null),
+  getJournalEntries: vi.fn().mockResolvedValue([]),
+};
+
 vi.mock("../../lib/config", () => ({
   getConfigValue: vi.fn((key: string) => configValues[key]),
   getConfig: vi.fn(),
@@ -37,6 +42,9 @@ vi.mock("../../lib/services/business-context-service");
 vi.mock("../../lib/services/search-facade");
 vi.mock("../../lib/services/slack-messaging");
 vi.mock("../../lib/db/repositories/business-context-repository");
+vi.mock("../../lib/infrastructure/servicenow/repositories", () => ({
+  getCaseRepository: () => mockCaseRepository,
+}));
 
 describe("Context Loader", () => {
   let mockContextManager: any;
@@ -53,6 +61,8 @@ describe("Context Loader", () => {
       metadata: { caseNumbers: [] },
       policyAlerts: [],
     });
+    mockCaseRepository.findByNumber.mockReset().mockResolvedValue(null);
+    mockCaseRepository.getJournalEntries.mockReset().mockResolvedValue([]);
 
     // Setup context manager mock
     mockContextManager = {
@@ -238,6 +248,36 @@ describe("Context Loader", () => {
 
       // Should not throw, should continue without company name
       expect(result.metadata.companyName).toBeUndefined();
+    });
+  });
+
+  describe("Discovery case artifacts", () => {
+    it("fetches case details and journals when discovery is enabled", async () => {
+      configValues.discoveryContextPackEnabled = true;
+      mockContextManager.extractCaseNumbers.mockReturnValue(["SCS0001111"]);
+      mockCaseRepository.findByNumber.mockResolvedValue({
+        sysId: "abc123",
+        number: "SCS0001111",
+      } as any);
+      mockCaseRepository.getJournalEntries.mockResolvedValue([
+        { createdOn: "2024-01-01 00:00:00", createdBy: "user1", value: "first note" },
+      ]);
+
+      await loadContext({
+        messages: [{ role: "user", content: "Working case SCS0001111" }],
+      });
+
+      expect(mockCaseRepository.findByNumber).toHaveBeenCalledWith("SCS0001111");
+      expect(mockCaseRepository.getJournalEntries).toHaveBeenCalledWith("abc123", {
+        limit: 20,
+        journalName: "work_notes",
+      });
+      expect(generateDiscoveryContextPack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          caseData: expect.objectContaining({ number: "SCS0001111" }),
+          journalText: expect.stringContaining("first note"),
+        })
+      );
     });
   });
 

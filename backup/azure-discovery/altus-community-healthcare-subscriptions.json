@@ -1,0 +1,46 @@
+{
+  "tenant": {
+    "id": "64c9180e-db30-45b8-af76-82f8930da669",
+    "name": "Altus Community Healthcare",
+    "domain": "ztaltus.onmicrosoft.com"
+  },
+  "discovered_at": "2025-11-13T02:52:26.200Z",
+  "subscription_count": 5,
+  "subscriptions": [
+    {
+      "subscription_id": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c",
+      "subscription_name": "Altus Health Workloads Subscription",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669"
+    },
+    {
+      "subscription_id": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "subscription_name": "Altus Health System",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669"
+    },
+    {
+      "subscription_id": "db7b1d11-6a6c-4381-94ce-fdfa97486a75",
+      "subscription_name": "Altus Data Platforms Subscription",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669"
+    },
+    {
+      "subscription_id": "9cd2fed5-1a17-492a-a5e2-3a450cb817fb",
+      "subscription_name": "Altus AVD Subscription",
+      "state": "Enabled",
+      "is_default": false,
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669"
+    },
+    {
+      "subscription_id": "a704b75b-e54d-4010-85e1-f2f29d66dbc8",
+      "subscription_name": "Altus Hub Subscription",
+      "state": "Enabled",
+      "is_default": true,
+      "tenant_id": "64c9180e-db30-45b8-af76-82f8930da669"
+    }
+  ]
+}

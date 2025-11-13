@@ -10,6 +10,7 @@ export interface RunnerParams {
   updateStatus?: UpdateStatusFn;
   options?: GenerateResponseOptions;
   caseNumbers?: string[];
+  contextMetadata?: Record<string, unknown>;
 }
 
 interface ToolCall {
@@ -35,6 +36,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         messages: params.messages,
         updateStatus: params.updateStatus,
         options: params.options,
+        contextMetadata: params.contextMetadata,
       });
 
       const toolDefinitions = buildToolDefinitions(availableTools);

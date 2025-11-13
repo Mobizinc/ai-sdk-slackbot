@@ -55,9 +55,21 @@ export interface DiscoveryCMDBHitSummary {
   ownerGroup?: string;
   url?: string;
   matchReason: string;
+  relatedItems?: DiscoveryCMDBRelatedItem[];
 }
 
+export interface DiscoveryCMDBRelatedItem {
+  name: string;
+  className?: string;
+  ownerGroup?: string;
+  environment?: string;
+  matchReason: string;
+}
+
+const CONTEXT_PACK_SCHEMA_VERSION = "1.0.0";
+
 export interface DiscoveryContextPack {
+  schemaVersion: string;
   generatedAt: string;
   metadata: DiscoveryContextPackMetadata;
   businessContext?: DiscoveryBusinessContextSummary;
@@ -99,6 +111,8 @@ export interface GenerateDiscoveryContextPackOptions {
 }
 
 const MAX_MESSAGE_PREVIEW_LENGTH = 280;
+const MAX_RELATED_CIS_PER_MATCH = 3;
+const MAX_BASE_MATCHES_FOR_RELATIONS = 3;
 
 export async function generateDiscoveryContextPack(
   options: GenerateDiscoveryContextPackOptions
@@ -131,6 +145,7 @@ export async function generateDiscoveryContextPack(
   };
 
   const pack: DiscoveryContextPack = {
+    schemaVersion: CONTEXT_PACK_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     metadata,
     policyAlerts: [],
@@ -178,6 +193,7 @@ export async function generateDiscoveryContextPack(
         ownerGroup: ci.ownerGroup,
         url: ci.url,
         matchReason: ci.matchReason,
+        relatedItems: (ci as any).relatedItems,
       })),
     };
   }
@@ -416,12 +432,53 @@ async function resolveCMDBHits(
       }
     }
 
-    // Limit total CIs to avoid bloat
-    return foundCIs.slice(0, 5);
+    const limitedCIs = foundCIs.slice(0, 5);
+
+    // Fetch related CIs for top matches to provide dependency hints
+    await enrichWithRelatedCIs(limitedCIs, cmdbRepo);
+
+    return limitedCIs;
   } catch (error) {
     console.warn("[Discovery] CMDB resolution failed:", error);
     return [];
   }
+}
+
+async function enrichWithRelatedCIs(
+  cis: Array<ConfigurationItem & { matchReason: string }>,
+  cmdbRepo: ReturnType<typeof getCmdbRepository>
+) {
+  const candidates = cis.slice(0, MAX_BASE_MATCHES_FOR_RELATIONS);
+
+  await Promise.all(
+    candidates.map(async (ci) => {
+      if (!ci.sysId) {
+        return;
+      }
+      try {
+        const related = await cmdbRepo.getRelatedCIs(ci.sysId);
+        if (related.length === 0) {
+          return;
+        }
+
+        const relatedItems: DiscoveryCMDBRelatedItem[] = related
+          .slice(0, MAX_RELATED_CIS_PER_MATCH)
+          .map((relatedCi) => ({
+            name: relatedCi.name ?? "Unknown",
+            className: relatedCi.className,
+            ownerGroup: relatedCi.ownerGroup,
+            environment: relatedCi.environment,
+            matchReason: `Related to ${ci.name ?? "matching CI"}`,
+          }));
+
+        if (relatedItems.length > 0) {
+          (ci as any).relatedItems = relatedItems;
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch related CIs for ${ci.name ?? ci.sysId}:`, error);
+      }
+    })
+  );
 }
 
 async function resolvePolicySignals(

@@ -174,6 +174,8 @@ Total VMs: 13
 💾 VM Data (JSON): backup/azure-discovery/exceptional-emergency-center-vms.json
 💾 VM Data (CSV): backup/azure-discovery/exceptional-emergency-center-vms.csv
 💾 Resource Group Data (JSON): backup/azure-discovery/exceptional-emergency-center-resource-groups.json
+💾 VNet Data (JSON): backup/azure-discovery/exceptional-emergency-center-vnets.json
+💾 VNet Gateway Data (JSON): backup/azure-discovery/exceptional-emergency-center-vnet-gateways.json
 ```
 
 **Review Discovery Results:**
@@ -272,6 +274,39 @@ vm-eer-paloalto-firewall-001
 [... continues for all VMs ...]
 
 ✅ Created: 13, ⏭️  Existing: 0, 🔗 Linked: 13, ❌ Errors: 0
+```
+
+#### 4d. Create Virtual Network CIs
+
+```bash
+npx tsx scripts/create-azure-vnet-cis.ts backup/azure-discovery/exceptional-emergency-center-vnets.json
+
+# This will:
+# - Create cmdb_ci_network records for every discovered VNet
+# - Store address prefixes + metadata
+# - Link each VNet to its parent resource group
+```
+
+#### 4e. Create VNet Gateway CIs
+
+```bash
+npx tsx scripts/create-azure-vnet-gateway-cis.ts backup/azure-discovery/exceptional-emergency-center-vnet-gateways.json
+
+# This will:
+# - Create cmdb_ci_ip_router records for each virtual network gateway/VPN gateway
+# - Populate public IPs, SKU, and type
+# - Link gateways to their VNets (or resource groups when VNets are missing)
+```
+
+#### 4f. Create Firewall / NVA CIs
+
+```bash
+npx tsx scripts/create-azure-firewall-cis.ts backup/azure-discovery/exceptional-emergency-center-vms.json --match paloalto,firewall
+
+# This will:
+# - Identify Palo Alto (or other keyword-matching) NVAs from the VM export
+# - Create cmdb_ci_ip_firewall records
+# - Link each firewall back to its resource group for service mapping
 ```
 
 ### Step 5: Link Subscriptions to Services

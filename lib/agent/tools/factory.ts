@@ -20,6 +20,7 @@ import { createContextUpdateTool } from "./context-update";
 import { createCurrentIssuesTool } from "./current-issues";
 import { createMicrosoftLearnTool } from "./microsoft-learn";
 import { createTriageTool } from "./triage";
+import { createClassificationAgentTool } from "./classification-agent";
 import { createCaseAggregationTool } from "./case-aggregation";
 import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
@@ -44,6 +45,7 @@ export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
 export type { FeedbackCollectionInput } from "./feedback-collection";
 export type { DescribeCapabilitiesInput } from "./describe-capabilities";
+export type { ClassificationAgentInput } from "./classification-agent";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -71,6 +73,7 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     fetchCurrentIssues: createCurrentIssuesTool(params),
     microsoftLearnSearch: createMicrosoftLearnTool(params),
     triageCase: createTriageTool(params),
+    runClassificationAgent: createClassificationAgentTool(params),
     caseAggregation: createCaseAggregationTool(params),
     getFirewallStatus: createFortiManagerMonitorTool(params),
     queryVelocloud: createVeloCloudTool(params),

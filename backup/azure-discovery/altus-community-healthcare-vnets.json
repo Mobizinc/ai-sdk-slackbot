@@ -1,0 +1,313 @@
+{
+  "tenant": {
+    "id": "64c9180e-db30-45b8-af76-82f8930da669",
+    "name": "Altus Community Healthcare",
+    "domain": "ztaltus.onmicrosoft.com"
+  },
+  "discovered_at": "2025-11-13T03:08:23.595Z",
+  "subscription_count": 5,
+  "virtual_network_count": 11,
+  "vnets": [
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/virtualNetworks/vnet-altus-scus-workloads-01",
+      "name": "vnet-altus-scus-workloads-01",
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c",
+      "resourceGroup": "rg-altus-scus-networks-01",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "172.16.2.0/24"
+      ],
+      "dnsServers": [
+        "10.52.1.20",
+        "10.52.1.21"
+      ],
+      "subnets": [
+        {
+          "name": "snet-altus-scus-workloads-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-workloads-01",
+          "routeTableId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-scus-workloads-01"
+        },
+        {
+          "name": "snet-altus-scus-pep-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-workloads-01",
+          "routeTableId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-scus-workloads-01"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/virtualNetworks/vnet-altus-scus-workloads-03",
+      "name": "vnet-altus-scus-workloads-03",
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c",
+      "resourceGroup": "rg-altus-scus-networks-01",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.52.3.0/28"
+      ],
+      "dnsServers": [
+        "10.52.1.20",
+        "10.52.1.21"
+      ],
+      "subnets": [
+        {
+          "name": "snet-altus-scus-workloads-03",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-workloads-03",
+          "routeTableId": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-scus-workloads-03"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main/providers/Microsoft.Network/virtualNetworks/V-Net",
+      "name": "V-Net",
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "resourceGroup": "main",
+      "location": "eastus",
+      "addressPrefixes": [
+        "10.0.0.0/16"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "GatewaySubnet",
+          "addressPrefix": "",
+          "nsgId": null,
+          "routeTableId": null
+        },
+        {
+          "name": "AzureBastionSubnet",
+          "addressPrefix": "10.0.1.64/26",
+          "nsgId": null,
+          "routeTableId": null
+        },
+        {
+          "name": "default",
+          "addressPrefix": "",
+          "nsgId": null,
+          "routeTableId": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main/providers/Microsoft.Network/routeTables/rt-V-Net-default"
+        },
+        {
+          "name": "Network_Subnet",
+          "addressPrefix": "",
+          "nsgId": null,
+          "routeTableId": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main/providers/Microsoft.Network/routeTables/rt-V-Net-Network_Subnet"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/test-vnet",
+      "name": "test-vnet",
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "resourceGroup": "test",
+      "location": "eastus",
+      "addressPrefixes": [
+        "10.1.0.0/16"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "default",
+          "addressPrefix": "10.1.0.0/24",
+          "nsgId": null,
+          "routeTableId": null
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/centralus/providers/Microsoft.Network/virtualNetworks/centralus",
+      "name": "centralus",
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "resourceGroup": "centralus",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.0.0.0/16"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "default",
+          "addressPrefix": "",
+          "nsgId": null,
+          "routeTableId": null
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/testnew/providers/Microsoft.Network/virtualNetworks/test-machine-vnet",
+      "name": "test-machine-vnet",
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "resourceGroup": "testnew",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.1.0.0/16"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "default",
+          "addressPrefix": "10.1.0.0/24",
+          "nsgId": null,
+          "routeTableId": null
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/virtualNetworks/vnet-altus-ncus-dataplat-01",
+      "name": "vnet-altus-ncus-dataplat-01",
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75",
+      "resourceGroup": "rg-altus-ncus-networks-01",
+      "location": "northcentralus",
+      "addressPrefixes": [
+        "10.52.2.0/24"
+      ],
+      "dnsServers": [
+        "10.52.1.20",
+        "10.52.1.21"
+      ],
+      "subnets": [
+        {
+          "name": "snet-altus-ncus-fabric-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-ncus-dataplat-01",
+          "routeTableId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-ncus-dataplat-01"
+        },
+        {
+          "name": "snet-altus-ncus-pep-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-ncus-dataplat-01",
+          "routeTableId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-ncus-dataplat-01"
+        },
+        {
+          "name": "snet-altus-ncus-mysql-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-ncus-dataplat-01",
+          "routeTableId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-ncus-dataplat-01"
+        },
+        {
+          "name": "snet-altus-ncus-servers-01",
+          "addressPrefix": "",
+          "nsgId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-ncus-dataplat-01",
+          "routeTableId": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01/providers/Microsoft.Network/routeTables/rt-altus-ncus-dataplat-01"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/virtualNetworks/vnet-altus-prod-scus-paloalto-001",
+      "name": "vnet-altus-prod-scus-paloalto-001",
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8",
+      "resourceGroup": "rg-altus-scus-paloalto-001",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.52.0.0/25"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "snet-altus-scus-paloalto-management-001",
+          "addressPrefix": "10.52.0.0/28",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-management-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-management-001"
+        },
+        {
+          "name": "snet-altus-scus-paloalto-privateendpoint-001",
+          "addressPrefix": "10.52.0.72/29",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-privateendpoint-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-privateendpoint-001"
+        },
+        {
+          "name": "snet-altus-scus-paloalto-ilb-001",
+          "addressPrefix": "10.52.0.64/29",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-ilb-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-ilb-001"
+        },
+        {
+          "name": "snet-altus-scus-paloalto-untrust-001",
+          "addressPrefix": "10.52.0.32/28",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-untrust-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-untrust-001"
+        },
+        {
+          "name": "snet-altus-scus-paloalto-trust-001",
+          "addressPrefix": "10.52.0.16/28",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-trust-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-trust-001"
+        },
+        {
+          "name": "snet-altus-scus-paloalto-transit-001",
+          "addressPrefix": "10.52.0.48/28",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-paloalto-transit-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001/providers/Microsoft.Network/routeTables/rt-altus-scus-paloalto-transit-001"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-001/providers/Microsoft.Network/virtualNetworks/vnet-altus-scus-bastion-001",
+      "name": "vnet-altus-scus-bastion-001",
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8",
+      "resourceGroup": "rg-altus-scus-sharedservices-001",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.52.0.128/26"
+      ],
+      "dnsServers": [],
+      "subnets": [
+        {
+          "name": "AzureBastionSubnet",
+          "addressPrefix": "10.52.0.128/26",
+          "nsgId": null,
+          "routeTableId": null
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-001/providers/Microsoft.Network/virtualNetworks/vnet-altus-scus-sharedsvcs-001",
+      "name": "vnet-altus-scus-sharedsvcs-001",
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8",
+      "resourceGroup": "rg-altus-scus-sharedservices-001",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.52.1.0/28"
+      ],
+      "dnsServers": [
+        "10.0.90.5"
+      ],
+      "subnets": [
+        {
+          "name": "sharedsvcs",
+          "addressPrefix": "10.52.1.0/29",
+          "nsgId": null,
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-001/providers/Microsoft.Network/routeTables/rt-altus-scus-sharedsvcs-001-sharedsvcs"
+        }
+      ]
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002/providers/Microsoft.Network/virtualNetworks/vnet-altus-scus-sharedsvcs-002",
+      "name": "vnet-altus-scus-sharedsvcs-002",
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8",
+      "resourceGroup": "rg-altus-scus-sharedservices-002",
+      "location": "southcentralus",
+      "addressPrefixes": [
+        "10.52.1.16/28"
+      ],
+      "dnsServers": [
+        "10.52.1.20",
+        "10.52.1.21"
+      ],
+      "subnets": [
+        {
+          "name": "dc",
+          "addressPrefix": "10.52.1.16/29",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-sharedsvcs-002-dc-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002/providers/Microsoft.Network/routeTables/rt-altus-scus-sharedsvcs-002-dc-001"
+        },
+        {
+          "name": "snet-southcentralus-1",
+          "addressPrefix": "10.52.1.24/29",
+          "nsgId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002/providers/Microsoft.Network/networkSecurityGroups/nsg-altus-scus-sharedsvcs-002-dc-001",
+          "routeTableId": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002/providers/Microsoft.Network/routeTables/rt-altus-scus-sharedsvcs-002-dc-001"
+        }
+      ]
+    }
+  ]
+}

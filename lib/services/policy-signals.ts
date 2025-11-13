@@ -12,6 +12,7 @@
 import type { Case, Incident } from "../infrastructure/servicenow/types/domain-models";
 import type { BusinessEntityContext } from "./business-context-service";
 import { getConfigValue } from "../config";
+import { getChangeRepository, type ChangeRequest } from "../infrastructure/servicenow/repositories";
 
 /**
  * Policy signal types
@@ -113,14 +114,56 @@ async function checkMaintenanceWindow(
     return null;
   }
 
-  // TODO: Query ServiceNow change_request table for active maintenance
-  // For now, return null (no maintenance detected)
-  // Future implementation:
-  // - Query change_request where state=in_progress and type=standard
-  // - Check if scheduled_start <= currentTime <= scheduled_end
-  // - Match company/CI to the maintenance record
+  const identifiers = extractCompanyIdentifiers(input);
+  if (!identifiers.companySysId && !identifiers.companyName) {
+    return null;
+  }
 
-  return null;
+  const changeRepo = getChangeRepository();
+  const nowString = formatDateForServiceNow(currentTime);
+
+  const companyClause = identifiers.companySysId
+    ? `company=${identifiers.companySysId}`
+    : `company.name=${encodeURIComponent(identifiers.companyName!)}`;
+
+  const timeWindowClause = `(start_date<=${nowString}^end_date>=${nowString})^NQ(work_start<=${nowString}^work_end>=${nowString})`;
+  const query = `${companyClause}^stateNOT IN7,8^active=true^${timeWindowClause}`;
+
+  try {
+    const changes = await changeRepo.fetchChanges(query, { maxRecords: 5 });
+    const activeChanges = changes.filter((change) => isChangeActive(change, currentTime));
+
+    if (activeChanges.length === 0) {
+      return null;
+    }
+
+    const summaryLines = activeChanges.slice(0, 2).map((change) => {
+      const end = parseChangeDate(change.end_date) || parseChangeDate(change.work_end);
+      const endText = end ? end.toISOString() : "unscheduled";
+      return `${change.number} (${change.state ?? "Scheduled"}) until ${endText}`;
+    });
+
+    return {
+      type: "maintenance_window",
+      severity: "warning",
+      message: `Active maintenance window${activeChanges.length > 1 ? "s" : ""}: ${summaryLines.join("; ")}`,
+      details: {
+        company: identifiers.companyName,
+        changes: activeChanges.slice(0, 5).map((change) => ({
+          number: change.number,
+          state: change.state,
+          start: (parseChangeDate(change.start_date) || parseChangeDate(change.work_start))?.toISOString(),
+          end: (parseChangeDate(change.end_date) || parseChangeDate(change.work_end))?.toISOString(),
+          shortDescription: change.short_description,
+        })),
+        total: activeChanges.length,
+      },
+      detectedAt: currentTime.toISOString(),
+    };
+  } catch (error) {
+    console.warn("[Policy Signals] Failed to query maintenance windows:", error);
+    return null;
+  }
 }
 
 /**
@@ -338,4 +381,55 @@ export function formatPolicySignalsForPrompt(result: PolicySignalsResult): strin
   }
 
   return lines.join("\n");
+}
+
+function extractCompanyIdentifiers(
+  input: PolicySignalsInput
+): { companySysId?: string; companyName?: string } {
+  const entityName = input.businessContext?.entityName;
+  if (!input.caseOrIncident) {
+    return { companyName: entityName };
+  }
+
+  const maybeCase = input.caseOrIncident as Case & { companyName?: string };
+  if (typeof maybeCase.companyName === "string") {
+    return {
+      companySysId: maybeCase.company || undefined,
+      companyName: maybeCase.companyName || entityName,
+    };
+  }
+
+  const incident = input.caseOrIncident as Incident;
+  return {
+    companyName: incident.company || entityName,
+  };
+}
+
+function formatDateForServiceNow(date: Date): string {
+  return date.toISOString().replace("T", " ").slice(0, 19);
+}
+
+function parseChangeDate(value?: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.includes("T") ? value : `${value.replace(" ", "T")}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isChangeActive(change: ChangeRequest, target: Date): boolean {
+  const start = parseChangeDate(change.start_date) ?? parseChangeDate(change.work_start);
+  const end = parseChangeDate(change.end_date) ?? parseChangeDate(change.work_end);
+
+  if (start && end) {
+    return start <= target && target <= end;
+  }
+  if (start && !end) {
+    return start <= target;
+  }
+  if (!start && end) {
+    return target <= end;
+  }
+  return false;
 }

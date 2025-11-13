@@ -1,0 +1,22 @@
+{
+  "tenant": {
+    "id": "64c9180e-db30-45b8-af76-82f8930da669",
+    "name": "Altus Community Healthcare",
+    "domain": "ztaltus.onmicrosoft.com"
+  },
+  "discovered_at": "2025-11-13T03:08:23.595Z",
+  "subscription_count": 5,
+  "gateway_count": 1,
+  "gateways": [
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main/providers/Microsoft.Network/virtualNetworkGateways/Virtual_GW",
+      "name": "Virtual_GW",
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b",
+      "resourceGroup": "main",
+      "location": "eastus",
+      "virtualNetwork": null,
+      "subnetResourceIds": [],
+      "publicIpAddresses": []
+    }
+  ]
+}

@@ -95,6 +95,7 @@ class AgentOrchestrator {
             updateStatus,
             options,
             caseNumbers,
+            contextMetadata: context.metadata,
           });
 
           // Create child span for message formatting

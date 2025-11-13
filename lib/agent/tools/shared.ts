@@ -27,6 +27,7 @@ export interface AgentToolFactoryParams {
   caseNumbers: string[];
   updateStatus?: UpdateStatusFn;
   options?: GenerateResponseOptions;
+  contextMetadata?: Record<string, unknown>;
 }
 
 /**

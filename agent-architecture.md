@@ -5,6 +5,7 @@
 
 - **Shared Context Store**  
   Existing context manager plus ServiceNow snapshots. Serves as the single source of truth for transcripts, case metadata, and recent journal extracts.
+  - **Open Question:** What retention, tenant-isolation, and RBAC/PII-redaction policies govern this store so concurrent specialists don’t clobber each other’s state and compliance knows how long ServiceNow-derived data persists?
 
 - **Orchestrator**  
   Inspects intent and routes work to the appropriate specialist agent (triage, KB drafting, escalation, etc.), enforcing prerequisites (valid case number, permissions) before dispatch.
@@ -14,8 +15,12 @@
   - **Connectivity Reasoning Agent**  
     Consumes the Discovery `context_pack`, calls approved REST controllers (e.g., Palo Alto Strata Cloud Manager, FortiManager, VeloCloud) for live routing/tunnel status, runs lightweight heuristics to explain connectivity gaps, and returns proposed diagnostics or follow-up questions. Results flow back through the orchestrator to the conversational agent so humans receive actionable next steps. Operates in read-only mode; effectiveness depends on the availability of those controller APIs.
 
+    - **Open Question:** What authentication, rate-limit, timeout, and fallback strategy keeps this agent from stalling the orchestrator when controller APIs are degraded or unavailable?
+
 - **Supervisor**  
   Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.
+
+  - **Open Question:** Can the supervisor patch escalation payloads (per this section) or are escalations immutable until a human replay (per the HITL workflow)? We need one rule so audits match behavior.
 
 ## Implementation Strategy (Incremental Rollout)
 
@@ -27,6 +32,7 @@ To reach the target architecture without destabilizing the current production wo
 
 2. **Shadow Services Behind Flags**
    - **Discovery Pack:** Build `discoveryRunner.generateContextPack()` that deterministically aggregates business context, recent Slack traffic, CMDB hits, similar cases, and (optionally) SPM project summaries. Start by logging/attaching metadata, then inject into prompts once validated.
+     - **Status:** Schema v1.0.0 is documented in `docs/DISCOVERY_CONTEXT_PACK_SCHEMA.md` (fields, ordering, size budgets, versioning).
    - **Supervisor:** Add a policy validator that inspects outbound Slack/work-note payloads and logs warnings. When confidence is high, flip the flag to enforce blocking behavior.
    - **SPM Consumers:** Surface SPM data as optional sections (“experimental project summary”) before making it part of the canonical response.
 
@@ -55,6 +61,9 @@ Multiple teams can progress simultaneously because the architecture layers are l
 2. **Discovery Agent Prototype**
    - Build the deterministic `context_pack` generator (business context, Slack excerpts, ServiceNow history, CMDB hits, policy alerts, optional SPM project summaries).
    - Initially attach packs to `context.metadata` without altering prompts; once stable, integrate into prompt builder + stand-up tooling.
+   - Track webhook cleanup work:  
+     - [#64](https://github.com/mobizinc/ai-sdk-slackbot/issues/64) Consolidate ServiceNow webhook validation/parsing so case and incident handlers share a single request guard.  
+     - [#65](https://github.com/mobizinc/ai-sdk-slackbot/issues/65) Refactor `api/servicenow-webhook.ts` into SRP-friendly modules (auth/validation, routing, enqueue vs sync execution). These issues stay open until the new orchestration entry point replaces the legacy webhook flow.
 
 3. **Supervisor / Policy QA**
    - Implement a validator that runs post-formatting and logs policy violations (missing sections, duplicate escalations, stale guidance).
@@ -103,7 +112,7 @@ Each stream can progress independently as long as shared touchpoints (e.g., `lib
   - ✅ LangSmith observability spans for discovery phase
   - ✅ Feature-flagged rollout with 7 configuration keys in registry
   - ✅ Unit tests for policy signals service
-  - 📝 Future: Enhance CMDB matching with related CI traversal, integrate maintenance window detection with ServiceNow change_request table
+  - ✅ CMDB matching now traverses related CIs (parent/child) and policy signals include live maintenance windows via `change_request`
 
 ## Classification Sub-Agent (Haiku 4.5)
 
@@ -124,6 +133,10 @@ Each stream can progress independently as long as shared touchpoints (e.g., `lib
   - `urgency_level`, `record_type_suggestion` (incident vs case vs project)  
   - Business-intel flags: systemic issue, project scope, executive/compliance visibility, financial impact notes  
   - Confidence score + reasoning snippets
+- **Current Progress**
+  - ✅ Stateless classification runner (`lib/agent/classification/*`) consumes Discovery context packs and is invoked from `CaseTriageService`, so Sonnet/Haiku rely on the deterministic context rather than pulling data on demand.
+  - ✅ Case + incident webhooks both use `parseAndValidateWebhookRequest` (issues [#64](https://github.com/mobizinc/ai-sdk-slackbot/issues/64) & [#65](https://github.com/mobizinc/ai-sdk-slackbot/issues/65)) for shared auth/parsing/validation, shrinking the POST handlers ahead of the full orchestrator cutover.
+  - 📝 Next: expose the runner via the orchestrator’s tool registry so Slack/ServiceNow flows both call the same sub-agent contract before the deterministic orchestration layer executes side effects.
 
 - **Model**  
   Default to Claude Haiku 4.5 for cost/latency. Allow Sonnet 4.5 fallback when higher reasoning is required (e.g., escalations, QA replays).
@@ -201,6 +214,7 @@ flowchart TD
   - Generate alerts to operators when repeated violations or low-quality outputs occur.
 - **Outputs**  
   Approval/denial status with metadata (reason, timestamp, actor), optional corrected payload, and audit records stored alongside case activity.
+  - **Open Question:** Where are blocked artifacts persisted and how does the originating agent re-enter the queue after the supervisor requests fixes so responses aren’t dropped?
 
 ### Policy & QA Flow
 
@@ -299,6 +313,9 @@ This section outlines open questions and areas for further definition identified
 
 - **Configuration Management**  
   _Resolution:_ Move feature configuration into versioned JSON + Zod schemas (see project catalog/interview packs). The `config` module will be extended with a central loader that merges environment configs, database overrides (via `app_settings`), and per-feature JSON data. Feature flags and model selections become declarative entries, enabling safe runtime toggles without redeploying.
+
+- **Muscle Memory / Learning Layer**  
+  _Resolution:_ Stand up a portable semantic store (Neon-hosted Postgres + `pgvector`) that ingests approved work notes, escalations, supervisor decisions, and telemetry snapshots. Discovery pulls “muscle memory” exemplars from this store (tagged per customer/technology), and the classification sub-agent consumes the same vectors for few-shot grounding. Azure Cognitive Search remains for large-scale log/case search, while pgvector provides low-latency retrieval of curated guidance. Supervisor reviews feed back into the store so accepted answers become future exemplars automatically.
 
 ## Project Interview Agent
 

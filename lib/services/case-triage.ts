@@ -44,6 +44,8 @@ import { handleRecordTypeSuggestion } from "./case-triage/incident-handler";
 import { formatWorkNote } from "./case-triage/formatters";
 import { getClassificationConfig, IDEMPOTENCY_WINDOW_MINUTES } from "./case-triage/constants";
 import { createTriageSystemContext } from "./case-triage/context";
+import { runClassificationAgent } from "../agent/classification";
+import type { DiscoveryContextPack } from "../agent/discovery/context-pack";
 
 // Re-export types for backward compatibility
 export type { CaseTriageOptions, CaseTriageResult } from "./case-triage/types";
@@ -175,6 +177,8 @@ export class CaseTriageService {
         this.classifier.setApplicationServices(enrichment.applicationServices);
       }
 
+      const discoveryPack = buildDiscoveryPackForWebhook(webhook);
+
       // Step 7: Perform classification with retry logic (using real ServiceNow categories)
       const classificationStart = Date.now();
       let classificationResult: any | null = null;
@@ -182,19 +186,23 @@ export class CaseTriageService {
 
       for (let attempt = 1; attempt <= fullConfig.maxRetries; attempt++) {
         try {
-          classificationResult = await this.classifier.classifyCaseEnhanced({
-            case_number: webhook.case_number,
-            sys_id: webhook.sys_id,
-            short_description: webhook.short_description,
-            description: webhook.description,
-            assignment_group: webhook.assignment_group,
-            urgency: webhook.urgency,
-            current_category: webhook.category,
-            priority: webhook.priority,
-            state: webhook.state,
-            company: webhook.company,
-            company_name: webhook.account_id, // Use account_id as company_name
-          });
+          classificationResult = await runClassificationAgent(
+            {
+              caseNumber: webhook.case_number,
+              sysId: webhook.sys_id,
+              shortDescription: webhook.short_description,
+              description: webhook.description,
+              assignmentGroup: webhook.assignment_group,
+              urgency: webhook.urgency,
+              currentCategory: webhook.category,
+              priority: webhook.priority,
+              state: webhook.state,
+              companySysId: webhook.company,
+              companyName: webhook.account_id,
+              discoveryPack,
+            },
+            { classifier: this.classifier }
+          );
 
           if (classificationResult) {
             console.log(
@@ -541,6 +549,27 @@ export class CaseTriageService {
   }
 }
 
+function buildDiscoveryPackForWebhook(
+  webhook: ServiceNowCaseWebhook
+): DiscoveryContextPack {
+  const timestamp = new Date().toISOString();
+
+  return {
+    schemaVersion: "1.0.0",
+    generatedAt: timestamp,
+    metadata: {
+      caseNumbers: [webhook.case_number],
+      companyName: webhook.account_id || undefined,
+    },
+    caseContext: {
+      caseNumber: webhook.case_number,
+      detectedAt: timestamp,
+      lastUpdated: timestamp,
+      messageCount: 0,
+    },
+    policyAlerts: [],
+  };
+}
 // Singleton instance
 let triageService: CaseTriageService | null = null;
 
