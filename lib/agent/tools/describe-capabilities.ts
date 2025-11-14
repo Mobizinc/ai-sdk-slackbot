@@ -48,6 +48,8 @@ const TOOL_CATEGORIES: Record<string, string> = {
   searchCases: "Case Management",
   generateKBArticle: "Knowledge Management",
   proposeContextUpdate: "Infrastructure Management",
+  searchCMDB: "Infrastructure Management",
+  createConfigurationItem: "Infrastructure Management",
   fetchCurrentIssues: "Monitoring",
   microsoftLearnSearch: "Documentation",
   triageCase: "Case Management",

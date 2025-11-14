@@ -117,6 +117,33 @@ export interface ConfigurationItem {
 }
 
 /**
+ * Input for creating a new configuration item
+ */
+export interface CreateConfigurationItemInput {
+  className: string;
+  name: string;
+  shortDescription?: string;
+  ipAddress?: string;
+  environment?: string;
+  ownerGroup?: string;
+  supportGroup?: string;
+  location?: string;
+  status?: string;
+  installStatus?: string;
+  company?: string;
+  attributes?: Record<string, string | undefined>;
+}
+
+/**
+ * Input for creating a CI relationship
+ */
+export interface CreateCIRelationshipInput {
+  parentSysId: string;
+  childSysId: string;
+  relationshipType?: string;
+}
+
+/**
  * Knowledge Article entity
  */
 export interface KnowledgeArticle {

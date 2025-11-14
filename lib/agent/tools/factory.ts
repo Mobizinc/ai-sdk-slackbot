@@ -18,6 +18,7 @@ import { createSearchTool } from "./search";
 import { createKnowledgeBaseTool } from "./knowledge-base";
 import { createContextUpdateTool } from "./context-update";
 import { createCurrentIssuesTool } from "./current-issues";
+import { createCmdbTool, createConfigurationItemTool } from "./cmdb";
 import { createMicrosoftLearnTool } from "./microsoft-learn";
 import { createTriageTool } from "./triage";
 import { createCaseAggregationTool } from "./case-aggregation";
@@ -44,6 +45,7 @@ export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
 export type { FeedbackCollectionInput } from "./feedback-collection";
 export type { DescribeCapabilitiesInput } from "./describe-capabilities";
+export type { CreateCmdbRecordInput } from "./cmdb";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -70,6 +72,8 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     proposeContextUpdate: createContextUpdateTool(params),
     fetchCurrentIssues: createCurrentIssuesTool(params),
     microsoftLearnSearch: createMicrosoftLearnTool(params),
+    searchCMDB: createCmdbTool(params),
+    createConfigurationItem: createConfigurationItemTool(params),
     triageCase: createTriageTool(params),
     caseAggregation: createCaseAggregationTool(params),
     getFirewallStatus: createFortiManagerMonitorTool(params),

@@ -4,7 +4,12 @@
  * Provides a collection-oriented interface for Configuration Item (CI) operations
  */
 
-import type { ConfigurationItem, CISearchCriteria } from "../types/domain-models";
+import type {
+  ConfigurationItem,
+  CISearchCriteria,
+  CreateConfigurationItemInput,
+  CreateCIRelationshipInput,
+} from "../types/domain-models";
 
 /**
  * Repository interface for Configuration Item (CI) entity operations
@@ -64,4 +69,14 @@ export interface CMDBRepository {
    * Get CIs related to a given CI via cmdb_rel_ci table
    */
   getRelatedCIs(ciSysId: string, relationshipType?: string): Promise<ConfigurationItem[]>;
+
+  /**
+   * Create a configuration item
+   */
+  create(input: CreateConfigurationItemInput): Promise<ConfigurationItem>;
+
+  /**
+   * Create a CI relationship
+   */
+  createRelationship(input: CreateCIRelationshipInput): Promise<{ sysId: string }>;
 }

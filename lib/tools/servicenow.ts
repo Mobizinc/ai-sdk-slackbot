@@ -24,6 +24,8 @@ import type {
   CreateSPMProjectInput,
   UpdateSPMProjectInput,
   SPMSearchCriteria,
+  CreateConfigurationItemInput,
+  CreateCIRelationshipInput,
 } from "../infrastructure/servicenow/types";
 import {
   getCaseRepository,
@@ -74,6 +76,26 @@ const serviceNowConfig: ServiceNowConfig = {
   ciTable: (appConfig.servicenowCiTable || "cmdb_ci").trim(),
   taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
 };
+
+const SERVER_CLASS_EXPANSION = [
+  "cmdb_ci_server",
+  "cmdb_ci_computer",
+  "cmdb_ci_win_server",
+  "cmdb_ci_unix_server",
+  "cmdb_ci_linux_server",
+  "cmdb_ci_mainframe",
+  "cmdb_ci_vm_instance",
+  "cmdb_ci_virtual_machine",
+  "cmdb_ci_cloud_host",
+];
+
+function expandClassNames(className?: string): string[] | null {
+  if (!className) return null;
+  if (className === "cmdb_ci_server" || className === "cmdb_ci_computer") {
+    return SERVER_CLASS_EXPANSION;
+  }
+  return [className];
+}
 
 function detectAuthMode(): ServiceNowAuthMode | null {
   if (serviceNowConfig.username && serviceNowConfig.password) {
@@ -361,6 +383,8 @@ export interface ServiceNowConfigurationItem {
   fqdn?: string;
   host_name?: string;
   ip_addresses: string[];
+  company?: string;
+  company_name?: string;
   owner_group?: string;
   support_group?: string;
   location?: string;
@@ -484,6 +508,26 @@ export class ServiceNowClient {
       this.cmdbRepository = getCmdbRepository();
     }
     return this.cmdbRepository;
+  }
+
+  private mapDomainCi(item: ConfigurationItem): ServiceNowConfigurationItem {
+    return {
+      sys_id: item.sysId,
+      name: item.name,
+      sys_class_name: item.className,
+      fqdn: item.fqdn,
+      host_name: item.hostName,
+      ip_addresses: item.ipAddresses,
+      company: item.company,
+      company_name: item.companyName,
+      owner_group: item.ownerGroup,
+      support_group: item.supportGroup,
+      location: item.location,
+      environment: item.environment,
+      status: item.status,
+      description: item.description,
+      url: item.url,
+    };
   }
 
   private getCustomerAccountRepo(): CustomerAccountRepository {
@@ -1334,22 +1378,7 @@ export class ServiceNowClient {
 
         const items = await cmdbRepo.search(criteria);
 
-        return items.map((item: ConfigurationItem) => ({
-          sys_id: item.sysId,
-          name: item.name,
-          sys_class_name: item.className,
-          fqdn: item.fqdn,
-          host_name: item.hostName,
-          ip_addresses: item.ipAddresses,
-          company: item.companyName,
-          owner_group: item.ownerGroup,
-          support_group: item.supportGroup,
-          location: item.location,
-          environment: item.environment,
-          status: item.status,
-          description: item.description,
-          url: item.url,
-        }));
+        return items.map((item: ConfigurationItem) => this.mapDomainCi(item));
       } catch (error) {
         console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
           name: input.name,
@@ -1385,8 +1414,15 @@ export class ServiceNowClient {
       }
     }
 
-    if (input.className) {
-      queryGroups.push(`sys_class_name=${input.className}`);
+    const expandedClassNames = expandClassNames(input.className);
+    if (expandedClassNames?.length) {
+      if (expandedClassNames.length === 1) {
+        queryGroups.push(`sys_class_name=${expandedClassNames[0]}`);
+      } else {
+        queryGroups.push(
+          expandedClassNames.map((cls) => `sys_class_name=${cls}`).join("^OR"),
+        );
+      }
     }
 
     if (input.company) {
@@ -1436,13 +1472,15 @@ export class ServiceNowClient {
         extractDisplayValue(item.host_name) ||
         sysId;
 
-      return {
+      const mapped = {
         sys_id: sysId,
         name,
         sys_class_name: extractDisplayValue(item.sys_class_name) || undefined,
         fqdn: extractDisplayValue(item.fqdn) || extractDisplayValue(item.u_fqdn) || undefined,
         host_name: extractDisplayValue(item.host_name) || undefined,
         ip_addresses: normalizeIpAddresses(item.ip_address ?? item.u_ip_address),
+        company: extractReferenceSysId(item.company) || undefined,
+        company_name: extractDisplayValue(item.company) || undefined,
         owner_group: extractDisplayValue(item.owner) || extractDisplayValue(item.support_group) || undefined,
         support_group: extractDisplayValue(item.support_group) || undefined,
         location: extractDisplayValue(item.location) || undefined,
@@ -1457,7 +1495,116 @@ export class ServiceNowClient {
           undefined,
         url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`,
       } satisfies ServiceNowConfigurationItem;
+      return mapped;
     });
+  }
+
+  public async createConfigurationItem(
+    input: CreateConfigurationItemInput,
+    context?: ServiceNowContext,
+  ): Promise<ServiceNowConfigurationItem> {
+    if (!input.className?.trim()) {
+      throw new Error("className is required to create a configuration item.");
+    }
+    if (!input.name?.trim()) {
+      throw new Error("name is required to create a configuration item.");
+    }
+
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] createConfigurationItem using ${useNewPath ? "NEW" : "OLD"} path`, {
+      className: input.className,
+      name: input.name,
+      company: input.company,
+      environment: input.environment,
+    });
+
+    if (useNewPath) {
+      try {
+        const cmdbRepo = this.getCmdbRepo();
+        const created = await cmdbRepo.create(input);
+        return this.mapDomainCi(created);
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          className: input.className,
+          name: input.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const table = input.className.trim();
+    const payload: Record<string, any> = {
+      name: input.name,
+      short_description: input.shortDescription,
+      ip_address: input.ipAddress,
+      u_environment: input.environment,
+      owner: input.ownerGroup,
+      support_group: input.supportGroup,
+      location: input.location,
+      operational_status: input.status,
+      install_status: input.installStatus,
+      company: input.company,
+    };
+
+    if (input.attributes) {
+      for (const [key, value] of Object.entries(input.attributes)) {
+        if (value !== undefined && value !== null && value !== "") {
+          payload[key] = value;
+        }
+      }
+    }
+
+    for (const key of Object.keys(payload)) {
+      if (
+        payload[key] === undefined ||
+        payload[key] === null ||
+        payload[key] === ""
+      ) {
+        delete payload[key];
+      }
+    }
+
+    const data = await request<{
+      result: Array<Record<string, any>> | Record<string, any>;
+    }>(`/api/now/table/${table}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    const record = Array.isArray(data.result) ? data.result[0] : data.result;
+    if (!record?.sys_id) {
+      throw new Error("ServiceNow did not return a sys_id for the created CI.");
+    }
+
+    const createdItems = await this.searchConfigurationItems(
+      { sysId: record.sys_id, className: input.className, limit: 1 },
+      context,
+    );
+
+    if (createdItems.length > 0) {
+      return createdItems[0];
+    }
+
+    return {
+      sys_id: record.sys_id,
+      name: input.name,
+      sys_class_name: input.className,
+      ip_addresses: input.ipAddress ? [input.ipAddress] : [],
+      environment: input.environment,
+      location: input.location,
+      owner_group: input.ownerGroup,
+      support_group: input.supportGroup,
+      status: input.status,
+      description: input.shortDescription,
+      company: input.company,
+      company_name: input.company,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${record.sys_id}`,
+    };
   }
 
   public async getCIRelationships(
@@ -1498,21 +1645,7 @@ export class ServiceNowClient {
         // Limit results
         const limitedCIs = relatedCIs.slice(0, effectiveLimit);
 
-        return limitedCIs.map((item) => ({
-          sys_id: item.sysId,
-          name: item.name,
-          sys_class_name: item.className,
-          fqdn: item.fqdn,
-          host_name: item.hostName,
-          ip_addresses: item.ipAddresses,
-          owner_group: item.ownerGroup,
-          support_group: item.supportGroup,
-          location: item.location,
-          environment: item.environment,
-          status: item.status,
-          description: item.description,
-          url: item.url,
-        }));
+        return limitedCIs.map((item) => this.mapDomainCi(item));
       } catch (error) {
         console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
           ciSysId: input.ciSysId,
@@ -1580,6 +1713,68 @@ export class ServiceNowClient {
     }
 
     return relatedCIs;
+  }
+
+  public async createCIRelationship(
+    input: CreateCIRelationshipInput,
+    context?: ServiceNowContext,
+  ): Promise<{ sys_id: string }> {
+    if (!input.parentSysId || !input.childSysId) {
+      throw new Error("parentSysId and childSysId are required to create a CI relationship.");
+    }
+
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] createCIRelationship using ${useNewPath ? "NEW" : "OLD"} path`, {
+      parent: input.parentSysId,
+      child: input.childSysId,
+      relationshipType: input.relationshipType,
+    });
+
+    if (useNewPath) {
+      try {
+        const cmdbRepo = this.getCmdbRepo();
+        const result = await cmdbRepo.createRelationship({
+          parentSysId: input.parentSysId,
+          childSysId: input.childSysId,
+          relationshipType: input.relationshipType,
+        });
+        return { sys_id: result.sysId };
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          parent: input.parentSysId,
+          child: input.childSysId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const payload: Record<string, any> = {
+      parent: input.parentSysId,
+      child: input.childSysId,
+    };
+
+    if (input.relationshipType) {
+      payload.type = input.relationshipType;
+    }
+
+    const data = await request<{
+      result: Array<Record<string, any>> | Record<string, any>;
+    }>("/api/now/table/cmdb_rel_ci", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    const record = Array.isArray(data.result) ? data.result[0] : data.result;
+    if (!record?.sys_id) {
+      throw new Error("Failed to create CI relationship in ServiceNow.");
+    }
+
+    return { sys_id: record.sys_id };
   }
 
   public async searchCustomerCases(
