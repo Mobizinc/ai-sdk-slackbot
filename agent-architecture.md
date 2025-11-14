@@ -5,7 +5,11 @@
 
 - **Shared Context Store**  
   Existing context manager plus ServiceNow snapshots. Serves as the single source of truth for transcripts, case metadata, and recent journal extracts.
-  - **Open Question:** What retention, tenant-isolation, and RBAC/PII-redaction policies govern this store so concurrent specialists don’t clobber each other’s state and compliance knows how long ServiceNow-derived data persists?
+  - **Data Governance Policies (2025-02-10):**  
+    - **Retention:** Slack transcripts and deterministic context are persisted in `case_contexts`/`case_messages` for 72 hours and then purged by `ContextManager.cleanupOldContexts()` (now invoked via `/api/cron/cleanup-workflows`). ServiceNow webhook payloads and classification snapshots that land in `case_classification_inbound/results` are deleted after 30 days through `CaseClassificationRepository.cleanupOldData`, so auditors know exactly how long ServiceNow-derived data lives.  
+    - **Tenant isolation & concurrency control:** Context store keys are `case_number + channel_id + thread_ts`, matching the Postgres primary key and preventing overlaps even when case numbers collide across clients. The orchestrator resolves `routing_context` + `clientScopePolicy` before constructing a discovery pack, so a specialist can only read/write the context that matches the Slack workspace/case they are actively handling.  
+    - **RBAC & auditability:** Only backend services (orchestrator, supervisor, cronjobs) can call the context manager, and every write path runs through `CaseContextRepository.saveContext`’s conflict-safe upsert with structured logging. Human operators interact via `/review-latest`/admin APIs that require `ADMIN_API_KEY`, and their approvals are stored in `interactive_states`, giving compliance an immutable trail.  
+    - **PII redaction:** `sanitizeContextMessage` redacts emails, phone numbers, SSNs, MRNs, and PANs before we store Slack text, and the sanitized transcript is also what feeds discovery/classification prompts. Tracing/export layers reuse `sanitizeForTracing`, so no raw identifiers leak to LangSmith or telemetry sinks.
 
 - **Orchestrator**  
   Inspects intent and routes work to the appropriate specialist agent (triage, KB drafting, escalation, etc.), enforcing prerequisites (valid case number, permissions) before dispatch.
