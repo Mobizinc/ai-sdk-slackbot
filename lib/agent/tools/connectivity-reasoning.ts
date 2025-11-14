@@ -113,6 +113,7 @@ export function createConnectivityReasoningTool(params: AgentToolFactoryParams) 
           options: {
             skipToolCalls,
             toolTimeout: 15000, // 15 second timeout per tool
+            deviceName, // Pass through for targeted diagnostics
           },
         };
 

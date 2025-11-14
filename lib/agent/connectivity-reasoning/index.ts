@@ -76,13 +76,15 @@ function canCallTool(toolName: string): boolean {
       // Check if we should transition to half-open
       if (breaker.nextRetryAt && now >= breaker.nextRetryAt) {
         breaker.state = "half-open";
+        breaker.lastAttempt = now; // Record attempt timestamp
         return true;
       }
       return false;
 
     case "half-open":
-      // Allow one attempt
+      // Allow one attempt if enough time has passed since last attempt
       if (!breaker.lastAttempt || now - breaker.lastAttempt >= CIRCUIT_BREAKER_CONFIG.halfOpenTimeout) {
+        breaker.lastAttempt = now; // Record this attempt
         return true;
       }
       return false;
@@ -290,7 +292,7 @@ function buildDeviceStatuses(
 async function callNetworkTools(
   devices: Array<{ name: string; type: string }>,
   customerName?: string,
-  options?: { skipToolCalls?: boolean; toolTimeout?: number }
+  options?: { skipToolCalls?: boolean; toolTimeout?: number; deviceName?: string }
 ): Promise<NetworkToolResults> {
   if (options?.skipToolCalls) {
     return {};
@@ -298,6 +300,19 @@ async function callNetworkTools(
 
   const timeout = options?.toolTimeout || 15000;
   const results: NetworkToolResults = {};
+
+  // Filter devices by deviceName if specified
+  let filteredDevices = devices;
+  if (options?.deviceName) {
+    filteredDevices = devices.filter(
+      (d) => d.name.toLowerCase() === options.deviceName!.toLowerCase()
+    );
+    if (filteredDevices.length === 0) {
+      console.warn(`[ConnectivityReasoning] Device '${options.deviceName}' not found in CMDB network devices`);
+      return results;
+    }
+    console.log(`[ConnectivityReasoning] Targeting specific device: ${options.deviceName}`);
+  }
 
   // Import services dynamically to avoid circular dependencies
   const { getFortiManagerMonitorService } = await import("../../services/fortimanager-monitor-service");
@@ -326,146 +341,160 @@ async function callNetworkTools(
     };
   };
 
-  // Call FortiManager for firewalls
-  const firewallDevices = devices.filter((d) =>
+  // Identify devices to query (use filtered list if deviceName specified)
+  const firewallDevices = filteredDevices.filter((d) =>
     d.type.toLowerCase().includes("firewall") ||
     d.type.toLowerCase().includes("fortinet") ||
     d.type.toLowerCase().includes("fortigate")
   );
 
-  if (firewallDevices.length > 0 && canCallTool("fortimanager")) {
-    const fmConfig = getFortiManagerConfig(customerName);
-
-    if (fmConfig && fmConfig.url) {
-      try {
-        const fmService = getFortiManagerMonitorService();
-        // Try first firewall device
-        const device = firewallDevices[0];
-
-        console.log(`[ConnectivityReasoning] Calling FortiManager for ${device.name}...`);
-
-        const report = await Promise.race([
-          fmService.getFirewallHealthReport(device.name, fmConfig, {
-            includeInterfaces: true,
-            includeResources: true,
-            bypassCache: false,
-          }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("FortiManager timeout")), timeout)
-          ),
-        ]);
-
-        results.fortimanager = {
-          success: true,
-          device_name: device.name,
-          customer: customerName,
-          summary: report.summary,
-          warnings: report.warnings,
-          connection: report.connection.connected,
-          health: report.health,
-          interfaces: report.health.interfaces,
-          interfaces_down: report.health.interfaces
-            ?.filter((iface: any) => !iface.link)
-            .map((iface: any) => iface.name),
-          from_cache: report.fromCache,
-        };
-
-        recordToolSuccess("fortimanager");
-        console.log(`[ConnectivityReasoning] FortiManager call succeeded for ${device.name}`);
-      } catch (error: any) {
-        console.error(`[ConnectivityReasoning] FortiManager call failed:`, error.message);
-        results.fortimanager = {
-          success: false,
-          error: error.message,
-        };
-        recordToolFailure("fortimanager");
-      }
-    } else {
-      console.warn(`[ConnectivityReasoning] FortiManager credentials not configured for ${customerName || "default"}`);
-    }
-  }
-
-  // Call VeloCloud for SD-WAN edges
-  const sdwanDevices = devices.filter((d) =>
+  const sdwanDevices = filteredDevices.filter((d) =>
     d.type.toLowerCase().includes("sdwan") ||
     d.type.toLowerCase().includes("velocloud") ||
     d.type.toLowerCase().includes("edge")
   );
 
+  // Build promises for parallel execution
+  const promises: Array<Promise<void>> = [];
+
+  // FortiManager promise
+  if (firewallDevices.length > 0 && canCallTool("fortimanager")) {
+    const fmConfig = getFortiManagerConfig(customerName);
+
+    if (fmConfig && fmConfig.url) {
+      const fmPromise = (async () => {
+        try {
+          const fmService = getFortiManagerMonitorService();
+          const device = firewallDevices[0];
+
+          console.log(`[ConnectivityReasoning] Calling FortiManager for ${device.name}...`);
+
+          const report = await Promise.race([
+            fmService.getFirewallHealthReport(device.name, fmConfig, {
+              includeInterfaces: true,
+              includeResources: true,
+              bypassCache: false,
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("FortiManager timeout")), timeout)
+            ),
+          ]);
+
+          results.fortimanager = {
+            success: true,
+            device_name: device.name,
+            customer: customerName,
+            summary: report.summary,
+            warnings: report.warnings,
+            connection: report.connection.connected,
+            health: report.health,
+            interfaces: report.health.interfaces,
+            interfaces_down: report.health.interfaces
+              ?.filter((iface: any) => !iface.link)
+              .map((iface: any) => iface.name),
+            from_cache: report.fromCache,
+          };
+
+          recordToolSuccess("fortimanager");
+          console.log(`[ConnectivityReasoning] FortiManager call succeeded for ${device.name}`);
+        } catch (error: any) {
+          console.error(`[ConnectivityReasoning] FortiManager call failed:`, error.message);
+          results.fortimanager = {
+            success: false,
+            error: error.message,
+          };
+          recordToolFailure("fortimanager");
+        }
+      })();
+
+      promises.push(fmPromise);
+    } else {
+      console.warn(`[ConnectivityReasoning] FortiManager credentials not configured for ${customerName || "default"}`);
+    }
+  }
+
+  // VeloCloud promise
   if (sdwanDevices.length > 0 && canCallTool("velocloud")) {
     const vcConfig = resolveVeloCloudConfig(customerName);
 
     if (vcConfig) {
-      try {
-        const vcService = getVeloCloudService();
+      const vcPromise = (async () => {
+        try {
+          const vcService = getVeloCloudService();
 
-        console.log(`[ConnectivityReasoning] Calling VeloCloud for edges...`);
+          console.log(`[ConnectivityReasoning] Calling VeloCloud for edges...`);
 
-        // Get edges
-        const edges = await Promise.race([
-          vcService.listEdges(vcConfig.config),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("VeloCloud timeout")), timeout)
-          ),
-        ]);
+          // Get edges
+          const edges = await Promise.race([
+            vcService.listEdges(vcConfig.config),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("VeloCloud timeout")), timeout)
+            ),
+          ]);
 
-        // Get links for first edge
-        let links: any[] = [];
-        if (edges && edges.length > 0) {
-          const edge = edges[0];
-          if (edge.id) {
-            try {
-              links = await Promise.race([
-                vcService.getEdgeLinkStatus(vcConfig.config, { edgeId: edge.id }),
-                new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error("VeloCloud links timeout")), timeout)
-                ),
-              ]);
-            } catch (linkError: any) {
-              console.warn(`[ConnectivityReasoning] Failed to get VeloCloud links: ${linkError.message}`);
+          // Get links for first edge
+          let links: any[] = [];
+          if (edges && edges.length > 0) {
+            const edge = edges[0];
+            if (edge.id) {
+              try {
+                links = await Promise.race([
+                  vcService.getEdgeLinkStatus(vcConfig.config, { edgeId: edge.id }),
+                  new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error("VeloCloud links timeout")), timeout)
+                  ),
+                ]);
+              } catch (linkError: any) {
+                console.warn(`[ConnectivityReasoning] Failed to get VeloCloud links: ${linkError.message}`);
+              }
             }
           }
+
+          // Map to expected format
+          const formattedEdges = edges.map((e: any) => ({
+            id: e.id || 0,
+            name: e.name || "",
+            activationState: e.activationState || "UNKNOWN",
+            edgeState: e.edgeState || "UNKNOWN",
+          }));
+
+          const formattedLinks = links.map((link: any) => ({
+            displayName: link.name || "",
+            state: link.linkState || "UNKNOWN",
+            vpnState: link.linkState || "UNKNOWN",
+            linkQuality: {
+              jitter: link.jitterMs,
+              latency: link.latencyMs,
+              loss: link.lossPct,
+            },
+          }));
+
+          results.velocloud = {
+            success: true,
+            edges: formattedEdges,
+            links: formattedLinks,
+          };
+
+          recordToolSuccess("velocloud");
+          console.log(`[ConnectivityReasoning] VeloCloud call succeeded`);
+        } catch (error: any) {
+          console.error(`[ConnectivityReasoning] VeloCloud call failed:`, error.message);
+          results.velocloud = {
+            success: false,
+            error: error.message,
+          };
+          recordToolFailure("velocloud");
         }
+      })();
 
-        // Map to expected format
-        const formattedEdges = edges.map((e: any) => ({
-          id: e.id || 0,
-          name: e.name || "",
-          activationState: e.activationState || "UNKNOWN",
-          edgeState: e.edgeState || "UNKNOWN",
-        }));
-
-        const formattedLinks = links.map((link: any) => ({
-          displayName: link.name || "",
-          state: link.linkState || "UNKNOWN",
-          vpnState: link.linkState || "UNKNOWN",
-          linkQuality: {
-            jitter: link.jitterMs,
-            latency: link.latencyMs,
-            loss: link.lossPct,
-          },
-        }));
-
-        results.velocloud = {
-          success: true,
-          edges: formattedEdges,
-          links: formattedLinks,
-        };
-
-        recordToolSuccess("velocloud");
-        console.log(`[ConnectivityReasoning] VeloCloud call succeeded`);
-      } catch (error: any) {
-        console.error(`[ConnectivityReasoning] VeloCloud call failed:`, error.message);
-        results.velocloud = {
-          success: false,
-          error: error.message,
-        };
-        recordToolFailure("velocloud");
-      }
+      promises.push(vcPromise);
     } else {
       console.warn(`[ConnectivityReasoning] VeloCloud credentials not configured for ${customerName || "default"}`);
     }
   }
+
+  // Execute all network tool calls in parallel
+  await Promise.allSettled(promises);
 
   return results;
 }

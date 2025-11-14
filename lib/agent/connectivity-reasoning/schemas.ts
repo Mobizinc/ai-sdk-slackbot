@@ -86,6 +86,9 @@ export interface ConnectivityReasoningInput {
 
     /** Maximum time to wait for network tool responses (ms) */
     toolTimeout?: number;
+
+    /** Optional specific device name to analyze (e.g., 'ALT-HOU-FW01') */
+    deviceName?: string;
   };
 }
 
