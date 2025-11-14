@@ -27,6 +27,7 @@ import { createCaseAggregationTool } from "./case-aggregation";
 import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
 import { createVeloCloudTool } from "./velocloud";
+import { createConnectivityReasoningTool } from "./connectivity-reasoning";
 import { createFeedbackCollectionTool } from "./feedback-collection";
 import { createDescribeCapabilitiesTool } from "./describe-capabilities";
 import type { AgentToolFactoryParams } from "./shared";
@@ -45,6 +46,7 @@ export type { CaseAggregationInput } from "./case-aggregation";
 export type { CaseSearchInput } from "./case-search";
 export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
+export type { ConnectivityReasoningToolInput } from "./connectivity-reasoning";
 export type { FeedbackCollectionInput } from "./feedback-collection";
 export type { DescribeCapabilitiesInput } from "./describe-capabilities";
 export type { ClassificationAgentInput } from "./classification-agent";
@@ -65,7 +67,6 @@ export type { AgentToolFactoryParams } from "./shared";
  */
 export function createAgentTools(params: AgentToolFactoryParams) {
   // Create all tools as a single object
-  // describeCapabilities gets access to all tools via closure for true introspection
   const tools = {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
@@ -84,21 +85,39 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     caseAggregation: createCaseAggregationTool(params),
     getFirewallStatus: createFortiManagerMonitorTool(params),
     queryVelocloud: createVeloCloudTool(params),
+    diagnoseConnectivity: createConnectivityReasoningTool(params),
     collectFeatureFeedback: createFeedbackCollectionTool(params),
   };
 
-  // Create describeCapabilities with access to all other tools for runtime introspection
-  // This enables true dynamic discovery without hardcoded metadata
+  const filteredTools = filterToolsByAllowList(tools, params.allowedTools);
+
   const describeCapabilities = createDescribeCapabilitiesTool(
     params,
-    () => tools as any // Return all tools for introspection
+    () => filteredTools as any
   );
 
-  // Return complete tool set with describeCapabilities at the front for priority
   return {
     describeCapabilities,
-    ...tools,
+    ...filteredTools,
   };
+}
+
+function filterToolsByAllowList(
+  tools: Record<string, any>,
+  allowList?: string[]
+): Record<string, any> {
+  if (!allowList || allowList.length === 0) {
+    return tools;
+  }
+
+  const allowed = new Set(allowList);
+  const entries = Object.entries(tools).filter(([name]) => allowed.has(name));
+
+  if (entries.length === 0) {
+    return tools;
+  }
+
+  return Object.fromEntries(entries);
 }
 
 /**
