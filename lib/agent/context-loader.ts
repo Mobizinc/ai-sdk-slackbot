@@ -16,6 +16,7 @@ import { generateDiscoveryContextPack } from "./discovery/context-pack";
 import { createChildSpan } from "../observability";
 import { getCaseRepository } from "../infrastructure/servicenow/repositories";
 import type { Case } from "../infrastructure/servicenow/types/domain-models";
+import { maybePrefetchCmdb } from "./cmdb-prefetch";
 
 export interface ContextLoaderInput {
   messages: CoreMessage[];
@@ -186,8 +187,22 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     }
   }
 
+  let enrichedMessages = input.messages;
+
+  if (getConfigValue("autoCmdbLookupEnabled")) {
+    const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
+      channelId: input.channelId,
+      companyName: metadata.companyName as string | undefined,
+    });
+
+    if (cmdbPrefetch) {
+      enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
+      metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+    }
+  }
+
   return {
-    messages: input.messages,
+    messages: enrichedMessages,
     metadata,
   };
 }

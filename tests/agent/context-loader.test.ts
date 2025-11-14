@@ -9,12 +9,15 @@ import { getBusinessContextService } from "../../lib/services/business-context-s
 import { getSearchFacadeService } from "../../lib/services/search-facade";
 import { getSlackMessagingService } from "../../lib/services/slack-messaging";
 import { generateDiscoveryContextPack } from "../../lib/agent/discovery/context-pack";
+import { serviceNowClient } from "../../lib/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "../../lib/services/servicenow-formatters";
 
 // Mock dependencies
 const configValues: Record<string, any> = {
   discoveryContextPackEnabled: false,
   discoverySlackMessageLimit: 5,
   discoverySimilarCasesTopK: 3,
+  autoCmdbLookupEnabled: true,
 };
 
 const mockCaseRepository = {
@@ -45,6 +48,18 @@ vi.mock("../../lib/db/repositories/business-context-repository");
 vi.mock("../../lib/infrastructure/servicenow/repositories", () => ({
   getCaseRepository: () => mockCaseRepository,
 }));
+vi.mock("../../lib/tools/servicenow", () => ({
+  serviceNowClient: {
+    isConfigured: vi.fn().mockReturnValue(true),
+    searchConfigurationItems: vi.fn().mockResolvedValue([]),
+  },
+}));
+vi.mock("../../lib/services/servicenow-formatters", () => ({
+  formatConfigurationItemsForLLM: vi.fn().mockReturnValue({
+    summary: "Summary\nNo configuration items found.",
+    rawData: [],
+  }),
+}));
 
 describe("Context Loader", () => {
   let mockContextManager: any;
@@ -52,10 +67,15 @@ describe("Context Loader", () => {
   let mockSearchFacade: any;
   let mockSlackMessaging: any;
   let mockBusinessContextRepository: any;
+  const mockServiceNowClient = serviceNowClient as unknown as {
+    isConfigured: vi.Mock;
+    searchConfigurationItems: vi.Mock;
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
     configValues.discoveryContextPackEnabled = false;
+    configValues.autoCmdbLookupEnabled = false;
     (generateDiscoveryContextPack as unknown as vi.Mock).mockResolvedValue({
       generatedAt: "2024-01-01T00:00:00.000Z",
       metadata: { caseNumbers: [] },
@@ -63,6 +83,12 @@ describe("Context Loader", () => {
     });
     mockCaseRepository.findByNumber.mockReset().mockResolvedValue(null);
     mockCaseRepository.getJournalEntries.mockReset().mockResolvedValue([]);
+    mockServiceNowClient.isConfigured.mockReturnValue(true);
+    mockServiceNowClient.searchConfigurationItems.mockReset().mockResolvedValue([]);
+    (formatConfigurationItemsForLLM as vi.Mock).mockReturnValue({
+      summary: "Summary\nNo configuration items found.",
+      rawData: [],
+    });
 
     // Setup context manager mock
     mockContextManager = {
@@ -97,6 +123,50 @@ describe("Context Loader", () => {
       getAllActive: vi.fn().mockResolvedValue([]),
     };
     (businessContextRepo.getBusinessContextRepository as any).mockReturnValue(mockBusinessContextRepository);
+  });
+
+  describe("Auto CMDB Prefetch", () => {
+    it("should append CMDB prefetch message when infrastructure keywords detected", async () => {
+      configValues.autoCmdbLookupEnabled = true;
+      mockBusinessContextRepository.getAllActive.mockResolvedValue([
+        { entityName: "Altus Community Healthcare", aliases: ["Altus"] },
+      ]);
+      mockServiceNowClient.searchConfigurationItems.mockResolvedValue([
+        {
+          sys_id: "ci123",
+          name: "ALTUS-CORE-01",
+          sys_class_name: "cmdb_ci_win_server",
+          fqdn: "altus-core-01.internal",
+          host_name: "ALTUS-CORE-01",
+          ip_addresses: ["10.10.10.10"],
+          company: "c3eec28c931c9a1049d9764efaba10f3",
+          company_name: "Altus Community Healthcare",
+          owner_group: "Infrastructure",
+          support_group: "Infrastructure",
+          location: "Houston",
+          environment: "production",
+          status: "Operational",
+          description: "Altus core host",
+          url: "https://example.service-now.com/cmdb_ci.do?sys_id=ci123",
+        },
+      ]);
+      (formatConfigurationItemsForLLM as vi.Mock).mockReturnValue({
+        summary: "Summary\n• ALTUS-CORE-01 [Type: cmdb_ci_win_server | Env: production]",
+        rawData: [],
+      });
+
+      const result = await loadContext({
+        messages: [{ role: "user", content: "What servers do we have for Altus?" }],
+      });
+
+      const lastMessage = result.messages[result.messages.length - 1];
+      expect(lastMessage.role).toBe("assistant");
+      expect(String(lastMessage.content)).toContain("Auto CMDB Lookup");
+      expect(result.metadata.cmdbPrefetch).toMatchObject({
+        totalResults: 1,
+      });
+      expect(mockServiceNowClient.searchConfigurationItems).toHaveBeenCalled();
+    });
   });
 
   describe("Case Number Extraction", () => {

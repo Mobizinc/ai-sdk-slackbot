@@ -1,11 +1,36 @@
 import type { ServiceNowHttpClient } from "../client/http-client";
 import type { CMDBRepository } from "./cmdb-repository.interface";
-import type { ConfigurationItem, CISearchCriteria } from "../types/domain-models";
-import type { ConfigurationItemRecord } from "../types/api-responses";
+import type {
+  ConfigurationItem,
+  CISearchCriteria,
+  CreateConfigurationItemInput,
+  CreateCIRelationshipInput,
+} from "../types/domain-models";
+import type { ConfigurationItemRecord, ServiceNowTableResponse } from "../types/api-responses";
 import { mapConfigurationItem } from "../client/mappers";
 
 export interface CMDBRepositoryConfig {
   table: string;
+}
+
+const SERVER_CLASS_EXPANSION = [
+  "cmdb_ci_server",
+  "cmdb_ci_computer",
+  "cmdb_ci_win_server",
+  "cmdb_ci_unix_server",
+  "cmdb_ci_linux_server",
+  "cmdb_ci_mainframe",
+  "cmdb_ci_vm_instance",
+  "cmdb_ci_virtual_machine",
+  "cmdb_ci_cloud_host",
+];
+
+function expandClassNames(className?: string): string[] {
+  if (!className) return [];
+  if (className === "cmdb_ci_server" || className === "cmdb_ci_computer") {
+    return SERVER_CLASS_EXPANSION;
+  }
+  return [className];
 }
 
 export class ServiceNowCMDBRepository implements CMDBRepository {
@@ -56,26 +81,29 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
 
     if (criteria.name) {
       queryParts.push(
-        `name LIKE ${criteria.name}^OR fqdn LIKE ${criteria.name}^OR host_name LIKE ${criteria.name}`,
+        `nameLIKE${criteria.name}^ORfqdnLIKE${criteria.name}^ORhost_nameLIKE${criteria.name}`,
       );
     }
 
     if (criteria.ipAddress) {
       queryParts.push(
-        `ip_address LIKE ${criteria.ipAddress}^OR u_ip_address LIKE ${criteria.ipAddress}`,
+        `ip_addressLIKE${criteria.ipAddress}^ORu_ip_addressLIKE${criteria.ipAddress}^ORfqdnLIKE${criteria.ipAddress}`,
       );
     }
 
     if (criteria.fqdn) {
-      queryParts.push(`fqdn LIKE ${criteria.fqdn}^OR u_fqdn LIKE ${criteria.fqdn}`);
+      queryParts.push(`fqdnLIKE${criteria.fqdn}^ORu_fqdnLIKE${criteria.fqdn}`);
     }
 
-    if (criteria.className) {
-      queryParts.push(`sys_class_name=${criteria.className}`);
+    const expandedClasses = expandClassNames(criteria.className);
+    if (expandedClasses.length === 1) {
+      queryParts.push(`sys_class_name=${expandedClasses[0]}`);
+    } else if (expandedClasses.length > 1) {
+      queryParts.push(expandedClasses.map((cls) => `sys_class_name=${cls}`).join("^OR"));
     }
 
     if (criteria.company) {
-      queryParts.push(`company.name LIKE ${criteria.company}`);
+      queryParts.push(`company.nameLIKE${criteria.company}`);
     }
 
     if (criteria.ownerGroup) {
@@ -91,7 +119,7 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
     }
 
     if (criteria.location) {
-      queryParts.push(`location LIKE ${criteria.location}`);
+      queryParts.push(`locationLIKE${criteria.location}`);
     }
 
     if (queryParts.length === 0) {
@@ -184,5 +212,94 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
     }
 
     return relatedCIs;
+  }
+
+  async create(input: CreateConfigurationItemInput): Promise<ConfigurationItem> {
+    const table = input.className?.trim() || this.table;
+    const payload: Record<string, any> = {
+      name: input.name,
+      short_description: input.shortDescription,
+      ip_address: input.ipAddress,
+      u_environment: input.environment,
+      owner: input.ownerGroup,
+      support_group: input.supportGroup,
+      location: input.location,
+      operational_status: input.status,
+      install_status: input.installStatus,
+      company: input.company,
+    };
+
+    if (table === "cmdb_ci" && input.className) {
+      payload.sys_class_name = input.className;
+    }
+
+    if (input.attributes) {
+      for (const [key, value] of Object.entries(input.attributes)) {
+        if (typeof value === "string" && value.length > 0) {
+          payload[key] = value;
+        }
+      }
+    }
+
+    // Remove undefined / empty string values
+    for (const key of Object.keys(payload)) {
+      if (
+        payload[key] === undefined ||
+        payload[key] === null ||
+        payload[key] === ""
+      ) {
+        delete payload[key];
+      }
+    }
+
+    const response = await this.httpClient.request<ServiceNowTableResponse<ConfigurationItemRecord>>(
+      `/api/now/table/${table}`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const record = Array.isArray(response.result) ? response.result[0] : response.result;
+    if (!record?.sys_id) {
+      throw new Error("Failed to create configuration item in ServiceNow.");
+    }
+
+    const created = await this.findBySysId(record.sys_id);
+    if (!created) {
+      throw new Error(`Configuration item ${record.sys_id} created but not retrievable.`);
+    }
+
+    return created;
+  }
+
+  async createRelationship(input: CreateCIRelationshipInput): Promise<{ sysId: string }> {
+    if (!input.parentSysId || !input.childSysId) {
+      throw new Error("Both parentSysId and childSysId are required to create a CI relationship.");
+    }
+
+    const payload: Record<string, any> = {
+      parent: input.parentSysId,
+      child: input.childSysId,
+    };
+
+    if (input.relationshipType) {
+      payload.type = input.relationshipType;
+    }
+
+    const response = await this.httpClient.request<ServiceNowTableResponse<{ sys_id: string }>>(
+      `/api/now/table/cmdb_rel_ci`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const record = Array.isArray(response.result) ? response.result[0] : response.result;
+    if (!record?.sys_id) {
+      throw new Error("Failed to create CI relationship in ServiceNow.");
+    }
+
+    return { sysId: record.sys_id };
   }
 }
