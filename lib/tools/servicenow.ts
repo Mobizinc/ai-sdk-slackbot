@@ -77,6 +77,26 @@ const serviceNowConfig: ServiceNowConfig = {
   taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
 };
 
+const SERVER_CLASS_EXPANSION = [
+  "cmdb_ci_server",
+  "cmdb_ci_computer",
+  "cmdb_ci_win_server",
+  "cmdb_ci_unix_server",
+  "cmdb_ci_linux_server",
+  "cmdb_ci_mainframe",
+  "cmdb_ci_vm_instance",
+  "cmdb_ci_virtual_machine",
+  "cmdb_ci_cloud_host",
+];
+
+function expandClassNames(className?: string): string[] | null {
+  if (!className) return null;
+  if (className === "cmdb_ci_server" || className === "cmdb_ci_computer") {
+    return SERVER_CLASS_EXPANSION;
+  }
+  return [className];
+}
+
 function detectAuthMode(): ServiceNowAuthMode | null {
   if (serviceNowConfig.username && serviceNowConfig.password) {
     return "basic";
@@ -1394,8 +1414,15 @@ export class ServiceNowClient {
       }
     }
 
-    if (input.className) {
-      queryGroups.push(`sys_class_name=${input.className}`);
+    const expandedClassNames = expandClassNames(input.className);
+    if (expandedClassNames?.length) {
+      if (expandedClassNames.length === 1) {
+        queryGroups.push(`sys_class_name=${expandedClassNames[0]}`);
+      } else {
+        queryGroups.push(
+          expandedClassNames.map((cls) => `sys_class_name=${cls}`).join("^OR"),
+        );
+      }
     }
 
     if (input.company) {

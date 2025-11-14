@@ -13,6 +13,26 @@ export interface CMDBRepositoryConfig {
   table: string;
 }
 
+const SERVER_CLASS_EXPANSION = [
+  "cmdb_ci_server",
+  "cmdb_ci_computer",
+  "cmdb_ci_win_server",
+  "cmdb_ci_unix_server",
+  "cmdb_ci_linux_server",
+  "cmdb_ci_mainframe",
+  "cmdb_ci_vm_instance",
+  "cmdb_ci_virtual_machine",
+  "cmdb_ci_cloud_host",
+];
+
+function expandClassNames(className?: string): string[] {
+  if (!className) return [];
+  if (className === "cmdb_ci_server" || className === "cmdb_ci_computer") {
+    return SERVER_CLASS_EXPANSION;
+  }
+  return [className];
+}
+
 export class ServiceNowCMDBRepository implements CMDBRepository {
   private readonly table: string;
 
@@ -75,8 +95,11 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
       queryParts.push(`fqdnLIKE${criteria.fqdn}^ORu_fqdnLIKE${criteria.fqdn}`);
     }
 
-    if (criteria.className) {
-      queryParts.push(`sys_class_name=${criteria.className}`);
+    const expandedClasses = expandClassNames(criteria.className);
+    if (expandedClasses.length === 1) {
+      queryParts.push(`sys_class_name=${expandedClasses[0]}`);
+    } else if (expandedClasses.length > 1) {
+      queryParts.push(expandedClasses.map((cls) => `sys_class_name=${cls}`).join("^OR"));
     }
 
     if (criteria.company) {
