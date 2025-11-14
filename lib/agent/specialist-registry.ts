@@ -245,7 +245,7 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
       missingSignals,
     };
   })
-    .filter((match): match is SpecialistAgentMatch => Boolean(match) && match.score > 0)
+    .filter((match): match is SpecialistAgentMatch => match !== null && match !== undefined && match.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_SPECIALIST_SHORTLIST);
 

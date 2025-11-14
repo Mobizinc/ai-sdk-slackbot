@@ -143,6 +143,13 @@ export const CONFIG_DEFINITIONS = {
     group: "supervisor",
     description: "Optional Slack channel ID for Supervisor alerts when artifacts violate policy.",
   },
+  supervisorLlmReviewModel: {
+    envVar: "SUPERVISOR_LLM_REVIEW_MODEL",
+    type: "string",
+    default: "claude-3-5-sonnet-20241022",
+    group: "supervisor",
+    description: "Anthropic model identifier used for the LLM supervisor review stage.",
+  },
   discoveryContextCachingEnabled: {
     envVar: "DISCOVERY_CONTEXT_CACHING_ENABLED",
     type: "boolean",
@@ -1039,6 +1046,41 @@ export const CONFIG_DEFINITIONS = {
     default: 5242880,
     group: "assistant",
     description: "Maximum size of individual images to process in bytes (default: 5MB).",
+  },
+  muscleMemoryCollectionEnabled: {
+    envVar: "MUSCLE_MEMORY_COLLECTION_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "muscle_memory",
+    description: "Enable automatic collection of high-quality agent interactions as muscle memory exemplars.",
+  },
+  muscleMemoryRetrievalEnabled: {
+    envVar: "MUSCLE_MEMORY_RETRIEVAL_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "muscle_memory",
+    description: "Enable semantic retrieval of muscle memory exemplars in discovery context packs.",
+  },
+  muscleMemoryTopK: {
+    envVar: "MUSCLE_MEMORY_TOP_K",
+    type: "number",
+    default: 3,
+    group: "muscle_memory",
+    description: "Maximum number of similar exemplars to retrieve for context enrichment.",
+  },
+  muscleMemoryMinQuality: {
+    envVar: "MUSCLE_MEMORY_MIN_QUALITY",
+    type: "number",
+    default: 0.7,
+    group: "muscle_memory",
+    description: "Minimum quality score (0.0-1.0) for exemplars to be included in retrieval results.",
+  },
+  muscleMemoryQualityThreshold: {
+    envVar: "MUSCLE_MEMORY_QUALITY_THRESHOLD",
+    type: "number",
+    default: 0.6,
+    group: "muscle_memory",
+    description: "Minimum quality score (0.0-1.0) required for an interaction to be stored as an exemplar.",
   },
 } as const satisfies Record<string, ConfigDefinition>;
 

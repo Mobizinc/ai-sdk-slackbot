@@ -17,6 +17,7 @@ import {
   generateCacheKey,
   isCachingEnabled,
 } from "./context-cache";
+import type { MuscleMemoryExemplarSummary } from "../../services/muscle-memory";
 
 export interface DiscoveryContextPackMetadata {
   caseNumbers: string[];
@@ -68,7 +69,7 @@ export interface DiscoveryCMDBRelatedItem {
   matchReason: string;
 }
 
-const CONTEXT_PACK_SCHEMA_VERSION = "1.0.0";
+const CONTEXT_PACK_SCHEMA_VERSION = "1.1.0";
 
 export interface DiscoveryContextPack {
   schemaVersion: string;
@@ -97,6 +98,10 @@ export interface DiscoveryContextPack {
     items: DiscoveryCMDBHitSummary[];
   };
   policyAlerts?: PolicySignal[];
+  muscleMemoryExemplars?: {
+    total: number;
+    exemplars: MuscleMemoryExemplarSummary[];
+  };
 }
 
 export interface GenerateDiscoveryContextPackOptions {
@@ -211,6 +216,26 @@ export async function generateDiscoveryContextPack(
   const policySignals = await resolvePolicySignals(options, businessContext);
   if (policySignals.signals.length > 0) {
     pack.policyAlerts = policySignals.signals;
+  }
+
+  // Retrieve muscle memory exemplars (if enabled)
+  const muscleMemoryEnabled = getConfigValue("muscleMemoryRetrievalEnabled");
+  if (muscleMemoryEnabled) {
+    try {
+      const { retrievalService } = await import("../../services/muscle-memory");
+      const exemplars = await retrievalService.findExemplarsForContext(pack);
+
+      if (exemplars.length > 0) {
+        pack.muscleMemoryExemplars = {
+          total: exemplars.length,
+          exemplars,
+        };
+        console.log(`[Discovery] Added ${exemplars.length} muscle memory exemplars to context pack`);
+      }
+    } catch (error) {
+      console.error("[Discovery] Error retrieving muscle memory exemplars:", error);
+      // Continue without muscle memory (graceful degradation)
+    }
   }
 
   // Cache the generated pack

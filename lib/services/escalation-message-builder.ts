@@ -253,6 +253,11 @@ function buildSlackBlocks(
     );
   }
 
+  const contractBlocks = buildContractGuardrailBlocks(context);
+  if (contractBlocks.length > 0) {
+    blocks.push(...contractBlocks);
+  }
+
   // AI Analysis Section
   const categoryText = sanitizeMrkdwn(context.classification.category || "Unknown");
   const subcategoryText = context.classification.subcategory
@@ -352,6 +357,69 @@ function buildSlackBlocks(
   validateBlockCount(blocks, 'message');
 
   return blocks;
+}
+
+function buildContractGuardrailBlocks(context: EscalationContext): KnownBlock[] {
+  const scopeAnalysis = context.classification.scope_analysis;
+  const scopeEvaluation = context.classification.scope_evaluation;
+
+  if (!scopeAnalysis && !scopeEvaluation) {
+    return [];
+  }
+
+  const lines: string[] = [];
+  const recordType = context.classification.record_type_suggestion?.type;
+
+  if (typeof scopeAnalysis?.estimated_effort_hours === "number") {
+    const rounded = Math.round(scopeAnalysis.estimated_effort_hours * 10) / 10;
+    let capText = "";
+    const thresholds = scopeEvaluation?.policyEffortThresholds;
+    if (thresholds) {
+      if (
+        (recordType === "Incident" || recordType === "Problem") &&
+        typeof thresholds.incidentHours === "number"
+      ) {
+        capText = ` (cap ${thresholds.incidentHours}h incident)`;
+      } else if (
+        (recordType === "Case" || recordType === "Change" || !recordType) &&
+        typeof thresholds.serviceRequestHours === "number"
+      ) {
+        capText = ` (cap ${thresholds.serviceRequestHours}h request)`;
+      }
+    }
+    lines.push(`• Estimated effort: ${rounded}h${capText}`);
+  }
+
+  if (scopeAnalysis?.requires_onsite_support) {
+    const onsite = typeof scopeAnalysis.onsite_hours_estimate === "number"
+      ? `${Math.round(scopeAnalysis.onsite_hours_estimate * 10) / 10}h`
+      : "Yes";
+    const included = scopeEvaluation?.policyOnsiteSupport?.includedHoursPerMonth;
+    const onsiteCap = typeof included === "number" ? ` (monthly cap ${included}h)` : "";
+    lines.push(`• Onsite requirement: ${onsite}${onsiteCap}`);
+  }
+
+  if (scopeAnalysis?.contract_flags && scopeAnalysis.contract_flags.length > 0) {
+    lines.push(`• Contract flags: ${scopeAnalysis.contract_flags.map((flag) => flag.replace(/_/g, " ")).join(", ")}`);
+  }
+
+  if (scopeEvaluation?.reasons && scopeEvaluation.reasons.length > 0) {
+    scopeEvaluation.reasons.forEach((reason) => {
+      lines.push(`• ${reason}`);
+    });
+  } else if (scopeAnalysis?.reasoning) {
+    lines.push(`• ${scopeAnalysis.reasoning}`);
+  }
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const text = lines.map((line) => sanitizeMrkdwn(line)).join("\n");
+  return [
+    createSectionBlock("*━━━ CONTRACT GUARDRAILS ━━━*"),
+    createSectionBlock(text),
+  ];
 }
 
 /**

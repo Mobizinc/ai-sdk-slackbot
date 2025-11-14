@@ -17,7 +17,12 @@ import { getCaseClassificationRepository } from '../db/repositories/case-classif
 import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
+import { runCategorizationStage } from '../agent/classification/pipeline/stage-categorization';
+import { runNarrativeStage } from '../agent/classification/pipeline/stage-narrative';
+import { runBusinessIntelStage } from '../agent/classification/pipeline/stage-business-intel';
+import type { StageContext } from '../agent/classification/pipeline/context';
 import type { ClientScopePolicySummary } from './client-scope-policy-service';
+import { getConfigValue } from '../config';
 
 export interface CaseData {
   case_number: string;
@@ -255,12 +260,65 @@ export class CaseClassifier {
         console.log(`[CaseClassifier] No business context available for ${companyIdentifier}`);
       }
 
-      // Use existing classification method with enhanced context
-      const classification = await this.classifyCase(caseData, businessContext, {
-        includeSimilarCases: true,
-        includeKBArticles: true,
-        workflowId: routingResult.workflowId
-      });
+      let classification: CaseClassification;
+
+      try {
+        classification = await this.classifyCaseWithMicroAgents({
+          caseData,
+          businessContext,
+          similarCases: intelligenceResult.similarCases.map(sc => ({
+            case_number: sc.caseNumber,
+            short_description: sc.title,
+            description: sc.description,
+            similarity_score: sc.similarityScore,
+            opened_at: sc.openedAt,
+            state: sc.state,
+            assignment_group: sc.assignmentGroup,
+            priority: sc.priority
+          })),
+          kbArticles: intelligenceResult.kbArticles.map(kb => ({
+            kb_number: kb.number,
+            title: kb.title,
+            category: kb.category,
+            similarity_score: kb.relevanceScore,
+            url: kb.url,
+            summary: kb.summary
+          })),
+        });
+        console.log(`[CaseClassifier] Micro-agent pipeline completed for ${caseData.case_number}`);
+      } catch (pipelineError) {
+        console.warn(
+          `[CaseClassifier] Micro-agent pipeline failed for ${caseData.case_number}, falling back to monolithic classifier:`,
+          pipelineError
+        );
+        classification = await this.classifyCase(caseData, businessContext, {
+          includeSimilarCases: true,
+          includeKBArticles: true,
+          workflowId: routingResult.workflowId,
+        });
+      }
+
+      // Attach search context results (micro-agent path requires this explicitly)
+      classification.similar_cases = intelligenceResult.similarCases.map(sc => ({
+            case_number: sc.caseNumber,
+            short_description: sc.title,
+            description: sc.description,
+            similarity_score: sc.similarityScore,
+            opened_at: sc.openedAt,
+            state: sc.state,
+            assignment_group: sc.assignmentGroup,
+            priority: sc.priority
+          }));
+      classification.similar_cases_count = intelligenceResult.similarCases?.length || 0;
+      classification.kb_articles = intelligenceResult.kbArticles.map(kb => ({
+            kb_number: kb.number,
+            title: kb.title,
+            category: kb.category,
+            similarity_score: kb.relevanceScore,
+            url: kb.url,
+            summary: kb.summary
+          }));
+      classification.kb_articles_count = intelligenceResult.kbArticles?.length || 0;
 
       // Merge entities from different sources
       const llmEntities: DiscoveredEntity[] = [];
@@ -1132,6 +1190,82 @@ Important: Return ONLY the JSON object, no additional text.
     }
   }
 
+  private async classifyCaseWithMicroAgents(params: {
+    caseData: CaseData;
+    businessContext?: BusinessEntityContext | null;
+    similarCases?: SimilarCaseResult[];
+    kbArticles?: KBArticle[];
+  }): Promise<CaseClassification> {
+    // Retrieve muscle memory exemplars for few-shot learning
+    let muscleMemoryExemplars: any[] | undefined;
+    try {
+      if (getConfigValue("muscleMemoryRetrievalEnabled")) {
+        const { retrievalService } = await import("./muscle-memory");
+        // Build minimal context pack for retrieval
+        const contextForRetrieval = {
+          metadata: { caseNumbers: [params.caseData.case_number] },
+          businessContext: params.businessContext ? {
+            entityName: params.businessContext.entityName,
+            industry: params.businessContext.industry,
+          } : undefined,
+        };
+
+        muscleMemoryExemplars = await retrievalService.getTopExemplars("triage", 3);
+        if (muscleMemoryExemplars.length > 0) {
+          console.log(`[CaseClassifier] Loaded ${muscleMemoryExemplars.length} muscle memory exemplars for classification`);
+        }
+      }
+    } catch (error) {
+      console.warn("[CaseClassifier] Failed to load muscle memory exemplars:", error);
+      // Continue without exemplars - graceful degradation
+    }
+
+    const stageContext: StageContext = {
+      caseData: params.caseData,
+      businessContext: params.businessContext,
+      similarCases: params.similarCases,
+      kbArticles: params.kbArticles,
+      muscleMemoryExemplars,
+    };
+
+    const categorization = await runCategorizationStage(stageContext);
+    const narrative = await runNarrativeStage(stageContext, categorization.data);
+    const businessIntel = await runBusinessIntelStage(
+      stageContext,
+      categorization.data,
+      narrative.data
+    );
+
+    const usageTotals = combineUsage([
+      categorization.usage,
+      narrative.usage,
+      businessIntel.usage,
+    ]);
+
+    return {
+      category: categorization.data.category,
+      subcategory: categorization.data.subcategory || undefined,
+      incident_category: categorization.data.incident_category,
+      incident_subcategory: categorization.data.incident_subcategory,
+      confidence_score: categorization.data.confidence_score ?? 0.65,
+      reasoning: categorization.data.reasoning,
+      keywords: categorization.data.keywords ?? [],
+      quick_summary: narrative.data.quick_summary,
+      immediate_next_steps: narrative.data.immediate_next_steps,
+      technical_entities: ensureTechnicalEntities(categorization.data.technical_entities),
+      urgency_level: categorization.data.urgency_level ?? "Medium",
+      business_intelligence: businessIntel.data.business_intelligence,
+      record_type_suggestion: categorization.data.record_type_suggestion,
+      service_offering: categorization.data.service_offering,
+      application_service: categorization.data.application_service,
+      token_usage_input: usageTotals?.inputTokens || 0,
+      token_usage_output: usageTotals?.outputTokens || 0,
+      total_tokens: (usageTotals?.inputTokens || 0) + (usageTotals?.outputTokens || 0),
+      llm_provider: "anthropic",
+      model_used: "anthropic-micro-agents",
+    } as CaseClassification;
+  }
+
   /**
    * Classify a case using AI with similar case and KB article context
    */
@@ -2000,4 +2134,38 @@ function extractAnthropicText(message: any): string | undefined {
     .join('\n')
     .trim();
   return text || undefined;
+}
+
+function ensureTechnicalEntities(entities: CaseClassification['technical_entities'] | undefined): CaseClassification['technical_entities'] {
+  const template = {
+    ip_addresses: [] as string[],
+    systems: [] as string[],
+    users: [] as string[],
+    software: [] as string[],
+    error_codes: [] as string[],
+  };
+  if (!entities) {
+    return template;
+  }
+  return {
+    ip_addresses: entities.ip_addresses || [],
+    systems: entities.systems || [],
+    users: entities.users || [],
+    software: entities.software || [],
+    error_codes: entities.error_codes || [],
+  };
+}
+
+function combineUsage(usages: Array<{ inputTokens?: number; outputTokens?: number } | undefined>) {
+  return usages.reduce(
+    (acc: { inputTokens: number; outputTokens: number }, usage) => {
+      if (!usage) {
+        return acc;
+      }
+      acc.inputTokens += usage.inputTokens ?? 0;
+      acc.outputTokens += usage.outputTokens ?? 0;
+      return acc;
+    },
+    { inputTokens: 0, outputTokens: 0 }
+  );
 }
