@@ -32,7 +32,7 @@
       - ✅ Supports FortiManager (firewall health) and VeloCloud (SD-WAN links)
       - ⚠️ Palo Alto Strata Cloud Manager integration **NOT YET IMPLEMENTED** (future work)
 
-    - **Resilience (Open Question RESOLVED):**
+    - **Resilience (Connectivity Agent Open Question RESOLVED):**
       - ✅ **Authentication:** Multi-tenant credential resolution with env var suffix pattern (`FORTIMANAGER_ALTUS_URL`, `VELOCLOUD_ALLCARE_API_TOKEN`)
       - ✅ **Timeouts:** 15 seconds per controller enforced with `Promise.race` + AbortController
       - ✅ **Retries:** FortiManager has full 3-attempt retry wrapper with exponential backoff; VeloCloud has 4-endpoint fallback strategy
@@ -190,7 +190,11 @@ Each stream can progress independently as long as shared touchpoints (e.g., `lib
   - *Categorization agent*: choose category/subcategory only, using the ServiceNow taxonomy as reference (Haiku).  
   - *Narrative agent*: craft the quick summary and immediate next steps, potentially with a cheaper model or template-based fallback.  
   - *BI detector*: evaluate systemic/project/compliance flags with extra historical context or Sonnet fallback when higher confidence is required.  
-  These remain design options; today they are folded into the single classification sub-agent for simplicity. If we split them later, each micro-agent can be invoked sequentially by the triage agent with deterministic validation between steps.
+  ✅ **IMPLEMENTED (2025-01-18):** Classification now runs as a three-stage micro-pipeline:
+    1. `runCategorizationStage` (`lib/agent/classification/pipeline/stage-categorization.ts`) returns category/subcategory, technical entities, keywords, record type, service offering, and urgency.  
+    2. `runNarrativeStage` crafts the quick summary + next steps tailored to the categorization output.  
+    3. `runBusinessIntelStage` produces the structured `business_intelligence` block.  
+    CaseClassifier orchestrates these stages (`classifyCaseWithMicroAgents`) and falls back to the legacy monolith only if a stage fails, so discovery/triage flows now have explicit hooks per micro-agent.
 
 ## Client Scope Policy Guardrails - ✅ NEW
 

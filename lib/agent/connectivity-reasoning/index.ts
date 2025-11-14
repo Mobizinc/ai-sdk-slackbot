@@ -528,23 +528,13 @@ export async function runConnectivityReasoningAgent(
         input.options
       );
 
-      // Record tool calls for metadata
+      // Track tool calls for metadata (circuit breaker already recorded inside callNetworkTools)
       if (networkToolResults.fortimanager) {
         toolsCalled.push("fortimanager");
-        if (networkToolResults.fortimanager.success) {
-          recordToolSuccess("fortimanager");
-        } else {
-          recordToolFailure("fortimanager");
-        }
       }
 
       if (networkToolResults.velocloud) {
         toolsCalled.push("velocloud");
-        if (networkToolResults.velocloud.success) {
-          recordToolSuccess("velocloud");
-        } else {
-          recordToolFailure("velocloud");
-        }
       }
     }
 
