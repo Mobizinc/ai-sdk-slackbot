@@ -1,4 +1,6 @@
 import { cleanupTimedOutGathering } from "../../lib/handle-passive-messages";
+import { getContextManager } from "../../lib/context-manager";
+import { getCaseClassificationRepository } from "../../lib/db/repositories/case-classification-repository";
 
 type JsonBody = { status: "ok"; message: string } | { status: "error"; message: string };
 
@@ -15,7 +17,20 @@ function jsonResponse(body: JsonBody, status = 200): Response {
 async function runCleanup(): Promise<Response> {
   try {
     await cleanupTimedOutGathering();
-    return jsonResponse({ status: "ok", message: "KB gathering cleanup completed." });
+
+    const contextManager = getContextManager();
+    const { memoryRemoved, dbRemoved } = await contextManager.cleanupOldContexts();
+
+    const classificationRepo = getCaseClassificationRepository();
+    const classificationCleanup = await classificationRepo.cleanupOldData();
+
+    const message = [
+      "KB gathering cleanup completed",
+      `context store trimmed (memory=${memoryRemoved}, db=${dbRemoved})`,
+      `classification snapshots purged (inbound=${classificationCleanup.inboundDeleted}, results=${classificationCleanup.resultsDeleted})`,
+    ].join("; ");
+
+    return jsonResponse({ status: "ok", message });
   } catch (error) {
     console.error("[Cron] Cleanup failed", error);
     const message = error instanceof Error ? error.message : "Unknown error";
