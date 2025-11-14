@@ -41,5 +41,6 @@ export async function runClassificationAgent(
     company: input.companySysId,
     company_name: deriveCompanyName(input),
     state: input.state,
+    client_scope_policy: input.discoveryPack.clientScopePolicy ?? undefined,
   });
 }

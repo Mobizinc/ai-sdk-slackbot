@@ -10,6 +10,8 @@ import type { ConfigurationItem } from "../../infrastructure/servicenow/types/do
 import { getCmdbRepository } from "../../infrastructure/servicenow/repositories";
 import type { PolicySignal } from "../../services/policy-signals";
 import { detectPolicySignals } from "../../services/policy-signals";
+import type { ClientScopePolicySummary } from "../../services/client-scope-policy-service";
+import { getClientScopePolicyService } from "../../services/client-scope-policy-service";
 import {
   getDiscoveryContextCache,
   generateCacheKey,
@@ -73,6 +75,7 @@ export interface DiscoveryContextPack {
   generatedAt: string;
   metadata: DiscoveryContextPackMetadata;
   businessContext?: DiscoveryBusinessContextSummary;
+  clientScopePolicy?: ClientScopePolicySummary;
   caseContext?: {
     caseNumber: string;
     channelId?: string;
@@ -103,6 +106,7 @@ export interface GenerateDiscoveryContextPackOptions {
   companyName?: string;
   messages?: CoreMessage[];
   businessContext?: BusinessEntityContext | null;
+  clientScopePolicy?: ClientScopePolicySummary | null;
   caseContext?: CaseContext;
   similarCases?: SimilarCase[];
   threadHistory?: CoreMessage[];
@@ -154,6 +158,11 @@ export async function generateDiscoveryContextPack(
   const businessContext = await resolveBusinessContext(options);
   if (businessContext) {
     pack.businessContext = summariseBusinessContext(businessContext);
+  }
+
+  const clientPolicy = resolveClientScopePolicy(options, businessContext);
+  if (clientPolicy) {
+    pack.clientScopePolicy = clientPolicy;
   }
 
   const caseContext = await resolveCaseContext(options);
@@ -218,6 +227,38 @@ export async function generateDiscoveryContextPack(
   }
 
   return pack;
+}
+
+function resolveClientScopePolicy(
+  options: GenerateDiscoveryContextPackOptions,
+  businessContext?: BusinessEntityContext | null
+): ClientScopePolicySummary | null {
+  if (options.clientScopePolicy) {
+    return options.clientScopePolicy;
+  }
+
+  const policyService = getClientScopePolicyService();
+  const searchTerms = new Set<string>();
+
+  if (options.companyName) {
+    searchTerms.add(options.companyName);
+  }
+
+  if (businessContext) {
+    searchTerms.add(businessContext.entityName);
+    for (const alias of businessContext.aliases ?? []) {
+      searchTerms.add(alias);
+    }
+  }
+
+  for (const term of searchTerms) {
+    const summary = policyService.getPolicySummary(term);
+    if (summary) {
+      return summary;
+    }
+  }
+
+  return null;
 }
 
 async function resolveBusinessContext(options: GenerateDiscoveryContextPackOptions) {

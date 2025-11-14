@@ -25,7 +25,8 @@
  * 6. Return classification with metadata
  */
 
-import type { ServiceNowCaseWebhook, WorkflowDecision } from "../schemas/servicenow-webhook";
+import type { ServiceNowCaseWebhook } from "../schemas/servicenow-webhook";
+import type { RoutingResult } from "./workflow-router";
 import { getCaseClassificationRepository } from "../db/repositories/case-classification-repository";
 import { getWorkflowRouter } from "./workflow-router";
 import { getCaseClassifier } from "./case-classifier";
@@ -36,7 +37,7 @@ import { getEscalationService } from "./escalation-service";
 import { config } from "../config";
 
 // Import from extracted modules
-import type { CaseTriageOptions, CaseTriageResult, ClassificationStageResult } from "./case-triage/types";
+import type { CaseTriageOptions, CaseTriageResult, ClassificationStageResult, WorkflowDecision } from "./case-triage/types";
 import { TriageStorage } from "./case-triage/storage";
 import { TriageCache } from "./case-triage/cache";
 import { enrichClassificationContext } from "./case-triage/retrieval";
@@ -48,6 +49,8 @@ import { createTriageSystemContext } from "./case-triage/context";
 import { runClassificationAgent } from "../agent/classification";
 import type { DiscoveryContextPack } from "../agent/discovery/context-pack";
 import { reviewServiceNowArtifact } from "../supervisor";
+import { getClientScopePolicyService } from "./client-scope-policy-service";
+import { evaluateScopeAgainstPolicy } from "./client-scope-evaluator";
 
 // Re-export types for backward compatibility
 export type { CaseTriageOptions, CaseTriageResult } from "./case-triage/types";
@@ -107,7 +110,7 @@ export class CaseTriageService {
             processingTimeMs: processingTime,
           },
           webhook,
-          snContext,
+          snContext as Record<string, unknown>,
           fullConfig,
           {
             startTime,
@@ -168,7 +171,7 @@ export class CaseTriageService {
             processingTimeMs: processingTime,
           },
           webhook,
-          snContext,
+          snContext as Record<string, unknown>,
           fullConfig,
           {
             startTime,
@@ -260,6 +263,24 @@ export class CaseTriageService {
     const workNoteContent = formatWorkNote(classificationResult);
     const processingTime = Date.now() - startTime;
 
+    const policySummary = clientScopePolicyService.getPolicySummary(
+      webhook.account_id || webhook.account
+    );
+    const scopeEvaluation = evaluateScopeAgainstPolicy(policySummary, classificationResult);
+    if (scopeEvaluation) {
+      classificationResult.scope_evaluation = scopeEvaluation;
+      if (scopeEvaluation.shouldEscalate) {
+        classificationResult.business_intelligence =
+          classificationResult.business_intelligence || {};
+        classificationResult.business_intelligence.project_scope_detected = true;
+        const newReason = scopeEvaluation.reasons.join("; ") || "Contract scope exceeded";
+        classificationResult.business_intelligence.project_scope_reason =
+          classificationResult.business_intelligence.project_scope_reason
+            ? `${classificationResult.business_intelligence.project_scope_reason} | ${newReason}`
+            : newReason;
+      }
+    }
+
     return {
       core: {
         caseNumber: webhook.case_number,
@@ -277,12 +298,12 @@ export class CaseTriageService {
         webhook,
         workflowDecision,
         inboundId,
-        snContext,
+        snContext: snContext as Record<string, unknown>,
         workNoteContent,
         rawClassificationResult: classificationResult,
         fullConfig,
         startTime,
-        classificationTimeMs,
+        classificationTimeMs: classificationTime,
         sideEffectsAlreadyApplied: false,
         retrievalStats: {
           categoriesFetchMs: enrichment.categories.fetchTimeMs,
@@ -316,8 +337,8 @@ export class CaseTriageService {
         content: workNoteContent,
         classification: classificationResult,
         metadata: {
-          workflowId: workflowDecision.workflowId,
           sysId: webhook.sys_id,
+          duplicateKey: webhook.case_number,
         },
       });
 
@@ -552,7 +573,7 @@ export class CaseTriageService {
     options: {
       startTime: number;
       inboundId?: number | null;
-      workflowDecision?: WorkflowDecision;
+      workflowDecision?: RoutingResult;
       cacheReason: string;
     }
   ): ClassificationStageResult {
@@ -669,10 +690,15 @@ export class CaseTriageService {
   }
 }
 
+const clientScopePolicyService = getClientScopePolicyService();
+
 function buildDiscoveryPackForWebhook(
   webhook: ServiceNowCaseWebhook
 ): DiscoveryContextPack {
   const timestamp = new Date().toISOString();
+  const clientScopePolicy = clientScopePolicyService.getPolicySummary(
+    webhook.account_id || webhook.account
+  );
 
   return {
     schemaVersion: "1.0.0",
@@ -688,6 +714,7 @@ function buildDiscoveryPackForWebhook(
       messageCount: 0,
     },
     policyAlerts: [],
+    ...(clientScopePolicy ? { clientScopePolicy } : {}),
   };
 }
 // Singleton instance

@@ -18,9 +18,11 @@
     - **Open Question:** What authentication, rate-limit, timeout, and fallback strategy keeps this agent from stalling the orchestrator when controller APIs are degraded or unavailable?
 
 - **Supervisor**  
-  Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.
+  Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.  
+  ✅ **Current status:** Deterministic Supervisor engine (duplicate detection, confidence gating, section checks) now runs on every Slack reply and ServiceNow work note, persisting violations as `supervisor_review` states and optionally alerting a Slack channel. Shadow mode defaults to off so blocking is enforced unless explicitly overridden.  
+  🔄 **Planned:** Add an optional LLM reviewer that can provide qualitative feedback while the deterministic guard continues to enforce hard policy rules.
 
-  - **Open Question:** Can the supervisor patch escalation payloads (per this section) or are escalations immutable until a human replay (per the HITL workflow)? We need one rule so audits match behavior.
+  - **Resolution:** Supervisor does **not** patch escalation payloads automatically. Violations are persisted, surfaced via `/review-latest`, and require a human replay to resend or fix the artifact, keeping audit trails consistent with the HITL workflow.
 
 ## Implementation Strategy (Incremental Rollout)
 
@@ -33,7 +35,7 @@ To reach the target architecture without destabilizing the current production wo
 2. **Shadow Services Behind Flags**
    - **Discovery Pack:** Build `discoveryRunner.generateContextPack()` that deterministically aggregates business context, recent Slack traffic, CMDB hits, similar cases, and (optionally) SPM project summaries. Start by logging/attaching metadata, then inject into prompts once validated.
      - **Status:** Schema v1.0.0 is documented in `docs/DISCOVERY_CONTEXT_PACK_SCHEMA.md` (fields, ordering, size budgets, versioning).
-   - **Supervisor:** Add a policy validator that inspects outbound Slack/work-note payloads and logs warnings. When confidence is high, flip the flag to enforce blocking behavior.
+   - **Supervisor:** ✅ Policy validator is live; every outbound Slack/work-note payload is checked for confidence, required sections, and duplicates, with violations written to `interactive_states` and optional Slack alerts. Next step: layer an LLM reviewer (still behind a flag) for qualitative feedback without removing deterministic enforcement.
    - **SPM Consumers:** Surface SPM data as optional sections (“experimental project summary”) before making it part of the canonical response.
 
 3. **Adapter-First Design**
@@ -136,7 +138,7 @@ Each stream can progress independently as long as shared touchpoints (e.g., `lib
 - **Current Progress**
   - ✅ Stateless classification runner (`lib/agent/classification/*`) consumes Discovery context packs and is invoked from `CaseTriageService`, so Sonnet/Haiku rely on the deterministic context rather than pulling data on demand.
   - ✅ Case + incident webhooks both use `parseAndValidateWebhookRequest` (issues [#64](https://github.com/mobizinc/ai-sdk-slackbot/issues/64) & [#65](https://github.com/mobizinc/ai-sdk-slackbot/issues/65)) for shared auth/parsing/validation, shrinking the POST handlers ahead of the full orchestrator cutover.
-  - 📝 Next: expose the runner via the orchestrator’s tool registry so Slack/ServiceNow flows both call the same sub-agent contract before the deterministic orchestration layer executes side effects.
+  - ✅ **ServiceNow Orchestration Tool** (`lib/agent/tools/servicenow-orchestration.ts`) - Thin adapter exposing `CaseTriageService` via tool registry as `orchestrate_servicenow_case`. Supports 3 modes (webhook/fetch/manual), forwards Slack context via routing_context, and delegates to existing Discovery → Classification → Enrichment → Side Effects → Escalation flow. Conversational agent can now invoke full triage workflow via tool call.
 
 - **Model**  
   Default to Claude Haiku 4.5 for cost/latency. Allow Sonnet 4.5 fallback when higher reasoning is required (e.g., escalations, QA replays).
@@ -214,7 +216,7 @@ flowchart TD
   - Generate alerts to operators when repeated violations or low-quality outputs occur.
 - **Outputs**  
   Approval/denial status with metadata (reason, timestamp, actor), optional corrected payload, and audit records stored alongside case activity.
-  - **Open Question:** Where are blocked artifacts persisted and how does the originating agent re-enter the queue after the supervisor requests fixes so responses aren’t dropped?
+  - **Resolution:** Blocked artifacts are saved as `supervisor_review` states in the `interactive_states` table. `/review-latest` (and the upcoming admin UI view) surfaces these states so operators can approve/replay without losing the artifact; once approved, the originating agent resubmits with the corrected payload.
 
 ### Policy & QA Flow
 

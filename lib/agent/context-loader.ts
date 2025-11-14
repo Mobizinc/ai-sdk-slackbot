@@ -31,6 +31,18 @@ export interface ContextLoaderResult {
 }
 
 export async function loadContext(input: ContextLoaderInput): Promise<ContextLoaderResult> {
+  const loadSpan = await createChildSpan({
+    name: "context_loader",
+    runType: "chain",
+    metadata: {
+      channelId: input.channelId,
+      threadTs: input.threadTs,
+    },
+    tags: {
+      component: "context-loader",
+    },
+  });
+
   const metadata: Record<string, unknown> = {};
   let discoveryCaseRecord: Case | null = null;
   let discoveryJournalText: string | undefined;
@@ -190,21 +202,49 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
   let enrichedMessages = input.messages;
 
   if (getConfigValue("autoCmdbLookupEnabled")) {
-    const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
-      channelId: input.channelId,
-      companyName: metadata.companyName as string | undefined,
+    const cmdbSpan = await createChildSpan({
+      name: "cmdb_prefetch",
+      runType: "tool",
+      metadata: {
+        companyName: metadata.companyName,
+      },
+      tags: {
+        component: "context-loader",
+      },
     });
 
-    if (cmdbPrefetch) {
-      enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
-      metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+    try {
+      const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
+        channelId: input.channelId,
+        companyName: metadata.companyName as string | undefined,
+      });
+
+      if (cmdbPrefetch) {
+        enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
+        metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+        await cmdbSpan?.end({
+          results: cmdbPrefetch.metadata,
+        });
+      } else {
+        await cmdbSpan?.end();
+      }
+    } catch (error) {
+      await cmdbSpan?.end({ error: error as Error });
     }
   }
 
-  return {
+  const result = {
     messages: enrichedMessages,
     metadata,
   };
+
+  await loadSpan?.end({
+    caseNumbers: metadata.caseNumbers,
+    hasDiscovery: Boolean(metadata.discovery),
+    hasCmdbPrefetch: Boolean(metadata.cmdbPrefetch),
+  });
+
+  return result;
 }
 
 function extractCaseNumbersFromMessages(

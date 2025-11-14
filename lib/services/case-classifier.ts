@@ -17,6 +17,7 @@ import { getCaseClassificationRepository } from '../db/repositories/case-classif
 import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
+import type { ClientScopePolicySummary } from './client-scope-policy-service';
 
 export interface CaseData {
   case_number: string;
@@ -31,6 +32,7 @@ export interface CaseData {
   company_name?: string;
   current_category?: string;
   sys_created_on?: string;
+  client_scope_policy?: ClientScopePolicySummary;
 }
 
 export interface TechnicalEntities {
@@ -59,6 +61,32 @@ export interface BusinessIntelligence {
   systemic_issue_detected?: boolean;
   systemic_issue_reason?: string;
   affected_cases_same_client?: number;
+}
+
+export type ScopeEffortConfidence = 'low' | 'medium' | 'high';
+
+export interface ScopeAnalysis {
+  estimated_effort_hours?: number;
+  effort_confidence?: ScopeEffortConfidence;
+  requires_onsite_support?: boolean;
+  onsite_hours_estimate?: number;
+  is_new_capability?: boolean;
+  needs_project_sow?: boolean;
+  reasoning?: string;
+  contract_flags?: string[];
+}
+
+export interface ScopeEvaluationResult {
+  clientName?: string;
+  shouldEscalate?: boolean;
+  reasons?: string[];
+  exceededEffortThreshold?: boolean;
+  exceededOnsiteThreshold?: boolean;
+  flaggedProjectWork?: boolean;
+  estimatedEffortHours?: number;
+  onsiteHoursEstimate?: number;
+  policyEffortThresholds?: ClientScopePolicySummary['effortThresholds'];
+  policyOnsiteSupport?: ClientScopePolicySummary['onsiteSupport'];
 }
 
 export interface RecordTypeSuggestion {
@@ -102,6 +130,8 @@ export interface CaseClassification {
   kb_articles?: KBArticle[];
   similar_cases_count?: number;
   kb_articles_count?: number;
+  scope_analysis?: ScopeAnalysis;
+  scope_evaluation?: ScopeEvaluationResult;
 }
 
 /**
@@ -468,6 +498,12 @@ If you detect any of the following exceptions based on the client's business con
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
 
+CLIENT SCOPE POLICY ANALYSIS (if <client_scope_policy> is provided):
+- Summarize how the request maps to the client's contract. Estimate TOTAL engineering effort hours (round to whole numbers) and set scope_analysis.estimated_effort_hours.
+- Determine if onsite work is required. If yes, estimate onsite hours consumed from the monthly allocation and set scope_analysis.requires_onsite_support + scope_analysis.onsite_hours_estimate.
+- Compare the work to disallowed/project examples and contractual thresholds. If effort exceeds limits (e.g., >24h incident, >8h service request) or requires new builds/migrations, set scope_analysis.needs_project_sow=true and explain why.
+- Capture any relevant contract-specific notes in scope_analysis.reasoning and list short flags in scope_analysis.contract_flags (e.g., "exceeds_incident_threshold", "onsite_over_cap").
+
 SERVICE PORTFOLIO CLASSIFICATION:
 Identify which Service Offering best matches this case. Select ONE of the following:
 
@@ -629,6 +665,16 @@ Respond with a JSON object in this exact format:
     "is_major_incident": false,
     "reasoning": "Service disruption explanation"
   },
+  "scope_analysis": {
+    "estimated_effort_hours": 6,
+    "effort_confidence": "medium",
+    "requires_onsite_support": false,
+    "onsite_hours_estimate": 0,
+    "is_new_capability": false,
+    "needs_project_sow": false,
+    "reasoning": "Reference the client limits documented in <client_scope_policy> (e.g., 24h incident cap)",
+    "contract_flags": ["exceeds_incident_threshold"]
+  },
   "service_offering": "Helpdesk and Endpoint - Standard",
   "application_service": "Office 365" (optional, only if service_offering is "Application Administration")
 }
@@ -676,6 +722,55 @@ Important: Return ONLY the JSON object, no additional text.
 
     const businessContextText = this.businessContextService.toPromptText(businessContext);
     return `\n\n<business_context>\n${businessContextText}\n</business_context>`;
+  }
+
+  private buildClientScopePolicySection(policy?: ClientScopePolicySummary): string {
+    if (!policy) {
+      return '';
+    }
+
+    const lines: string[] = [`- Client: ${policy.clientName}`];
+
+    if (policy.effortThresholds) {
+      const thresholds: string[] = [];
+      if (typeof policy.effortThresholds.incidentHours === 'number') {
+        thresholds.push(`Incidents ≤ ${policy.effortThresholds.incidentHours} hours`);
+      }
+      if (typeof policy.effortThresholds.serviceRequestHours === 'number') {
+        thresholds.push(`Service Requests ≤ ${policy.effortThresholds.serviceRequestHours} hours`);
+      }
+      if (thresholds.length > 0) {
+        lines.push(`- Effort Thresholds: ${thresholds.join('; ')}`);
+      }
+    }
+
+    if (policy.onsiteSupport) {
+      const onsiteBits: string[] = [];
+      if (typeof policy.onsiteSupport.includedHoursPerMonth === 'number') {
+        onsiteBits.push(
+          `Included Onsite Hours/Month: ${policy.onsiteSupport.includedHoursPerMonth}`
+        );
+      }
+      if (policy.onsiteSupport.requiresPreapproval) {
+        onsiteBits.push('Additional onsite hours require pre-approval');
+      }
+      if (policy.onsiteSupport.emergencyOnlyDefinition) {
+        onsiteBits.push(`Emergency Definition: ${policy.onsiteSupport.emergencyOnlyDefinition}`);
+      }
+      if (onsiteBits.length > 0) {
+        lines.push(`- Onsite Support: ${onsiteBits.join(' | ')}`);
+      }
+    }
+
+    if (policy.disallowedWorkExamples && policy.disallowedWorkExamples.length > 0) {
+      lines.push(`- Disallowed Examples: ${policy.disallowedWorkExamples.slice(0, 3).join('; ')}`);
+    }
+
+    if (policy.allowedWorkExamples && policy.allowedWorkExamples.length > 0) {
+      lines.push(`- Included Examples: ${policy.allowedWorkExamples.slice(0, 3).join('; ')}`);
+    }
+
+    return `\n\n<client_scope_policy>\n${lines.join('\n')}\n</client_scope_policy>`;
   }
 
   /**
@@ -902,6 +997,14 @@ Important: Return ONLY the JSON object, no additional text.
         userContentBlocks.push({
           type: 'text',
           text: this.buildBusinessContextSection(businessContext)
+        });
+      }
+
+      const clientPolicySection = this.buildClientScopePolicySection(caseData.client_scope_policy);
+      if (clientPolicySection) {
+        userContentBlocks.push({
+          type: 'text',
+          text: clientPolicySection
         });
       }
 
@@ -1229,6 +1332,11 @@ Important: Return ONLY the JSON object, no additional text.
       prompt += `\n\n<business_context>\n`;
       prompt += businessContextText;
       prompt += `\n</business_context>`;
+    }
+
+    const clientPolicySection = this.buildClientScopePolicySection(caseData.client_scope_policy);
+    if (clientPolicySection) {
+      prompt += clientPolicySection;
     }
 
     // Add similar cases context if available (using NEW structure with MSP attribution)
@@ -1646,6 +1754,19 @@ Important: Return ONLY the JSON object, no additional text.
    * Validate and normalize classification result (DUAL CATEGORIZATION)
    */
   private async validateClassification(classification: any): Promise<CaseClassification> {
+    const normalizeNumber = (value: unknown): number | undefined => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+      return undefined;
+    };
+
     // Use available categories from ServiceNow (table-specific)
     const validCaseCategories = this.availableCaseCategories.length > 0
       ? this.availableCaseCategories
@@ -1773,6 +1894,25 @@ Important: Return ONLY the JSON object, no additional text.
       // Ensure boolean fields have valid values
       classification.business_intelligence.project_scope_detected = !!classification.business_intelligence.project_scope_detected;
       classification.business_intelligence.outside_service_hours = !!classification.business_intelligence.outside_service_hours;
+    }
+
+    if (classification.scope_analysis && typeof classification.scope_analysis === 'object') {
+      const scope = classification.scope_analysis;
+      scope.estimated_effort_hours = normalizeNumber(scope.estimated_effort_hours);
+      scope.onsite_hours_estimate = normalizeNumber(scope.onsite_hours_estimate);
+
+      if (scope.contract_flags && !Array.isArray(scope.contract_flags)) {
+        scope.contract_flags = [String(scope.contract_flags)].filter(Boolean);
+      }
+      if (scope.contract_flags) {
+        scope.contract_flags = (scope.contract_flags as any[]).filter((flag: any) => typeof flag === 'string' && flag.trim().length > 0);
+      }
+
+      if (scope.effort_confidence && !['low', 'medium', 'high'].includes(scope.effort_confidence)) {
+        scope.effort_confidence = undefined;
+      }
+    } else {
+      delete classification.scope_analysis;
     }
 
     return classification as CaseClassification;

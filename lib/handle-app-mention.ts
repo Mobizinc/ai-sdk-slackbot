@@ -37,6 +37,9 @@ export async function handleNewAppMention(
     "is thinking..."
   );
 
+  const contextManager = getContextManager();
+  const mentionCaseNumbers = contextManager.extractCaseNumbers(event.text || "");
+
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:
   // - @bot triage SCS0001234
@@ -172,6 +175,12 @@ export async function handleNewAppMention(
         caseNumber,
         content: response,
         classification,
+        metadata: {
+          requiresSections: true,
+          duplicateKey: `${channel}:${thread_ts ?? event.ts}`,
+          contextCaseNumbers: [caseNumber],
+          artifactLabel: "triage_response",
+        },
       });
 
       if (supervisorDecision.status === "blocked") {
@@ -217,11 +226,33 @@ export async function handleNewAppMention(
 
   // Extract and trim plain text from result
   const plainText = extractSummaryText(result) || result;
+
+  const generalSupervisorDecision = await reviewSlackArtifact({
+    channelId: channel,
+    threadTs: thread_ts ?? event.ts,
+    caseNumber: mentionCaseNumbers[0],
+    content: plainText,
+    metadata: {
+      requiresSections: mentionCaseNumbers.length > 0,
+      duplicateKey: `${channel}:${thread_ts ?? event.ts}`,
+      contextCaseNumbers: mentionCaseNumbers,
+      artifactLabel: "general_response",
+    },
+  });
+
+  if (generalSupervisorDecision.status === "blocked") {
+    const reason =
+      generalSupervisorDecision.reason ?? "Response held for supervisor review.";
+    await setFinalMessage(
+      `${reason} Use \`/review-latest\` to approve or provide updated guidance.`
+    );
+    return;
+  }
+
   await setFinalMessage(plainText);
 
   // After responding, check for case numbers and trigger intelligent workflow
-  const contextManager = getContextManager();
-  const caseNumbers = contextManager.extractCaseNumbers(event.text);
+  const caseNumbers = mentionCaseNumbers;
 
   if (caseNumbers.length > 0) {
     const actualThreadTs = thread_ts || event.ts; // Use event.ts as thread if not in thread

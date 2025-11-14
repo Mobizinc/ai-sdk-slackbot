@@ -1,0 +1,44 @@
+{
+  "client": {
+    "name": "Altus Community Healthcare",
+    "aliases": ["Altus", "Altus Health", "Altus Healthcare"],
+    "industry": "Healthcare",
+    "accountSlug": "altus"
+  },
+  "effortThresholds": {
+    "incidentHours": 24,
+    "serviceRequestHours": 8
+  },
+  "onsiteSupport": {
+    "includedHoursPerMonth": 48,
+    "overageRateUsd": 125,
+    "requiresPreapproval": true,
+    "emergencyOnlyDefinition": "Complete loss of operation for a branch or emergency room; otherwise onsite must be scheduled in advance."
+  },
+  "allowedWorkExamples": [
+    "Break-fix incidents resolved within 24 hours",
+    "Routine maintenance, patching, monitoring, and backup operations",
+    "User access management and password resets",
+    "Minor configuration updates to restore service"
+  ],
+  "disallowedWorkExamples": [
+    "New project work or transformational initiatives",
+    "Major system upgrades or migrations",
+    "Infrastructure redesigns or new deployments",
+    "Application functional support (vendor responsibility)",
+    "Onsite support exceeding 48 hours per month without prior approval"
+  ],
+  "escalation": {
+    "triggers": [
+      "Client requests project work without an approved SOW",
+      "Estimated effort exceeds 24 hours for incidents or 8 hours for service requests",
+      "Onsite effort needed beyond the 48 hours/month allocation",
+      "Pattern of out-of-scope or disputed scope requests"
+    ]
+  },
+  "metadata": {
+    "source": "Altus Community Healthcare Managed Support Services SOW",
+    "docReference": "DocuSign Envelope ID: 0944C14D-AE60-43A9-BF55-2A09311865B7",
+    "lastUpdated": "2025-11-13"
+  }
+}

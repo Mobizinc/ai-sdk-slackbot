@@ -5,9 +5,10 @@
  */
 
 import type { CaseClassification } from "../case-classifier";
-import type { SimilarCaseResult, ServiceNowCaseWebhook, WorkflowDecision } from "../../schemas/servicenow-webhook";
+import type { SimilarCaseResult, ServiceNowCaseWebhook } from "../../schemas/servicenow-webhook";
 import type { KBArticle } from "../kb-article-search";
 import type { ClassificationConfig } from "./constants";
+import type { RoutingResult } from "../workflow-router";
 
 export interface CaseTriageOptions {
   /**
@@ -74,6 +75,7 @@ export interface CaseTriageResult {
   servicenowUpdated: boolean;
   updateError?: string;
   processingTimeMs: number;
+  queueTimeMs?: number; // Time spent in queue before processing
   entitiesDiscovered: number;
   cmdbReconciliation?: any; // TODO: Import proper type from cmdb-reconciliation
   cached: boolean;
@@ -114,7 +116,7 @@ export interface ClassificationStageCoreResult {
 
 export interface ClassificationStageMetadata {
   webhook: ServiceNowCaseWebhook;
-  workflowDecision: WorkflowDecision;
+  workflowDecision: RoutingResult;
   inboundId?: number | null;
   snContext: Record<string, unknown>;
   workNoteContent?: string;
@@ -128,6 +130,9 @@ export interface ClassificationStageMetadata {
     applicationsFetchMs: number;
   };
 }
+
+// Re-export for backward compatibility
+export type WorkflowDecision = RoutingResult;
 
 export interface ClassificationStageResult {
   core: ClassificationStageCoreResult;
