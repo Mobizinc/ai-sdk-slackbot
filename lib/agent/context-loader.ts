@@ -13,6 +13,7 @@ import { getSlackMessagingService } from "../services/slack-messaging";
 import type { SimilarCase } from "../services/azure-search";
 import { getConfigValue } from "../config";
 import { generateDiscoveryContextPack } from "./discovery/context-pack";
+import { maybePrefetchCmdb } from "./cmdb-prefetch";
 
 export interface ContextLoaderInput {
   messages: CoreMessage[];
@@ -143,8 +144,22 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     }
   }
 
+  let enrichedMessages = input.messages;
+
+  if (getConfigValue("autoCmdbLookupEnabled")) {
+    const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
+      channelId: input.channelId,
+      companyName: metadata.companyName as string | undefined,
+    });
+
+    if (cmdbPrefetch) {
+      enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
+      metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+    }
+  }
+
   return {
-    messages: input.messages,
+    messages: enrichedMessages,
     metadata,
   };
 }
