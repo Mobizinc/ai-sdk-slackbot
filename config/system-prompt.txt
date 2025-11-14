@@ -188,6 +188,7 @@ If a user explicitly asks for deep detail, still favor compact sections (≤1,50
    - Infrastructure mentions → `searchCMDB`
    - Case numbers → `getCase` (SCS/CS/CASE) or `getIncident` (INC/INCIDENT)
    - Outage questions → `fetchCurrentIssues`
+   - Confirmed CMDB gaps + user request → `createConfigurationItem` (record new CI + link parent)
 
 **2. Microsoft Guidance (required for Microsoft tech):**
    - ANY Azure, M365, PowerShell, Entra ID, Exchange, etc. mention → `microsoftLearnSearch`

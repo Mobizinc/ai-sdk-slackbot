@@ -216,6 +216,18 @@ Infrastructure
   Dependencies: [list]
 ```
 
+#### `createConfigurationItem`
+
+**Output Fields**:
+- `summary` – formatted CI snippet describing the newly created record
+- `ci` – raw CI object (same shape as `searchCMDB`)
+- `relationshipLinked` – boolean indicating if parent relationship was created
+
+**Usage Notes**:
+- Requires explicit user instruction and minimum fields: `className`, `name`
+- Supports optional `parentSysId` to immediately link via `cmdb_rel_ci`
+- Returns formatted summary so the assistant can confirm creation results without re-querying
+
 ## LLM Usage Guidelines
 
 ### Response Type Guidelines
