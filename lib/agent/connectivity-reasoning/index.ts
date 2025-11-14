@@ -285,8 +285,7 @@ function buildDeviceStatuses(
 /**
  * Call network monitoring tools in parallel
  *
- * This function will be integrated with actual tool executors
- * For now, it's a placeholder that returns the provided results
+ * Integrates with FortiManager and VeloCloud services to gather live network data
  */
 async function callNetworkTools(
   devices: Array<{ name: string; type: string }>,
@@ -297,15 +296,176 @@ async function callNetworkTools(
     return {};
   }
 
-  // In a real implementation, this would call the FortiManager and VeloCloud tools
-  // For now, we return empty results
-  // TODO: Integrate with lib/agent/tools/fortimanager-monitor.ts and lib/agent/tools/velocloud.ts
-
+  const timeout = options?.toolTimeout || 15000;
   const results: NetworkToolResults = {};
 
-  // Note: Tool integration will be added in the next phase
-  // This requires access to the tool executor context which isn't available here
-  // The agent will be called from within the tool context
+  // Import services dynamically to avoid circular dependencies
+  const { getFortiManagerMonitorService } = await import("../../services/fortimanager-monitor-service");
+  const { getVeloCloudService, resolveVeloCloudConfig } = await import("../../services/velocloud-service");
+
+  // Helper to get FortiManager config
+  const getFortiManagerConfig = (customer?: string) => {
+    const suffix = customer && customer !== "default" ? `_${customer.toUpperCase()}` : "";
+    const url = customer && customer !== "default"
+      ? process.env[`FORTIMANAGER${suffix}_URL`]
+      : process.env.FORTIMANAGER_URL;
+
+    if (!url) return null;
+
+    return {
+      url,
+      apiKey: customer && customer !== "default"
+        ? process.env[`FORTIMANAGER${suffix}_API_KEY`]
+        : process.env.FORTIMANAGER_API_KEY,
+      username: customer && customer !== "default"
+        ? process.env[`FORTIMANAGER${suffix}_USERNAME`]
+        : process.env.FORTIMANAGER_USERNAME,
+      password: customer && customer !== "default"
+        ? process.env[`FORTIMANAGER${suffix}_PASSWORD`]
+        : process.env.FORTIMANAGER_PASSWORD,
+    };
+  };
+
+  // Call FortiManager for firewalls
+  const firewallDevices = devices.filter((d) =>
+    d.type.toLowerCase().includes("firewall") ||
+    d.type.toLowerCase().includes("fortinet") ||
+    d.type.toLowerCase().includes("fortigate")
+  );
+
+  if (firewallDevices.length > 0 && canCallTool("fortimanager")) {
+    const fmConfig = getFortiManagerConfig(customerName);
+
+    if (fmConfig && fmConfig.url) {
+      try {
+        const fmService = getFortiManagerMonitorService();
+        // Try first firewall device
+        const device = firewallDevices[0];
+
+        console.log(`[ConnectivityReasoning] Calling FortiManager for ${device.name}...`);
+
+        const report = await Promise.race([
+          fmService.getFirewallHealthReport(device.name, fmConfig, {
+            includeInterfaces: true,
+            includeResources: true,
+            bypassCache: false,
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("FortiManager timeout")), timeout)
+          ),
+        ]);
+
+        results.fortimanager = {
+          success: true,
+          device_name: device.name,
+          customer: customerName,
+          summary: report.summary,
+          warnings: report.warnings,
+          connection: report.connection.connected,
+          health: report.health,
+          interfaces: report.health.interfaces,
+          interfaces_down: report.health.interfaces
+            ?.filter((iface: any) => !iface.link)
+            .map((iface: any) => iface.name),
+          from_cache: report.fromCache,
+        };
+
+        recordToolSuccess("fortimanager");
+        console.log(`[ConnectivityReasoning] FortiManager call succeeded for ${device.name}`);
+      } catch (error: any) {
+        console.error(`[ConnectivityReasoning] FortiManager call failed:`, error.message);
+        results.fortimanager = {
+          success: false,
+          error: error.message,
+        };
+        recordToolFailure("fortimanager");
+      }
+    } else {
+      console.warn(`[ConnectivityReasoning] FortiManager credentials not configured for ${customerName || "default"}`);
+    }
+  }
+
+  // Call VeloCloud for SD-WAN edges
+  const sdwanDevices = devices.filter((d) =>
+    d.type.toLowerCase().includes("sdwan") ||
+    d.type.toLowerCase().includes("velocloud") ||
+    d.type.toLowerCase().includes("edge")
+  );
+
+  if (sdwanDevices.length > 0 && canCallTool("velocloud")) {
+    const vcConfig = resolveVeloCloudConfig(customerName);
+
+    if (vcConfig) {
+      try {
+        const vcService = getVeloCloudService();
+
+        console.log(`[ConnectivityReasoning] Calling VeloCloud for edges...`);
+
+        // Get edges
+        const edges = await Promise.race([
+          vcService.listEdges(vcConfig.config),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("VeloCloud timeout")), timeout)
+          ),
+        ]);
+
+        // Get links for first edge
+        let links: any[] = [];
+        if (edges && edges.length > 0) {
+          const edge = edges[0];
+          if (edge.id) {
+            try {
+              links = await Promise.race([
+                vcService.getEdgeLinkStatus(vcConfig.config, { edgeId: edge.id }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error("VeloCloud links timeout")), timeout)
+                ),
+              ]);
+            } catch (linkError: any) {
+              console.warn(`[ConnectivityReasoning] Failed to get VeloCloud links: ${linkError.message}`);
+            }
+          }
+        }
+
+        // Map to expected format
+        const formattedEdges = edges.map((e: any) => ({
+          id: e.id || 0,
+          name: e.name || "",
+          activationState: e.activationState || "UNKNOWN",
+          edgeState: e.edgeState || "UNKNOWN",
+        }));
+
+        const formattedLinks = links.map((link: any) => ({
+          displayName: link.name || "",
+          state: link.linkState || "UNKNOWN",
+          vpnState: link.linkState || "UNKNOWN",
+          linkQuality: {
+            jitter: link.jitterMs,
+            latency: link.latencyMs,
+            loss: link.lossPct,
+          },
+        }));
+
+        results.velocloud = {
+          success: true,
+          edges: formattedEdges,
+          links: formattedLinks,
+        };
+
+        recordToolSuccess("velocloud");
+        console.log(`[ConnectivityReasoning] VeloCloud call succeeded`);
+      } catch (error: any) {
+        console.error(`[ConnectivityReasoning] VeloCloud call failed:`, error.message);
+        results.velocloud = {
+          success: false,
+          error: error.message,
+        };
+        recordToolFailure("velocloud");
+      }
+    } else {
+      console.warn(`[ConnectivityReasoning] VeloCloud credentials not configured for ${customerName || "default"}`);
+    }
+  }
 
   return results;
 }

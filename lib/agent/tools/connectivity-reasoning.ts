@@ -14,11 +14,6 @@ import { createTool, type AgentToolFactoryParams } from "./shared";
 import { runConnectivityReasoningAgent } from "../connectivity-reasoning";
 import type { ConnectivityReasoningInput } from "../connectivity-reasoning";
 import { generateDiscoveryContextPack } from "../discovery/context-pack";
-import { getFortiManagerMonitorService } from "../../services/fortimanager-monitor-service";
-import {
-  getVeloCloudService,
-  resolveVeloCloudConfig,
-} from "../../services/velocloud-service";
 
 /**
  * Input schema for the connectivity reasoning tool
@@ -109,6 +104,7 @@ export function createConnectivityReasoningTool(params: AgentToolFactoryParams) 
         );
 
         // Prepare input for connectivity reasoning agent
+        // The agent will handle calling FortiManager and VeloCloud internally
         const agentInput: ConnectivityReasoningInput = {
           contextPack,
           caseMetadata: {
@@ -119,53 +115,6 @@ export function createConnectivityReasoningTool(params: AgentToolFactoryParams) 
             toolTimeout: 15000, // 15 second timeout per tool
           },
         };
-
-        // If specific device requested, call tools directly
-        if (deviceName) {
-          try {
-            const networkToolResults: ConnectivityReasoningInput["networkToolResults"] = {};
-
-            // Try FortiManager if device looks like a firewall
-            if (!skipToolCalls) {
-              try {
-                const fortiManagerService = getFortiManagerMonitorService();
-                // Note: This is a simplified example - real implementation would need proper config resolution
-                // and error handling similar to the fortimanager-monitor tool
-
-                updateStatus?.(`Querying FortiManager for ${deviceName}...`);
-
-                // For now, skip actual tool call and let agent handle it
-                // TODO: Integrate properly with FortiManager tool executor
-              } catch (fmError: any) {
-                console.warn(
-                  `[ConnectivityReasoning] FortiManager query failed: ${fmError.message}`
-                );
-              }
-
-              try {
-                // Try VeloCloud if device looks like SD-WAN edge
-                const velocloudConfig = resolveVeloCloudConfig(companyName);
-                if (velocloudConfig) {
-                  updateStatus?.(`Querying VeloCloud for ${deviceName}...`);
-
-                  // For now, skip actual tool call and let agent handle it
-                  // TODO: Integrate properly with VeloCloud tool executor
-                }
-              } catch (vcError: any) {
-                console.warn(
-                  `[ConnectivityReasoning] VeloCloud query failed: ${vcError.message}`
-                );
-              }
-            }
-
-            agentInput.networkToolResults = networkToolResults;
-          } catch (toolError: any) {
-            console.error(
-              `[ConnectivityReasoning] Tool calls failed: ${toolError.message}`
-            );
-            // Continue with agent execution - it will handle missing tool data
-          }
-        }
 
         // Run the connectivity reasoning agent
         updateStatus?.(`Analyzing connectivity data and generating diagnostics...`);

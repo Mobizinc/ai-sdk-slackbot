@@ -32,14 +32,16 @@
       - ✅ Supports FortiManager (firewall health) and VeloCloud (SD-WAN links)
       - ⚠️ Palo Alto Strata Cloud Manager integration **NOT YET IMPLEMENTED** (future work)
 
-    - **Resilience (Addresses Open Question):**
-      - ✅ **Authentication:** API token (preferred) + username/password fallback, multi-tenant support
-      - ✅ **Timeouts:** 15 seconds per controller with AbortController
-      - ✅ **Retries:** 2-3 attempts with exponential backoff (FortiManager has full retry wrapper)
-      - ✅ **Circuit breaker:** Opens after 3 consecutive failures, auto-resets after 60 seconds
-      - ✅ **Graceful failure:** Tools return `{success: false}` instead of throwing, agent continues with partial data
-      - ⚠️ **Rate limiting:** Tracking infrastructure exists but alerting not yet implemented
-      - ⚠️ **Stale data fallback:** Cache TTL extended to 15 minutes planned, not yet implemented
+    - **Resilience (Open Question RESOLVED):**
+      - ✅ **Authentication:** Multi-tenant credential resolution with env var suffix pattern (`FORTIMANAGER_ALTUS_URL`, `VELOCLOUD_ALLCARE_API_TOKEN`)
+      - ✅ **Timeouts:** 15 seconds per controller enforced with `Promise.race` + AbortController
+      - ✅ **Retries:** FortiManager has full 3-attempt retry wrapper with exponential backoff; VeloCloud has 4-endpoint fallback strategy
+      - ✅ **Circuit breaker:** Fully wired to actual API calls - opens after 3 failures, auto-resets after 60 seconds, prevents hammering degraded APIs
+      - ✅ **Graceful failure:** All network calls wrapped in try/catch, return `{success: false}` with error messages, heuristics continue with partial data
+      - ✅ **Real API integration:** `callNetworkTools` now calls `getFortiManagerMonitorService().getFirewallHealthReport()` and `getVeloCloudService().listEdges()`/`getEdgeLinkStatus()`
+      - ✅ **Logging:** Console logging at key points (API call start, success, failure, circuit breaker state changes)
+      - ⚠️ **Rate limiting:** Infrastructure in place but alerting not yet implemented (future work)
+      - ⚠️ **Stale data fallback:** FortiManager uses 60-second cache; extended TTL for offline scenarios not yet implemented (future work)
 
 - **Supervisor**  
   Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.  
