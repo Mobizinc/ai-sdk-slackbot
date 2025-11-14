@@ -31,6 +31,9 @@
     },
     "api/cron/project-standups.ts": {
       "maxDuration": 120
+    },
+    "api/cron/stale-case-followup.ts": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -61,6 +64,10 @@
     {
       "path": "/api/cron/project-standups",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/stale-case-followup",
+      "schedule": "0 9 * * *"
     }
   ]
 }

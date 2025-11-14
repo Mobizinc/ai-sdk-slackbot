@@ -246,6 +246,15 @@ flowchart TD
     F -->|notify| I[Supervisor audit]
 ```
 
+## Ops Automations
+
+- **Stale Case Follow-up Cron**  
+  Vercel cron (`/api/cron/stale-case-followup`) runs every 24 hours (or on-demand via the Admin dashboard trigger) and inspects the `Network Engineers` and `Incident and Case Management` queues for tickets with no updates in ≥3 days. The job:
+  - Pulls fresh case lists via `caseSearchService`, computes stale/age buckets, and posts digest blocks to `C045N8WF3NE` (networking) and `C01FFQTMAD9` (ICM).
+  - For the top offenders per queue, fetches recent journal entries, runs an Anthropic Sonnet review (prompt + orchestration in `lib/services/stale-case-followup-service.ts`), and drops threaded follow-up messages that call out the owner with concrete reminders/questions.
+  - Writes an internal ServiceNow work note (“AI follow-up posted in #network-ops…”) on every case nudged so auditors can see who was pinged, when, and what guidance was provided.
+  - Tuned via `STALE_CASE_*` env vars (threshold, journal depth, group/channel overrides, model choice) so operations can adjust cadence without code changes.
+
 ## Policy & QA Agent (Supervisor)
 
 - **Trigger points**  
@@ -263,7 +272,7 @@ flowchart TD
   - Generate alerts to operators when repeated violations or low-quality outputs occur.
 - **Outputs**  
   Approval/denial status with metadata (reason, timestamp, actor), optional corrected payload, and audit records stored alongside case activity.
-  - **Resolution:** Blocked artifacts are saved as `supervisor_review` states in the `interactive_states` table. `/review-latest` (and the upcoming admin UI view) surfaces these states so operators can approve/replay without losing the artifact; once approved, the originating agent resubmits with the corrected payload.
+  - **Resolution:** Blocked artifacts are saved as `supervisor_review` states in the `interactive_states` table. `/review-latest` (Slack) and the new Admin UI dashboard (`admin/app/supervisor-reviews/page.tsx`) both read from this queue so reviewers can filter by artifact type/verdict/age, inspect the attached LLM feedback, and approve/reject directly. The admin page calls `/api/admin/supervisor-reviews` (GET/POST) and auto-refreshes the queue so once a reviewer approves, the originating agent immediately resubmits with the corrected payload.
 
 ### Policy & QA Flow
 

@@ -105,6 +105,87 @@ export interface QueueStats {
   timestamp: string
 }
 
+export type SupervisorReviewArtifactType = "slack_message" | "servicenow_work_note"
+export type SupervisorReviewVerdict = "pass" | "revise" | "critical"
+
+export interface SupervisorReviewIssue {
+  severity: "low" | "medium" | "high"
+  description: string
+  recommendation?: string
+}
+
+export interface SupervisorReviewFeedback {
+  verdict: SupervisorReviewVerdict
+  summary: string
+  confidence?: number
+  issues: SupervisorReviewIssue[]
+}
+
+export interface SupervisorReviewItem {
+  id: string
+  artifactType: SupervisorReviewArtifactType
+  caseNumber?: string
+  reason: string
+  blockedAt: string
+  ageMinutes: number
+  channelId?: string
+  threadTs?: string
+  verdict: SupervisorReviewVerdict | null
+  llmReview: SupervisorReviewFeedback | null
+  metadata: Record<string, JsonValue>
+  status: string
+}
+
+export interface SupervisorReviewStats {
+  totalPending: number
+  averageAgeMinutes: number
+  byType: Record<SupervisorReviewArtifactType, number>
+  byVerdict: Record<SupervisorReviewVerdict | "unknown", number>
+}
+
+export interface SupervisorReviewFiltersState {
+  type: SupervisorReviewArtifactType | "all"
+  verdict: SupervisorReviewVerdict | "all"
+  minAgeMinutes: number
+}
+
+export interface SupervisorReviewListResponse {
+  total: number
+  stats: SupervisorReviewStats
+  filters: SupervisorReviewFiltersState
+  items: SupervisorReviewItem[]
+}
+
+export interface SupervisorReviewQuery {
+  type?: SupervisorReviewArtifactType
+  verdict?: SupervisorReviewVerdict
+  minAgeMinutes?: number
+  limit?: number
+}
+
+export interface SupervisorReviewActionResponse {
+  success: boolean
+  status: "approved" | "rejected"
+  item: SupervisorReviewItem
+}
+
+export interface StaleCaseFollowupGroup {
+  assignmentGroup: string
+  slackChannel: string
+  slackChannelLabel?: string
+  totalCases: number
+  followupsPosted: number
+  summaryTs?: string
+  error?: string
+}
+
+export interface StaleCaseFollowupSummary {
+  runAt: string
+  thresholdDays: number
+  followupLimit: number
+  groups: StaleCaseFollowupGroup[]
+}
+
 export interface CustomCatalogMapping {
   requestType: string
   keywords: string[]
@@ -520,6 +601,76 @@ class ApiClient {
   // Queue Stats
   async getQueueStats(): Promise<QueueStats> {
     return this.request<QueueStats>('/api/admin/queue-stats')
+  }
+
+  // Supervisor Reviews
+  async getSupervisorReviews(params?: SupervisorReviewQuery): Promise<SupervisorReviewListResponse> {
+    const search = new URLSearchParams()
+    if (params?.type) {
+      search.set('type', params.type)
+    }
+    if (params?.verdict) {
+      search.set('verdict', params.verdict)
+    }
+    if (params?.minAgeMinutes && params.minAgeMinutes > 0) {
+      search.set('minAgeMinutes', params.minAgeMinutes.toString())
+    }
+    if (params?.limit) {
+      search.set('limit', params.limit.toString())
+    }
+
+    const query = search.toString() ? `?${search.toString()}` : ''
+    return this.request<SupervisorReviewListResponse>(`/api/admin/supervisor-reviews${query}`)
+  }
+
+  async approveSupervisorReview(stateId: string, reviewer?: string): Promise<SupervisorReviewActionResponse> {
+    const payload: Record<string, unknown> = {
+      action: 'approve',
+      stateId,
+    }
+
+    if (reviewer) {
+      payload.reviewer = reviewer
+    }
+
+    return this.request<SupervisorReviewActionResponse>('/api/admin/supervisor-reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async rejectSupervisorReview(stateId: string, reviewer?: string): Promise<SupervisorReviewActionResponse> {
+    const payload: Record<string, unknown> = {
+      action: 'reject',
+      stateId,
+    }
+
+    if (reviewer) {
+      payload.reviewer = reviewer
+    }
+
+    return this.request<SupervisorReviewActionResponse>('/api/admin/supervisor-reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  // Stale case follow-up
+  async getStaleCaseFollowupSummary(): Promise<StaleCaseFollowupSummary | null> {
+    const response = await this.request<{ status: string; summary: StaleCaseFollowupSummary | null }>(
+      '/api/admin/stale-case-followup'
+    )
+    return response.summary
+  }
+
+  async triggerStaleCaseFollowup(): Promise<StaleCaseFollowupSummary> {
+    const response = await this.request<{ status: string; summary: StaleCaseFollowupSummary }>(
+      '/api/admin/stale-case-followup',
+      {
+        method: 'POST',
+      }
+    )
+    return response.summary
   }
 
   // Reports

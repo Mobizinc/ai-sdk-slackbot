@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Database, BarChart3, Settings, Activity, Home, FolderKanban } from "lucide-react"
+import { Database, BarChart3, Settings, Activity, Home, FolderKanban, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Business Contexts", href: "/business-contexts", icon: Database },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Monitoring", href: "/monitoring", icon: Activity },
+  { name: "Supervisor Reviews", href: "/supervisor-reviews", icon: ShieldCheck },
   { name: "Configuration", href: "/config", icon: Settings },
 ]
 

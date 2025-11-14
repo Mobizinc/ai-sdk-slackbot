@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Automated stale-case follow-up cron (`/api/cron/stale-case-followup`) that posts 12-hour digests for Network Engineers / Incident & Case Management, runs Anthropic reviews for each stale ticket, and logs internal ServiceNow work notes
 - Service Portfolio Classification: AI now identifies and links Service Offerings and Application Services
 - Database columns: `service_offering` and `application_service` in classification tables
 - Complete dev → staging → prod workflow with branch protection
