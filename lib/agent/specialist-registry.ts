@@ -3,6 +3,28 @@ import type { ChatMessage } from "../services/anthropic-chat";
 const CASE_NUMBER_REGEX = /\b(?:SCS|CS|INC|RITM|REQ|CHG|PRB|SCTASK|TASK|STASK)[0-9]{4,}\b/gi;
 
 export type SpecialistSignal = "caseNumber" | "projectInterest" | "networkDevice" | "feedback";
+export type SpecialistContextRequirementId = "caseNumber" | "impactedUser";
+
+interface RequirementConfig {
+  id: SpecialistContextRequirementId;
+  label: string;
+  description: string;
+  prompt: string;
+  isSatisfied: (input: RequirementCheckInput) => boolean;
+}
+
+interface RequirementCheckInput {
+  signals: Set<SpecialistSignal>;
+  routingInput: SpecialistRoutingInput;
+}
+
+export interface SpecialistRequirementPrompt {
+  id: SpecialistContextRequirementId;
+  label: string;
+  description: string;
+  prompt: string;
+  agents: string[];
+}
 
 export interface SpecialistAgentDefinition {
   id: string;
@@ -12,6 +34,7 @@ export interface SpecialistAgentDefinition {
   sampleUtterances?: string[];
   requiredSignals?: SpecialistSignal[];
   optionalSignals?: SpecialistSignal[];
+  requiredContext?: SpecialistContextRequirementId[];
   toolNames?: string[];
   eventsEmitted?: string[];
   entryPoint?: "tool" | "workflow" | "event";
@@ -25,6 +48,7 @@ export interface SpecialistAgentMatch {
   score: number;
   matchedKeywords: string[];
   missingSignals: SpecialistSignal[];
+  missingContextRequirements: SpecialistContextRequirementId[];
 }
 
 export interface SpecialistRoutingInput {
@@ -36,7 +60,33 @@ export interface SpecialistRoutingInput {
 export interface ToolAllowlistResult {
   allowlist?: string[];
   matches: SpecialistAgentMatch[];
+  pendingRequirements?: SpecialistRequirementPrompt[];
 }
+
+const REQUIREMENT_CONFIGS: Record<SpecialistContextRequirementId, RequirementConfig> = {
+  caseNumber: {
+    id: "caseNumber",
+    label: "ServiceNow case number",
+    description: "Required to look up classification, discovery, and run downstream orchestration safely.",
+    prompt:
+      "I can run the requested automation once you share the ServiceNow case number associated with this issue.",
+    isSatisfied: ({ signals }) => signals.has("caseNumber"),
+  },
+  impactedUser: {
+    id: "impactedUser",
+    label: "Impacted user or account",
+    description: "Needed to scope user-specific diagnostics or communications.",
+    prompt:
+      "Let me know which user or account is impacted so I can narrow the diagnostics appropriately.",
+    isSatisfied: ({ routingInput }) => {
+      const metadata = routingInput.contextMetadata ?? {};
+      return Boolean(
+        (metadata as { impactedUser?: string }).impactedUser ||
+          (metadata as { impactedUsers?: unknown[] }).impactedUsers,
+      );
+    },
+  },
+};
 
 const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
   {
@@ -47,6 +97,7 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     keywords: ["triage", "classify", "servicenow", "orchestrate", "workflow", "incident", "case"],
     sampleUtterances: ["triage SCS0001234", "classify this incident", "run the orchestration for Altus"],
     requiredSignals: ["caseNumber"],
+    requiredContext: ["caseNumber"],
     toolNames: [
       "orchestrateServiceNowCase",
       "serviceNow",
@@ -123,6 +174,7 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
       "check SD-WAN link quality",
     ],
     requiredSignals: ["caseNumber"],
+    requiredContext: ["caseNumber"],
     toolNames: ["diagnoseConnectivity", "getFirewallStatus", "queryVelocloud"],
     entryPoint: "tool",
     costClass: "medium",
@@ -135,6 +187,7 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     description: "Runs the standalone classification runner when only analytic output is needed (no side effects).",
     keywords: ["classification", "discovery pack", "context pack", "analysis"],
     requiredSignals: ["caseNumber"],
+    requiredContext: ["caseNumber"],
     toolNames: ["runClassificationAgent", "searchSimilarCases"],
     entryPoint: "tool",
     baseWeight: 2,
@@ -230,6 +283,21 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
       }
     }
 
+    const missingContextRequirements: SpecialistContextRequirementId[] = [];
+    if (agent.requiredContext) {
+      for (const requirementId of agent.requiredContext) {
+        const requirement = REQUIREMENT_CONFIGS[requirementId];
+        if (!requirement) continue;
+        const satisfied = requirement.isSatisfied({ signals, routingInput: input });
+        if (!satisfied) {
+          missingContextRequirements.push(requirementId);
+          score -= 1;
+        } else {
+          score += 0.5;
+        }
+      }
+    }
+
     const hasRequiredSignalSatisfied = Boolean(
       agent.requiredSignals?.some((signal) => signals.has(signal))
     );
@@ -243,6 +311,7 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
       score,
       matchedKeywords,
       missingSignals,
+      missingContextRequirements,
     };
   })
     .filter((match): match is SpecialistAgentMatch => match !== null && match !== undefined && match.score > 0)
@@ -254,12 +323,33 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
 
 export function buildToolAllowList(input: SpecialistRoutingInput): ToolAllowlistResult {
   const matches = matchSpecialistAgents(input);
-  const viable = matches.filter(
-    (match) => match.missingSignals.length === 0 && match.agent.toolNames && match.agent.toolNames.length > 0
-  );
+  const pendingMap = new Map<
+    SpecialistContextRequirementId,
+    { config: RequirementConfig; agents: Set<string> }
+  >();
+
+  const viable = matches.filter((match) => {
+    const requirementsMissing = match.missingContextRequirements.length > 0;
+    if (requirementsMissing && match.missingSignals.length === 0) {
+      match.missingContextRequirements.forEach((reqId) => {
+        const config = REQUIREMENT_CONFIGS[reqId];
+        if (!config) return;
+        const bucket = pendingMap.get(reqId) ?? { config, agents: new Set<string>() };
+        bucket.agents.add(match.agent.name);
+        pendingMap.set(reqId, bucket);
+      });
+    }
+
+    return (
+      match.missingSignals.length === 0 &&
+      match.missingContextRequirements.length === 0 &&
+      match.agent.toolNames &&
+      match.agent.toolNames.length > 0
+    );
+  });
 
   if (viable.length === 0) {
-    return { matches };
+    return { matches, pendingRequirements: buildPendingRequirements(pendingMap) };
   }
 
   const shortlist = new Set<string>();
@@ -268,13 +358,29 @@ export function buildToolAllowList(input: SpecialistRoutingInput): ToolAllowlist
   });
 
   if (shortlist.size === 0) {
-    return { matches };
+    return { matches, pendingRequirements: buildPendingRequirements(pendingMap) };
   }
 
   return {
     matches,
     allowlist: Array.from(shortlist),
+    pendingRequirements: buildPendingRequirements(pendingMap),
   };
+}
+
+function buildPendingRequirements(
+  pendingMap: Map<SpecialistContextRequirementId, { config: RequirementConfig; agents: Set<string> }>,
+): SpecialistRequirementPrompt[] | undefined {
+  if (pendingMap.size === 0) {
+    return undefined;
+  }
+  return Array.from(pendingMap.values()).map(({ config, agents }) => ({
+    id: config.id,
+    label: config.label,
+    description: config.description,
+    prompt: `${config.prompt} (Needed for: ${Array.from(agents).join(", ")})`,
+    agents: Array.from(agents),
+  }));
 }
 
 function buildNormalizedCorpus(messages: ChatMessage[]): string {

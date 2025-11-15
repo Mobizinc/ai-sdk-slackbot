@@ -44,6 +44,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         score: match.score,
         matchedKeywords: match.matchedKeywords,
         missingSignals: match.missingSignals,
+        missingContextRequirements: match.missingContextRequirements,
       }));
 
       if (routing.allowlist && routing.allowlist.length > 0) {
@@ -56,9 +57,17 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         );
       }
 
+      if (routing.pendingRequirements && routing.pendingRequirements.length > 0) {
+        const reqSummary = routing.pendingRequirements
+          .map((req) => `${req.label}`)
+          .join(", ");
+        console.log(`[Agent] Pending specialist requirements → ${reqSummary}`);
+      }
+
       const augmentedMetadata = {
         ...(params.contextMetadata || {}),
         specialistShortlist: specialistMetadata,
+        pendingRequirements: routing.pendingRequirements,
       };
 
       const availableTools = toolRegistry.createTools({
@@ -72,6 +81,19 @@ export async function runAgent(params: RunnerParams): Promise<string> {
 
       const toolDefinitions = buildToolDefinitions(availableTools);
       const conversation: ChatMessage[] = params.messages.map(toChatMessage);
+
+      if (routing.pendingRequirements && routing.pendingRequirements.length > 0) {
+        const requirementText = routing.pendingRequirements
+          .map((req) => `• ${req.prompt}`)
+          .join("\n");
+        conversation.unshift({
+          role: "system",
+          content:
+            "The user is requesting automation that requires additional context before you can proceed.\n" +
+            `${requirementText}\n` +
+            "Ask the user to provide each missing item and wait for their response before attempting to call specialized tools.",
+        });
+      }
 
       const maxSteps = config.agentMaxToolIterations;
 

@@ -1,10 +1,10 @@
 ## Agent Architecture Overview
 
-- **Conversational Agent**  
-  Maintains the active Slack thread context, writes structured updates to the shared store, and handles everyday guidance. Escalates only when a user explicitly requests automation (e.g., “triage this case”) or when policy rules demand it.
+- **Conversational Agent (Channel-Agnostic Entry Point)**  
+  Single Anthropic conversation loop that serves all chat surfaces (Slack today; Teams or other adapters later). It does **not** keep its own long‑lived memory; instead it reads/writes the shared context store keyed by `case_number + channel_id + thread_ts`. Handles everyday guidance and follow‑ups in natural language, and only escalates into automation when a user explicitly requests it (e.g., “triage this case”, “diagnose connectivity”) or when policy rules demand it.
 
 - **Shared Context Store**  
-  Existing context manager plus ServiceNow snapshots. Serves as the single source of truth for transcripts, case metadata, and recent journal extracts.
+  Existing context manager plus ServiceNow snapshots. Serves as the single source of truth for transcripts, case metadata, and recent journal extracts, independent of Slack vs. Teams vs. other channels.
   - **Data Governance Policies (2025-02-10):**  
     - **Retention:** Slack transcripts and deterministic context are persisted in `case_contexts`/`case_messages` for 72 hours and then purged by `ContextManager.cleanupOldContexts()` (now invoked via `/api/cron/cleanup-workflows`). ServiceNow webhook payloads and classification snapshots that land in `case_classification_inbound/results` are deleted after 30 days through `CaseClassificationRepository.cleanupOldData`, so auditors know exactly how long ServiceNow-derived data lives.  
     - **Tenant isolation & concurrency control:** Context store keys are `case_number + channel_id + thread_ts`, matching the Postgres primary key and preventing overlaps even when case numbers collide across clients. The orchestrator resolves `routing_context` + `clientScopePolicy` before constructing a discovery pack, so a specialist can only read/write the context that matches the Slack workspace/case they are actively handling.  
@@ -12,10 +12,13 @@
     - **PII redaction:** `sanitizeContextMessage` redacts emails, phone numbers, SSNs, MRNs, and PANs before we store Slack text, and the sanitized transcript is also what feeds discovery/classification prompts. Tracing/export layers reuse `sanitizeForTracing`, so no raw identifiers leak to LangSmith or telemetry sinks.
 
 - **Orchestrator**  
-  Inspects intent and routes work to the appropriate specialist agent (triage, KB drafting, escalation, etc.), enforcing prerequisites (valid case number, permissions) before dispatch.
+  Implements the **refactored agent pipeline**: loads context (`loadContext`), builds the system + conversation prompt (`buildPrompt`), runs the single Anthropic conversation with tools (`runAgent`), and formats the final Slack/Teams message (`formatMessage`). In the current implementation it **does not spawn separate LLM agents per specialist**; instead it enforces prerequisites (valid case number, permissions) and configures which specialist tools are exposed to the conversational agent for a given request.
 
-- **Specialist Agents**  
-  Stateless, single-purpose workers (Discovery, ServiceNow orchestration, KB drafting, escalation messaging today; future workflows later). Each pulls what it needs from the context store, produces structured output, and hands results back for user-facing delivery.
+- **Specialist Agents (Implemented as Tools/Workflows)**  
+  Stateless, single-purpose capabilities (Discovery, ServiceNow orchestration, KB drafting, escalation messaging, connectivity reasoning, etc.). Each is realized as:
+  - A definition in `lib/agent/specialist-registry.ts` (keywords, required signals, tool names, events), and  
+  - One or more tools/workflows in `lib/agent/tools/*` or service modules.  
+  At runtime, the specialist registry + orchestrator build a **tool allowlist** for the conversational agent; Claude then decides which of those tools to call, in what order, within a single conversation. We do **not yet** run separate Anthropic sessions per specialist; multi-agent fan-out remains an optional future optimization for batch and high-volume workflows.
   - **Connectivity Reasoning Agent** ✅ **IMPLEMENTED**
     Consumes the Discovery `context_pack`, calls approved REST controllers (FortiManager, VeloCloud) for live routing/tunnel status, runs lightweight heuristics to explain connectivity gaps, and returns proposed diagnostics or follow-up questions. Results flow back through the orchestrator to the conversational agent so humans receive actionable next steps. Operates in read-only mode; effectiveness depends on the availability of those controller APIs.
 
@@ -354,6 +357,19 @@ flowchart TD
         C -->|feedback & alerts| X
     end
 ```
+
+### Implementation Mode (2025-11-15)
+
+- **Current:** Single conversational agent + specialist tools  
+  - All conversational channels (Slack today; future Teams adapter) call a single entry point (`AgentOrchestrator.run` → `runAgent`).  
+  - The orchestrator loads context, builds prompts, and uses the specialist registry to compute a tool allowlist.  
+  - Claude runs one conversation loop and **decides which specialist tools to call** (ServiceNow orchestration, connectivity reasoning, KB drafting, etc.) based on the user’s request and the loaded context.  
+  - Specialists are implemented as tools and workflows; they are **stateless** and do not maintain their own conversation history.
+
+- **Future (Optional): Multi-Agent Fan-Out**  
+  - The conceptual “ServiceNow Orchestration Agent”, “Discovery Agent”, “Classification Agent”, etc. shown in the diagrams can later be split into independently configured LLM agents (different models, temperatures, and parallel execution) if we need high-volume batch processing or strict per-specialist SLAs.  
+  - This would be a **backend optimization only**: Slack/Teams would still talk to the same conversational entry point, which would in turn orchestrate one or more specialists behind the scenes.  
+  - Until those use cases appear (e.g., classifying thousands of cases overnight), we intentionally stay in the single-agent + tools mode to maximize conversational continuity and adaptive reasoning.
 
 ---
 
