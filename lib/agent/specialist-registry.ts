@@ -96,7 +96,6 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
       "Runs the full ServiceNow orchestration pipeline (Discovery → Classification → Enrichment → Side Effects → Escalation) for cases and incidents.",
     keywords: ["triage", "classify", "servicenow", "orchestrate", "workflow", "incident", "case"],
     sampleUtterances: ["triage SCS0001234", "classify this incident", "run the orchestration for Altus"],
-    requiredSignals: ["caseNumber"],
     requiredContext: ["caseNumber"],
     toolNames: [
       "orchestrateServiceNowCase",
@@ -173,7 +172,6 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
       "firewall seems offline",
       "check SD-WAN link quality",
     ],
-    requiredSignals: ["caseNumber"],
     requiredContext: ["caseNumber"],
     toolNames: ["diagnoseConnectivity", "getFirewallStatus", "queryVelocloud"],
     entryPoint: "tool",
@@ -186,7 +184,6 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     name: "Discovery & Classification Agent",
     description: "Runs the standalone classification runner when only analytic output is needed (no side effects).",
     keywords: ["classification", "discovery pack", "context pack", "analysis"],
-    requiredSignals: ["caseNumber"],
     requiredContext: ["caseNumber"],
     toolNames: ["runClassificationAgent", "searchSimilarCases"],
     entryPoint: "tool",

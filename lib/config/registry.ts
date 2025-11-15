@@ -925,6 +925,20 @@ export const CONFIG_DEFINITIONS = {
     group: "slack",
     description: "Slack channel ID for Mobiz service desk leaderboard posts.",
   },
+  staleCaseNetworkChannel: {
+    envVar: "STALE_CASE_NETWORK_CHANNEL_ID",
+    type: "string",
+    default: "C045N8WF3NE",
+    group: "slack",
+    description: "Slack channel ID for Network Engineers stale case follow-up notifications.",
+  },
+  staleCaseIcmChannel: {
+    envVar: "STALE_CASE_ICM_CHANNEL_ID",
+    type: "string",
+    default: "C01FFQTMAD9",
+    group: "slack",
+    description: "Slack channel ID for Incident and Case Management stale case follow-up notifications.",
+  },
   nextPublicAdminToken: {
     envVar: "NEXT_PUBLIC_ADMIN_TOKEN",
     type: "string",
