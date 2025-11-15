@@ -789,7 +789,7 @@ export const CONFIG_DEFINITIONS = {
     sensitive: true,
   },
   adminApiToken: {
-    envVar: "ADMIN_API_TOKEN",
+    envVar: "NEXT_PUBLIC_ADMIN_TOKEN",
     type: "string",
     default: "",
     group: "admin",
