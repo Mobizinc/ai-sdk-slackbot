@@ -8,6 +8,7 @@ import type { SlackMessagingService } from "./slack-messaging";
 import type { CaseRepository } from "../infrastructure/servicenow/repositories/case-repository.interface";
 import { getServiceNowUserDirectory, ServiceNowUserDirectory } from "./service-now-user-directory";
 import { setAppSetting, getAppSetting } from "./app-settings";
+import { config } from "../config";
 
 export interface AssignmentGroupConfig {
   assignmentGroup: string;
@@ -62,12 +63,12 @@ const STALE_CASE_FOLLOWUP_STATE_KEY = "stale_case_followup:last_run";
 export const DEFAULT_ASSIGNMENT_GROUPS: AssignmentGroupConfig[] = [
   {
     assignmentGroup: process.env.STALE_CASE_NETWORK_GROUP_NAME ?? "Network Engineers",
-    slackChannel: process.env.STALE_CASE_NETWORK_CHANNEL_ID ?? "C045N8WF3NE",
+    slackChannel: config.staleCaseNetworkChannel,
     slackChannelLabel: process.env.STALE_CASE_NETWORK_CHANNEL_LABEL ?? "#network-ops",
   },
   {
     assignmentGroup: process.env.STALE_CASE_ICM_GROUP_NAME ?? "Incident and Case Management",
-    slackChannel: process.env.STALE_CASE_ICM_CHANNEL_ID ?? "C01FFQTMAD9",
+    slackChannel: config.staleCaseIcmChannel,
     slackChannelLabel: process.env.STALE_CASE_ICM_CHANNEL_LABEL ?? "#incident-case-mgmt",
   },
 ];
