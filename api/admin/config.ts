@@ -53,7 +53,10 @@ export async function GET(request: Request): Promise<Response> {
     });
   } catch (error) {
     console.error("[Admin Config] Failed to load configuration:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response("Internal server error", {
+      status: 500,
+      headers: getCorsHeaders(request, "GET, PATCH, OPTIONS"),
+    });
   }
 }
 
@@ -100,11 +103,17 @@ export async function PATCH(request: Request): Promise<Response> {
     updates = normalisePatchPayload(body);
   } catch (error) {
     console.warn("[Admin Config] Failed to parse PATCH payload:", error);
-    return new Response("Invalid JSON body.", { status: 400 });
+    return new Response("Invalid JSON body.", {
+      status: 400,
+      headers: getCorsHeaders(request, "GET, PATCH, OPTIONS"),
+    });
   }
 
   if (!updates || Object.keys(updates).length === 0) {
-    return new Response("No updates provided.", { status: 400 });
+    return new Response("No updates provided.", {
+      status: 400,
+      headers: getCorsHeaders(request, "GET, PATCH, OPTIONS"),
+    });
   }
 
   const keys = Object.keys(updates) as ConfigKey[];
@@ -113,7 +122,10 @@ export async function PATCH(request: Request): Promise<Response> {
   try {
     for (const key of keys) {
       if (!(key in definitions)) {
-        return new Response(`Unknown configuration key: ${key}`, { status: 400 });
+        return new Response(`Unknown configuration key: ${key}`, {
+          status: 400,
+          headers: getCorsHeaders(request, "GET, PATCH, OPTIONS"),
+        });
       }
 
       const serialized = serializeConfigValue(key, updates[key]);
@@ -129,6 +141,9 @@ export async function PATCH(request: Request): Promise<Response> {
     });
   } catch (error) {
     console.error("[Admin Config] Failed to persist configuration:", error);
-    return new Response("Internal server error", { status: 500 });
+    return new Response("Internal server error", {
+      status: 500,
+      headers: getCorsHeaders(request, "GET, PATCH, OPTIONS"),
+    });
   }
 }

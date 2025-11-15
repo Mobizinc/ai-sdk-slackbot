@@ -24,18 +24,27 @@ export function authorizeAdminRequest(request: Request): Response | null {
   if (!adminToken) {
     return new Response(
       "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
-      { status: 403 }
+      {
+        status: 403,
+        headers: getCorsHeaders(request, "GET, PATCH, POST, DELETE, OPTIONS")
+      }
     );
   }
 
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response("Unauthorized. Provide Bearer token.", { status: 401 });
+    return new Response("Unauthorized. Provide Bearer token.", {
+      status: 401,
+      headers: getCorsHeaders(request, "GET, PATCH, POST, DELETE, OPTIONS")
+    });
   }
 
   const provided = authHeader.substring(7);
   if (provided !== adminToken) {
-    return new Response("Forbidden. Invalid admin token.", { status: 403 });
+    return new Response("Forbidden. Invalid admin token.", {
+      status: 403,
+      headers: getCorsHeaders(request, "GET, PATCH, POST, DELETE, OPTIONS")
+    });
   }
 
   return null;
