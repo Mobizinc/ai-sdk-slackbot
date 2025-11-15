@@ -35,7 +35,13 @@ function createInitialConfig(): ConfigValueMap {
   const initial = {} as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
     const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
-    const envRaw = definition.envVar ? process.env[definition.envVar] : undefined;
+    let envRaw = definition.envVar ? process.env[definition.envVar] : undefined;
+
+    // Special handling: support both NEXT_PUBLIC_ADMIN_TOKEN and ADMIN_API_TOKEN for backwards compatibility
+    if (key === 'adminApiToken' && !envRaw) {
+      envRaw = process.env.ADMIN_API_TOKEN;
+    }
+
     initial[key] = parseValue(definition, envRaw);
   }
   return initial as ConfigValueMap;
