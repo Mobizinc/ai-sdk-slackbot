@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { CIMatchingService } from "../../lib/services/ci-matching-service";
-import { getCmdbRepository } from "../../lib/infrastructure/servicenow/repositories/factory";
+import { CIMatchingService } from "../lib/services/ci-matching-service";
+import { getCmdbRepository } from "../lib/infrastructure/servicenow/repositories/factory";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 // Mock the dependencies
-vi.mock("../../lib/infrastructure/servicenow/repositories/factory");
+vi.mock("../lib/infrastructure/servicenow/repositories/factory");
 vi.mock("fs", () => ({
   readFileSync: vi.fn(),
 }));

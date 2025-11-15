@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { IncidentEnrichmentService } from "../../lib/services/incident-enrichment-service";
-import { serviceNowClient } from "../../lib/tools/servicenow";
-import { getIncidentNoteAnalyzerService } from "../../lib/services/incident-note-analyzer";
-import { getCIMatchingService } from "../../lib/services/ci-matching-service";
-import { getIncidentClarificationService } from "../../lib/services/incident-clarification-service";
-import { getIncidentEnrichmentRepository } from "../../lib/db/repositories/incident-enrichment-repository";
-import type { ExtractedEntities } from "../../lib/services/incident-note-analyzer";
-import type { IncidentEnrichmentState } from "../../lib/db/schema";
+import { IncidentEnrichmentService } from "../lib/services/incident-enrichment-service";
+import { serviceNowClient } from "../lib/tools/servicenow";
+import { getIncidentNoteAnalyzerService } from "../lib/services/incident-note-analyzer";
+import { getCIMatchingService } from "../lib/services/ci-matching-service";
+import { getIncidentClarificationService } from "../lib/services/incident-clarification-service";
+import { getIncidentEnrichmentRepository } from "../lib/db/repositories/incident-enrichment-repository";
+import type { ExtractedEntities } from "../lib/services/incident-note-analyzer";
+import type { IncidentEnrichmentState } from "../lib/db/schema";
 
 // Mock all dependencies
-vi.mock("../../lib/tools/servicenow");
-vi.mock("../../lib/services/incident-note-analyzer");
-vi.mock("../../lib/services/ci-matching-service");
-vi.mock("../../lib/services/incident-clarification-service");
-vi.mock("../../lib/db/repositories/incident-enrichment-repository");
+vi.mock("../lib/tools/servicenow");
+vi.mock("../lib/services/incident-note-analyzer");
+vi.mock("../lib/services/ci-matching-service");
+vi.mock("../lib/services/incident-clarification-service");
+vi.mock("../lib/db/repositories/incident-enrichment-repository");
 
 const mockServiceNowClient = vi.mocked(serviceNowClient);
 const mockNoteAnalyzer = vi.mocked(getIncidentNoteAnalyzerService);

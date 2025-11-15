@@ -17,6 +17,11 @@ const REDACTION_PATTERNS: RedactionPattern[] = [
     replacement: "[REDACTED_EMAIL]",
   },
   {
+    key: "mrn",
+    regex: /\b(?:MRN|Medical Record Number)[:\s-]*\d{6,}\b/gi,
+    replacement: "[REDACTED_MRN]",
+  },
+  {
     key: "phone",
     regex: /\b(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b/g,
     replacement: "[REDACTED_PHONE]",
@@ -30,11 +35,6 @@ const REDACTION_PATTERNS: RedactionPattern[] = [
     key: "credit_card",
     regex: /\b(?:\d[ -]?){13,16}\b/g,
     replacement: "[REDACTED_PAN]",
-  },
-  {
-    key: "mrn",
-    regex: /\b(?:MRN|Medical Record Number)[:\s-]*\d{6,}\b/gi,
-    replacement: "[REDACTED_MRN]",
   },
 ];
 

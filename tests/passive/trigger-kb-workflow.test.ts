@@ -16,7 +16,7 @@ vi.mock("../../lib/passive/actions/trigger-kb-workflow/cleanup", () => ({
   cleanupTimedOut: (...args: unknown[]) => cleanupTimedOut(...args),
 }));
 
-const { TriggerKBWorkflowAction } = require("../../lib/passive/actions/trigger-kb-workflow/main");
+import { TriggerKBWorkflowAction } from "../../lib/passive/actions/trigger-kb-workflow/main";
 
 describe("TriggerKBWorkflowAction", () => {
   const deps = {
