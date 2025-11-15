@@ -36,6 +36,12 @@ jobs:
         env:
           CI: true
 
+      - name: Run smoke tests
+        run: pnpm test:smoke
+        env:
+          CI: true
+          SMOKE_TEST: true
+
       - name: Check for uncommitted changes
         run: |
           git diff --exit-code || (echo "Build generated changes that weren't committed" && exit 1)

@@ -9,6 +9,7 @@
     "build:admin": "cd admin && pnpm build",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "test:smoke": "vitest run tests/smoke --reporter=verbose",
     "smoke": "tsx scripts/smoke-test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
