@@ -103,7 +103,7 @@ Requires integration with ServiceNow search API, implementation of caching layer
 
       // Verify API call
       expect(mockAnthropicCreate).toHaveBeenCalledWith({
-        model: "claude-3-5-haiku-20241022",
+        model: "claude-haiku-4-5",
         max_tokens: 2000,
         messages: [
           {

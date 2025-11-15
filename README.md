@@ -416,7 +416,7 @@ The bot maintains context within both threads and direct messages, so it can fol
   - `STALE_CASE_NETWORK_GROUP_NAME`, `STALE_CASE_NETWORK_CHANNEL_ID`, `STALE_CASE_NETWORK_CHANNEL_LABEL`
   - `STALE_CASE_ICM_GROUP_NAME`, `STALE_CASE_ICM_CHANNEL_ID`, `STALE_CASE_ICM_CHANNEL_LABEL`
   - `STALE_CASE_THRESHOLD_DAYS` (default `3`), `STALE_CASE_FETCH_LIMIT`, `STALE_CASE_FOLLOWUP_LIMIT`, `STALE_CASE_JOURNAL_LIMIT`
-  - `STALE_CASE_REVIEW_MODEL` (defaults to `claude-3-5-sonnet-20241022`)
+  - `STALE_CASE_REVIEW_MODEL` (defaults to `claude-sonnet-4-5`)
 
 
 ### Extending with New Tools

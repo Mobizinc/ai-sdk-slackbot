@@ -56,7 +56,7 @@ const DEFAULT_THRESHOLD_DAYS = parseInt(process.env.STALE_CASE_THRESHOLD_DAYS ??
 const DEFAULT_FETCH_LIMIT = parseInt(process.env.STALE_CASE_FETCH_LIMIT ?? "60", 10);
 const DEFAULT_FOLLOWUP_LIMIT = parseInt(process.env.STALE_CASE_FOLLOWUP_LIMIT ?? "8", 10);
 const DEFAULT_JOURNAL_LIMIT = parseInt(process.env.STALE_CASE_JOURNAL_LIMIT ?? "8", 10);
-const REVIEW_MODEL = process.env.STALE_CASE_REVIEW_MODEL ?? "claude-3-5-sonnet-20241022";
+const REVIEW_MODEL = process.env.STALE_CASE_REVIEW_MODEL ?? "claude-sonnet-4-5";
 const STALE_CASE_FOLLOWUP_STATE_KEY = "stale_case_followup:last_run";
 
 export const DEFAULT_ASSIGNMENT_GROUPS: AssignmentGroupConfig[] = [

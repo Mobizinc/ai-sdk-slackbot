@@ -146,7 +146,7 @@ export const CONFIG_DEFINITIONS = {
   supervisorLlmReviewModel: {
     envVar: "SUPERVISOR_LLM_REVIEW_MODEL",
     type: "string",
-    default: "claude-3-5-sonnet-20241022",
+    default: "claude-sonnet-4-5",
     group: "supervisor",
     description: "Anthropic model identifier used for the LLM supervisor review stage.",
   },

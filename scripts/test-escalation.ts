@@ -42,7 +42,7 @@ const testCase: EscalationContext = {
     confidence_score: 0.92,
     reasoning: "This case requires professional services engagement for multi-location deployment with custom integrations",
     keywords_detected: ["OnePacs", "multi-location", "installation", "integration", "PACS"],
-    model_used: "claude-3-5-sonnet-20241022",
+    model_used: "claude-sonnet-4-5",
     classified_at: new Date(),
     urgency_level: "High",
     immediate_next_steps: [

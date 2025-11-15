@@ -99,7 +99,7 @@ const sampleProject = {
   mentor: { slackUserId: "Umentor", name: "Mentor" },
   interview: {
     generator: {
-      model: "claude-3-haiku-20240307",
+      model: "claude-haiku-4-5",
       questionCount: 3,
     },
     questions: [],

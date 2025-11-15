@@ -14,7 +14,7 @@ export const interviewQuestionSchema = z.object({
 export type InterviewQuestion = z.infer<typeof interviewQuestionSchema>;
 
 export const interviewGeneratorSchema = z.object({
-  model: z.string().default("claude-3-haiku-20240307"),
+  model: z.string().default("claude-haiku-4-5"),
   questionCount: z.number().int().min(3).max(12).default(6),
   styleGuidance: z.string().optional(),
 });

@@ -109,7 +109,7 @@ describe("TriageStorage", () => {
       token_usage_input: 15000,
       token_usage_output: 1200,
       total_tokens: 16200,
-      model_used: "claude-3-5-sonnet-20241022",
+      model_used: "claude-sonnet-4-5",
       llm_provider: "anthropic",
       similar_cases_count: 3,
       kb_articles_count: 2,

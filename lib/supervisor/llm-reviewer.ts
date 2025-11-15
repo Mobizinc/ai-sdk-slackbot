@@ -47,7 +47,7 @@ export async function runSupervisorLlmReview(
   const chatService = AnthropicChatService.getInstance();
   const model =
     (getConfigValue("supervisorLlmReviewModel") as string | undefined) ??
-    "claude-3-5-sonnet-20241022";
+    "claude-sonnet-4-5";
 
   const prompt = buildPrompt(input);
 

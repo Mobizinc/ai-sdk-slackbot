@@ -8,7 +8,7 @@ import {
 } from "../config/mobizinc-strategy";
 import type { AnalysisResult, DemandRequest } from "../types";
 
-const DEFAULT_MODEL = "claude-3-haiku-20240307";
+const DEFAULT_MODEL = "claude-sonnet-4-5";
 const DEFAULT_MAX_TOKENS = 1500;
 
 export interface AnalyzeOptions {
