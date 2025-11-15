@@ -93,38 +93,22 @@ async function fetchRecordsFromTable(
   extraQueries: string[] = [],
 ): Promise<RawTaskRecord[]> {
   const baseFilter = buildAssignmentGroupFilter(TARGET_ASSIGNMENT_GROUPS);
-  const defaultQueries = [
-    `${baseFilter}^active=true`,
-    `${baseFilter}^opened_at>=${formatDateForQuery(start)}`,
-    `${baseFilter}^resolved_at>=${formatDateForQuery(start)}`,
-    `${baseFilter}^closed_at>=${formatDateForQuery(start)}`,
-  ];
-  const queries = [...defaultQueries, ...extraQueries.map((q) => `${baseFilter}^${q}`)];
+  const startDate = formatDateForQuery(start);
 
-  const records = new Map<string, RawTaskRecord>();
+  // Single comprehensive query that gets ALL relevant records for the period:
+  // - Cases/incidents that were opened, resolved, or closed during the period
+  // - OR currently active cases in these assignment groups
+  const query = `${baseFilter}^(opened_at>=${startDate}^ORresolved_at>=${startDate}^ORclosed_at>=${startDate}^ORactive=true)`;
 
-  for (const query of queries) {
-    const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
-      sysparm_query: query,
-      sysparm_fields: fields,
-      sysparm_display_value: "all",
-      pageSize: 500,
-      maxRecords: MAX_RECORDS,
-    });
+  const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
+    sysparm_query: query,
+    sysparm_fields: fields,
+    sysparm_display_value: "all",
+    pageSize: 500,
+    maxRecords: MAX_RECORDS,
+  });
 
-    for (const row of rows) {
-      const key = row.sys_id;
-      if (!key) continue;
-      const existing = records.get(key);
-      if (existing) {
-        records.set(key, mergeRecords(existing, row));
-      } else {
-        records.set(key, row);
-      }
-    }
-  }
-
-  return Array.from(records.values());
+  return rows;
 }
 
 function mergeRecords(target: RawTaskRecord, source: RawTaskRecord): RawTaskRecord {
@@ -223,10 +207,7 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
     const resolvedAt = parseDate(record.resolved_at ?? record.closed_at);
     const active = isTaskActive(record);
 
-    // Track cases opened during the period
-    const openedInPeriod = openedAt && openedAt.getTime() >= cutoff;
-
-    if (openedInPeriod) {
+    if (openedAt && openedAt.getTime() >= cutoff) {
       aggregate.assigned += 1;
     }
 
@@ -238,8 +219,7 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
       }
     }
 
-    // Only count as active if it was opened during the period AND is still active
-    if (openedInPeriod && active) {
+    if (active) {
       aggregate.active += 1;
     }
   };
