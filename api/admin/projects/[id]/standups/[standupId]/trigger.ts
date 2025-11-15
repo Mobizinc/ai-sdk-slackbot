@@ -1,1 +1,1 @@
-export { POST, OPTIONS } from "./[standupId]/route";
+export { POST, OPTIONS } from "./route";
