@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { IncidentNoteAnalyzerService } from "../../lib/services/incident-note-analyzer";
-import { getAnthropicClient } from "../../lib/anthropic-provider";
-import { anthropicModel } from "../../lib/model-provider";
+import { IncidentNoteAnalyzerService } from "../lib/services/incident-note-analyzer";
+import { getAnthropicClient } from "../lib/anthropic-provider";
+import { anthropicModel } from "../lib/model-provider";
 import type Anthropic from "@anthropic-ai/sdk";
 
 // Mock the dependencies
-vi.mock("../../lib/anthropic-provider");
-vi.mock("../../lib/model-provider", () => ({
+vi.mock("../lib/anthropic-provider");
+vi.mock("../lib/model-provider", () => ({
   anthropicModel: "claude-3-sonnet-20240229",
 }));
 

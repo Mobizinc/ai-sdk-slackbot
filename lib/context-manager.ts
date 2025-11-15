@@ -8,6 +8,7 @@ import type { CaseContextRepository } from "./db/repositories/case-context-repos
 import { getCaseContextRepository } from "./db/repositories/case-context-repository";
 import { extractCaseNumbers } from "./utils/case-number-extractor";
 import { detectResolution } from "./utils/resolution-detector";
+import { sanitizeContextMessage } from "./services/context-store-sanitizer";
 
 export interface CaseMessage {
   user: string;
@@ -79,8 +80,18 @@ export class ContextManager {
       this.contexts.set(contextKey, context);
     }
 
+    const { message: sanitizedMessage, redactions } = sanitizeContextMessage(message);
+
+    if (redactions.length > 0) {
+      console.log(
+        `[ContextManager] Redacted ${redactions.join(
+          ", "
+        )} for case ${caseNumber} thread ${threadTs}`
+      );
+    }
+
     // Add message to rolling window
-    context.messages.push(message);
+    context.messages.push(sanitizedMessage);
     context.lastUpdated = new Date();
 
     // Keep only last N messages
@@ -89,13 +100,13 @@ export class ContextManager {
     }
 
     // Check for resolution keywords
-    this.checkForResolution(context, message);
+    this.checkForResolution(context, sanitizedMessage);
 
     // Persist to database (fire and forget, errors are logged in repository)
     this.repository.saveContext(context).catch((err) => {
       console.error("[ContextManager] Failed to save context:", err);
     });
-    this.repository.saveMessage(caseNumber, threadTs, message).catch((err) => {
+    this.repository.saveMessage(caseNumber, threadTs, sanitizedMessage).catch((err) => {
       console.error("[ContextManager] Failed to save message:", err);
     });
   }
@@ -214,10 +225,11 @@ export class ContextManager {
   /**
    * Clean up old contexts from memory and database
    */
-  async cleanupOldContexts(): Promise<number> {
+  async cleanupOldContexts(): Promise<{ memoryRemoved: number; dbRemoved: number }> {
     const now = new Date();
     const cutoffTime = now.getTime() - this.maxAgeHours * 60 * 60 * 1000;
     let removed = 0;
+    let dbRemoved = 0;
 
     // Clean up memory
     for (const [key, context] of this.contexts.entries()) {
@@ -229,13 +241,15 @@ export class ContextManager {
 
     // Clean up database
     try {
-      const dbRemoved = await this.repository.deleteOldContexts(this.maxAgeHours);
-      console.log(`[ContextManager] Cleaned up ${removed} from memory, ${dbRemoved} from database`);
+      dbRemoved = await this.repository.deleteOldContexts(this.maxAgeHours);
+      console.log(
+        `[ContextManager] Cleaned up ${removed} from memory, ${dbRemoved} from database`
+      );
     } catch (error) {
       console.error("[ContextManager] Error cleaning up database:", error);
     }
 
-    return removed;
+    return { memoryRemoved: removed, dbRemoved };
   }
 
   /**

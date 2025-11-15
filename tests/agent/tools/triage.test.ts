@@ -67,6 +67,21 @@ describe("Case Triage Tool", () => {
     ...overrides,
   });
 
+  const mockClassificationStageResult = (triageResult: any, mockCase: any) => ({
+    core: {
+      caseNumber: triageResult.caseNumber,
+      caseSysId: mockCase.sys_id,
+      workflowId: "default",
+      classification: triageResult.classification,
+      similarCases: triageResult.similarCases,
+      kbArticles: triageResult.kbArticles,
+      processingTimeMs: triageResult.processingTimeMs,
+      cached: triageResult.cached,
+      recordTypeSuggestion: triageResult.recordTypeSuggestion,
+    },
+    metadata: {},
+  });
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
@@ -76,10 +91,14 @@ describe("Case Triage Tool", () => {
     mockServiceNowClient.isConfigured = vi.fn().mockReturnValue(true);
     mockServiceNowClient.getCase = vi.fn();
 
-    // Setup case triage service mock
+    // Setup case triage service mock with complete interface
     const caseTriage = await import("../../../lib/services/case-triage");
     mockCaseTriageService = {
       triageCase: vi.fn(),
+      runClassificationStage: vi.fn(),
+      applyDeterministicActions: vi.fn(),
+      getTriageStats: vi.fn(),
+      testConnectivity: vi.fn(),
     };
     (caseTriage.getCaseTriageService as any).mockReturnValue(mockCaseTriageService);
 
@@ -98,7 +117,9 @@ describe("Case Triage Tool", () => {
       const mockTriageResult = createMockTriageResult();
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -111,7 +132,7 @@ describe("Case Triage Tool", () => {
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         "is triaging case SCS0001234..."
       );
-      expect(mockCaseTriageService.triageCase).toHaveBeenCalledWith(
+      expect(mockCaseTriageService.runClassificationStage).toHaveBeenCalledWith(
         expect.objectContaining({
           case_number: "SCS0001234",
           sys_id: "abc123xyz",
@@ -172,7 +193,9 @@ describe("Case Triage Tool", () => {
       });
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -188,7 +211,9 @@ describe("Case Triage Tool", () => {
       });
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -205,7 +230,9 @@ describe("Case Triage Tool", () => {
       });
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -227,7 +254,9 @@ describe("Case Triage Tool", () => {
       });
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -245,7 +274,9 @@ describe("Case Triage Tool", () => {
       });
 
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockResolvedValue(mockTriageResult);
+      mockCaseTriageService.runClassificationStage.mockResolvedValue(
+        mockClassificationStageResult(mockTriageResult, mockCase)
+      );
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",
@@ -304,7 +335,7 @@ describe("Case Triage Tool", () => {
     it("should handle triage service errors", async () => {
       const mockCase = createMockCaseDetails();
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockRejectedValue(
+      mockCaseTriageService.runClassificationStage.mockRejectedValue(
         new Error("Triage AI service unavailable")
       );
 
@@ -320,7 +351,7 @@ describe("Case Triage Tool", () => {
     it("should handle non-Error exceptions", async () => {
       const mockCase = createMockCaseDetails();
       mockServiceNowClient.getCase.mockResolvedValue(mockCase);
-      mockCaseTriageService.triageCase.mockRejectedValue("String error");
+      mockCaseTriageService.runClassificationStage.mockRejectedValue("String error");
 
       const result = await tools.triageCase.execute({
         caseNumber: "SCS0001234",

@@ -28,6 +28,7 @@ export interface AgentToolFactoryParams {
   updateStatus?: UpdateStatusFn;
   options?: GenerateResponseOptions;
   contextMetadata?: Record<string, unknown>;
+  allowedTools?: string[];
 }
 
 /**

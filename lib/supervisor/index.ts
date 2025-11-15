@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getConfigValue } from "../config";
 import { getInteractiveStateManager } from "../services/interactive-state-manager";
 import type { CaseClassification } from "../services/case-classifier";
+import { runSupervisorLlmReview, type SupervisorLlmReview } from "./llm-reviewer";
 
 const SLACK_CONFIDENCE_THRESHOLD = 0.45;
 const SERVICENOW_CONFIDENCE_THRESHOLD = 0.4;
@@ -23,6 +24,7 @@ export interface SupervisorDecision {
   status: SupervisorDecisionStatus;
   reason?: string;
   stateId?: string;
+  llmReview?: SupervisorLlmReview | null;
 }
 
 interface BaseArtifactInput {
@@ -148,6 +150,7 @@ async function persistSupervisorState(
     content: string;
     reason: string;
     metadata?: Record<string, unknown>;
+    llmReview?: SupervisorLlmReview | null;
   },
   threadTs?: string
 ): Promise<string | undefined> {
@@ -207,8 +210,24 @@ export async function reviewSlackArtifact(
     ...violations,
   ];
 
+  const llmReview = await maybeRunLlmReview({
+    artifactType: "slack_message",
+    content: input.content,
+    caseNumber: input.caseNumber,
+    classification: input.classification,
+  });
+
   if (allReasons.length === 0) {
-    return { status: "approved" };
+    // Capture approved artifact as muscle memory exemplar (async, non-blocking)
+    captureApprovedArtifact({
+      artifactType: "slack_message",
+      caseNumber: input.caseNumber,
+      classification: input.classification,
+      content: input.content,
+      llmReview,
+    }).catch((err) => console.error("[MuscleMemory] Slack capture failed:", err));
+
+    return { status: "approved", llmReview };
   }
 
   const reason = allReasons.join("; ");
@@ -218,7 +237,7 @@ export async function reviewSlackArtifact(
 
   if (isShadowMode()) {
     console.warn(`[Supervisor][Shadow] ${reason}`);
-    return { status: "approved", reason };
+    return { status: "approved", reason, llmReview };
   }
 
   const stateId = await persistSupervisorState(
@@ -235,6 +254,7 @@ export async function reviewSlackArtifact(
         classification: input.classification,
         violations,
       },
+      llmReview,
     },
     input.threadTs
   );
@@ -243,6 +263,7 @@ export async function reviewSlackArtifact(
     status: "blocked",
     reason,
     stateId,
+    llmReview,
   };
 }
 
@@ -263,8 +284,24 @@ export async function reviewServiceNowArtifact(
     ...violations,
   ];
 
+  const llmReview = await maybeRunLlmReview({
+    artifactType: "servicenow_work_note",
+    content: input.content,
+    caseNumber: input.caseNumber,
+    classification: input.classification,
+  });
+
   if (allReasons.length === 0) {
-    return { status: "approved" };
+    // Capture approved artifact as muscle memory exemplar (async, non-blocking)
+    captureApprovedArtifact({
+      artifactType: "servicenow_work_note",
+      caseNumber: input.caseNumber,
+      classification: input.classification,
+      content: input.content,
+      llmReview,
+    }).catch((err) => console.error("[MuscleMemory] ServiceNow capture failed:", err));
+
+    return { status: "approved", llmReview };
   }
 
   const reason = allReasons.join("; ");
@@ -274,7 +311,7 @@ export async function reviewServiceNowArtifact(
 
   if (isShadowMode()) {
     console.warn(`[Supervisor][Shadow] ${reason}`);
-    return { status: "approved", reason };
+    return { status: "approved", reason, llmReview };
   }
 
   const caseIdentifier = input.caseNumber ?? "unknown";
@@ -287,6 +324,7 @@ export async function reviewServiceNowArtifact(
       content: input.content,
       reason,
       metadata: input.metadata,
+      llmReview,
     }
   );
 
@@ -294,10 +332,73 @@ export async function reviewServiceNowArtifact(
     status: "blocked",
     reason,
     stateId,
+    llmReview,
   };
 }
 
 export function __resetSupervisorCaches(): void {
   recentSlackArtifacts.clear();
   recentWorkNotes.clear();
+}
+
+async function maybeRunLlmReview(params: {
+  artifactType: "slack_message" | "servicenow_work_note";
+  content: string;
+  caseNumber?: string;
+  classification?: CaseClassification;
+}): Promise<SupervisorLlmReview | null> {
+  try {
+    return await runSupervisorLlmReview(params);
+  } catch (error) {
+    console.warn("[Supervisor][LLM] Unable to run review:", error);
+    return null;
+  }
+}
+
+/**
+ * Capture approved supervisor artifacts as muscle memory exemplars
+ * Runs asynchronously and non-blocking to avoid impacting response times
+ */
+async function captureApprovedArtifact(params: {
+  artifactType: "slack_message" | "servicenow_work_note";
+  caseNumber?: string;
+  classification?: CaseClassification;
+  content: string;
+  llmReview: SupervisorLlmReview | null;
+}): Promise<void> {
+  try {
+    // Dynamic import to avoid circular dependencies and reduce initial bundle size
+    const { muscleMemoryService, qualityDetector } = await import("../services/muscle-memory");
+
+    // Detect supervisor approval quality signal
+    const supervisorSignal = qualityDetector.detectSupervisorSignal({
+      status: "approved",
+      llmReview: params.llmReview,
+    });
+
+    // Prepare quality signals array (only include if not null)
+    const qualitySignals = supervisorSignal ? [supervisorSignal] : [];
+
+    // Prepare interaction capture
+    const interactionType = params.artifactType === "slack_message" ? "triage" : "triage";
+    await muscleMemoryService.captureExemplar({
+      caseNumber: params.caseNumber || "UNKNOWN",
+      interactionType,
+      inputContext: {
+        userRequest: params.content.substring(0, 500), // Truncate for embedding efficiency
+      },
+      actionTaken: {
+        agentType: "supervisor",
+        classification: params.classification,
+        workNotes: [params.content.substring(0, 300)], // Brief summary for context
+      },
+      outcome: "success", // Approval indicates success
+      qualitySignals,
+    });
+
+    console.log(`[MuscleMemory] Captured ${params.artifactType} approval for case ${params.caseNumber || "UNKNOWN"}`);
+  } catch (error) {
+    // Log but don't throw - muscle memory capture should never break supervisor flow
+    console.error("[MuscleMemory] Failed to capture approved artifact:", error);
+  }
 }

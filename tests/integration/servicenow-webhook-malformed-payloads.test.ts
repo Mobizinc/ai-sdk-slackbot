@@ -12,6 +12,8 @@ const ORIGINAL_ENV = { ...process.env };
 // Mock the case triage service
 const triageMock = {
   triageCase: vi.fn(),
+  runClassificationStage: vi.fn(),
+  applyDeterministicActions: vi.fn(),
   testConnectivity: vi.fn(),
   getTriageStats: vi.fn(),
 };
@@ -63,8 +65,8 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
     process.env.ENABLE_CASE_CLASSIFICATION = "true";
     process.env.ENABLE_ASYNC_TRIAGE = "false";
 
-    // Mock successful triage response
-    triageMock.triageCase.mockResolvedValue({
+    // Mock successful triage response for both triageCase and runClassificationStage
+    const mockTriageResult = {
       caseNumber: "CASE0010001",
       caseSysId: "sys123",
       workflowId: "default",
@@ -96,7 +98,29 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       catalogRedirected: false,
       catalogRedirectReason: undefined,
       catalogItemsProvided: 0,
+    };
+
+    triageMock.triageCase.mockResolvedValue(mockTriageResult);
+
+    // Also mock runClassificationStage which is what the webhook actually calls
+    triageMock.runClassificationStage.mockResolvedValue({
+      core: {
+        caseNumber: mockTriageResult.caseNumber,
+        caseSysId: mockTriageResult.caseSysId,
+        workflowId: mockTriageResult.workflowId,
+        classification: mockTriageResult.classification,
+        similarCases: mockTriageResult.similarCases,
+        kbArticles: mockTriageResult.kbArticles,
+        processingTimeMs: mockTriageResult.processingTimeMs,
+        cached: mockTriageResult.cached,
+        recordTypeSuggestion: mockTriageResult.recordTypeSuggestion,
+      },
+      metadata: {
+        sideEffectsAlreadyApplied: false,
+      },
     });
+
+    triageMock.applyDeterministicActions.mockResolvedValue(mockTriageResult);
 
     triageMock.testConnectivity.mockResolvedValue({
       azureSearch: true,
@@ -134,11 +158,11 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
 
       const response = await POST(request);
       expect(response.status).toBe(200);
-      
+
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.case_number).toBe("CASE0010001");
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
     });
 
     it("should handle payload with smart quotes", async () => {
@@ -154,10 +178,10 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
-      
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
+
       // Verify the parsed data was passed correctly
-      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      const triageCall = triageMock.runClassificationStage.mock.calls[0][0];
       expect(triageCall.case_number).toBe('CASE001003');
       expect(triageCall.short_description).toBe('Login issues with smart quotes');
     });
@@ -175,9 +199,9 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
       
-      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      const triageCall = triageMock.runClassificationStage.mock.calls[0][0];
       expect(triageCall.case_number).toBe('CASE001004');
       expect(triageCall.short_description).toBe('Trailing comma issue');
     });
@@ -195,9 +219,9 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
       
-      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      const triageCall = triageMock.runClassificationStage.mock.calls[0][0];
       expect(triageCall.case_number).toBe('CASE001005');
       expect(triageCall.short_description).toBe('Control characters in text');
     });
@@ -215,9 +239,9 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
       
-      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      const triageCall = triageMock.runClassificationStage.mock.calls[0][0];
       expect(triageCall.case_number).toBe('CASE001006');
       expect(triageCall.short_description).toBe('Missing comma in JSON');
     });
@@ -235,7 +259,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
     });
 
     it("should recover payloads with invalid unicode escapes", async () => {
@@ -251,8 +275,8 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
 
       const data = await response.json();
       expect(data.success).toBe(true);
-      expect(triageMock.triageCase).toHaveBeenCalledTimes(1);
-      const triageCall = triageMock.triageCase.mock.calls[0][0];
+      expect(triageMock.runClassificationStage).toHaveBeenCalledTimes(1);
+      const triageCall = triageMock.runClassificationStage.mock.calls[0][0];
       expect(triageCall.case_number).toBe('CASE001010');
     });
 
@@ -269,7 +293,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.error).toContain("Failed to parse payload");
-      expect(triageMock.triageCase).not.toHaveBeenCalled();
+      expect(triageMock.runClassificationStage).not.toHaveBeenCalled();
     });
   });
 
@@ -307,10 +331,10 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
 
       const response = await POST(request);
       expect(response.status).toBe(400);
-      
+
       const data = await response.json();
-      expect(data.error).toContain('Failed to parse payload');
-      expect(triageMock.triageCase).not.toHaveBeenCalled();
+      expect(data.error).toContain('Empty payload');
+      expect(triageMock.runClassificationStage).not.toHaveBeenCalled();
     });
 
     it("should handle non-JSON content type gracefully", async () => {
@@ -325,7 +349,7 @@ describe("ServiceNow Webhook - Malformed Payload Integration", () => {
       
       const data = await response.json();
       expect(data.error).toContain('Failed to parse payload');
-      expect(triageMock.triageCase).not.toHaveBeenCalled();
+      expect(triageMock.runClassificationStage).not.toHaveBeenCalled();
     });
   });
 

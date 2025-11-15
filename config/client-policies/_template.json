@@ -1,0 +1,47 @@
+{
+  "client": {
+    "name": "Example Client Name",
+    "aliases": ["Example", "Example Corp"],
+    "industry": "Industry",
+    "accountSlug": "example-client"
+  },
+  "effortThresholds": {
+    "incidentHours": 24,
+    "serviceRequestHours": 8
+  },
+  "onsiteSupport": {
+    "includedHoursPerMonth": 48,
+    "overageRateUsd": 125,
+    "requiresPreapproval": true,
+    "emergencyOnlyDefinition": "Describe when onsite emergencies are allowed",
+    "notes": "Optional free-form notes"
+  },
+  "allowedWorkExamples": [
+    "Break-fix support under 24h",
+    "Routine maintenance and monitoring"
+  ],
+  "disallowedWorkExamples": [
+    "Major migrations or redesigns",
+    "Onsite work beyond allocation without SOW"
+  ],
+  "escalation": {
+    "triggers": [
+      "Effort exceeds contracted cap",
+      "Client requests project work without SOW"
+    ],
+    "contacts": [
+      {
+        "name": "Primary Sponsor",
+        "role": "CIO",
+        "email": "sponsor@example.com",
+        "channel": "#client-escalations"
+      }
+    ]
+  },
+  "metadata": {
+    "source": "Link to contract or doc",
+    "docReference": "Contract identifier",
+    "docUrl": "https://example.com/contracts/123",
+    "lastUpdated": "2025-01-01"
+  }
+}

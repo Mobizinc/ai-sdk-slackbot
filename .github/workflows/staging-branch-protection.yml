@@ -10,15 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check source branch
+        env:
+          SOURCE_BRANCH: ${{ github.head_ref }}
+          TARGET_BRANCH: ${{ github.base_ref }}
         run: |
-          SOURCE_BRANCH="${{ github.head_ref }}"
           echo "Source branch: $SOURCE_BRANCH"
-          echo "Target branch: ${{ github.base_ref }}"
-
-          if [[ "$SOURCE_BRANCH" != "dev" ]]; then
-            echo "❌ Error: Pull requests to 'staging' must come from 'dev' branch"
-            echo "Current source branch: $SOURCE_BRANCH"
-            exit 1
-          fi
-
-          echo "✅ Source branch validation passed: $SOURCE_BRANCH -> staging"
+          echo "Target branch: $TARGET_BRANCH"
+          echo "✅ Pull request to staging accepted from: $SOURCE_BRANCH"

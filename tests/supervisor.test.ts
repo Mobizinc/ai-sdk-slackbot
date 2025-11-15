@@ -4,15 +4,18 @@ import {
   reviewServiceNowArtifact,
   __resetSupervisorCaches,
 } from "../lib/supervisor";
+import type { SupervisorLlmReview } from "../lib/supervisor/llm-reviewer";
 
 const mockConfig: Record<string, any> = {
   supervisorEnabled: true,
   supervisorShadowMode: false,
   supervisorDuplicateWindowMinutes: 5,
   supervisorAlertChannel: "",
+  supervisorLlmReviewModel: "test-model",
 };
 
 const saveState = vi.fn().mockResolvedValue({ id: "state-123" });
+const mockRunLlmReview = vi.fn().mockResolvedValue(null as SupervisorLlmReview | null);
 
 vi.mock("../lib/config", () => ({
   getConfigValue: (key: string) => mockConfig[key],
@@ -30,10 +33,15 @@ vi.mock("../lib/services/slack-messaging", () => ({
   }),
 }));
 
+vi.mock("../lib/supervisor/llm-reviewer", () => ({
+  runSupervisorLlmReview: (...args: any[]) => mockRunLlmReview(...args),
+}));
+
 describe("Supervisor Policy QA", () => {
   beforeEach(() => {
     __resetSupervisorCaches();
     saveState.mockClear();
+    mockRunLlmReview.mockClear();
     mockConfig.supervisorEnabled = true;
     mockConfig.supervisorShadowMode = false;
     mockConfig.supervisorDuplicateWindowMinutes = 5;
@@ -89,5 +97,28 @@ describe("Supervisor Policy QA", () => {
     const second = await reviewServiceNowArtifact(base);
     expect(second.status).toBe("blocked");
     expect(second.reason).toContain("Duplicate ServiceNow work note");
+  });
+
+  it("attaches llm review metadata when enabled", async () => {
+    mockConfig.supervisorLlmReviewEnabled = true;
+    mockRunLlmReview.mockResolvedValueOnce({
+      verdict: "revise",
+      summary: "Clarify the resolution steps",
+      issues: [
+        { severity: "medium", description: "Missing Summary", recommendation: "Add Summary" },
+      ],
+      confidence: 0.82,
+    });
+
+    const result = await reviewSlackArtifact({
+      channelId: "C999",
+      threadTs: "999.1",
+      content: "Missing sections",
+      metadata: { requiresSections: true },
+    });
+
+    expect(result.llmReview?.summary).toContain("Clarify");
+    const payloadArg = saveState.mock.calls[0]?.[3];
+    expect(payloadArg.llmReview?.verdict).toBe("revise");
   });
 });

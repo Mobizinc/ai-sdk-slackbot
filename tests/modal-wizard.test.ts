@@ -8,11 +8,11 @@ import { ModalWizard } from "../lib/services/modal-wizard";
 import { InteractiveStateManager } from "../lib/services/interactive-state-manager";
 
 // Mock dependencies
-vi.mock("../lib/slack/slack-messaging", () => ({
+vi.mock("../lib/services/slack-messaging", () => ({
   getSlackMessagingService: () => ({
-    openView: vi.fn().mockResolvedValue({ 
-      ok: true, 
-      view: { id: "V123456" } 
+    openView: vi.fn().mockResolvedValue({
+      ok: true,
+      view: { id: "V123456" }
     })
   })
 }));
@@ -46,7 +46,7 @@ describe("ModalWizard", () => {
 
   beforeEach(() => {
     wizard = new ModalWizard();
-    const { getSlackMessagingService } = require("../lib/slack/slack-messaging");
+    const { getSlackMessagingService } = require("../lib/services/slack-messaging");
     const { getInteractiveStateManager } = require("../lib/services/interactive-state-manager");
     mockSlackMessaging = getSlackMessagingService();
     mockStateManager = getInteractiveStateManager();

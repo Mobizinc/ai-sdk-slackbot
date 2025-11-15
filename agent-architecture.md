@@ -5,22 +5,52 @@
 
 - **Shared Context Store**  
   Existing context manager plus ServiceNow snapshots. Serves as the single source of truth for transcripts, case metadata, and recent journal extracts.
-  - **Open Question:** What retention, tenant-isolation, and RBAC/PII-redaction policies govern this store so concurrent specialists don’t clobber each other’s state and compliance knows how long ServiceNow-derived data persists?
+  - **Data Governance Policies (2025-02-10):**  
+    - **Retention:** Slack transcripts and deterministic context are persisted in `case_contexts`/`case_messages` for 72 hours and then purged by `ContextManager.cleanupOldContexts()` (now invoked via `/api/cron/cleanup-workflows`). ServiceNow webhook payloads and classification snapshots that land in `case_classification_inbound/results` are deleted after 30 days through `CaseClassificationRepository.cleanupOldData`, so auditors know exactly how long ServiceNow-derived data lives.  
+    - **Tenant isolation & concurrency control:** Context store keys are `case_number + channel_id + thread_ts`, matching the Postgres primary key and preventing overlaps even when case numbers collide across clients. The orchestrator resolves `routing_context` + `clientScopePolicy` before constructing a discovery pack, so a specialist can only read/write the context that matches the Slack workspace/case they are actively handling.  
+    - **RBAC & auditability:** Only backend services (orchestrator, supervisor, cronjobs) can call the context manager, and every write path runs through `CaseContextRepository.saveContext`’s conflict-safe upsert with structured logging. Human operators interact via `/review-latest`/admin APIs that require `ADMIN_API_KEY`, and their approvals are stored in `interactive_states`, giving compliance an immutable trail.  
+    - **PII redaction:** `sanitizeContextMessage` redacts emails, phone numbers, SSNs, MRNs, and PANs before we store Slack text, and the sanitized transcript is also what feeds discovery/classification prompts. Tracing/export layers reuse `sanitizeForTracing`, so no raw identifiers leak to LangSmith or telemetry sinks.
 
 - **Orchestrator**  
   Inspects intent and routes work to the appropriate specialist agent (triage, KB drafting, escalation, etc.), enforcing prerequisites (valid case number, permissions) before dispatch.
 
 - **Specialist Agents**  
   Stateless, single-purpose workers (Discovery, ServiceNow orchestration, KB drafting, escalation messaging today; future workflows later). Each pulls what it needs from the context store, produces structured output, and hands results back for user-facing delivery.
-  - **Connectivity Reasoning Agent**  
-    Consumes the Discovery `context_pack`, calls approved REST controllers (e.g., Palo Alto Strata Cloud Manager, FortiManager, VeloCloud) for live routing/tunnel status, runs lightweight heuristics to explain connectivity gaps, and returns proposed diagnostics or follow-up questions. Results flow back through the orchestrator to the conversational agent so humans receive actionable next steps. Operates in read-only mode; effectiveness depends on the availability of those controller APIs.
+  - **Connectivity Reasoning Agent** ✅ **IMPLEMENTED**
+    Consumes the Discovery `context_pack`, calls approved REST controllers (FortiManager, VeloCloud) for live routing/tunnel status, runs lightweight heuristics to explain connectivity gaps, and returns proposed diagnostics or follow-up questions. Results flow back through the orchestrator to the conversational agent so humans receive actionable next steps. Operates in read-only mode; effectiveness depends on the availability of those controller APIs.
 
-    - **Open Question:** What authentication, rate-limit, timeout, and fallback strategy keeps this agent from stalling the orchestrator when controller APIs are degraded or unavailable?
+    - **Implementation Status (2025-01-15):**
+      - ✅ Core agent (`lib/agent/connectivity-reasoning/index.ts`)
+      - ✅ Heuristic engine with 6 diagnostic rules:
+        1. Temporal correlation (maintenance windows, off-hours)
+        2. Topology awareness (parent device failures, CMDB relationships)
+        3. Symptom matching (latency + loss = circuit issue)
+        4. Historical patterns (similar case resolutions)
+        5. Resource exhaustion (CPU, memory, sessions)
+        6. Interface failures (link down detection)
+      - ✅ Zod schemas for input/output validation
+      - ✅ Circuit breaker pattern (3-failure threshold, 60s reset)
+      - ✅ Tool wrapper (`diagnoseConnectivity`) registered in factory
+      - ✅ Specialist registry entry with keywords/signals
+      - ✅ Integrated with Discovery context pack
+      - ✅ Supports FortiManager (firewall health) and VeloCloud (SD-WAN links)
+      - ⚠️ Palo Alto Strata Cloud Manager integration **NOT YET IMPLEMENTED** (future work)
+
+    - **Resilience (Connectivity Agent Open Question RESOLVED):**
+      - ✅ **Authentication:** Multi-tenant credential resolution with env var suffix pattern (`FORTIMANAGER_ALTUS_URL`, `VELOCLOUD_ALLCARE_API_TOKEN`)
+      - ✅ **Timeouts:** 15 seconds per controller enforced with `Promise.race` + AbortController
+      - ✅ **Retries:** FortiManager has full 3-attempt retry wrapper with exponential backoff; VeloCloud has 4-endpoint fallback strategy
+      - ✅ **Circuit breaker:** Fully wired to actual API calls - opens after 3 failures, auto-resets after 60 seconds, prevents hammering degraded APIs
+      - ✅ **Graceful failure:** All network calls wrapped in try/catch, return `{success: false}` with error messages, heuristics continue with partial data
+      - ✅ **Real API integration:** `callNetworkTools` now calls `getFortiManagerMonitorService().getFirewallHealthReport()` and `getVeloCloudService().listEdges()`/`getEdgeLinkStatus()`
+      - ✅ **Logging:** Console logging at key points (API call start, success, failure, circuit breaker state changes)
+      - ⚠️ **Rate limiting:** Infrastructure in place but alerting not yet implemented (future work)
+      - ⚠️ **Stale data fallback:** FortiManager uses 60-second cache; extended TTL for offline scenarios not yet implemented (future work)
 
 - **Supervisor**  
   Policy/QA layer that governs the orchestrator and specialists. Ensures guardrails (required sections, policy compliance, duplication control), audits results, and raises alerts back to the conversational agent or operators.  
   ✅ **Current status:** Deterministic Supervisor engine (duplicate detection, confidence gating, section checks) now runs on every Slack reply and ServiceNow work note, persisting violations as `supervisor_review` states and optionally alerting a Slack channel. Shadow mode defaults to off so blocking is enforced unless explicitly overridden.  
-  🔄 **Planned:** Add an optional LLM reviewer that can provide qualitative feedback while the deterministic guard continues to enforce hard policy rules.
+  ✅ **LLM Reviewer:** `lib/supervisor/llm-reviewer.ts` powers an optional QA pass (config gated) that annotates artifacts with qualitative feedback (verdict + issues) without overriding deterministic guardrails. Results are attached to blocked states and surfaced via `/review-latest`, so reviewers can see Anthropic’s suggestions directly inside the dashboard before approving/rejecting.
 
   - **Resolution:** Supervisor does **not** patch escalation payloads automatically. Violations are persisted, surfaced via `/review-latest`, and require a human replay to resend or fix the artifact, keeping audit trails consistent with the HITL workflow.
 
@@ -164,7 +194,28 @@ Each stream can progress independently as long as shared touchpoints (e.g., `lib
   - *Categorization agent*: choose category/subcategory only, using the ServiceNow taxonomy as reference (Haiku).  
   - *Narrative agent*: craft the quick summary and immediate next steps, potentially with a cheaper model or template-based fallback.  
   - *BI detector*: evaluate systemic/project/compliance flags with extra historical context or Sonnet fallback when higher confidence is required.  
-  These remain design options; today they are folded into the single classification sub-agent for simplicity. If we split them later, each micro-agent can be invoked sequentially by the triage agent with deterministic validation between steps.
+  ✅ **IMPLEMENTED (2025-01-18):** Classification now runs as a three-stage micro-pipeline:
+    1. `runCategorizationStage` (`lib/agent/classification/pipeline/stage-categorization.ts`) returns category/subcategory, technical entities, keywords, record type, service offering, and urgency.  
+    2. `runNarrativeStage` crafts the quick summary + next steps tailored to the categorization output.  
+    3. `runBusinessIntelStage` produces the structured `business_intelligence` block.  
+    CaseClassifier orchestrates these stages (`classifyCaseWithMicroAgents`) and falls back to the legacy monolith only if a stage fails, so discovery/triage flows now have explicit hooks per micro-agent.
+
+## Client Scope Policy Guardrails - ✅ NEW
+
+- **Purpose**  
+  Keep Non-BAU/project work detection deterministic by teaching agents about client-specific contracts (hour caps, onsite limits, disallowed requests) without bloating prompts or duplicating orchestration logic.
+
+- **Flow (implemented 2025-01-18)**  
+  1. **Policy ingestion:** Contracts are codified as JSON under `config/client-policies/*.json` (validated by `lib/services/client-scope-policy-service.ts`) so they can be versioned, diffed, and loaded at startup. Altus is the first client onboarded.  
+  2. **Discovery integration:** `generateDiscoveryContextPack` now attaches a `clientScopePolicy` slice whenever it can resolve a client/alias, giving every downstream agent the same structured limits. Fallback path inside `CaseTriageService` populates the policy even when we build a lightweight discovery pack locally.  
+  3. **Classification reasoning:** The Haiku runner consumes `<client_scope_policy>` inside the cached prompt, estimates effort/onsite needs, and returns a new `scope_analysis` block (hours, confidence, flags such as `exceeds_incident_threshold`).  
+  4. **Deterministic enforcement:** `CaseTriageService` calls `evaluateScopeAgainstPolicy` before side effects. The evaluator compares the LLM’s analysis to the contract (hour caps, onsite allocations, disallowed work) and emits a structured `scope_evaluation`. When any rule is violated, we mark `business_intelligence.project_scope_detected=true` and provide the contract-based reason so the existing escalation service fires without additional bespoke runners.
+
+- **Benefits**  
+  - Eliminates ad-hoc “project vs BAU” prompts and TypeScript errors by reusing the proven CaseTriageService pipeline.  
+  - Keeps prompts small (agents see structured policies, not 20-page PDFs).  
+  - Provides auditable metadata (`scope_analysis`, `scope_evaluation`) that Slack supervisors, dashboards, and auditors can reference when reviewing Non-BAU escalations.  
+  - Makes onboarding future clients a data exercise (add JSON + tests) instead of a new agent implementation.
 
 ## Escalation Agent
 
@@ -199,6 +250,15 @@ flowchart TD
     F -->|notify| I[Supervisor audit]
 ```
 
+## Ops Automations
+
+- **Stale Case Follow-up Cron**  
+  Vercel cron (`/api/cron/stale-case-followup`) runs every 24 hours (or on-demand via the Admin dashboard trigger) and inspects the `Network Engineers` and `Incident and Case Management` queues for tickets with no updates in ≥3 days. The job:
+  - Pulls fresh case lists via `caseSearchService`, computes stale/age buckets, and posts digest blocks to `C045N8WF3NE` (networking) and `C01FFQTMAD9` (ICM).
+  - For the top offenders per queue, fetches recent journal entries, runs an Anthropic Sonnet review (prompt + orchestration in `lib/services/stale-case-followup-service.ts`), and drops threaded follow-up messages that call out the owner with concrete reminders/questions.
+  - Writes an internal ServiceNow work note (“AI follow-up posted in #network-ops…”) on every case nudged so auditors can see who was pinged, when, and what guidance was provided.
+  - Tuned via `STALE_CASE_*` env vars (threshold, journal depth, group/channel overrides, model choice) so operations can adjust cadence without code changes.
+
 ## Policy & QA Agent (Supervisor)
 
 - **Trigger points**  
@@ -216,7 +276,7 @@ flowchart TD
   - Generate alerts to operators when repeated violations or low-quality outputs occur.
 - **Outputs**  
   Approval/denial status with metadata (reason, timestamp, actor), optional corrected payload, and audit records stored alongside case activity.
-  - **Resolution:** Blocked artifacts are saved as `supervisor_review` states in the `interactive_states` table. `/review-latest` (and the upcoming admin UI view) surfaces these states so operators can approve/replay without losing the artifact; once approved, the originating agent resubmits with the corrected payload.
+  - **Resolution:** Blocked artifacts are saved as `supervisor_review` states in the `interactive_states` table. `/review-latest` (Slack) and the new Admin UI dashboard (`admin/app/supervisor-reviews/page.tsx`) both read from this queue so reviewers can filter by artifact type/verdict/age, inspect the attached LLM feedback, and approve/reject directly. The admin page calls `/api/admin/supervisor-reviews` (GET/POST) and auto-refreshes the queue so once a reviewer approves, the originating agent immediately resubmits with the corrected payload.
 
 ### Policy & QA Flow
 
@@ -308,7 +368,7 @@ This section outlines open questions and areas for further definition identified
   _Resolution:_ The Interactive State Manager now owns transient workflow progress (e.g., `project_interview` sessions). Each workflow defines a state payload schema, expiry window, and resume handlers. For longer journeys we will compose this with the modal wizard or a lightweight finite-state machine (FSM) helper so every multi-turn flow stores deterministic checkpoints outside the raw transcript.
 
 - **Orchestrator Scalability**  
-  _Resolution:_ Introduce a registry-driven router: every specialist agent registers its capability signature (intent keywords, required context, cost/latency hints). The orchestrator consults this registry at runtime rather than a hard-coded map. Agents such as the Project Interview emit completion events (`project_interview.completed`) that the orchestrator can subscribe to for follow-up routing (mentor tasks, analytics). This keeps the orchestrator thin and pluggable.
+  ✅ _Implemented:_ `lib/agent/specialist-registry.ts` now holds the registry-driven router. Each specialist agent exposes capability signatures (keywords, required context signals, cost/latency hints, tool mappings), and `runAgent` consults this registry at runtime to build a dynamic tool allowlist (`buildToolAllowList`). Matching metadata is attached to `context.metadata.specialistShortlist` for observability, and only the relevant tools from `lib/agent/tools/factory.ts` are exposed to Anthropic per request. Registry definitions already cover ServiceNow orchestration, KB drafting, CMDB, network monitoring, analytics, documentation search, feedback capture, and the non-tool Project Interview workflow; emitting events (e.g., `project_interview.completed`) now becomes declarative instead of hard-coded.
 
 - **Asynchronous Task User Experience**  
   _Resolution:_ Long-running tasks enqueue background work via `enqueueBackgroundTask` and immediately post/update status blocks through `SlackMessagingService` (using the helper introduced for app mentions). Each async workflow must emit a “working…” message, stream intermediate checkpoints when available, and send a final summary. DM-based interviews already follow this pattern; future flows will reuse the same status-update utility.
@@ -316,8 +376,8 @@ This section outlines open questions and areas for further definition identified
 - **Configuration Management**  
   _Resolution:_ Move feature configuration into versioned JSON + Zod schemas (see project catalog/interview packs). The `config` module will be extended with a central loader that merges environment configs, database overrides (via `app_settings`), and per-feature JSON data. Feature flags and model selections become declarative entries, enabling safe runtime toggles without redeploying.
 
-- **Muscle Memory / Learning Layer**  
-  _Resolution:_ Stand up a portable semantic store (Neon-hosted Postgres + `pgvector`) that ingests approved work notes, escalations, supervisor decisions, and telemetry snapshots. Discovery pulls “muscle memory” exemplars from this store (tagged per customer/technology), and the classification sub-agent consumes the same vectors for few-shot grounding. Azure Cognitive Search remains for large-scale log/case search, while pgvector provides low-latency retrieval of curated guidance. Supervisor reviews feed back into the store so accepted answers become future exemplars automatically.
+- **Muscle Memory / Learning Layer**
+  ✅ _Implemented:_ Neon-hosted Postgres + `pgvector` now powers the muscle memory semantic store. Database layer includes `muscle_memory_exemplars` table (vector(1536) embeddings with HNSW indexes) and `exemplar_quality_signals` table for audit tracking (migrations 0026-0027). Service layer (`lib/services/muscle-memory/`) implements 4-signal quality assessment (supervisor 0.4, human 0.3, outcome 0.2, implicit 0.1) with configurable thresholds, automatic de-duplication via cosine similarity (95% threshold), and semantic retrieval for discovery packs. Discovery Context Pack schema upgraded to v1.1.0 with optional `muscleMemoryExemplars` field. Supervisor approval hooks integrated in `lib/supervisor/index.ts:221-228,295-302` to capture approved artifacts. Classification pipeline ready to consume exemplars via `StageContext.muscleMemoryExemplars`. Configuration managed through 5 env-backed flags (`MUSCLE_MEMORY_COLLECTION_ENABLED`, `MUSCLE_MEMORY_RETRIEVAL_ENABLED`, `MUSCLE_MEMORY_TOP_K`, `MUSCLE_MEMORY_MIN_QUALITY`, `MUSCLE_MEMORY_QUALITY_THRESHOLD`) with all defaults set to safe/disabled for staged rollout. Repository tests validate vector search and quality tracking with 8/11 tests passing.
 
 ## Project Interview Agent
 

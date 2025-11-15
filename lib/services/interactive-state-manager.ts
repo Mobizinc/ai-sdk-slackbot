@@ -19,6 +19,7 @@ import { interactiveStates, type InteractiveState, type NewInteractiveState } fr
 import { eq, and, lt, desc, gt } from "drizzle-orm";
 import type { InterviewSessionState, StandupSessionState } from "../projects/types";
 import { withWriteRetry, withQueryRetry } from "../db/retry-wrapper";
+import type { SupervisorLlmReview } from "../supervisor/llm-reviewer";
 
 /**
  * KB Approval State Payload
@@ -94,6 +95,7 @@ export interface SupervisorReviewStatePayload {
   reason: string;
   metadata?: Record<string, any>;
   blockedAt: string;
+  llmReview?: SupervisorLlmReview | null;
 }
 
 /**
@@ -316,6 +318,13 @@ export class InteractiveStateManager {
 
       if (updated > 0) {
         console.log(`[Interactive State] Marked ${channelId}:${messageTs} as ${status} by ${processedBy}`);
+
+        // Capture approved/completed interactive states as muscle memory (async, non-blocking)
+        if (status === "approved" || status === "completed") {
+          this.captureInteractiveStateExemplar(channelId, messageTs, status).catch((err) =>
+            console.error("[MuscleMemory] Interactive state capture failed:", err)
+          );
+        }
       }
 
       return updated > 0;
@@ -520,6 +529,62 @@ export class InteractiveStateManager {
     }, 60 * 60 * 1000); // Every hour
 
     console.log("[Interactive State] Cleanup job started (runs every hour)");
+  }
+
+  /**
+   * Capture approved/completed interactive state as muscle memory exemplar
+   * Private helper method called after successful state approval/completion
+   */
+  private async captureInteractiveStateExemplar(
+    channelId: string,
+    messageTs: string,
+    status: "approved" | "completed"
+  ): Promise<void> {
+    try {
+      const { getConfigValue } = await import("../config");
+      if (!getConfigValue("muscleMemoryCollectionEnabled")) {
+        return;
+      }
+
+      // Get the full state to extract context
+      const state = await this.getState(channelId, messageTs);
+      if (!state) {
+        return;
+      }
+
+      const { muscleMemoryService, qualityDetector } = await import("./muscle-memory");
+
+      // Detect human feedback signal from state
+      const humanSignal = qualityDetector.detectHumanFeedbackSignal(state);
+      if (!humanSignal) {
+        return; // No quality signal, skip capture
+      }
+
+      // Extract case number from payload if available
+      const caseNumber = (state.payload as any)?.caseNumber || "UNKNOWN";
+
+      // Map state type to interaction type, default to "generic" for unknown types
+      const interactionType = (state.type === "supervisor_review" ? "triage" : "generic") as any;
+
+      // Capture the interaction
+      await muscleMemoryService.captureExemplar({
+        caseNumber,
+        interactionType,
+        inputContext: {
+          userRequest: `Interactive state: ${state.type}`,
+        },
+        actionTaken: {
+          agentType: "interactive_workflow",
+          workNotes: [`${state.type} ${status}`, JSON.stringify(state.payload).substring(0, 200)],
+        },
+        outcome: status === "approved" || status === "completed" ? "success" : "user_corrected",
+        qualitySignals: [humanSignal],
+      });
+
+      console.log(`[MuscleMemory] Captured ${state.type} ${status} for ${caseNumber}`);
+    } catch (error) {
+      console.error("[MuscleMemory] Failed to capture interactive state:", error);
+    }
   }
 }
 

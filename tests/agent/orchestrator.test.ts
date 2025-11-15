@@ -114,6 +114,7 @@ describe("Agent Orchestrator", () => {
         updateStatus: undefined,
         options: undefined,
         caseNumbers: [],
+        contextMetadata: { caseNumbers: [] },
       });
     });
 

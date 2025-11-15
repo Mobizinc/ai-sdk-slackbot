@@ -8,5 +8,12 @@ export default defineConfig({
     coverage: {
       reporter: ["text", "html"],
     },
+    exclude: [
+      "node_modules/**",
+      ".vercel/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+    ],
   },
 });
