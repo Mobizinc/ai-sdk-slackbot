@@ -54,19 +54,26 @@ export async function executeSupervisorState(
     return;
   }
 
-  if (!payload.caseNumber) {
-    throw new Error("Missing case number for ServiceNow artifact");
+  if (payload.artifactType === "servicenow_work_note") {
+    if (!payload.caseNumber) {
+      throw new Error("Missing case number for ServiceNow artifact");
+    }
+
+    const sysId = payload.metadata?.sysId;
+    if (!sysId) {
+      throw new Error("Missing sys_id in supervisor metadata");
+    }
+
+    if (!serviceNowClient.isConfigured()) {
+      throw new Error("ServiceNow client not configured");
+    }
+
+    const snContext = createTriageSystemContext();
+    await serviceNowClient.addCaseWorkNote(sysId, payload.content, true, snContext);
+    return;
   }
 
-  const sysId = payload.metadata?.sysId;
-  if (!sysId) {
-    throw new Error("Missing sys_id in supervisor metadata");
-  }
-
-  if (!serviceNowClient.isConfigured()) {
-    throw new Error("ServiceNow client not configured");
-  }
-
-  const snContext = createTriageSystemContext();
-  await serviceNowClient.addCaseWorkNote(sysId, payload.content, true, snContext);
+  // Handle unknown artifact types gracefully
+  console.warn(`Unknown artifact type: ${payload.artifactType}`);
+  return;
 }

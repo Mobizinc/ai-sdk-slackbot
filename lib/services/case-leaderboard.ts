@@ -223,7 +223,10 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
     const resolvedAt = parseDate(record.resolved_at ?? record.closed_at);
     const active = isTaskActive(record);
 
-    if (openedAt && openedAt.getTime() >= cutoff) {
+    // Track cases opened during the period
+    const openedInPeriod = openedAt && openedAt.getTime() >= cutoff;
+
+    if (openedInPeriod) {
       aggregate.assigned += 1;
     }
 
@@ -235,7 +238,8 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
       }
     }
 
-    if (active) {
+    // Only count as active if it was opened during the period AND is still active
+    if (openedInPeriod && active) {
       aggregate.active += 1;
     }
   };

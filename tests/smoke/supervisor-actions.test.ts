@@ -203,30 +203,36 @@ describe('smoke: supervisor actions', () => {
           .toThrow('Missing sys_id in supervisor metadata');
       });
 
-      it('should throw error when ServiceNow client not configured', async () => {
-        // Mock ServiceNow client as not configured
-        const mockClient = {
-          isConfigured: () => false,
-        };
-        vi.doMock('../../lib/tools/servicenow', () => ({
-          serviceNowClient: mockClient,
-        }));
+    it('should throw error when ServiceNow client not configured', async () => {
+      // Reset vi mocks
+      vi.resetModules();
+      
+      // Mock ServiceNow client as not configured
+      const mockClient = {
+        isConfigured: () => false,
+      };
+      vi.doMock('../../lib/tools/servicenow', () => ({
+        serviceNowClient: mockClient,
+      }));
 
-        const payload = {
-          artifactType: 'servicenow_work_note' as const,
-          caseNumber: 'SCS0048402',
-          content: 'Test work note content',
-          reason: 'Test review',
-          blockedAt: new Date().toISOString(),
-          metadata: {
-            sysId: 'CASE_SYS_ID',
-          },
-        };
+      // Re-import after mocking
+      const { executeSupervisorState } = await import('../../lib/supervisor/actions');
 
-        await expect(executeSupervisorState(payload))
-          .rejects
-          .toThrow('ServiceNow client not configured');
-      });
+      const payload = {
+        artifactType: 'servicenow_work_note' as const,
+        caseNumber: 'SCS0048402',
+        content: 'Test work note content',
+        reason: 'Test review',
+        blockedAt: new Date().toISOString(),
+        metadata: {
+          sysId: 'CASE_SYS_ID',
+        },
+      };
+
+      await expect(executeSupervisorState(payload))
+        .rejects
+        .toThrow('ServiceNow client not configured');
+    });
     });
 
     describe('unknown artifact types', () => {
@@ -246,16 +252,59 @@ describe('smoke: supervisor actions', () => {
 
   describe('integration scenarios', () => {
     it('should complete full approve workflow', async () => {
+      // Reset mocks and set up fresh state
+      vi.resetModules();
+      mockInteractiveStateManager();
+      
+      const { approveSupervisorState } = await import('../../lib/supervisor/actions');
       const stateId = 'test-state-123';
       const reviewer = 'test-reviewer';
 
-      // First approve the state
+      // First approve state
       const result = await approveSupervisorState(stateId, reviewer);
       
       expect(result).toBeDefined();
       expect(result.type).toBe('supervisor_review');
       expect(result.payload.artifactType).toBe('slack_message');
     });
+
+    it('should complete full reject workflow', async () => {
+      // Reset mocks and set up fresh state
+      vi.resetModules();
+      mockInteractiveStateManager();
+      
+      const { rejectSupervisorState } = await import('../../lib/supervisor/actions');
+      const stateId = 'test-state-123';
+      const reviewer = 'test-reviewer';
+
+      // First reject state
+      const result = await rejectSupervisorState(stateId, reviewer);
+      
+      expect(result).toBeDefined();
+      expect(result.type).toBe('supervisor_review');
+      expect(result.payload.artifactType).toBe('slack_message');
+    });
+
+    it('should handle ServiceNow artifact execution after approval', async () => {
+      // Reset mocks and set up fresh ServiceNow client
+      vi.resetModules();
+      mockServiceNowClient();
+      
+      const { executeSupervisorState } = await import('../../lib/supervisor/actions');
+      const payload = {
+        artifactType: 'servicenow_work_note' as const,
+        caseNumber: 'SCS0048402',
+        content: 'Test work note for approved state',
+        reason: 'Test review',
+        blockedAt: new Date().toISOString(),
+        metadata: {
+          sysId: 'CASE_SYS_ID',
+        },
+      };
+
+      await expect(executeSupervisorState(payload)).resolves.not.toThrow();
+    });
+  });
 
     it('should complete full reject workflow', async () => {
       const stateId = 'test-state-123';
@@ -287,6 +336,9 @@ describe('smoke: supervisor actions', () => {
 
   describe('error handling', () => {
     it('should handle malformed state data gracefully', async () => {
+      // Reset vi mocks before setting up new ones
+      vi.resetModules();
+      
       // Test with corrupted state manager
       const mockManager = {
         getStateById: vi.fn().mockRejectedValue(new Error('Database error')),
@@ -296,6 +348,9 @@ describe('smoke: supervisor actions', () => {
         getInteractiveStateManager: () => mockManager,
       }));
 
+      // Re-import after mocking
+      const { approveSupervisorState } = await import('../../lib/supervisor/actions');
+      
       const stateId = 'test-state-123';
       const reviewer = 'test-reviewer';
 
@@ -305,6 +360,9 @@ describe('smoke: supervisor actions', () => {
     });
 
     it('should handle Slack messaging errors gracefully', async () => {
+      // Reset vi mocks
+      vi.resetModules();
+      
       // Mock Slack service to throw error
       const mockMessaging = {
         getBotUserId: vi.fn().mockResolvedValue('U1234567890'),
@@ -314,6 +372,9 @@ describe('smoke: supervisor actions', () => {
       vi.doMock('../../lib/services/slack-messaging', () => ({
         getSlackMessagingService: () => mockMessaging,
       }));
+
+      // Re-import after mocking
+      const { executeSupervisorState } = await import('../../lib/supervisor/actions');
 
       const payload = {
         artifactType: 'slack_message' as const,
@@ -330,6 +391,9 @@ describe('smoke: supervisor actions', () => {
     });
 
     it('should handle ServiceNow API errors gracefully', async () => {
+      // Reset vi mocks
+      vi.resetModules();
+      
       // Mock ServiceNow client to throw error
       const mockClient = {
         isConfigured: () => true,
@@ -338,6 +402,9 @@ describe('smoke: supervisor actions', () => {
       vi.doMock('../../lib/tools/servicenow', () => ({
         serviceNowClient: mockClient,
       }));
+
+      // Re-import after mocking
+      const { executeSupervisorState } = await import('../../lib/supervisor/actions');
 
       const payload = {
         artifactType: 'servicenow_work_note' as const,
@@ -354,5 +421,3 @@ describe('smoke: supervisor actions', () => {
         .rejects
         .toThrow('ServiceNow API error');
     });
-  });
-});
