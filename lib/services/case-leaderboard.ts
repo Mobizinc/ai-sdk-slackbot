@@ -71,8 +71,10 @@ const INCIDENT_FIELDS = [
 ].join(",");
 
 function buildAssignmentGroupFilter(groups: string[]): string {
-  const value = groups.join(",");
-  return `assignment_group.nameIN${value}`;
+  // ServiceNow doesn't have an IN operator - use OR logic with LIKE for each group
+  return groups
+    .map((group) => `assignment_group.nameLIKE${group}`)
+    .join("^OR");
 }
 
 function formatDateForQuery(date: Date): string {
@@ -96,9 +98,9 @@ async function fetchRecordsFromTable(
   const startDate = formatDateForQuery(start);
 
   // Single comprehensive query that gets ALL relevant records for the period:
-  // - Cases/incidents that were opened, resolved, or closed during the period
-  // - OR currently active cases in these assignment groups
-  const query = `${baseFilter}^(opened_at>=${startDate}^ORresolved_at>=${startDate}^ORclosed_at>=${startDate}^ORactive=true)`;
+  // - Cases/incidents in the target assignment groups AND
+  // - (opened, resolved, or closed during the period OR currently active)
+  const query = `(${baseFilter})^(opened_at>=${startDate}^ORresolved_at>=${startDate}^ORclosed_at>=${startDate}^ORactive=true)`;
 
   const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
     sysparm_query: query,
