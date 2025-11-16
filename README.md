@@ -130,6 +130,38 @@ SERVICENOW_PASSWORD=your-servicenow-password
 # SERVICENOW_CASE_TABLE=sn_customerservice_case
 # SERVICENOW_CASE_JOURNAL_NAME=x_mobit_serv_case_service_case
 
+# Demand workflow integration
+DEMAND_API_BASE_URL=https://demand-app.vercel.app
+DEMAND_API_KEY=your-shared-demand-api-key
+
+```
+
+## Strategic Demand Workflow (`/demand-request`)
+
+Slack users can now run the Mobizinc demand analysis directly from the bot:
+
+1. `/demand-request` opens a Block Kit modal populated with the live schema from the demand app (`/api/demand/schema`).
+2. On submit, the bot calls `/api/analyze` (authorized with `DEMAND_API_KEY`), posts the analysis summary to the channel, and persists the `sessionId` + pending questions in `interactive_states` (`type = demand_request`).
+3. Follow-up questions are relayed in the Slack thread; user replies are sent to `/api/clarify` until the demand app returns `status = "complete"`.
+4. The bot calls `/api/finalize`, formats the `summary` payload, and marks the interactive state as `completed`.
+
+### Configuration
+
+- `DEMAND_API_BASE_URL` – stored in the shared config (and editable through `/admin/config`); the bot uses this to find the demand service.  
+- `DEMAND_API_KEY` – environment variable only; never exposed via `/admin`.
+- Demand schema/requests are cached for 10 minutes client-side to minimize calls, but `/admin` can refresh on demand by patching the config.
+
+### Local testing
+
+1. Run the demand app (`internal-projects/demand-request-app`) at `http://localhost:3000`.
+2. Set `DEMAND_API_BASE_URL=http://localhost:3000` in the bot’s `.env.local`.
+3. Run the smoke + integration tests:
+   ```bash
+   pnpm vitest run tests/demand/slack-workflow.test.ts
+   DEMAND_API_BASE_URL=http://localhost:3000 DEMAND_API_KEY=local-key pnpm vitest run tests/demand/demand-api.smoke.test.ts
+   ```
+4. Register `/demand-request` in Slack (Request URL → `/api/commands/demand-request`) and exercise the full modal → clarify loop via your tunnel or Slack dev workspace.
+
 # Relay Gateway
 RELAY_WEBHOOK_SECRET=shared-hmac-secret
 

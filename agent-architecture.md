@@ -57,6 +57,19 @@
 
   - **Resolution:** Supervisor does **not** patch escalation payloads automatically. Violations are persisted, surfaced via `/review-latest`, and require a human replay to resend or fix the artifact, keeping audit trails consistent with the HITL workflow.
 
+- **Strategic Demand Workflow**  
+  `/demand-request` exposes the Mobizinc strategic intake app inside Slack. The flow is deliberately split across the Slack bot and the external demand service:
+  1. **Schema fetch:** Before opening the modal we call the demand app’s `/api/demand/schema` endpoint (configurable via the DB-backed `demandApiBaseUrl`). This keeps the Slack UI synchronized whenever service pillars, partner lists, or markets change in `/admin/strategy`.
+  2. **Analyze:** Modal submissions become `DemandRequestPayload`s and are POSTed to `/api/analyze` with `Authorization: Bearer <DEMAND_API_KEY>`. Responses return a `sessionId`, initial scoring metadata, and a list of clarification questions (if any).
+  3. **State tracking:** Each session is stored in `interactive_states` with `type = demand_request`, capturing `sessionId`, `pendingQuestions`, and the originating Slack thread. This is what allows the bot to recognize follow-up replies in the same thread.
+  4. **Clarify loop:** When the requestor replies in-thread, we call `/api/clarify` with `{ sessionId, questionId, answer }`. The demand app decides whether more questions are needed; we post each new question as a threaded message until the service returns `status = "complete"`.
+  5. **Finalize:** Once clarifications are resolved we call `/api/finalize`, format the `summary` object (executive summary, scoring, risks, team recommendation), and post it back to the thread before marking the interactive state as `completed`.
+
+  Configuration lives in the same shared config store as other feature toggles:
+  - `demandApiBaseUrl` is editable via `/admin/config` and persists in Neon (`app_settings`).  
+  - `DEMAND_API_KEY` remains an environment variable so the admin UI never exposes secrets.  
+  Both are required for the Slack workflow to reach the demand app (local or production).
+
 ## Implementation Strategy (Incremental Rollout)
 
 To reach the target architecture without destabilizing the current production workflow, we layer capabilities behind feature flags and thin orchestration adapters. Each new capability should plug into the existing `context → prompt → agent → formatter` loop instead of replacing it outright.
