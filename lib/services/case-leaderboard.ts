@@ -48,53 +48,39 @@ interface TaskAggregate {
 }
 
 async function fetchCasesForLeaderboard(start: Date): Promise<Case[]> {
-  const startIso = start.toISOString();
   const collected = new Map<string, Case>();
 
-  const queryVariants: Array<{
-    label: string;
-    filters: { openedAfter?: string; resolvedAfter?: string; closedAfter?: string; activeOnly?: boolean };
-  }> = [
-    { label: "active", filters: { activeOnly: true } },
-    { label: "opened", filters: { openedAfter: startIso } },
-    { label: "resolved", filters: { resolvedAfter: startIso } },
-    { label: "closed", filters: { closedAfter: startIso } },
-  ];
-
+  // Simple approach: Get ALL active cases for each group (proven to work like stale case does)
+  // Then filter/aggregate in memory based on dates
   for (const group of TARGET_ASSIGNMENT_GROUPS) {
-    for (const variant of queryVariants) {
-      let offset = 0;
-      let page = 0;
-      const limit = SEARCH_PAGE_SIZE;
-      while (true) {
-        const result = await caseSearchService.searchWithMetadata({
-          assignmentGroup: group,
-          includeChildDomains: true,
-          limit,
-          offset,
-          ...variant.filters,
-        });
+    let offset = 0;
+    let page = 0;
+    const limit = SEARCH_PAGE_SIZE;
 
-        result.cases.forEach((caseItem) => {
-          if (!collected.has(caseItem.sysId)) {
-            collected.set(caseItem.sysId, caseItem);
-          }
-        });
+    while (true) {
+      const result = await caseSearchService.searchWithMetadata({
+        assignmentGroup: group,
+        activeOnly: true, // Get all active cases (works like stale case query)
+        includeChildDomains: true,
+        limit,
+        offset,
+      });
 
-        console.log(
-          `[Leaderboard] ${variant.label} fetch for group "${group}" page ${page} retrieved ${result.cases.length} cases (total cached: ${collected.size})`,
-        );
-
-        if (!result.hasMore || result.cases.length === 0) {
-          break;
+      result.cases.forEach((caseItem) => {
+        if (!collected.has(caseItem.sysId)) {
+          collected.set(caseItem.sysId, caseItem);
         }
-        offset = result.nextOffset ?? offset + result.cases.length;
-        page += 1;
+      });
 
-        if (collected.size >= MAX_RECORDS) {
-          break;
-        }
+      console.log(
+        `[Leaderboard] Fetched page ${page} for group "${group}": ${result.cases.length} cases (total: ${collected.size})`,
+      );
+
+      if (!result.hasMore || result.cases.length === 0) {
+        break;
       }
+      offset = result.nextOffset ?? offset + result.cases.length;
+      page += 1;
 
       if (collected.size >= MAX_RECORDS) {
         break;
