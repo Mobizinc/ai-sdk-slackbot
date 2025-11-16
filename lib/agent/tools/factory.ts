@@ -45,6 +45,10 @@ import { createGetCIRelationshipsTool } from "./servicenow/cmdb/get-ci-relations
 import { createGetRequestTool } from "./servicenow/catalog/get-request.tool";
 import { createGetRequestedItemTool } from "./servicenow/catalog/get-requested-item.tool";
 import { createGetCatalogTaskTool } from "./servicenow/catalog/get-catalog-task.tool";
+import { createGetProjectTool } from "./servicenow/spm/get-project.tool";
+import { createSearchProjectsTool } from "./servicenow/spm/search-projects.tool";
+import { createGetProjectEpicsTool } from "./servicenow/spm/get-project-epics.tool";
+import { createGetProjectStoriesTool } from "./servicenow/spm/get-project-stories.tool";
 
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
@@ -107,6 +111,12 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     getRequest: createGetRequestTool(params),
     getRequestedItem: createGetRequestedItemTool(params),
     getCatalogTask: createGetCatalogTaskTool(params),
+
+    // SPM domain (Phase 2)
+    getProject: createGetProjectTool(params),
+    searchProjects: createSearchProjectsTool(params),
+    getProjectEpics: createGetProjectEpicsTool(params),
+    getProjectStories: createGetProjectStoriesTool(params),
 
     // Legacy monolithic ServiceNow tool (deprecated, will be removed in Phase 4)
     serviceNow: createServiceNowTool(params),
