@@ -166,11 +166,8 @@ export class ServiceNowCaseRepository implements CaseRepository {
     }
 
     if (criteria.assignmentGroup) {
-      // Assignment group by display name
-      const clause = buildFlexibleLikeQuery("assignment_group.name", criteria.assignmentGroup);
-      if (clause) {
-        queryParts.push(clause);
-      }
+      // Assignment group by display name - use exact match to avoid permissions issues with LIKE
+      queryParts.push(`assignment_group.name=${criteria.assignmentGroup}`);
     }
 
     if (criteria.assignedTo) {
@@ -195,6 +192,22 @@ export class ServiceNowCaseRepository implements CaseRepository {
 
     if (criteria.updatedBefore) {
       queryParts.push(`sys_updated_on<=${this.formatDate(criteria.updatedBefore)}`);
+    }
+
+    if (criteria.resolvedAfter) {
+      queryParts.push(`resolved_at>=${this.formatDate(criteria.resolvedAfter)}`);
+    }
+
+    if (criteria.resolvedBefore) {
+      queryParts.push(`resolved_at<=${this.formatDate(criteria.resolvedBefore)}`);
+    }
+
+    if (criteria.closedAfter) {
+      queryParts.push(`closed_at>=${this.formatDate(criteria.closedAfter)}`);
+    }
+
+    if (criteria.closedBefore) {
+      queryParts.push(`closed_at<=${this.formatDate(criteria.closedBefore)}`);
     }
 
     // Active/closed filter
