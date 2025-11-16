@@ -34,7 +34,7 @@ async function run(request: Request): Promise<Response> {
     ?? bodyChannel
     ?? (await getAppSettingWithFallback(
       APP_SETTING_KEYS.leaderboardChannel,
-      process.env.MOBIZ_LEADERBOARD_CHANNEL ?? process.env.CASE_QUEUE_CHANNEL_ID ?? null,
+      process.env.MOBIZ_LEADERBOARD_CHANNEL ?? process.env.CASE_QUEUE_CHANNEL_ID ?? "C027ZM8M0KE",
     ));
 
   if (!channel) {
