@@ -40,6 +40,12 @@ import { createGetCaseJournalTool } from "./servicenow/case/get-case-journal.too
 import { createSearchKnowledgeTool } from "./servicenow/knowledge/search-knowledge.tool";
 import { createSearchConfigurationItemsTool } from "./servicenow/cmdb/search-configuration-items.tool";
 
+// Import new modular ServiceNow tools (Phase 2)
+import { createGetCIRelationshipsTool } from "./servicenow/cmdb/get-ci-relationships.tool";
+import { createGetRequestTool } from "./servicenow/catalog/get-request.tool";
+import { createGetRequestedItemTool } from "./servicenow/catalog/get-requested-item.tool";
+import { createGetCatalogTaskTool } from "./servicenow/catalog/get-catalog-task.tool";
+
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
 export type { SearchWebToolInput } from "./web-search";
@@ -80,13 +86,27 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
 
-    // ===== ServiceNow Modular Tools (Phase 1) =====
+    // ===== ServiceNow Modular Tools (Phase 1 & 2) =====
     // Single-purpose tools for improved LLM tool selection
+
+    // Incident domain
     getIncident: createGetIncidentTool(params),
+
+    // Case domain
     getCase: createGetCaseTool(params),
     getCaseJournal: createGetCaseJournalTool(params),
-    searchKnowledge: createSearchKnowledgeTool(params),
+
+    // CMDB domain
     searchConfigurationItems: createSearchConfigurationItemsTool(params),
+    getCIRelationships: createGetCIRelationshipsTool(params), // Phase 2
+
+    // Knowledge domain
+    searchKnowledge: createSearchKnowledgeTool(params),
+
+    // Catalog domain (Phase 2)
+    getRequest: createGetRequestTool(params),
+    getRequestedItem: createGetRequestedItemTool(params),
+    getCatalogTask: createGetCatalogTaskTool(params),
 
     // Legacy monolithic ServiceNow tool (deprecated, will be removed in Phase 4)
     serviceNow: createServiceNowTool(params),
