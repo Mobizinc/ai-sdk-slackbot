@@ -1,10 +1,10 @@
 import { getSlackMessagingService } from "./slack-messaging";
-import { isMobizEmail } from "./mobiz-filter";
-import { getTableApiClient } from "../infrastructure/servicenow/repositories/factory";
-import { buildFlexibleLikeQuery } from "../infrastructure/servicenow/repositories/query-builders";
+import { CaseSearchService } from "./case-search-service";
+import type { Case } from "../infrastructure/servicenow/types/domain-models";
+import { config } from "../config";
 
 const slackMessaging = getSlackMessagingService();
-const tableApiClient = getTableApiClient();
+const caseSearchService = new CaseSearchService();
 
 const DEFAULT_LOOKBACK_DAYS = 14;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";
@@ -14,6 +14,10 @@ const TARGET_ASSIGNMENT_GROUPS = (process.env.CASE_LEADERBOARD_GROUPS ?? "Incide
   .filter((group) => group.length > 0);
 const parsedMaxRecords = parseInt(process.env.CASE_LEADERBOARD_MAX_RECORDS ?? "2000", 10);
 const MAX_RECORDS = Number.isFinite(parsedMaxRecords) && parsedMaxRecords > 0 ? parsedMaxRecords : 2000;
+const SEARCH_PAGE_SIZE = Math.min(
+  Number(process.env.CASE_LEADERBOARD_PAGE_SIZE ?? "50"),
+  50,
+);
 
 export interface LeaderboardOptions {
   days?: number;
@@ -43,146 +47,85 @@ interface TaskAggregate {
   resolutionSamples: number;
 }
 
-const CASE_FIELDS = [
-  "sys_id",
-  "number",
-  "short_description",
-  "assignment_group",
-  "assigned_to",
-  "assigned_to.email",
-  "opened_at",
-  "resolved_at",
-  "closed_at",
-  "state",
-  "active",
-].join(",");
+async function fetchCasesForLeaderboard(start: Date): Promise<Case[]> {
+  const startIso = start.toISOString();
+  const collected = new Map<string, Case>();
 
-const INCIDENT_FIELDS = [
-  "sys_id",
-  "number",
-  "short_description",
-  "assignment_group",
-  "assigned_to",
-  "assigned_to.email",
-  "sys_created_on",
-  "resolved_at",
-  "closed_at",
-  "state",
-  "active",
-].join(",");
+  const queryVariants: Array<{
+    label: string;
+    filters: { openedAfter?: string; resolvedAfter?: string; closedAfter?: string; activeOnly?: boolean };
+  }> = [
+    { label: "active", filters: { activeOnly: true } },
+    { label: "opened", filters: { openedAfter: startIso } },
+    { label: "resolved", filters: { resolvedAfter: startIso } },
+    { label: "closed", filters: { closedAfter: startIso } },
+  ];
 
-function buildAssignmentGroupFilter(groups: string[]): string {
-  // Use the same proven query builder that all working ServiceNow queries use
-  const clauses = groups
-    .map((group) => buildFlexibleLikeQuery("assignment_group.name", group))
-    .filter((clause): clause is string => clause !== undefined);
-
-  if (clauses.length === 0) {
-    return "";
-  }
-  if (clauses.length === 1) {
-    return clauses[0];
-  }
-
-  return `(${clauses.join("^OR")})`;
-}
-
-function formatDateForQuery(date: Date): string {
-  const pad = (num: number) => num.toString().padStart(2, "0");
-  const year = date.getUTCFullYear();
-  const month = pad(date.getUTCMonth() + 1);
-  const day = pad(date.getUTCDate());
-  const hours = pad(date.getUTCHours());
-  const minutes = pad(date.getUTCMinutes());
-  const seconds = pad(date.getUTCSeconds());
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
-async function fetchRecordsFromTable(
-  table: string,
-  fields: string,
-  start: Date,
-  extraQueries: string[] = [],
-): Promise<RawTaskRecord[]> {
-  const startDate = formatDateForQuery(start);
-  const records = new Map<string, RawTaskRecord>();
-
-  // Query each assignment group separately (proven working pattern from stale-case-followup)
   for (const group of TARGET_ASSIGNMENT_GROUPS) {
-    const groupFilter = buildFlexibleLikeQuery("assignment_group.name", group);
-    if (!groupFilter) continue;
-
-    // Simple queries that work with ServiceNow permissions:
-    const queries = [
-      `${groupFilter}^active=true`, // Currently active cases
-      `${groupFilter}^opened_at>=${startDate}`, // Opened in period
-      `${groupFilter}^resolved_at>=${startDate}`, // Resolved in period
-      `${groupFilter}^closed_at>=${startDate}`, // Closed in period
-    ];
-
-    for (const query of queries) {
-      try {
-        const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
-          sysparm_query: query,
-          sysparm_fields: fields,
-          sysparm_display_value: "all",
-          pageSize: 500,
-          maxRecords: MAX_RECORDS,
+    for (const variant of queryVariants) {
+      let offset = 0;
+      let page = 0;
+      const limit = SEARCH_PAGE_SIZE;
+      while (true) {
+        const result = await caseSearchService.searchWithMetadata({
+          assignmentGroup: group,
+          includeChildDomains: true,
+          limit,
+          offset,
+          ...variant.filters,
         });
 
-        for (const row of rows) {
-          const key = row.sys_id;
-          if (!key) continue;
-          if (!records.has(key)) {
-            records.set(key, row);
+        result.cases.forEach((caseItem) => {
+          if (!collected.has(caseItem.sysId)) {
+            collected.set(caseItem.sysId, caseItem);
           }
+        });
+
+        console.log(
+          `[Leaderboard] ${variant.label} fetch for group "${group}" page ${page} retrieved ${result.cases.length} cases (total cached: ${collected.size})`,
+        );
+
+        if (!result.hasMore || result.cases.length === 0) {
+          break;
         }
-      } catch (error) {
-        console.error(`[Leaderboard] Failed to fetch records for group "${group}":`, error);
+        offset = result.nextOffset ?? offset + result.cases.length;
+        page += 1;
+
+        if (collected.size >= MAX_RECORDS) {
+          break;
+        }
+      }
+
+      if (collected.size >= MAX_RECORDS) {
+        break;
       }
     }
-  }
 
-  return Array.from(records.values());
-}
-
-function mergeRecords(target: RawTaskRecord, source: RawTaskRecord): RawTaskRecord {
-  const merged = { ...target };
-  for (const [key, value] of Object.entries(source)) {
-    if (value !== undefined && value !== null && value !== "") {
-      merged[key] = value;
+    if (collected.size >= MAX_RECORDS) {
+      break;
     }
   }
-  return merged;
+
+  return Array.from(collected.values());
 }
 
-function parseDate(value?: string): Date | null {
-  if (!value) {
-    return null;
-  }
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+function normalizeName(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
-function extractDisplayValue(field: any): string | undefined {
-  if (typeof field === "string") {
-    return field;
-  }
-  if (field && typeof field === "object") {
-    return field.display_value ?? field.value ?? undefined;
-  }
-  return undefined;
+function extractCaseAssignee(record: Case): { name: string | null; email: string | null } {
+  const name = normalizeName(record.assignedTo);
+  const email = record.assignedToEmail ? record.assignedToEmail.toLowerCase() : null;
+  return { name, email };
 }
 
-function isTaskActive(record: RawTaskRecord): boolean {
-  if (typeof record.active === "string") {
-    if (record.active.toLowerCase() === "true") return true;
-    if (record.active.toLowerCase() === "false") return false;
-  } else if (typeof record.active === "boolean") {
+function isCaseActive(record: Case): boolean {
+  if (typeof record.active === "boolean") {
     return record.active;
   }
-
-  const stateRaw = extractDisplayValue(record.state)?.toLowerCase() ?? "";
+  const stateRaw = record.state?.toLowerCase() ?? "";
   if (!stateRaw) {
     return true;
   }
@@ -192,35 +135,16 @@ function isTaskActive(record: RawTaskRecord): boolean {
   return true;
 }
 
-function extractAssignee(record: RawTaskRecord): { name: string | null; email: string | null } {
-  const directAssignee = record["assigned_to"];
-  const dotEmail = record["assigned_to.email"];
-  let name = extractDisplayValue(directAssignee);
-  if (!name && typeof record["assigned_to.name"] === "string") {
-    name = record["assigned_to.name"];
-  }
-  const emailValue = typeof dotEmail === "string" ? dotEmail : dotEmail?.display_value ?? dotEmail?.value;
-  const email = emailValue ? emailValue.toLowerCase() : null;
-  return { name: name ?? null, email };
-}
-
 async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
-  const [caseRecords, incidentRecords] = await Promise.all([
-    fetchRecordsFromTable("sn_customerservice_case", CASE_FIELDS, start),
-    fetchRecordsFromTable("incident", INCIDENT_FIELDS, start, [
-      `sys_created_on>=${formatDateForQuery(start)}`,
-    ]),
-  ]);
+  const caseRecords = await fetchCasesForLeaderboard(start);
+  console.log(`[Leaderboard] Retrieved ${caseRecords.length} ServiceNow cases for aggregation.`);
 
   const cutoff = start.getTime();
   const aggregates = new Map<string, TaskAggregate>();
 
-  const processRecord = (record: RawTaskRecord, defaultOpenedField: string = "opened_at") => {
-    const { name, email } = extractAssignee(record);
+  const processRecord = (record: Case) => {
+    const { name, email } = extractCaseAssignee(record);
     if (!name) {
-      return;
-    }
-    if (email && !isMobizEmail(email)) {
       return;
     }
 
@@ -238,9 +162,9 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
     }
 
     const aggregate = aggregates.get(key)!;
-    const openedAt = parseDate(record[defaultOpenedField] ?? record.sys_created_on);
-    const resolvedAt = parseDate(record.resolved_at ?? record.closed_at);
-    const active = isTaskActive(record);
+    const openedAt = record.openedAt ?? null;
+    const resolvedAt = record.resolvedAt ?? record.closedAt ?? null;
+    const active = isCaseActive(record);
 
     if (openedAt && openedAt.getTime() >= cutoff) {
       aggregate.assigned += 1;
@@ -259,8 +183,7 @@ async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
     }
   };
 
-  caseRecords.forEach((record) => processRecord(record, "opened_at"));
-  incidentRecords.forEach((record) => processRecord(record, "sys_created_on"));
+  caseRecords.forEach((record) => processRecord(record));
 
   return Array.from(aggregates.values())
     .filter((row) => row.assigned > 0 || row.resolved > 0 || row.active > 0)
@@ -413,6 +336,7 @@ export async function postCaseLeaderboard(options: LeaderboardOptions) {
   const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
 
   const leaderboard = await collectLeaderboardRows(start);
+  console.log(`[Leaderboard] Collected ${leaderboard.length} rows:`, JSON.stringify(leaderboard.slice(0, 5), null, 2));
   const message = buildLeaderboardMessage(leaderboard, start, end, limit);
 
   const chart = await generateLeaderboardChart(leaderboard, limit, start, end);
