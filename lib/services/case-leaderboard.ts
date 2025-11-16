@@ -71,9 +71,10 @@ const INCIDENT_FIELDS = [
 ].join(",");
 
 function buildAssignmentGroupFilter(groups: string[]): string {
-  // ServiceNow doesn't have an IN operator - use OR logic with LIKE for each group
+  // ServiceNow doesn't have an IN operator - use OR logic with exact match for each group
+  // Use assignment_group.name= for exact match (more reliable than LIKE for full group names)
   return groups
-    .map((group) => `assignment_group.nameLIKE${group}`)
+    .map((group) => `assignment_group.name=${group}`)
     .join("^OR");
 }
 
