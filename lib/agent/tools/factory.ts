@@ -33,6 +33,13 @@ import { createDescribeCapabilitiesTool } from "./describe-capabilities";
 import { createServiceNowCatalogWorkflowTool } from "./servicenow-catalog-workflow";
 import type { AgentToolFactoryParams } from "./shared";
 
+// Import new modular ServiceNow tools (Phase 1)
+import { createGetIncidentTool } from "./servicenow/incident/get-incident.tool";
+import { createGetCaseTool } from "./servicenow/case/get-case.tool";
+import { createGetCaseJournalTool } from "./servicenow/case/get-case-journal.tool";
+import { createSearchKnowledgeTool } from "./servicenow/knowledge/search-knowledge.tool";
+import { createSearchConfigurationItemsTool } from "./servicenow/cmdb/search-configuration-items.tool";
+
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
 export type { SearchWebToolInput } from "./web-search";
@@ -72,7 +79,19 @@ export function createAgentTools(params: AgentToolFactoryParams) {
   const tools = {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
+
+    // ===== ServiceNow Modular Tools (Phase 1) =====
+    // Single-purpose tools for improved LLM tool selection
+    getIncident: createGetIncidentTool(params),
+    getCase: createGetCaseTool(params),
+    getCaseJournal: createGetCaseJournalTool(params),
+    searchKnowledge: createSearchKnowledgeTool(params),
+    searchConfigurationItems: createSearchConfigurationItemsTool(params),
+
+    // Legacy monolithic ServiceNow tool (deprecated, will be removed in Phase 4)
     serviceNow: createServiceNowTool(params),
+
+    // Other tools
     searchSimilarCases: createSearchTool(params),
     searchCases: createCaseSearchTool(params),
     generateKBArticle: createKnowledgeBaseTool(params),

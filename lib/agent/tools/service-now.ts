@@ -357,6 +357,13 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
   return createTool({
     name: "servicenow_action",
     description:
+      "**⚠️ DEPRECATED: Use specific tools instead!**\n" +
+      "This tool will be removed in a future release. Please use the new single-purpose tools for better performance:\n" +
+      "- For incidents: use `get_incident` tool\n" +
+      "- For cases: use `get_case` tool\n" +
+      "- For case journals: use `get_case_journal` tool\n" +
+      "- For knowledge articles: use `search_knowledge` tool\n" +
+      "- For CMDB/CIs: use `search_configuration_items` tool\n\n" +
       "Retrieves data from ServiceNow ITSM platform including incidents, cases, case journals, knowledge base articles, configuration items (CMDB), and SPM projects.\n\n" +
       "**IMPORTANT: Parameter Extraction Rules**\n" +
       "- For 'getIncident' or 'getCase' actions, the 'number' parameter is REQUIRED and MUST be extracted from the user's message\n" +
