@@ -227,7 +227,7 @@ export interface AssignmentGroupRecord {
  */
 export interface RequestRecord {
   sys_id: string;
-  number: string;
+  number: ServiceNowField;
   short_description: ServiceNowField;
   description: ServiceNowField;
   requested_for: ServiceNowField;
@@ -251,7 +251,7 @@ export interface RequestRecord {
  */
 export interface RequestedItemRecord {
   sys_id: string;
-  number: string;
+  number: ServiceNowField;
   short_description: ServiceNowField;
   description: ServiceNowField;
   request: ServiceNowField;
@@ -274,7 +274,7 @@ export interface RequestedItemRecord {
  */
 export interface CatalogTaskRecord {
   sys_id: string;
-  number: string;
+  number: ServiceNowField;
   short_description: ServiceNowField;
   description: ServiceNowField;
   request_item: ServiceNowField;

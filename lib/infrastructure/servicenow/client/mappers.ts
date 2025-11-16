@@ -394,9 +394,10 @@ export function mapAssignmentGroup(record: AssignmentGroupRecord, instanceUrl: s
  * Map RequestRecord to Request domain model
  */
 export function mapRequest(record: RequestRecord, instanceUrl: string): Request {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
   return {
-    sysId: record.sys_id,
-    number: record.number,
+    sysId,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     requestedFor: extractSysId(record.requested_for),
@@ -413,7 +414,7 @@ export function mapRequest(record: RequestRecord, instanceUrl: string): Request 
     deliveryAddress: extractDisplayValue(record.delivery_address),
     specialInstructions: extractDisplayValue(record.special_instructions),
     price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
-    url: buildRecordUrl(instanceUrl, "sc_request", record.sys_id),
+    url: buildRecordUrl(instanceUrl, "sc_request", sysId),
   };
 }
 
@@ -421,9 +422,10 @@ export function mapRequest(record: RequestRecord, instanceUrl: string): Request 
  * Map RequestedItemRecord to RequestedItem domain model
  */
 export function mapRequestedItem(record: RequestedItemRecord, instanceUrl: string): RequestedItem {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
   return {
-    sysId: record.sys_id,
-    number: record.number,
+    sysId,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     request: extractSysId(record.request),
@@ -441,7 +443,7 @@ export function mapRequestedItem(record: RequestedItemRecord, instanceUrl: strin
     assignmentGroupName: extractDisplayValue(record.assignment_group),
     quantity: record.quantity ? parseInt(extractDisplayValue(record.quantity), 10) : undefined,
     price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
-    url: buildRecordUrl(instanceUrl, "sc_req_item", record.sys_id),
+    url: buildRecordUrl(instanceUrl, "sc_req_item", sysId),
   };
 }
 
@@ -449,6 +451,8 @@ export function mapRequestedItem(record: RequestedItemRecord, instanceUrl: strin
  * Map CatalogTaskRecord to CatalogTask domain model
  */
 export function mapCatalogTask(record: CatalogTaskRecord, instanceUrl: string): CatalogTask {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
+
   let active: boolean | undefined;
   if (typeof record.active === "string") {
     active = record.active.toLowerCase() === "true";
@@ -462,8 +466,8 @@ export function mapCatalogTask(record: CatalogTaskRecord, instanceUrl: string): 
   }
 
   return {
-    sysId: record.sys_id,
-    number: record.number,
+    sysId,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     requestItem: extractSysId(record.request_item),
@@ -482,6 +486,6 @@ export function mapCatalogTask(record: CatalogTaskRecord, instanceUrl: string): 
     priority: extractDisplayValue(record.priority),
     workNotes: extractDisplayValue(record.work_notes),
     closeNotes: extractDisplayValue(record.close_notes),
-    url: buildRecordUrl(instanceUrl, "sc_task", record.sys_id),
+    url: buildRecordUrl(instanceUrl, "sc_task", sysId),
   };
 }
