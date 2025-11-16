@@ -93,11 +93,11 @@ async function testCatalogWorkflowRetrieval() {
       return false;
     }
 
-    // Test 3: Retrieve Catalog Task CTASK0049921
-    console.log("\n✅ Test 3: Retrieve Catalog Task CTASK0049921");
+    // Test 3: Retrieve Catalog Task SCTASK0049921
+    console.log("\n✅ Test 3: Retrieve Catalog Task SCTASK0049921");
     console.log("-".repeat(60));
     const ctaskRepo = getCatalogTaskRepository();
-    const ctask = await ctaskRepo.findByNumber("CTASK0049921");
+    const ctask = await ctaskRepo.findByNumber("SCTASK0049921");
 
     if (ctask) {
       console.log("✅ SUCCESS - Catalog Task retrieved:");
@@ -134,9 +134,9 @@ async function testCatalogWorkflowRetrieval() {
       console.log("\n   📊 Complete Hierarchy:");
       console.log(`   ${grandparentREQ?.number || "N/A"} → ${parentRITM?.number || "N/A"} → ${ctask.number}`);
     } else {
-      console.log("⚠️  CTASK0049921 not found in ServiceNow (may not exist or need different sample)");
+      console.log("⚠️  SCTASK0049921 not found in ServiceNow (may not exist or need different sample)");
       console.log("   Note: API call succeeded (200 OK), but record doesn't exist");
-      console.log("   This is expected if the sample CTASK was from a different environment");
+      console.log("   This is expected if the sample SCTASK was from a different environment");
     }
 
     // Summary

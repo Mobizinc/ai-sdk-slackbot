@@ -2,7 +2,7 @@
  * Case Number Extractor
  *
  * Detects ServiceNow case numbers in text using regex patterns.
- * Supports SCS, INC, CASE, RITM, REQ, and CTASK number formats.
+ * Supports SCS, INC, CASE, RITM, REQ, and SCTASK number formats.
  *
  * This is a pure function with no side effects, making it easy to test.
  */
@@ -13,12 +13,12 @@ import { normalizeCaseId } from "./case-number-normalizer";
  * Supported case number patterns
  */
 const CASE_PATTERNS = [
-  /\b(SCS\d{7,})\b/gi,     // SCS numbers: SCS0001234
-  /\b(INC\d{7,})\b/gi,     // Incident numbers: INC0005678
-  /\b(CASE\d{7,})\b/gi,    // Case numbers: CASE0001234
-  /\b(RITM\d{7,})\b/gi,    // Request items: RITM0001234
-  /\b(REQ\d{7,})\b/gi,     // Request numbers: REQ0043549
-  /\b(CTASK\d{7,})\b/gi,   // Catalog task numbers: CTASK0049921
+  /\b(SCS\d{7,})\b/gi,      // SCS numbers: SCS0001234
+  /\b(INC\d{7,})\b/gi,      // Incident numbers: INC0005678
+  /\b(CASE\d{7,})\b/gi,     // Case numbers: CASE0001234
+  /\b(RITM\d{7,})\b/gi,     // Request items: RITM0001234
+  /\b(REQ\d{7,})\b/gi,      // Request numbers: REQ0043549
+  /\b(SCTASK\d{7,})\b/gi,   // Service catalog task numbers: SCTASK0049921
 ];
 
 /**
@@ -31,7 +31,7 @@ const CASE_PATTERNS = [
  */
 const KEYWORD_PATTERNS: Array<{
   regex: RegExp;
-  prefix: "SCS" | "INC" | "REQ" | "RITM" | "CTASK";
+  prefix: "SCS" | "INC" | "REQ" | "RITM" | "SCTASK";
 }> = [
   // Phrases like "case 49764" or "case number 49764"
   {
@@ -73,15 +73,15 @@ const KEYWORD_PATTERNS: Array<{
     regex: /\bRITM[\s#-]+(\d{5,7})\b/gi,
     prefix: "RITM",
   },
-  // Phrases like "catalog task 49921" or "ctask number 49921"
+  // Phrases like "catalog task 49921" or "sctask number 49921"
   {
-    regex: /\b(?:catalog task|ctask|sc_task)\s*(?:#|number|no\.?)?\s+(\d{5,7})\b/gi,
-    prefix: "CTASK",
+    regex: /\b(?:catalog task|sctask|sc_task)\s*(?:#|number|no\.?)?\s+(\d{5,7})\b/gi,
+    prefix: "SCTASK",
   },
-  // Phrases like "CTASK 49921" or "CTASK-49921"
+  // Phrases like "SCTASK 49921" or "SCTASK-49921"
   {
-    regex: /\bCTASK[\s#-]+(\d{5,7})\b/gi,
-    prefix: "CTASK",
+    regex: /\bSCTASK[\s#-]+(\d{5,7})\b/gi,
+    prefix: "SCTASK",
   },
 ];
 
@@ -118,7 +118,7 @@ export function extractCaseNumbers(text: string): string[] {
       const rawMatch = match[0].toUpperCase();
 
       // Skip matches that already follow canonical formats (e.g., SCS0001234)
-      if (/^(SCS|INC|CASE|RITM|REQ|CTASK)\d{5,}$/.test(rawMatch)) {
+      if (/^(SCS|INC|CASE|RITM|REQ|SCTASK)\d{5,}$/.test(rawMatch)) {
         continue;
       }
 
@@ -184,7 +184,7 @@ export function extractCaseNumbersWithPositions(text: string): Array<{
       if (match[1]) {
         const rawMatch = match[0].toUpperCase();
 
-        if (/^(SCS|INC|CASE|RITM|REQ|CTASK)\d{5,}$/.test(rawMatch)) {
+        if (/^(SCS|INC|CASE|RITM|REQ|SCTASK)\d{5,}$/.test(rawMatch)) {
           continue;
         }
 

@@ -1,8 +1,8 @@
 /**
  * Integration Tests for Catalog Workflow Retrieval
  *
- * Tests actual ServiceNow API calls for REQ/RITM/CTASK records
- * Uses real sample records: REQ0043549, RITM0046210, CTASK0049921
+ * Tests actual ServiceNow API calls for REQ/RITM/SCTASK records
+ * Uses real sample records: REQ0043549, RITM0046210, SCTASK0049921
  *
  * Run with: pnpm test tests/integration/catalog-workflow-retrieval.integration.test.ts
  */
@@ -85,14 +85,14 @@ describe("Catalog Workflow Retrieval - Integration Tests", () => {
     }, 30000);
   });
 
-  describe("Catalog Task Repository - CTASK0049921", () => {
+  describe("Catalog Task Repository - SCTASK0049921", () => {
     it("should retrieve Catalog Task by number", async () => {
       const repo = getCatalogTaskRepository();
-      const ctask = await repo.findByNumber("CTASK0049921");
+      const ctask = await repo.findByNumber("SCTASK0049921");
 
       expect(ctask).toBeDefined();
       if (ctask) {
-        expect(ctask.number).toBe("CTASK0049921");
+        expect(ctask.number).toBe("SCTASK0049921");
         expect(ctask.sysId).toBeDefined();
         expect(ctask.shortDescription).toBeDefined();
         expect(ctask.state).toBeDefined();
@@ -110,7 +110,7 @@ describe("Catalog Workflow Retrieval - Integration Tests", () => {
 
     it("should resolve complete parent-child hierarchy", async () => {
       const ctaskRepo = getCatalogTaskRepository();
-      const ctask = await ctaskRepo.findByNumber("CTASK0049921");
+      const ctask = await ctaskRepo.findByNumber("SCTASK0049921");
 
       if (ctask) {
         let parentRITM = null;
@@ -145,7 +145,7 @@ describe("Catalog Workflow Retrieval - Integration Tests", () => {
         }
 
         console.log("\n✓ Complete hierarchy resolved:");
-        console.log(`  REQ: ${grandparentREQ?.number || "N/A"} → RITM: ${parentRITM?.number || "N/A"} → CTASK: ${ctask.number}`);
+        console.log(`  REQ: ${grandparentREQ?.number || "N/A"} → RITM: ${parentRITM?.number || "N/A"} → SCTASK: ${ctask.number}`);
       }
     }, 30000);
 
