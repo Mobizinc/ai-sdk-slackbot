@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/cron/case-leaderboard",
-      "schedule": "30 9 * * *"
+      "schedule": "30 9 * * 1"
     },
     {
       "path": "/api/cron/sync-categories",

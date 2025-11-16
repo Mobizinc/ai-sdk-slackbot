@@ -122,6 +122,7 @@ function isCaseActive(record: Case): boolean {
 }
 
 async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
+  // Use the custom case table directly (x_mobit_serv_case_service_case)
   const caseRecords = await fetchCasesForLeaderboard(start);
   console.log(`[Leaderboard] Retrieved ${caseRecords.length} ServiceNow cases for aggregation.`);
 
@@ -315,11 +316,15 @@ async function generateLeaderboardChart(
 }
 
 export async function postCaseLeaderboard(options: LeaderboardOptions) {
-  const days = options.days ?? DEFAULT_LOOKBACK_DAYS;
   const limit = options.limit ?? 10;
   const now = new Date();
   const end = now;
-  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+
+  // Use month-to-date by default (first day of current month to today)
+  // Allow override via days parameter for testing/manual runs
+  const start = options.days
+    ? new Date(end.getTime() - options.days * 24 * 60 * 60 * 1000)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
 
   const leaderboard = await collectLeaderboardRows(start);
   console.log(`[Leaderboard] Collected ${leaderboard.length} rows:`, JSON.stringify(leaderboard.slice(0, 5), null, 2));
