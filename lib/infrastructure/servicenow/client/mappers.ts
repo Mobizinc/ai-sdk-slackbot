@@ -17,6 +17,9 @@ import type {
   Choice,
   CustomerAccount,
   AssignmentGroup,
+  Request,
+  RequestedItem,
+  CatalogTask,
 } from "../types/domain-models";
 import type {
   CaseRecord,
@@ -30,6 +33,9 @@ import type {
   ChoiceRecord,
   CustomerAccountRecord,
   AssignmentGroupRecord,
+  RequestRecord,
+  RequestedItemRecord,
+  CatalogTaskRecord,
 } from "../types/api-responses";
 
 /**
@@ -381,5 +387,101 @@ export function mapAssignmentGroup(record: AssignmentGroupRecord, instanceUrl: s
     manager: extractDisplayValue(record.manager),
     active: typeof record.active === "string" ? record.active === "true" : Boolean(record.active),
     url: buildRecordUrl(instanceUrl, "sys_user_group", record.sys_id),
+  };
+}
+
+/**
+ * Map RequestRecord to Request domain model
+ */
+export function mapRequest(record: RequestRecord, instanceUrl: string): Request {
+  return {
+    sysId: record.sys_id,
+    number: record.number,
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    requestedFor: extractSysId(record.requested_for),
+    requestedForName: extractDisplayValue(record.requested_for),
+    requestedBy: extractSysId(record.requested_by),
+    requestedByName: extractDisplayValue(record.requested_by),
+    state: extractDisplayValue(record.state),
+    priority: extractDisplayValue(record.priority),
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    stage: extractDisplayValue(record.stage),
+    approvalState: extractDisplayValue(record.approval),
+    deliveryAddress: extractDisplayValue(record.delivery_address),
+    specialInstructions: extractDisplayValue(record.special_instructions),
+    price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
+    url: buildRecordUrl(instanceUrl, "sc_request", record.sys_id),
+  };
+}
+
+/**
+ * Map RequestedItemRecord to RequestedItem domain model
+ */
+export function mapRequestedItem(record: RequestedItemRecord, instanceUrl: string): RequestedItem {
+  return {
+    sysId: record.sys_id,
+    number: record.number,
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    request: extractSysId(record.request),
+    requestNumber: extractDisplayValue(record.request),
+    catalogItem: extractSysId(record.cat_item),
+    catalogItemName: extractDisplayValue(record.cat_item),
+    state: extractDisplayValue(record.state),
+    stage: extractDisplayValue(record.stage),
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    assignedTo: extractSysId(record.assigned_to),
+    assignedToName: extractDisplayValue(record.assigned_to),
+    assignmentGroup: extractSysId(record.assignment_group),
+    assignmentGroupName: extractDisplayValue(record.assignment_group),
+    quantity: record.quantity ? parseInt(extractDisplayValue(record.quantity), 10) : undefined,
+    price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
+    url: buildRecordUrl(instanceUrl, "sc_req_item", record.sys_id),
+  };
+}
+
+/**
+ * Map CatalogTaskRecord to CatalogTask domain model
+ */
+export function mapCatalogTask(record: CatalogTaskRecord, instanceUrl: string): CatalogTask {
+  let active: boolean | undefined;
+  if (typeof record.active === "string") {
+    active = record.active.toLowerCase() === "true";
+  } else if (typeof record.active === "boolean") {
+    active = record.active;
+  } else if (record.active && typeof record.active === "object") {
+    const display = extractDisplayValue(record.active)?.toLowerCase();
+    if (display === "true" || display === "false") {
+      active = display === "true";
+    }
+  }
+
+  return {
+    sysId: record.sys_id,
+    number: record.number,
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    requestItem: extractSysId(record.request_item),
+    requestItemNumber: extractDisplayValue(record.request_item),
+    request: extractSysId(record.request),
+    requestNumber: extractDisplayValue(record.request),
+    state: extractDisplayValue(record.state),
+    active,
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    assignedTo: extractSysId(record.assigned_to),
+    assignedToName: extractDisplayValue(record.assigned_to),
+    assignmentGroup: extractSysId(record.assignment_group),
+    assignmentGroupName: extractDisplayValue(record.assignment_group),
+    priority: extractDisplayValue(record.priority),
+    workNotes: extractDisplayValue(record.work_notes),
+    closeNotes: extractDisplayValue(record.close_notes),
+    url: buildRecordUrl(instanceUrl, "sc_task", record.sys_id),
   };
 }
