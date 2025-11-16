@@ -171,6 +171,21 @@ export const CONFIG_DEFINITIONS = {
     group: "discovery",
     description: "Time-to-live for cached context packs in minutes.",
   },
+  demandApiBaseUrl: {
+    envVar: "DEMAND_API_BASE_URL",
+    type: "string",
+    default: "",
+    group: "demand",
+    description: "Base URL for the strategic demand request service (e.g., https://demand-app.vercel.app).",
+  },
+  demandApiKey: {
+    envVar: "DEMAND_API_KEY",
+    type: "string",
+    default: "",
+    group: "demand",
+    description: "API key used to authenticate calls to the strategic demand request service.",
+    sensitive: true,
+  },
   kbSimilarCasesTopK: {
     envVar: "KB_SIMILAR_CASES_TOP_K",
     type: "number",

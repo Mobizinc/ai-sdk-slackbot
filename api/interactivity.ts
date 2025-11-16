@@ -60,6 +60,7 @@ import {
 import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
 import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
 import type { ProjectDefinition } from "../lib/projects/types";
+import { DemandCallbackIds, handleDemandModalSubmission } from "../lib/demand/slack-workflow";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -315,6 +316,8 @@ async function handleViewSubmission(payload: any): Promise<void> {
     await handleReassignSubmission(payload);
   } else if (callbackId === StandupCallbackIds.MODAL) {
     await handleStandupModalSubmission(payload);
+  } else if (callbackId === DemandCallbackIds.MODAL) {
+    await handleDemandModalSubmission(payload);
   } else {
     console.warn(`[Interactivity] Unknown view submission: ${callbackId}`);
   }

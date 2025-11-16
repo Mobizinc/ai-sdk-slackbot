@@ -20,6 +20,12 @@ import { eq, and, lt, desc, gt } from "drizzle-orm";
 import type { InterviewSessionState, StandupSessionState } from "../projects/types";
 import { withWriteRetry, withQueryRetry } from "../db/retry-wrapper";
 import type { SupervisorLlmReview } from "../supervisor/llm-reviewer";
+import type {
+  DemandRequestPayload,
+  WorkflowQuestion,
+  WorkflowMetadata,
+} from "./demand-workflow-service";
+import type { FinalSummary } from "../strategy/types";
 
 /**
  * KB Approval State Payload
@@ -98,6 +104,19 @@ export interface SupervisorReviewStatePayload {
   llmReview?: SupervisorLlmReview | null;
 }
 
+export interface DemandWorkflowStatePayload {
+  sessionId: string;
+  userId: string;
+  projectName: string;
+  demandRequest: DemandRequestPayload;
+  pendingQuestions: WorkflowQuestion[];
+  status: "needs_clarification" | "complete" | "error";
+  analysis?: WorkflowMetadata["analysis"];
+  summary?: FinalSummary | null;
+  lastResponseAt?: string;
+  metadata?: WorkflowMetadata;
+}
+
 /**
  * Type-safe state payloads by type
  */
@@ -110,6 +129,7 @@ export type StatePayloadByType = {
   project_interview: InterviewSessionState;
   project_standup: StandupSessionState;
   supervisor_review: SupervisorReviewStatePayload;
+  demand_request: DemandWorkflowStatePayload;
 };
 
 /**

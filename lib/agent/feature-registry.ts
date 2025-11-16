@@ -69,6 +69,15 @@ export const FEATURE_REGISTRY: FeatureCategory[] = [
         usage: "Slash command: /project-post",
         examples: ["Use /project-post to announce a new project opportunity"],
       },
+      {
+        name: "Strategic Demand Requests",
+        description: "Collect structured demand requests and run Mobizinc's strategic evaluation workflow inside Slack",
+        usage: "Slash command: /demand-request",
+        examples: [
+          "Use /demand-request to open the strategic intake form",
+          "Answer any follow-up questions in the thread, then review the final summary",
+        ],
+      },
     ],
   },
   {

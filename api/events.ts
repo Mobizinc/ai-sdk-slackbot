@@ -13,6 +13,7 @@ import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
 import { handleInterviewResponse } from "../lib/projects/interview-session";
+import { handleDemandThreadReply } from "../lib/demand/slack-workflow";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -58,6 +59,15 @@ export async function POST(request: Request) {
       const isThreadReply =
         !!messageEvent.thread_ts && messageEvent.thread_ts !== messageEvent.ts;
       const isDirectMessage = messageEvent.channel_type === "im";
+
+      if (
+        isThreadReply &&
+        !messageEvent.subtype &&
+        !messageEvent.bot_id &&
+        !messageEvent.bot_profile
+      ) {
+        enqueueBackgroundTask(handleDemandThreadReply(messageEvent));
+      }
 
       // Handle direct messages with the assistant
       // Thread replies are handled by passive monitoring and @mentions only
