@@ -7,7 +7,7 @@ import type { SimilarCase } from "../../services/azure-search";
 import { getSearchFacadeService } from "../../services/search-facade";
 import { getConfigValue } from "../../config";
 import type { ConfigurationItem } from "../../infrastructure/servicenow/types/domain-models";
-import { getCmdbRepository } from "../../infrastructure/servicenow/repositories";
+import { getCmdbRepository, getRequestRepository, getRequestedItemRepository, getCatalogTaskRepository } from "../../infrastructure/servicenow/repositories";
 import type { PolicySignal } from "../../services/policy-signals";
 import { detectPolicySignals } from "../../services/policy-signals";
 import type { ClientScopePolicySummary } from "../../services/client-scope-policy-service";
@@ -69,6 +69,16 @@ export interface DiscoveryCMDBRelatedItem {
   matchReason: string;
 }
 
+export interface DiscoveryCatalogWorkflowSummary {
+  recordNumber: string;
+  recordType: "request" | "requested_item" | "catalog_task";
+  shortDescription: string;
+  state?: string;
+  parentNumber?: string;
+  grandparentNumber?: string;
+  url?: string;
+}
+
 const CONTEXT_PACK_SCHEMA_VERSION = "1.1.0";
 
 export interface DiscoveryContextPack {
@@ -101,6 +111,10 @@ export interface DiscoveryContextPack {
   muscleMemoryExemplars?: {
     total: number;
     exemplars: MuscleMemoryExemplarSummary[];
+  };
+  catalogWorkflowContext?: {
+    total: number;
+    records: DiscoveryCatalogWorkflowSummary[];
   };
 }
 
@@ -236,6 +250,16 @@ export async function generateDiscoveryContextPack(
       console.error("[Discovery] Error retrieving muscle memory exemplars:", error);
       // Continue without muscle memory (graceful degradation)
     }
+  }
+
+  // Catalog Workflow Context - detect and resolve REQ/RITM/CTASK relationships
+  const catalogWorkflowRecords = await resolveCatalogWorkflowContext(options, slackSummary);
+  if (catalogWorkflowRecords.length > 0) {
+    pack.catalogWorkflowContext = {
+      total: catalogWorkflowRecords.length,
+      records: catalogWorkflowRecords,
+    };
+    console.log(`[Discovery] Added ${catalogWorkflowRecords.length} catalog workflow records to context pack`);
   }
 
   // Cache the generated pack
@@ -563,6 +587,97 @@ async function resolvePolicySignals(
     console.warn("[Discovery] Policy signals detection failed:", error);
     return { signals: [] };
   }
+}
+
+/**
+ * Resolve catalog workflow records (REQ/RITM/CTASK) from messages
+ */
+async function resolveCatalogWorkflowContext(
+  options: GenerateDiscoveryContextPackOptions,
+  slackSummary: { totalMessages: number; messages: DiscoverySlackMessageSummary[] }
+): Promise<DiscoveryCatalogWorkflowSummary[]> {
+  const catalogRecords: DiscoveryCatalogWorkflowSummary[] = [];
+
+  try {
+    // Extract all text from messages and case numbers
+    const allText = slackSummary.messages.map((m) => m.text).join(" ");
+    const caseNumberText = (options.caseNumbers ?? []).join(" ");
+    const combinedText = `${allText} ${caseNumberText}`;
+
+    // Extract catalog workflow numbers (REQ, RITM, CTASK)
+    const reqPattern = /\b(REQ\d{7,})\b/gi;
+    const ritmPattern = /\b(RITM\d{7,})\b/gi;
+    const ctaskPattern = /\b(CTASK\d{7,})\b/gi;
+
+    const reqNumbers = Array.from(new Set(Array.from(combinedText.matchAll(reqPattern)).map((m) => m[1].toUpperCase())));
+    const ritmNumbers = Array.from(new Set(Array.from(combinedText.matchAll(ritmPattern)).map((m) => m[1].toUpperCase())));
+    const ctaskNumbers = Array.from(new Set(Array.from(combinedText.matchAll(ctaskPattern)).map((m) => m[1].toUpperCase())));
+
+    // Fetch REQ records
+    const requestRepo = getRequestRepository();
+    for (const reqNumber of reqNumbers.slice(0, 3)) {
+      try {
+        const request = await requestRepo.findByNumber(reqNumber);
+        if (request) {
+          catalogRecords.push({
+            recordNumber: request.number,
+            recordType: "request",
+            shortDescription: request.shortDescription,
+            state: request.state,
+            url: request.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch Request ${reqNumber}:`, error);
+      }
+    }
+
+    // Fetch RITM records
+    const ritmRepo = getRequestedItemRepository();
+    for (const ritmNumber of ritmNumbers.slice(0, 3)) {
+      try {
+        const ritm = await ritmRepo.findByNumber(ritmNumber);
+        if (ritm) {
+          catalogRecords.push({
+            recordNumber: ritm.number,
+            recordType: "requested_item",
+            shortDescription: ritm.shortDescription,
+            state: ritm.state,
+            parentNumber: ritm.requestNumber,
+            url: ritm.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch RITM ${ritmNumber}:`, error);
+      }
+    }
+
+    // Fetch CTASK records
+    const ctaskRepo = getCatalogTaskRepository();
+    for (const ctaskNumber of ctaskNumbers.slice(0, 3)) {
+      try {
+        const ctask = await ctaskRepo.findByNumber(ctaskNumber);
+        if (ctask) {
+          catalogRecords.push({
+            recordNumber: ctask.number,
+            recordType: "catalog_task",
+            shortDescription: ctask.shortDescription,
+            state: ctask.state,
+            parentNumber: ctask.requestItemNumber,
+            grandparentNumber: ctask.requestNumber,
+            url: ctask.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch CTASK ${ctaskNumber}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("[Discovery] Catalog workflow context resolution failed:", error);
+    // Continue without catalog workflow context (graceful degradation)
+  }
+
+  return catalogRecords;
 }
 
 /**
