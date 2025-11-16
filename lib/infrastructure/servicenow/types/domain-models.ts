@@ -25,6 +25,7 @@ export interface Case {
   assignmentGroupSysId?: string;
   assignedTo?: string;
   assignedToSysId?: string;
+  assignedToEmail?: string | null;
   openedBy?: string;
   openedBySysId?: string;
   callerId?: string;
@@ -43,6 +44,9 @@ export interface Case {
   urgency?: string;
   sysDomain?: string;
   sysDomainPath?: string;
+  resolvedAt?: Date;
+  closedAt?: Date;
+  active?: boolean;
   url: string;
 }
 
@@ -331,6 +335,10 @@ export interface CaseSearchCriteria {
   openedBefore?: Date;
   updatedAfter?: Date;
   updatedBefore?: Date;
+  resolvedAfter?: Date;
+  resolvedBefore?: Date;
+  closedAfter?: Date;
+  closedBefore?: Date;
   activeOnly?: boolean; // Filter by active status
   sysDomain?: string; // Domain sys_id for multi-tenant filtering
   includeChildDomains?: boolean; // If true, includes cases from child domains (hierarchical search)

@@ -55,6 +55,7 @@ export interface CaseRecord {
   opened_at: string;
   assignment_group: ServiceNowField;
   assigned_to: ServiceNowField;
+  active?: ServiceNowField | string | boolean;
   opened_by: ServiceNowField;
   caller_id: ServiceNowField;
   submitted_by: ServiceNowField;
@@ -62,6 +63,8 @@ export interface CaseRecord {
   u_contact_phone?: ServiceNowField;
   contact_phone?: ServiceNowField;
   account: ServiceNowField;
+  resolved_at?: string;
+  closed_at?: string;
   business_service?: ServiceNowField;
   location?: ServiceNowField;
   cmdb_ci?: ServiceNowField;

@@ -4,24 +4,139 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { generateResponse } from '../../lib/agent';
-import type { ChatMessage } from '../../lib/services/anthropic-chat';
+
+// Set up environment and mocks before any imports
+process.env.ANTHROPIC_API_KEY = 'test-key';
+process.env.LANGSMITH_API_KEY = ''; // Disable LangSmith tracing
+
+// Mock the Anthropic SDK at the lowest level
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    messages: {
+      create: vi.fn().mockResolvedValue({
+        id: 'test-message-id',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Mock response for testing' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }),
+    },
+  })),
+}));
+
+// Mock the Anthropic provider
+vi.mock('../../lib/anthropic-provider', () => ({
+  getAnthropicClient: () => ({
+    messages: {
+      create: vi.fn().mockResolvedValue({
+        id: 'test-message-id',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Mock response for testing' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      }),
+    },
+  }),
+  getConfiguredModel: () => 'claude-sonnet-4-5',
+  ANTHROPIC_MODELS: {
+    SONNET_45: 'claude-sonnet-4-5',
+  },
+}));
+
+// Mock the Anthropic chat service
+vi.mock('../../lib/services/anthropic-chat', () => {
+  const mockService = {
+    async send(request: any) {
+      const lastMessage = [...request.messages].reverse().find((msg: any) => msg.role === 'user');
+      const text = lastMessage?.content as string || 'No user message';
+      
+      return {
+        message: {
+          id: 'test-message-id',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: `Response to: ${text.substring(0, 50)}...` }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        },
+        toolCalls: [],
+        outputText: `Response to: ${text.substring(0, 50)}...`,
+        usage: { input_tokens: 10, output_tokens: 5 },
+      };
+    },
+  };
+
+  return {
+    getAnthropicChatService: () => mockService,
+    __resetAnthropicChatService: () => {},
+    AnthropicChatService: {
+      getInstance: () => mockService,
+    },
+  };
+});
+
+// Mock ServiceNow tools
+vi.mock('../../lib/tools/servicenow', () => ({
+  serviceNowClient: {
+    isConfigured: () => true,
+    getCase: vi.fn().mockResolvedValue({
+      sys_id: 'CASE_SYS_ID',
+      number: 'SCS0048402',
+      short_description: 'Test Case',
+      priority: '4',
+      state: '10',
+    }),
+    getCaseJournal: vi.fn().mockResolvedValue([
+      {
+        sys_id: 'JOURNAL1',
+        element: 'comments',
+        element_id: 'CASE_SYS_ID',
+        sys_created_on: '2025-10-06 15:49:31',
+        sys_created_by: 'agent@example.com',
+        value: 'Test journal entry',
+      },
+    ]),
+    addCaseWorkNote: vi.fn().mockResolvedValue(undefined),
+    searchConfigurationItems: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+// Mock other dependencies
+vi.mock('../../lib/services/slack-messaging', () => ({
+  getSlackMessagingService: () => ({
+    getBotUserId: vi.fn().mockResolvedValue('U1234567890'),
+    postToThread: vi.fn().mockResolvedValue(undefined),
+    postMessage: vi.fn().mockResolvedValue({ ts: '1234567890.123456' }),
+    getThread: vi.fn().mockResolvedValue([]),
+  }),
+}));
+
+vi.mock('../../lib/services/interactive-state-manager', () => ({
+  getInteractiveStateManager: () => ({
+    getStateById: vi.fn().mockResolvedValue(null),
+    markProcessed: vi.fn().mockResolvedValue(undefined),
+    getPendingStatesByType: vi.fn().mockResolvedValue([]),
+  }),
+}));
+
+vi.mock('../../lib/background-tasks', () => ({
+  enqueueBackgroundTask: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Now import the modules after mocks are set up
 import {
   setupSmokeTestEnvironment,
-  mockAnthropicService,
-  mockServiceNowClient,
   mockGlobalFetch,
 } from './helpers';
+import { generateResponse } from '../../lib/agent';
+import type { ChatMessage } from '../../lib/services/anthropic-chat';
 
 describe('smoke: agent pipeline', () => {
   let fetchMock: ReturnType<typeof mockGlobalFetch>;
 
   beforeEach(() => {
-    setupSmokeTestEnvironment();
-    fetchMock = mockGlobalFetch();
-    mockAnthropicService();
-    mockServiceNowClient();
     vi.clearAllMocks();
+    // Re-setup fetch mock for each test
+    fetchMock = mockGlobalFetch();
   });
 
   afterEach(() => {

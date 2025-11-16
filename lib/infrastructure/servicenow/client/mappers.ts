@@ -143,6 +143,25 @@ export function buildRecordUrl(instanceUrl: string, table: string, sysId: string
 export function mapCase(record: CaseRecord, instanceUrl: string): Case {
   const openedAt = parseServiceNowDate(record.opened_at);
   const updatedOn = parseServiceNowDate((record as any).sys_updated_on); // Extract sys_updated_on
+  const resolvedAt = parseServiceNowDate((record as any).resolved_at);
+  const closedAt = parseServiceNowDate((record as any).closed_at);
+  const assignedToEmail =
+    typeof (record as any)["assigned_to.email"] === "object"
+      ? extractDisplayValue((record as any)["assigned_to.email"])
+      : typeof (record as any)["assigned_to.email"] === "string"
+        ? (record as any)["assigned_to.email"]
+        : undefined;
+  let active: boolean | undefined;
+  if (typeof record.active === "string") {
+    active = record.active.toLowerCase() === "true";
+  } else if (typeof record.active === "boolean") {
+    active = record.active;
+  } else if (record.active && typeof record.active === "object") {
+    const display = extractDisplayValue(record.active)?.toLowerCase();
+    if (display === "true" || display === "false") {
+      active = display === "true";
+    }
+  }
 
   // Calculate age in days if openedAt is available
   const ageDays = openedAt
@@ -166,6 +185,7 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     assignmentGroupSysId: extractSysId(record.assignment_group),
     assignedTo: extractDisplayValue(record.assigned_to),
     assignedToSysId: extractSysId(record.assigned_to),
+    assignedToEmail: assignedToEmail ?? null,
     openedBy: extractDisplayValue(record.opened_by),
     openedBySysId: extractSysId(record.opened_by),
     callerId: extractDisplayValue(record.caller_id),
@@ -184,6 +204,9 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     urgency: extractDisplayValue(record.urgency),
     sysDomain: extractSysId(record.sys_domain),
     sysDomainPath: extractDisplayValue(record.sys_domain_path),
+    resolvedAt,
+    closedAt,
+    active,
     url: buildRecordUrl(instanceUrl, "sn_customerservice_case", record.sys_id),
   };
 }

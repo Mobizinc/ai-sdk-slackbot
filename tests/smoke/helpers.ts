@@ -74,9 +74,25 @@ export function mockAnthropicService() {
     },
   };
 
+  // Mock both the service and the provider to prevent real API calls
   vi.doMock('../../lib/services/anthropic-chat', () => ({
+    getAnthropicChatService: () => mockService,
+    __resetAnthropicChatService: () => {},
     AnthropicChatService: {
       getInstance: () => mockService,
+    },
+  }));
+
+  // Also mock the Anthropic provider to prevent client initialization
+  vi.doMock('../../lib/anthropic-provider', () => ({
+    getAnthropicClient: () => ({
+      messages: {
+        create: vi.fn().mockResolvedValue(mockResponse.message),
+      },
+    }),
+    getConfiguredModel: () => 'claude-sonnet-4-5',
+    ANTHROPIC_MODELS: {
+      SONNET_45: 'claude-sonnet-4-5',
     },
   }));
 

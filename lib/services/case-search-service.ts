@@ -20,6 +20,10 @@ export interface CaseSearchFilters {
   openedBefore?: string;
   updatedBefore?: string; // NEW: For stale case detection
   updatedAfter?: string;
+  resolvedAfter?: string;
+  resolvedBefore?: string;
+  closedAfter?: string;
+  closedBefore?: string;
   activeOnly?: boolean;
   sysDomain?: string; // NEW: Domain sys_id for multi-tenant filtering
   includeChildDomains?: boolean; // NEW: Include child domains in hierarchical search
@@ -75,6 +79,10 @@ export class CaseSearchService {
       openedBefore: parseDate(filters.openedBefore),
       updatedAfter: parseDate(filters.updatedAfter),
       updatedBefore: parseDate(filters.updatedBefore),
+      resolvedAfter: parseDate(filters.resolvedAfter),
+      resolvedBefore: parseDate(filters.resolvedBefore),
+      closedAfter: parseDate(filters.closedAfter),
+      closedBefore: parseDate(filters.closedBefore),
       activeOnly: filters.activeOnly,
       sysDomain: filters.sysDomain,
       includeChildDomains: filters.includeChildDomains,
@@ -173,6 +181,10 @@ export class CaseSearchService {
     if (filters.openedBefore) parts.push(`Opened before: ${parseDate(filters.openedBefore)?.toLocaleDateString()}`);
     if (filters.updatedBefore) parts.push(`Updated before: ${parseDate(filters.updatedBefore)?.toLocaleDateString()}`);
     if (filters.updatedAfter) parts.push(`Updated after: ${parseDate(filters.updatedAfter)?.toLocaleDateString()}`);
+    if (filters.resolvedAfter) parts.push(`Resolved after: ${parseDate(filters.resolvedAfter)?.toLocaleDateString()}`);
+    if (filters.resolvedBefore) parts.push(`Resolved before: ${parseDate(filters.resolvedBefore)?.toLocaleDateString()}`);
+    if (filters.closedAfter) parts.push(`Closed after: ${parseDate(filters.closedAfter)?.toLocaleDateString()}`);
+    if (filters.closedBefore) parts.push(`Closed before: ${parseDate(filters.closedBefore)?.toLocaleDateString()}`);
     if (filters.sysDomain) {
       const domainType = filters.includeChildDomains ? "Domain (with children)" : "Domain";
       parts.push(`${domainType}: ${filters.sysDomain}`);
