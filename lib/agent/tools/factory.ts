@@ -30,6 +30,7 @@ import { createVeloCloudTool } from "./velocloud";
 import { createConnectivityReasoningTool } from "./connectivity-reasoning";
 import { createFeedbackCollectionTool } from "./feedback-collection";
 import { createDescribeCapabilitiesTool } from "./describe-capabilities";
+import { createServiceNowCatalogWorkflowTool } from "./servicenow-catalog-workflow";
 import type { AgentToolFactoryParams } from "./shared";
 
 // Re-export types from individual tool modules for backward compatibility
@@ -52,6 +53,7 @@ export type { DescribeCapabilitiesInput } from "./describe-capabilities";
 export type { ClassificationAgentInput } from "./classification-agent";
 export type { ServiceNowOrchestrationToolInput } from "./servicenow-orchestration";
 export type { CreateCmdbRecordInput } from "./cmdb";
+export type { CatalogWorkflowToolInput } from "./servicenow-catalog-workflow";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -87,6 +89,7 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     queryVelocloud: createVeloCloudTool(params),
     diagnoseConnectivity: createConnectivityReasoningTool(params),
     collectFeatureFeedback: createFeedbackCollectionTool(params),
+    getServiceNowCatalogWorkflow: createServiceNowCatalogWorkflowTool(params),
   };
 
   const filteredTools = filterToolsByAllowList(tools, params.allowedTools);
