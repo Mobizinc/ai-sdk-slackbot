@@ -133,3 +133,54 @@ export function findMatchingCaseNumber(
 
   return null;
 }
+
+/**
+ * Detect the ServiceNow table from case number prefix
+ *
+ * @param caseNumber - Case number with or without prefix
+ * @returns Table name and detected prefix, or null if no match
+ *
+ * @example
+ * detectTableFromPrefix("INC0012345") → { table: "incident", prefix: "INC" }
+ * detectTableFromPrefix("REQ0043549") → { table: "sc_request", prefix: "REQ" }
+ * detectTableFromPrefix("RITM0046210") → { table: "sc_req_item", prefix: "RITM" }
+ * detectTableFromPrefix("SCTASK0049921") → { table: "sc_task", prefix: "SCTASK" }
+ * detectTableFromPrefix("SCS1234567") → { table: "sn_customerservice_case", prefix: "SCS" }
+ * detectTableFromPrefix("12345") → null
+ */
+export function detectTableFromPrefix(caseNumber: string): {
+  table: string;
+  prefix: string;
+} | null {
+  if (!caseNumber) return null;
+
+  const normalized = caseNumber.toUpperCase();
+
+  // Order matters: Check longer prefixes first (SCTASK before SC)
+  if (normalized.startsWith("SCTASK")) {
+    return { table: "sc_task", prefix: "SCTASK" };
+  }
+  if (normalized.startsWith("RITM")) {
+    return { table: "sc_req_item", prefix: "RITM" };
+  }
+  if (normalized.startsWith("REQ")) {
+    return { table: "sc_request", prefix: "REQ" };
+  }
+  if (normalized.startsWith("INC")) {
+    return { table: "incident", prefix: "INC" };
+  }
+  if (normalized.startsWith("SCS") || normalized.startsWith("CS")) {
+    return { table: "sn_customerservice_case", prefix: normalized.startsWith("SCS") ? "SCS" : "CS" };
+  }
+  if (normalized.startsWith("CHG")) {
+    return { table: "change_request", prefix: "CHG" };
+  }
+  if (normalized.startsWith("PRB")) {
+    return { table: "problem", prefix: "PRB" };
+  }
+  if (normalized.startsWith("CTASK")) {
+    return { table: "change_task", prefix: "CTASK" };
+  }
+
+  return null;
+}

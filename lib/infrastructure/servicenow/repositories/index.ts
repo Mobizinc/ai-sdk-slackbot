@@ -12,6 +12,9 @@ export * from "./knowledge-repository.interface";
 export * from "./catalog-repository.interface";
 export * from "./assignment-group-repository.interface";
 export * from "./spm-repository.interface";
+export * from "./request-repository.interface";
+export * from "./requested-item-repository.interface";
+export * from "./catalog-task-repository.interface";
 export * from "./change-repository.impl";
 export * from "./case-repository.impl";
 export * from "./incident-repository.impl";
@@ -23,6 +26,9 @@ export * from "./choice-repository.impl";
 export * from "./problem-repository.impl";
 export * from "./assignment-group-repository.impl";
 export * from "./spm-repository.impl";
+export * from "./request-repository.impl";
+export * from "./requested-item-repository.impl";
+export * from "./catalog-task-repository.impl";
 export * from "./factory";
 
 // Re-export ServiceNowContext for convenience

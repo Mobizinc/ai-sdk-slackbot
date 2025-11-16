@@ -12,7 +12,7 @@ import { createServiceNowContext } from "../../infrastructure/servicenow-context
 import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
 import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";
-import { normalizeCaseId, findMatchingCaseNumber } from "../../utils/case-number-normalizer";
+import { normalizeCaseId, findMatchingCaseNumber, detectTableFromPrefix } from "../../utils/case-number-normalizer";
 import {
   formatIncidentForLLM,
   formatJournalEntriesForLLM,
@@ -554,6 +554,72 @@ export function createServiceNowTool(params: AgentToolFactoryParams) {
             );
           }
 
+          // Detect table from prefix BEFORE normalizing
+          const detectedTable = detectTableFromPrefix(number);
+
+          // Route to correct method based on detected prefix
+          if (detectedTable) {
+            console.log(`[ServiceNow Tool] Detected prefix: ${detectedTable.prefix} → table: ${detectedTable.table}`);
+
+            if (detectedTable.table === "sc_request") {
+              // REQ prefix → use getRequest() method
+              updateStatus?.(`is looking up request ${number} in ServiceNow...`);
+              const request = await serviceNowClient.getRequest(number, snContext);
+
+              if (!request) {
+                return {
+                  case: null,
+                  message: `Request ${number} was not found in ServiceNow. This request number may be incorrect or may not exist in the system.`,
+                };
+              }
+
+              return {
+                request,
+                type: "sc_request",
+                message: `Successfully retrieved request ${request.number}`,
+              };
+            }
+
+            if (detectedTable.table === "sc_req_item") {
+              // RITM prefix → use getRequestedItem() method
+              updateStatus?.(`is looking up requested item ${number} in ServiceNow...`);
+              const requestedItem = await serviceNowClient.getRequestedItem(number, snContext);
+
+              if (!requestedItem) {
+                return {
+                  case: null,
+                  message: `Requested item ${number} was not found in ServiceNow. This RITM number may be incorrect or may not exist in the system.`,
+                };
+              }
+
+              return {
+                requestedItem,
+                type: "sc_req_item",
+                message: `Successfully retrieved requested item ${requestedItem.number}`,
+              };
+            }
+
+            if (detectedTable.table === "sc_task") {
+              // SCTASK prefix → use getCatalogTask() method
+              updateStatus?.(`is looking up catalog task ${number} in ServiceNow...`);
+              const catalogTask = await serviceNowClient.getCatalogTask(number, snContext);
+
+              if (!catalogTask) {
+                return {
+                  case: null,
+                  message: `Catalog task ${number} was not found in ServiceNow. This SCTASK number may be incorrect or may not exist in the system.`,
+                };
+              }
+
+              return {
+                catalogTask,
+                type: "sc_task",
+                message: `Successfully retrieved catalog task ${catalogTask.number}`,
+              };
+            }
+          }
+
+          // No prefix detected or Case/Incident prefix → continue with normal flow
           const normalizedNumber = normalizeNumber(number, false);
           updateStatus?.(`is looking up case ${normalizedNumber} in ServiceNow...`);
 

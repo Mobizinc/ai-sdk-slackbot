@@ -8,6 +8,7 @@ import {
   extractDigits,
   isServiceNowNumber,
   findMatchingCaseNumber,
+  detectTableFromPrefix,
 } from "../../lib/utils/case-number-normalizer";
 
 describe("Case Number Normalizer", () => {
@@ -159,6 +160,124 @@ describe("Case Number Normalizer", () => {
       const cases = ["SCS0046363"];
       expect(findMatchingCaseNumber("046363", cases)).toBe("SCS0046363");
       expect(findMatchingCaseNumber("46363", cases)).toBe("SCS0046363");
+    });
+  });
+
+  describe("detectTableFromPrefix", () => {
+    it("should detect REQ prefix and return sc_request table", () => {
+      expect(detectTableFromPrefix("REQ0043549")).toEqual({
+        table: "sc_request",
+        prefix: "REQ",
+      });
+      expect(detectTableFromPrefix("req0043549")).toEqual({
+        table: "sc_request",
+        prefix: "REQ",
+      });
+    });
+
+    it("should detect RITM prefix and return sc_req_item table", () => {
+      expect(detectTableFromPrefix("RITM0046210")).toEqual({
+        table: "sc_req_item",
+        prefix: "RITM",
+      });
+      expect(detectTableFromPrefix("ritm0046210")).toEqual({
+        table: "sc_req_item",
+        prefix: "RITM",
+      });
+    });
+
+    it("should detect SCTASK prefix and return sc_task table", () => {
+      expect(detectTableFromPrefix("SCTASK0049921")).toEqual({
+        table: "sc_task",
+        prefix: "SCTASK",
+      });
+      expect(detectTableFromPrefix("sctask0049921")).toEqual({
+        table: "sc_task",
+        prefix: "SCTASK",
+      });
+    });
+
+    it("should detect INC prefix and return incident table", () => {
+      expect(detectTableFromPrefix("INC0167587")).toEqual({
+        table: "incident",
+        prefix: "INC",
+      });
+      expect(detectTableFromPrefix("inc0167587")).toEqual({
+        table: "incident",
+        prefix: "INC",
+      });
+    });
+
+    it("should detect SCS prefix and return sn_customerservice_case table", () => {
+      expect(detectTableFromPrefix("SCS0046363")).toEqual({
+        table: "sn_customerservice_case",
+        prefix: "SCS",
+      });
+      expect(detectTableFromPrefix("scs0046363")).toEqual({
+        table: "sn_customerservice_case",
+        prefix: "SCS",
+      });
+    });
+
+    it("should detect CS prefix and return sn_customerservice_case table", () => {
+      expect(detectTableFromPrefix("CS0046363")).toEqual({
+        table: "sn_customerservice_case",
+        prefix: "CS",
+      });
+      expect(detectTableFromPrefix("cs0046363")).toEqual({
+        table: "sn_customerservice_case",
+        prefix: "CS",
+      });
+    });
+
+    it("should detect CHG prefix and return change_request table", () => {
+      expect(detectTableFromPrefix("CHG0012345")).toEqual({
+        table: "change_request",
+        prefix: "CHG",
+      });
+    });
+
+    it("should detect PRB prefix and return problem table", () => {
+      expect(detectTableFromPrefix("PRB0098765")).toEqual({
+        table: "problem",
+        prefix: "PRB",
+      });
+    });
+
+    it("should detect CTASK prefix and return change_task table", () => {
+      expect(detectTableFromPrefix("CTASK0023456")).toEqual({
+        table: "change_task",
+        prefix: "CTASK",
+      });
+    });
+
+    it("should prioritize SCTASK over SC prefix", () => {
+      // Ensure SCTASK is checked before SC/SCS
+      expect(detectTableFromPrefix("SCTASK0049921")).toEqual({
+        table: "sc_task",
+        prefix: "SCTASK",
+      });
+    });
+
+    it("should return null for numbers without recognized prefix", () => {
+      expect(detectTableFromPrefix("12345")).toBeNull();
+      expect(detectTableFromPrefix("0046363")).toBeNull();
+    });
+
+    it("should return null for empty or invalid input", () => {
+      expect(detectTableFromPrefix("")).toBeNull();
+      expect(detectTableFromPrefix("ABC123")).toBeNull();
+    });
+
+    it("should handle case-insensitive prefix matching", () => {
+      expect(detectTableFromPrefix("req0043549")).toEqual({
+        table: "sc_request",
+        prefix: "REQ",
+      });
+      expect(detectTableFromPrefix("Ritm0046210")).toEqual({
+        table: "sc_req_item",
+        prefix: "RITM",
+      });
     });
   });
 });
