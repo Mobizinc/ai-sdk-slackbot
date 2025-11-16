@@ -104,23 +104,46 @@ async function fetchRecordsFromTable(
   start: Date,
   extraQueries: string[] = [],
 ): Promise<RawTaskRecord[]> {
-  const baseFilter = buildAssignmentGroupFilter(TARGET_ASSIGNMENT_GROUPS);
   const startDate = formatDateForQuery(start);
+  const records = new Map<string, RawTaskRecord>();
 
-  // Single comprehensive query that gets ALL relevant records for the period:
-  // - Cases/incidents in the target assignment groups AND
-  // - (opened, resolved, or closed during the period OR currently active)
-  const query = `(${baseFilter})^(opened_at>=${startDate}^ORresolved_at>=${startDate}^ORclosed_at>=${startDate}^ORactive=true)`;
+  // Query each assignment group separately (proven working pattern from stale-case-followup)
+  for (const group of TARGET_ASSIGNMENT_GROUPS) {
+    const groupFilter = buildFlexibleLikeQuery("assignment_group.name", group);
+    if (!groupFilter) continue;
 
-  const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
-    sysparm_query: query,
-    sysparm_fields: fields,
-    sysparm_display_value: "all",
-    pageSize: 500,
-    maxRecords: MAX_RECORDS,
-  });
+    // Simple queries that work with ServiceNow permissions:
+    const queries = [
+      `${groupFilter}^active=true`, // Currently active cases
+      `${groupFilter}^opened_at>=${startDate}`, // Opened in period
+      `${groupFilter}^resolved_at>=${startDate}`, // Resolved in period
+      `${groupFilter}^closed_at>=${startDate}`, // Closed in period
+    ];
 
-  return rows;
+    for (const query of queries) {
+      try {
+        const rows = await tableApiClient.fetchAll<RawTaskRecord>(table, {
+          sysparm_query: query,
+          sysparm_fields: fields,
+          sysparm_display_value: "all",
+          pageSize: 500,
+          maxRecords: MAX_RECORDS,
+        });
+
+        for (const row of rows) {
+          const key = row.sys_id;
+          if (!key) continue;
+          if (!records.has(key)) {
+            records.set(key, row);
+          }
+        }
+      } catch (error) {
+        console.error(`[Leaderboard] Failed to fetch records for group "${group}":`, error);
+      }
+    }
+  }
+
+  return Array.from(records.values());
 }
 
 function mergeRecords(target: RawTaskRecord, source: RawTaskRecord): RawTaskRecord {
