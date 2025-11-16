@@ -40,7 +40,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
     private readonly httpClient: ServiceNowHttpClient,
     config?: Partial<CaseRepositoryConfig>,
   ) {
-    this.caseTable = config?.caseTable ?? "sn_customerservice_case";
+    this.caseTable = config?.caseTable ?? "x_mobit_serv_case_service_case";
     this.caseJournalTable = config?.caseJournalTable ?? "sys_journal_field";
     this.incidentTable = config?.incidentTable ?? "incident";
   }
