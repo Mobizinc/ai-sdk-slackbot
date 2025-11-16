@@ -1,6 +1,7 @@
 import { getSlackMessagingService } from "./slack-messaging";
 import { isMobizEmail } from "./mobiz-filter";
 import { getTableApiClient } from "../infrastructure/servicenow/repositories/factory";
+import { buildFlexibleLikeQuery } from "../infrastructure/servicenow/repositories/query-builders";
 
 const slackMessaging = getSlackMessagingService();
 const tableApiClient = getTableApiClient();
@@ -71,11 +72,19 @@ const INCIDENT_FIELDS = [
 ].join(",");
 
 function buildAssignmentGroupFilter(groups: string[]): string {
-  // ServiceNow doesn't have an IN operator - use OR logic with exact match for each group
-  // Use assignment_group.name= for exact match (more reliable than LIKE for full group names)
-  return groups
-    .map((group) => `assignment_group.name=${group}`)
-    .join("^OR");
+  // Use the same proven query builder that all working ServiceNow queries use
+  const clauses = groups
+    .map((group) => buildFlexibleLikeQuery("assignment_group.name", group))
+    .filter((clause): clause is string => clause !== undefined);
+
+  if (clauses.length === 0) {
+    return "";
+  }
+  if (clauses.length === 1) {
+    return clauses[0];
+  }
+
+  return `(${clauses.join("^OR")})`;
 }
 
 function formatDateForQuery(date: Date): string {
