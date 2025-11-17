@@ -6,9 +6,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getKnowledgeRepository } from "@/infrastructure/servicenow/repositories";
 import {
   createErrorResult,
   createSuccessResult,
@@ -44,7 +43,7 @@ export type SearchKnowledgeInput = z.infer<typeof SearchKnowledgeInputSchema>;
  * Searches the ServiceNow knowledge base for articles matching the query.
  */
 export function createSearchKnowledgeTool(params: AgentToolFactoryParams) {
-  const { updateStatus, options } = params;
+  const { updateStatus } = params;
 
   return createTool({
     name: "search_knowledge",
@@ -76,17 +75,9 @@ export function createSearchKnowledgeTool(params: AgentToolFactoryParams) {
 
         updateStatus?.(`is searching knowledge base for "${query}"...`);
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Search knowledge base
-        const articles = await serviceNowClient.searchKnowledge(
-          {
-            query,
-            limit,
-          },
-          snContext
-        );
+        // Search knowledge base via repository
+        const knowledgeRepo = getKnowledgeRepository();
+        const articles = await knowledgeRepo.search(query, limit);
 
         console.log(
           `[search_knowledge] Found ${articles.length} knowledge articles for query "${query}"`
@@ -104,9 +95,9 @@ export function createSearchKnowledgeTool(params: AgentToolFactoryParams) {
         return createSuccessResult({
           articles: articles.map((article) => ({
             number: article.number,
-            title: article.short_description,
+            title: article.shortDescription,
             url: article.url,
-            sysId: article.sys_id,
+            sysId: article.sysId,
           })),
           totalFound: articles.length,
           query,

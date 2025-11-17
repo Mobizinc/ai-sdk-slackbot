@@ -6,12 +6,12 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { getIncidentRepository } from "../../../../infrastructure/servicenow/repositories";
-import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { normalizeCaseId, findMatchingCaseNumber } from "../../../../utils/case-number-normalizer";
-import { formatIncidentForLLM } from "../../../../services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getIncidentRepository } from "@/infrastructure/servicenow/repositories";
+import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { createServiceNowContext } from "@/infrastructure/servicenow-context";
+import { normalizeCaseId, findMatchingCaseNumber } from "@/utils/case-number-normalizer";
+import { formatIncidentForLLM } from "@/services/servicenow-formatters";
 import { fetchAttachments } from "../shared/attachment-utils";
 import {
   createErrorResult,

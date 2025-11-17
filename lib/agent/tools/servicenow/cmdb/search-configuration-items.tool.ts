@@ -6,10 +6,9 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
-import { formatConfigurationItemsForLLM } from "../../../../services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getCmdbRepository } from "@/infrastructure/servicenow/repositories";
+import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
 import {
   createErrorResult,
   createSuccessResult,
@@ -95,7 +94,7 @@ export type SearchConfigurationItemsInput = z.infer<
  * Searches the ServiceNow CMDB for Configuration Items.
  */
 export function createSearchConfigurationItemsTool(params: AgentToolFactoryParams) {
-  const { updateStatus, options } = params;
+  const { updateStatus } = params;
 
   return createTool({
     name: "search_configuration_items",
@@ -201,33 +200,46 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
 
         updateStatus?.(`is searching configuration items (${criteriaDesc})...`);
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Search configuration items
-        const results =
-          (await serviceNowClient.searchConfigurationItems(
-            {
-              name: ciName,
-              ipAddress,
-              sysId: ciSysId,
-              className: ciClassName,
-              company: companyName,
-              operationalStatus: ciOperationalStatus,
-              location: ciLocation,
-              ownerGroup: ciOwnerGroup,
-              environment: ciEnvironment,
-              limit,
-            },
-            snContext
-          )) ?? [];
+        // Search configuration items via repository
+        const cmdbRepo = getCmdbRepository();
+        const results = await cmdbRepo.search({
+          name: ciName,
+          ipAddress,
+          sysId: ciSysId,
+          className: ciClassName,
+          company: companyName,
+          operationalStatus: ciOperationalStatus,
+          location: ciLocation,
+          ownerGroup: ciOwnerGroup,
+          environment: ciEnvironment,
+          limit,
+        });
 
         console.log(
           `[search_configuration_items] Found ${results.length} CIs matching criteria: ${criteriaDesc}`
         );
 
+        // Convert domain models to API format for formatter
+        const apiFormat = results.map((ci: any) => ({
+          sys_id: ci.sysId,
+          name: ci.name,
+          sys_class_name: ci.className,
+          fqdn: ci.fqdn,
+          host_name: ci.hostName,
+          ip_addresses: ci.ipAddresses,
+          company: ci.company,
+          company_name: ci.companyName,
+          owner_group: ci.ownerGroup,
+          support_group: ci.supportGroup,
+          location: ci.location,
+          environment: ci.environment,
+          status: ci.status,
+          description: ci.description,
+          url: ci.url,
+        }));
+
         // Format results for LLM consumption
-        const formatted = formatConfigurationItemsForLLM(results);
+        const formatted = formatConfigurationItemsForLLM(apiFormat as any);
 
         if (results.length === 0) {
           return createSuccessResult({
@@ -249,7 +261,7 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
         }
 
         return createSuccessResult({
-          configurationItems: results.map((ci) => ({
+          configurationItems: results.map((ci: any) => ({
             sysId: ci.sys_id,
             name: ci.name,
             className: ci.sys_class_name,

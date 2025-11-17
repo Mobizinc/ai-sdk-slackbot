@@ -9,16 +9,14 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
-import { getIncidentRepository } from "../../../../infrastructure/servicenow/repositories";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { getIncidentRepository } from "@/infrastructure/servicenow/repositories";
 import {
   normalizeCaseId,
   findMatchingCaseNumber,
   detectTableFromPrefix,
-} from "../../../../utils/case-number-normalizer";
-import { serviceNowClient } from "../../../../tools/servicenow";
+} from "@/utils/case-number-normalizer";
 import { fetchAttachments, extractReference } from "../shared/attachment-utils";
 import {
   createErrorResult,
@@ -122,9 +120,6 @@ export function createGetCaseTool(params: AgentToolFactoryParams) {
 
         updateStatus?.(`is looking up case ${normalizedNumber}...`);
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
         // Fetch case from repository
         const caseRepo = getCaseRepository();
         const caseRecord = await caseRepo.findByNumber(normalizedNumber);
@@ -184,11 +179,7 @@ export function createGetCaseTool(params: AgentToolFactoryParams) {
                 `is fetching recent activity for case ${caseRecord.number}...`
               );
               journalEntries =
-                (await serviceNowClient.getCaseJournal(
-                  caseSysId,
-                  { limit: 20 }, // Fetch latest 20 for rich context
-                  snContext
-                )) ?? [];
+                (await caseRepo.getJournalEntries(caseSysId, { limit: 20 })) ?? [];
               console.log(
                 `[get_case] Fetched ${journalEntries.length} journal entries for context`
               );

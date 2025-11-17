@@ -6,9 +6,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getSPMRepository } from "@/infrastructure/servicenow/repositories";
 import {
   createErrorResult,
   createSuccessResult,
@@ -60,14 +59,9 @@ export function createGetProjectTool(params: AgentToolFactoryParams) {
 
         updateStatus?.(`is looking up project ${projectNumber}...`);
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Fetch project
-        const project = await serviceNowClient.getSPMProject(
-          projectNumber,
-          snContext
-        );
+        // Fetch project via repository
+        const spmRepo = getSPMRepository();
+        const project = await spmRepo.findByNumber(projectNumber);
 
         if (!project) {
           return createErrorResult(

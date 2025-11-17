@@ -3,14 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createUpdateIncidentTool } from "../../../../../lib/agent/tools/servicenow/incident/update-incident.tool";
-import type { Incident } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
+import { createUpdateIncidentTool } from "@/agent/tools/servicenow/incident/update-incident.tool";
+import type { Incident } from "@/infrastructure/servicenow/types/domain-models";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getIncidentRepository: vi.fn(),
 }));
 
-import { getIncidentRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
+import { getIncidentRepository } from "@/infrastructure/servicenow/repositories";
 
 describe("Update Incident Tool", () => {
   let mockIncidentRepo: any;

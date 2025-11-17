@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createGetRequestTool } from "../../../../../lib/agent/tools/servicenow/catalog/get-request.tool";
-import type { Request } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
+import { createGetRequestTool } from "@/agent/tools/servicenow/catalog/get-request.tool";
+import type { Request } from "@/infrastructure/servicenow/types/domain-models";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getRequestRepository: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("../../../../../lib/utils/case-number-normalizer", () => ({
   findMatchingCaseNumber: vi.fn(() => null),
 }));
 
-import { getRequestRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
+import { getRequestRepository } from "@/infrastructure/servicenow/repositories";
 
 describe("Get Request Tool", () => {
   let mockRequestRepo: any;

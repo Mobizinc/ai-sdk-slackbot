@@ -13,7 +13,6 @@
 // Import tool creators from dedicated modules
 import { createWeatherTool } from "./weather";
 import { createWebSearchTool } from "./web-search";
-import { createServiceNowTool } from "./service-now";
 import { createSearchTool } from "./search";
 import { createKnowledgeBaseTool } from "./knowledge-base";
 import { createContextUpdateTool } from "./context-update";
@@ -66,7 +65,6 @@ import { createUpdateProjectTool } from "./servicenow/spm/update-project.tool";
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
 export type { SearchWebToolInput } from "./web-search";
-export type { ServiceNowToolInput } from "./service-now";
 export type { SearchSimilarCasesInput } from "./search";
 export type { GenerateKBArticleInput } from "./knowledge-base";
 export type { ProposeContextUpdateInput } from "./context-update";
@@ -144,8 +142,6 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     searchChanges: createSearchChangesTool(params),
     getChangeTasks: createGetChangeTasksTool(params),
 
-    // Legacy monolithic ServiceNow tool (deprecated, will be removed in Phase 4)
-    serviceNow: createServiceNowTool(params),
 
     // Other tools
     searchSimilarCases: createSearchTool(params),

@@ -6,9 +6,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getSPMRepository } from "@/infrastructure/servicenow/repositories";
 import {
   createErrorResult,
   createSuccessResult,
@@ -58,14 +57,9 @@ export function createGetProjectStoriesTool(params: AgentToolFactoryParams) {
 
         updateStatus?.(`is fetching stories for project...`);
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Fetch project stories
-        const stories = await serviceNowClient.getSPMProjectStories(
-          projectSysId,
-          snContext
-        );
+        // Fetch project stories via repository
+        const spmRepo = getSPMRepository();
+        const stories = await spmRepo.findRelatedStories(projectSysId);
 
         console.log(`[get_project_stories] Found ${stories.length} stories for project ${projectSysId}`);
 

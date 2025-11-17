@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createSearchConfigurationItemsTool } from "../../../../../lib/agent/tools/servicenow/cmdb/search-configuration-items.tool";
+import { createSearchConfigurationItemsTool } from "@/agent/tools/servicenow/cmdb/search-configuration-items.tool";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow-context", () => ({
@@ -23,8 +23,8 @@ vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
   })),
 }));
 
-import { serviceNowClient } from "../../../../../lib/tools/servicenow";
-import { formatConfigurationItemsForLLM } from "../../../../../lib/services/servicenow-formatters";
+import { serviceNowClient } from "@/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
 
 describe("Search Configuration Items Tool", () => {
   let tool: any;

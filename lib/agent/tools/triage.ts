@@ -8,7 +8,7 @@ import { z } from "zod";
 import { serviceNowClient } from "../../tools/servicenow";
 import { getCaseTriageService } from "../../services/case-triage";
 import { createTool, type AgentToolFactoryParams } from "./shared";
-import { createServiceNowContext } from "../../infrastructure/servicenow-context";
+import { createServiceNowContext } from "@/infrastructure/servicenow-context";
 import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
 import type { ContentBlock } from "../../services/anthropic-chat";
 import { config } from "../../config";

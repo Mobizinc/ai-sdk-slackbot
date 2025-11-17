@@ -44,7 +44,9 @@ export class ServiceNowAttachmentRepository implements AttachmentRepository {
       `/api/now/attachment?${params.toString()}`
     );
 
-    return (response.result || []).map((attachment: any) => ({
+    // HttpClient.get() returns ServiceNowTableResponse<T> which has a result property
+    const results = (response as any).result || [];
+    return results.map((attachment: any) => ({
       sys_id: attachment.sys_id,
       file_name: attachment.file_name,
       content_type: attachment.content_type,

@@ -5,8 +5,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { getIncidentRepository } from "../../../../infrastructure/servicenow/repositories";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getIncidentRepository } from "@/infrastructure/servicenow/repositories";
 import {
   createErrorResult,
   createSuccessResult,

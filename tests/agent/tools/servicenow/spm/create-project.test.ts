@@ -3,13 +3,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createCreateProjectTool } from "../../../../../lib/agent/tools/servicenow/spm/create-project.tool";
+import { createCreateProjectTool } from "@/agent/tools/servicenow/spm/create-project.tool";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getSPMRepository: vi.fn(),
 }));
 
-import { getSPMRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
+import { getSPMRepository } from "@/infrastructure/servicenow/repositories";
 
 describe("Create Project Tool", () => {
   let mockSPMRepo: any;

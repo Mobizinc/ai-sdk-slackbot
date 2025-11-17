@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createGetCaseTool } from "../../../../../lib/agent/tools/servicenow/case/get-case.tool";
-import type { Case, Incident } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
+import { createGetCaseTool } from "@/agent/tools/servicenow/case/get-case.tool";
+import type { Case, Incident } from "@/infrastructure/servicenow/types/domain-models";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
@@ -42,9 +42,9 @@ vi.mock("../../../../../lib/agent/tools/servicenow/shared/attachment-utils", () 
   extractReference: vi.fn((value) => value),
 }));
 
-import { getCaseRepository, getIncidentRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
-import { serviceNowClient } from "../../../../../lib/tools/servicenow";
-import { fetchAttachments } from "../../../../../lib/agent/tools/servicenow/shared/attachment-utils";
+import { getCaseRepository, getIncidentRepository } from "@/infrastructure/servicenow/repositories";
+import { serviceNowClient } from "@/tools/servicenow";
+import { fetchAttachments } from "@/agent/tools/servicenow/shared/attachment-utils";
 
 describe("Get Case Tool", () => {
   let mockCaseRepo: any;

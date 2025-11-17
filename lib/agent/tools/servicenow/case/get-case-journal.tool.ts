@@ -6,12 +6,10 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { normalizeCaseId, findMatchingCaseNumber } from "../../../../utils/case-number-normalizer";
-import { serviceNowClient } from "../../../../tools/servicenow";
-import { formatJournalEntriesForLLM } from "../../../../services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { normalizeCaseId, findMatchingCaseNumber } from "@/utils/case-number-normalizer";
+import { formatJournalEntriesForLLM } from "@/services/servicenow-formatters";
 import { extractReference } from "../shared/attachment-utils";
 import {
   createErrorResult,
@@ -54,7 +52,7 @@ export type GetCaseJournalInput = z.infer<typeof GetCaseJournalInputSchema>;
  * Retrieves journal entries (comments and work notes) for a ServiceNow case.
  */
 export function createGetCaseJournalTool(params: AgentToolFactoryParams) {
-  const { updateStatus, options, caseNumbers } = params;
+  const { updateStatus, caseNumbers } = params;
 
   return createTool({
     name: "get_case_journal",
@@ -91,9 +89,6 @@ export function createGetCaseJournalTool(params: AgentToolFactoryParams) {
 
         let sysId = caseSysId ?? null;
         let normalizedNumber: string | null = null;
-
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
 
         // If number is provided but not sysId, look up the case first
         if (!sysId && number) {
@@ -140,20 +135,28 @@ export function createGetCaseJournalTool(params: AgentToolFactoryParams) {
         const journalReference = normalizedNumber ?? number ?? caseSysId ?? "unknown";
         updateStatus?.(`is fetching journal entries for ${journalReference}...`);
 
-        // Fetch journal entries
+        // Fetch journal entries from repository
+        const caseRepo = getCaseRepository();
         const journal =
-          (await serviceNowClient.getCaseJournal(
-            sysId!,
-            { limit },
-            snContext
-          )) ?? [];
+          (await caseRepo.getJournalEntries(sysId!, { limit })) ?? [];
 
         console.log(
           `[get_case_journal] Fetched ${journal.length} journal entries for ${journalReference}`
         );
 
+        // Convert repository format to expected format for formatter
+        const formattedJournal = journal.map((entry: any) => ({
+          sys_id: entry.sysId,
+          element: entry.element,
+          element_id: entry.elementId,
+          name: entry.name,
+          sys_created_on: entry.createdOn,
+          sys_created_by: entry.createdBy,
+          value: entry.value,
+        }));
+
         // Use shared formatter for consistent formatting
-        const formatted = formatJournalEntriesForLLM(journal, journalReference);
+        const formatted = formatJournalEntriesForLLM(formattedJournal, journalReference);
 
         return createSuccessResult({
           entries: journal,

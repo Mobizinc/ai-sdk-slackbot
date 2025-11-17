@@ -6,9 +6,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getSPMRepository } from "@/infrastructure/servicenow/repositories";
 import {
   createErrorResult,
   createSuccessResult,
@@ -134,14 +133,9 @@ export function createSearchProjectsTool(params: AgentToolFactoryParams) {
           `is searching SPM projects${projectName ? ` for "${projectName}"` : ""}...`
         );
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Search projects
-        const searchResults = await serviceNowClient.searchSPMProjects(
-          criteria,
-          snContext
-        );
+        // Search projects via repository
+        const spmRepo = getSPMRepository();
+        const searchResults = await spmRepo.search(criteria);
 
         console.log(
           `[search_projects] Found ${searchResults.totalCount} projects`

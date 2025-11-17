@@ -5,13 +5,13 @@
  * for Claude consumption across all ServiceNow tools.
  */
 
-import type { ContentBlock } from "../../../../services/anthropic-chat";
-import { serviceNowClient } from "../../../../tools/servicenow";
+import type { ContentBlock } from "@/services/anthropic-chat";
+import { serviceNowClient } from "@/tools/servicenow";
 import {
   optimizeImageForClaude,
   isSupportedImageFormat,
-} from "../../../../utils/image-processing";
-import { config } from "../../../../config";
+} from "@/utils/image-processing";
+import { config } from "@/config";
 
 /**
  * Fetch and process attachments from ServiceNow for Claude consumption

@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createGetIncidentTool } from "../../../../../lib/agent/tools/servicenow/incident/get-incident.tool";
-import type { Incident } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
-import type { Case } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
+import { createGetIncidentTool } from "@/agent/tools/servicenow/incident/get-incident.tool";
+import type { Incident } from "@/infrastructure/servicenow/types/domain-models";
+import type { Case } from "@/infrastructure/servicenow/types/domain-models";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
@@ -37,9 +37,9 @@ vi.mock("../../../../../lib/agent/tools/servicenow/shared/attachment-utils", () 
   fetchAttachments: vi.fn(() => Promise.resolve([])),
 }));
 
-import { getIncidentRepository, getCaseRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
-import { formatIncidentForLLM } from "../../../../../lib/services/servicenow-formatters";
-import { fetchAttachments } from "../../../../../lib/agent/tools/servicenow/shared/attachment-utils";
+import { getIncidentRepository, getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { formatIncidentForLLM } from "@/services/servicenow-formatters";
+import { fetchAttachments } from "@/agent/tools/servicenow/shared/attachment-utils";
 
 describe("Get Incident Tool", () => {
   let mockIncidentRepo: any;

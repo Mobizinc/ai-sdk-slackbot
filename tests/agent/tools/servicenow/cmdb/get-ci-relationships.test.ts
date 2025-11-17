@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createGetCIRelationshipsTool } from "../../../../../lib/agent/tools/servicenow/cmdb/get-ci-relationships.tool";
+import { createGetCIRelationshipsTool } from "@/agent/tools/servicenow/cmdb/get-ci-relationships.tool";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow-context", () => ({
@@ -23,7 +23,7 @@ vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
   })),
 }));
 
-import { serviceNowClient } from "../../../../../lib/tools/servicenow";
+import { serviceNowClient } from "@/tools/servicenow";
 
 describe("Get CI Relationships Tool", () => {
   let tool: any;

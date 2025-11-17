@@ -5,9 +5,9 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { getChangeRepository } from "../../../../infrastructure/servicenow/repositories";
-import { normalizeCaseId, findMatchingCaseNumber } from "../../../../utils/case-number-normalizer";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getChangeRepository } from "@/infrastructure/servicenow/repositories";
+import { normalizeCaseId, findMatchingCaseNumber } from "@/utils/case-number-normalizer";
 import {
   createErrorResult,
   createSuccessResult,

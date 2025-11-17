@@ -6,10 +6,9 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "../../shared";
-import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
-import { serviceNowClient } from "../../../../tools/servicenow";
-import { formatConfigurationItemsForLLM } from "../../../../services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
+import { getCmdbRepository } from "@/infrastructure/servicenow/repositories";
+import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
 import {
   createErrorResult,
   createSuccessResult,
@@ -52,7 +51,7 @@ export type GetCIRelationshipsInput = z.infer<
  * Retrieves related Configuration Items for a specific CI from the CMDB.
  */
 export function createGetCIRelationshipsTool(params: AgentToolFactoryParams) {
-  const { updateStatus, options } = params;
+  const { updateStatus } = params;
 
   return createTool({
     name: "get_ci_relationships",
@@ -95,26 +94,26 @@ export function createGetCIRelationshipsTool(params: AgentToolFactoryParams) {
           `is fetching CI relationships${relationshipType ? ` (${relationshipType})` : ""}...`
         );
 
-        // Create ServiceNow context for routing
-        const snContext = createServiceNowContext(undefined, options?.channelId);
-
-        // Fetch CI relationships
-        const relatedCIs =
-          (await serviceNowClient.getCIRelationships(
-            {
-              ciSysId,
-              relationshipType,
-              limit,
-            },
-            snContext
-          )) ?? [];
+        // Fetch CI relationships via repository
+        const cmdbRepo = getCmdbRepository();
+        const relatedCIs = await cmdbRepo.getRelatedCIs(ciSysId, relationshipType);
 
         console.log(
           `[get_ci_relationships] Found ${relatedCIs.length} related CIs for ${ciSysId}`
         );
 
+        // Convert domain models to API format for formatter
+        const apiFormat = relatedCIs.map((ci: any) => ({
+          sys_id: ci.sysId,
+          name: ci.name,
+          sys_class_name: ci.className,
+          company: ci.company,
+          status: ci.status,
+          url: ci.url,
+        }));
+
         // Format results for LLM consumption
-        const formatted = formatConfigurationItemsForLLM(relatedCIs);
+        const formatted = formatConfigurationItemsForLLM(apiFormat as any);
 
         if (relatedCIs.length === 0) {
           return createSuccessResult({
@@ -129,7 +128,7 @@ export function createGetCIRelationshipsTool(params: AgentToolFactoryParams) {
         }
 
         return createSuccessResult({
-          relatedCIs: relatedCIs.map((ci) => ({
+          relatedCIs: relatedCIs.map((ci: any) => ({
             sysId: ci.sys_id,
             name: ci.name,
             className: ci.sys_class_name,
