@@ -9,6 +9,12 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["lib/*"],
+      "@tests/*": ["tests/*"],
+      "@api/*": ["api/*"]
+    },
     "outDir": "./dist",
     "rootDir": ".",
     "allowJs": true,
