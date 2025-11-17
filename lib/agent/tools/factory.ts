@@ -53,6 +53,16 @@ import { createGetChangeTool } from "./servicenow/change/get-change.tool";
 import { createSearchChangesTool } from "./servicenow/change/search-changes.tool";
 import { createGetChangeTasksTool } from "./servicenow/change/get-change-tasks.tool";
 
+// Import new modular ServiceNow tools (Phase 3 - Write Operations)
+import { createCreateIncidentTool } from "./servicenow/incident/create-incident.tool";
+import { createUpdateIncidentTool } from "./servicenow/incident/update-incident.tool";
+import { createCloseIncidentTool } from "./servicenow/incident/close-incident.tool";
+import { createCreateCaseTool } from "./servicenow/case/create-case.tool";
+import { createUpdateCaseTool } from "./servicenow/case/update-case.tool";
+import { createCloseCaseTool } from "./servicenow/case/close-case.tool";
+import { createCreateProjectTool } from "./servicenow/spm/create-project.tool";
+import { createUpdateProjectTool } from "./servicenow/spm/update-project.tool";
+
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
 export type { SearchWebToolInput } from "./web-search";
@@ -96,12 +106,18 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     // ===== ServiceNow Modular Tools (Phase 1 & 2) =====
     // Single-purpose tools for improved LLM tool selection
 
-    // Incident domain
+    // Incident domain (read + write)
     getIncident: createGetIncidentTool(params),
+    createIncident: createCreateIncidentTool(params), // Phase 3
+    updateIncident: createUpdateIncidentTool(params), // Phase 3
+    closeIncident: createCloseIncidentTool(params), // Phase 3
 
-    // Case domain
+    // Case domain (read + write)
     getCase: createGetCaseTool(params),
     getCaseJournal: createGetCaseJournalTool(params),
+    createCase: createCreateCaseTool(params), // Phase 3
+    updateCase: createUpdateCaseTool(params), // Phase 3
+    closeCase: createCloseCaseTool(params), // Phase 3
 
     // CMDB domain
     searchConfigurationItems: createSearchConfigurationItemsTool(params),
@@ -115,11 +131,13 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     getRequestedItem: createGetRequestedItemTool(params),
     getCatalogTask: createGetCatalogTaskTool(params),
 
-    // SPM domain (Phase 2)
+    // SPM domain (read + write)
     getProject: createGetProjectTool(params),
     searchProjects: createSearchProjectsTool(params),
     getProjectEpics: createGetProjectEpicsTool(params),
     getProjectStories: createGetProjectStoriesTool(params),
+    createProject: createCreateProjectTool(params), // Phase 3
+    updateProject: createUpdateProjectTool(params), // Phase 3
 
     // Change domain (Phase 2)
     getChange: createGetChangeTool(params),
