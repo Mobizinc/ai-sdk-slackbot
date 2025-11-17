@@ -29,6 +29,10 @@ update_file() {
     -e 's|from "../../shared"|from "@/agent/tools/shared"|g' \
     -e 's|from "../../../../../lib/|from "@/|g' \
     -e 's|from "../../infrastructure/|from "@/infrastructure/|g' \
+    -e 's|from "../../tools/|from "@/tools/|g' \
+    -e 's|from "../../services/|from "@/services/|g' \
+    -e 's|from "../../utils/|from "@/utils/|g' \
+    -e 's|from "../../config"|from "@/config"|g' \
     "$file"
 
   # Remove backup if transformation succeeded

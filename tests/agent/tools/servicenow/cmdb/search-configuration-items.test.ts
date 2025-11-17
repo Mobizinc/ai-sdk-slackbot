@@ -3,28 +3,41 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createSearchConfigurationItemsTool } from "@/agent/tools/servicenow/cmdb/search-configuration-items.tool";
+import { createSearchConfigurationItemsTool } from "../../../../../lib/agent/tools/servicenow/cmdb/search-configuration-items.tool";
 
 // Mock dependencies
-vi.mock("../../../../../lib/infrastructure/servicenow-context", () => ({
-  createServiceNowContext: vi.fn(() => ({ channelId: "test-channel" })),
+vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
+  getCaseRepository: vi.fn(),
+  getIncidentRepository: vi.fn(),
+  getCmdbRepository: vi.fn(() => mockCmdbRepo),
 }));
+
+const mockCmdbRepo = {
+  search: vi.fn(),
+};
 
 vi.mock("../../../../../lib/tools/servicenow", () => ({
   serviceNowClient: {
-    searchConfigurationItems: vi.fn(),
+    getCaseJournal: vi.fn(() => Promise.resolve([])),
   },
 }));
 
-vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
-  formatConfigurationItemsForLLM: vi.fn((items) => ({
-    summary: `Found ${items.length} CIs`,
-    rawData: items,
+vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
+  getCaseRepository: vi.fn(),
+  getIncidentRepository: vi.fn(),
+  getCmdbRepository: vi.fn(() => ({
+    search: vi.fn(),
   })),
 }));
 
-import { serviceNowClient } from "@/tools/servicenow";
-import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
+vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
+  formatConfigurationItemsForLLM: vi.fn((items) => items),
+  fetchAttachments: vi.fn(() => Promise.resolve([])),
+  extractReference: vi.fn((value) => value),
+}));
+
+import { serviceNowClient } from "../../../../lib/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "../../../../lib/services/servicenow-formatters";
 
 describe("Search Configuration Items Tool", () => {
   let tool: any;
@@ -32,16 +45,16 @@ describe("Search Configuration Items Tool", () => {
 
   const createMockCIs = () => [
     {
-      sys_id: "ci-sys-id-1",
+      sysId: "ci-sys-id-1",
       name: "PROD-WEB-01",
-      sys_class_name: "cmdb_ci_server",
+      className: "cmdb_ci_server",
       fqdn: "prod-web-01.example.com",
-      host_name: "prod-web-01",
-      ip_addresses: ["10.0.1.10", "10.0.1.11"],
+      hostName: "prod-web-01",
+      ipAddresses: ["10.0.1.10", "10.0.1.11"],
       company: "Acme Corp",
-      company_name: "Acme Corporation",
-      owner_group: "Platform Team",
-      support_group: "IT Support",
+      companyName: "Acme Corporation",
+      ownerGroup: "Platform Team",
+      supportGroup: "IT Support",
       location: "Data Center 1",
       environment: "production",
       status: "1",
@@ -49,16 +62,16 @@ describe("Search Configuration Items Tool", () => {
       url: "https://instance.service-now.com/cmdb_ci_server.do?sys_id=ci-sys-id-1",
     },
     {
-      sys_id: "ci-sys-id-2",
+      sysId: "ci-sys-id-2",
       name: "PROD-WEB-02",
-      sys_class_name: "cmdb_ci_server",
+      className: "cmdb_ci_server",
       fqdn: "prod-web-02.example.com",
-      host_name: "prod-web-02",
-      ip_addresses: ["10.0.1.20"],
+      hostName: "prod-web-02",
+      ipAddresses: ["10.0.1.20"],
       company: "Acme Corp",
-      company_name: "Acme Corporation",
-      owner_group: "Platform Team",
-      support_group: "IT Support",
+      companyName: "Acme Corporation",
+      ownerGroup: "Platform Team",
+      supportGroup: "IT Support",
       location: "Data Center 1",
       environment: "production",
       status: "1",
@@ -83,13 +96,13 @@ describe("Search Configuration Items Tool", () => {
   });
 
   describe("Successful CI Search", () => {
-    it("should search CIs by name", async () => {
+     it("should search CIs by name", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ciName: "PROD-WEB" });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
         expect.objectContaining({ name: "PROD-WEB", limit: 10 }),
         expect.any(Object)
       );

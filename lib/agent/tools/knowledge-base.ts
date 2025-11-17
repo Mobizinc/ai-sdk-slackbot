@@ -5,9 +5,9 @@
  */
 
 import { z } from "zod";
-import { serviceNowClient } from "../../tools/servicenow";
+import { serviceNowClient } from "@/tools/servicenow";
 import { getContextManager } from "../../context-manager";
-import { getKBGenerator } from "../../services/kb-generator";
+import { getKBGenerator } from "@/services/kb-generator";
 import { createTool, type AgentToolFactoryParams } from "./shared";
 import { createServiceNowContext } from "@/infrastructure/servicenow-context";
 
