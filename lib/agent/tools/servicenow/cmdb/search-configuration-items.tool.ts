@@ -261,23 +261,7 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
         }
 
         return createSuccessResult({
-          configurationItems: results.map((ci: any) => ({
-            sysId: ci.sys_id,
-            name: ci.name,
-            className: ci.sys_class_name,
-            fqdn: ci.fqdn,
-            hostName: ci.host_name,
-            ipAddresses: ci.ip_addresses || [],
-            company: ci.company,
-            companyName: ci.company_name,
-            ownerGroup: ci.owner_group,
-            supportGroup: ci.support_group,
-            location: ci.location,
-            environment: ci.environment,
-            status: ci.status,
-            description: ci.description,
-            url: ci.url,
-          })),
+          configurationItems: results,
           totalFound: results.length,
           searchCriteria: {
             ciName,

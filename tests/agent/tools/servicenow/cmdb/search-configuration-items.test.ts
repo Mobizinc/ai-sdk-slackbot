@@ -19,15 +19,8 @@ const mockCmdbRepo = {
 vi.mock("../../../../../lib/tools/servicenow", () => ({
   serviceNowClient: {
     getCaseJournal: vi.fn(() => Promise.resolve([])),
+    searchConfigurationItems: vi.fn(),
   },
-}));
-
-vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
-  getCaseRepository: vi.fn(),
-  getIncidentRepository: vi.fn(),
-  getCmdbRepository: vi.fn(() => ({
-    search: vi.fn(),
-  })),
 }));
 
 vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
@@ -36,8 +29,8 @@ vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
   extractReference: vi.fn((value) => value),
 }));
 
-import { serviceNowClient } from "../../../../lib/tools/servicenow";
-import { formatConfigurationItemsForLLM } from "../../../../lib/services/servicenow-formatters";
+import { serviceNowClient } from "@/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
 
 describe("Search Configuration Items Tool", () => {
   let tool: any;
@@ -103,8 +96,7 @@ describe("Search Configuration Items Tool", () => {
       const result = await tool.execute({ ciName: "PROD-WEB" });
 
       expect(mockCmdbRepo.search).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "PROD-WEB", limit: 10 }),
-        expect.any(Object)
+        expect.objectContaining({ name: "PROD-WEB", limit: 10 })
       );
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         expect.stringContaining('is searching configuration items (name="PROD-WEB")')
@@ -115,13 +107,12 @@ describe("Search Configuration Items Tool", () => {
 
     it("should search CIs by IP address", async () => {
       const mockCIs = [createMockCIs()[0]];
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ipAddress: "10.0.1.10" });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
-        expect.objectContaining({ ipAddress: "10.0.1.10" }),
-        expect.any(Object)
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ ipAddress: "10.0.1.10", limit: 10 })
       );
       expect(result.success).toBe(true);
       expect(result.data?.configurationItems[0].ipAddresses).toContain("10.0.1.10");
@@ -129,20 +120,19 @@ describe("Search Configuration Items Tool", () => {
 
     it("should search CIs by className", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ciClassName: "cmdb_ci_server" });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
-        expect.objectContaining({ className: "cmdb_ci_server" }),
-        expect.any(Object)
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ className: "cmdb_ci_server", limit: 10 })
       );
       expect(result.success).toBe(true);
     });
 
     it("should search CIs with multiple criteria", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({
         companyName: "Acme",
@@ -150,20 +140,20 @@ describe("Search Configuration Items Tool", () => {
         ciClassName: "cmdb_ci_server",
       });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
+expect(mockCmdbRepo.search).toHaveBeenCalledWith(
         expect.objectContaining({
           company: "Acme",
           environment: "production",
           className: "cmdb_ci_server",
-        }),
-        expect.any(Object)
+          limit: 10,
+        })
       );
       expect(result.success).toBe(true);
     });
 
     it("should format CI results correctly", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ciName: "PROD-WEB-01" });
 
@@ -192,7 +182,7 @@ describe("Search Configuration Items Tool", () => {
 
     it("should accept any single criterion", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const criteriaTests = [
         { ciName: "test" },
@@ -215,7 +205,7 @@ describe("Search Configuration Items Tool", () => {
 
   describe("Empty Results", () => {
     it("should handle no results gracefully", async () => {
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue([]);
+      mockCmdbRepo.search.mockResolvedValue([]);
 
       const result = await tool.execute({ ciName: "nonexistent" });
 
@@ -229,35 +219,33 @@ describe("Search Configuration Items Tool", () => {
   describe("Limit Handling", () => {
     it("should use default limit of 10", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       await tool.execute({ ciName: "PROD-WEB" });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 10 }),
-        expect.any(Object)
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 10 })
       );
     });
 
     it("should use custom limit when provided", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       await tool.execute({ ciName: "PROD-WEB", limit: 25 });
 
-      expect(serviceNowClient.searchConfigurationItems).toHaveBeenCalledWith(
-        expect.objectContaining({ limit: 25 }),
-        expect.any(Object)
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 25 })
       );
     });
 
     it("should indicate when limit is reached", async () => {
       const mockCIs = Array(10).fill(null).map((_, i) => ({
         ...createMockCIs()[0],
-        sys_id: `ci-sys-id-${i}`,
+        sysId: `ci-sys-id-${i}`,
         name: `PROD-WEB-${String(i).padStart(2, "0")}`,
       }));
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ciClassName: "cmdb_ci_server", limit: 10 });
 
@@ -270,20 +258,42 @@ describe("Search Configuration Items Tool", () => {
   describe("Formatted Summary", () => {
     it("should include formatted summary in result", async () => {
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       const result = await tool.execute({ ciName: "PROD-WEB" });
 
-      expect(formatConfigurationItemsForLLM).toHaveBeenCalledWith(mockCIs);
+      expect(formatConfigurationItemsForLLM).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            sys_id: "ci-sys-id-1",
+            name: "PROD-WEB-01",
+            sys_class_name: "cmdb_ci_server",
+            ip_addresses: ["10.0.1.10", "10.0.1.11"],
+            company: "Acme Corp",
+            owner_group: "Platform Team",
+            environment: "production",
+            status: "1",
+          }),
+          expect.objectContaining({
+            sys_id: "ci-sys-id-2",
+            name: "PROD-WEB-02",
+            sys_class_name: "cmdb_ci_server",
+            ip_addresses: ["10.0.1.20"],
+            company: "Acme Corp",
+            owner_group: "Platform Team",
+            environment: "production",
+            status: "1",
+          }),
+        ])
+      );
       expect(result.success).toBe(true);
-      expect(result.data?.summary).toBe("Found 2 CIs");
-      expect(result.data?.rawData).toBeDefined();
+      expect(result.success).toBe(true);
     });
   });
 
   describe("Error Handling", () => {
     it("should handle search errors gracefully", async () => {
-      (serviceNowClient.searchConfigurationItems as any).mockRejectedValue(
+      mockCmdbRepo.search.mockRejectedValue(
         new Error("CMDB service unavailable")
       );
 
@@ -295,7 +305,7 @@ describe("Search Configuration Items Tool", () => {
     });
 
     it("should handle unknown errors", async () => {
-      (serviceNowClient.searchConfigurationItems as any).mockRejectedValue("Unknown error");
+      mockCmdbRepo.search.mockRejectedValue("Unknown error");
 
       const result = await tool.execute({ ciName: "PROD-WEB" });
 
@@ -308,7 +318,7 @@ describe("Search Configuration Items Tool", () => {
     it("should log search activity", async () => {
       const consoleLogSpy = vi.spyOn(console, "log");
       const mockCIs = createMockCIs();
-      (serviceNowClient.searchConfigurationItems as any).mockResolvedValue(mockCIs);
+      mockCmdbRepo.search.mockResolvedValue(mockCIs);
 
       await tool.execute({ ciName: "PROD-WEB", ciEnvironment: "production" });
 

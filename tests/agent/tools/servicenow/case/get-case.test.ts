@@ -92,6 +92,7 @@ describe("Get Case Tool", () => {
     mockCaseRepo = {
       findByNumber: vi.fn(),
       findBySysId: vi.fn(),
+      getJournalEntries: vi.fn().mockResolvedValue([]),
     };
 
     mockIncidentRepo = {
@@ -169,18 +170,17 @@ describe("Get Case Tool", () => {
     it("should fetch journal entries by default (includeJournal=true)", async () => {
       const mockCase = createMockCase();
       const mockJournals = [
-        { sys_id: "j1", value: "Comment 1" },
-        { sys_id: "j2", value: "Comment 2" },
+        { sysId: "j1", value: "Comment 1" },
+        { sysId: "j2", value: "Comment 2" },
       ];
       mockCaseRepo.findByNumber.mockResolvedValue(mockCase);
-      (serviceNowClient.getCaseJournal as any).mockResolvedValue(mockJournals);
+      // Journal entries are now fetched via repository, not serviceNowClient
 
       const result = await tool.execute({ number: "SCS1234567" });
 
-      expect(serviceNowClient.getCaseJournal).toHaveBeenCalledWith(
+      expect(mockCaseRepo.getJournalEntries).toHaveBeenCalledWith(
         "case-sys-id-456",
-        { limit: 20 },
-        expect.any(Object)
+        { limit: 20 }
       );
       expect(mockUpdateStatus).toHaveBeenCalledWith(
         expect.stringContaining("is fetching recent activity for case SCS1234567")
@@ -198,7 +198,7 @@ describe("Get Case Tool", () => {
         includeJournal: false,
       });
 
-      expect(serviceNowClient.getCaseJournal).not.toHaveBeenCalled();
+      expect(mockCaseRepo.getJournalEntries).not.toHaveBeenCalled();
       expect(result.success).toBe(true);
       expect(result.data?.journals).toEqual([]);
     });
@@ -207,7 +207,7 @@ describe("Get Case Tool", () => {
       const mockCase = createMockCase();
       const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       mockCaseRepo.findByNumber.mockResolvedValue(mockCase);
-      (serviceNowClient.getCaseJournal as any).mockRejectedValue(new Error("Journal fetch failed"));
+      mockCaseRepo.getJournalEntries.mockRejectedValue(new Error("Journal fetch failed"));
 
       const result = await tool.execute({ number: "SCS1234567" });
 
