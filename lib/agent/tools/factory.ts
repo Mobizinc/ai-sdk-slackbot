@@ -49,6 +49,9 @@ import { createGetProjectTool } from "./servicenow/spm/get-project.tool";
 import { createSearchProjectsTool } from "./servicenow/spm/search-projects.tool";
 import { createGetProjectEpicsTool } from "./servicenow/spm/get-project-epics.tool";
 import { createGetProjectStoriesTool } from "./servicenow/spm/get-project-stories.tool";
+import { createGetChangeTool } from "./servicenow/change/get-change.tool";
+import { createSearchChangesTool } from "./servicenow/change/search-changes.tool";
+import { createGetChangeTasksTool } from "./servicenow/change/get-change-tasks.tool";
 
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
@@ -117,6 +120,11 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     searchProjects: createSearchProjectsTool(params),
     getProjectEpics: createGetProjectEpicsTool(params),
     getProjectStories: createGetProjectStoriesTool(params),
+
+    // Change domain (Phase 2)
+    getChange: createGetChangeTool(params),
+    searchChanges: createSearchChangesTool(params),
+    getChangeTasks: createGetChangeTasksTool(params),
 
     // Legacy monolithic ServiceNow tool (deprecated, will be removed in Phase 4)
     serviceNow: createServiceNowTool(params),
