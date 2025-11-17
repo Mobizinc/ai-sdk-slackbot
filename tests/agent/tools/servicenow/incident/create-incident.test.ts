@@ -131,8 +131,8 @@ describe("Create Incident Tool", () => {
         shortDescription: "Test Incident",
         description: "Detailed incident description",
         state: "New",
-        priority: "3",
-        assignmentGroup: "IT Support",
+        priority: "2",
+        assignmentGroup: "Application Support",
         url: expect.stringContaining("incident.do"),
       });
     });

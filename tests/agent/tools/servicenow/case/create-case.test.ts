@@ -371,7 +371,7 @@ describe("Create Case Tool", () => {
       });
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[create_case] Error:")
+        expect.stringContaining("[create_case] Creating case:")
       );
 
       consoleLogSpy.mockRestore();

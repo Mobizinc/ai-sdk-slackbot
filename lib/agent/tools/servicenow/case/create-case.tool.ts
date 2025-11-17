@@ -40,9 +40,11 @@ export function createCreateCaseTool(params: AgentToolFactoryParams) {
 
     execute: async ({ shortDescription, ...rest }: CreateCaseInput) => {
       try {
+        console.log(`[create_case] Creating case: "${shortDescription}"`);
         updateStatus?.(`is creating case...`);
         const caseRepo = getCaseRepository();
         const newCase = await caseRepo.create({ shortDescription, ...rest });
+        console.log(`[create_case] Created case ${newCase.number} (${newCase.sysId})`);
 
         return createSuccessResult({
           case: {
