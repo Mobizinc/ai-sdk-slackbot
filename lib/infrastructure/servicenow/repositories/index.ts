@@ -15,6 +15,7 @@ export * from "./spm-repository.interface";
 export * from "./request-repository.interface";
 export * from "./requested-item-repository.interface";
 export * from "./catalog-task-repository.interface";
+export * from "./attachment-repository.interface";
 export * from "./change-repository.impl";
 export * from "./case-repository.impl";
 export * from "./incident-repository.impl";
@@ -29,6 +30,7 @@ export * from "./spm-repository.impl";
 export * from "./request-repository.impl";
 export * from "./requested-item-repository.impl";
 export * from "./catalog-task-repository.impl";
+export * from "./attachment-repository.impl";
 export * from "./factory";
 
 // Re-export ServiceNowContext for convenience
