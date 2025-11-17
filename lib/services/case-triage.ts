@@ -492,6 +492,24 @@ export class CaseTriageService {
         const { getEscalationService } = await import("./escalation-service");
         const escalationService = getEscalationService();
 
+        // Resolve company name if only sys_id is available
+        let companyName = webhook.account_id || webhook.account;
+        if (companyName && companyName.length === 32 && !companyName.includes(' ')) {
+          // Looks like a sys_id (32-char hex string), attempt to resolve it
+          try {
+            const { getCustomerAccountRepository } = await import("../infrastructure/servicenow/repositories/factory");
+            const accountRepo = getCustomerAccountRepository();
+            const account = await accountRepo.findBySysId(companyName);
+            if (account?.name) {
+              console.log(`[Case Triage] Resolved company sys_id ${companyName} to: ${account.name}`);
+              companyName = account.name;
+            }
+          } catch (error) {
+            console.warn(`[Case Triage] Failed to resolve company sys_id ${companyName}:`, error);
+            // Continue with sys_id as fallback
+          }
+        }
+
         await escalationService.checkAndEscalate({
           caseNumber: webhook.case_number,
           caseSysId: webhook.sys_id,
@@ -505,7 +523,7 @@ export class CaseTriageService {
           },
           assignedTo: webhook.assigned_to,
           assignmentGroup: webhook.assignment_group,
-          companyName: webhook.account_id || webhook.account,
+          companyName: companyName,
           contactName: webhook.caller_id,
         });
 
