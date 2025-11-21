@@ -85,6 +85,54 @@ describe("Supervisor Policy QA", () => {
     expect(result.reason).toContain("Structured response missing required sections");
   });
 
+  it("approves triage response with properly formatted sections", async () => {
+    const triageResponse = `*Triage Results for SCS0050980*
+
+*Summary*
+Case SCS0050980 has been triaged as Software > Application Issue with 85% confidence.
+
+*Current State*
+*Classification:* Software > Application Issue
+*Confidence:* 85%
+*Urgency Level:* High
+
+*Immediate Next Steps:*
+1. Check application logs
+2. Contact the vendor
+
+_Processing time: 1234ms_`;
+
+    const result = await reviewSlackArtifact({
+      channelId: "C888",
+      threadTs: "888.000",
+      caseNumber: "SCS0050980",
+      content: triageResponse,
+      metadata: {
+        requiresSections: true,
+        artifactLabel: "triage_response"
+      },
+    });
+
+    expect(result.status).toBe("approved");
+  });
+
+  it("approves general queries without section requirements", async () => {
+    const generalResponse = `Case SCS0050980 is currently in progress. The assignee is working on resolving the application issue. Expected resolution time is within 24 hours.`;
+
+    const result = await reviewSlackArtifact({
+      channelId: "C999",
+      threadTs: "999.000",
+      caseNumber: "SCS0050980",
+      content: generalResponse,
+      metadata: {
+        requiresSections: false, // General queries don't require sections
+        artifactLabel: "general_response"
+      },
+    });
+
+    expect(result.status).toBe("approved");
+  });
+
   it("detects duplicate ServiceNow work notes", async () => {
     const base = {
       caseNumber: "SCS0001234",

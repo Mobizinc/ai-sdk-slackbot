@@ -112,21 +112,29 @@ export async function handleNewAppMention(
         cached: classificationStage.core.cached,
       };
 
-      // Format response
+      // Format response with required Supervisor sections
       const classification = triageResult.classification;
       const confidencePercent = Math.round((classification.confidence_score || 0) * 100);
 
       let response = `*Triage Results for ${caseNumber}*\n\n`;
+
+      // Required section: Summary
+      response += `*Summary*\n`;
+      if (classification.quick_summary) {
+        response += `${classification.quick_summary}\n`;
+      } else {
+        response += `Case ${caseNumber} has been triaged as ${classification.category}${classification.subcategory ? ` > ${classification.subcategory}` : ''} with ${confidencePercent}% confidence.\n`;
+      }
+      response += `\n`;
+
+      // Required section: Current State
+      response += `*Current State*\n`;
       response += `*Classification:* ${classification.category}`;
       if (classification.subcategory) {
         response += ` > ${classification.subcategory}`;
       }
       response += `\n*Confidence:* ${confidencePercent}%\n`;
       response += `*Urgency Level:* ${classification.urgency_level || 'N/A'}\n\n`;
-
-      if (classification.quick_summary) {
-        response += `*Summary:* ${classification.quick_summary}\n\n`;
-      }
 
       if (classification.immediate_next_steps && classification.immediate_next_steps.length > 0) {
         response += `*Immediate Next Steps:*\n`;
@@ -233,7 +241,7 @@ export async function handleNewAppMention(
     caseNumber: mentionCaseNumbers[0],
     content: plainText,
     metadata: {
-      requiresSections: mentionCaseNumbers.length > 0,
+      requiresSections: false, // Only enforce sections for explicit triage command, not general queries
       duplicateKey: `${channel}:${thread_ts ?? event.ts}`,
       contextCaseNumbers: mentionCaseNumbers,
       artifactLabel: "general_response",
