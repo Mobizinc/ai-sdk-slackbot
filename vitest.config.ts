@@ -9,10 +9,12 @@ export default defineConfig({
       "@api": path.resolve(__dirname, "./api"),
     },
   },
+  root: __dirname,
   test: {
     environment: "node",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    include: ["tests/**/*.test.ts"],
     coverage: {
       reporter: ["text", "html"],
     },
@@ -22,6 +24,7 @@ export default defineConfig({
       "dist/**",
       "build/**",
       "coverage/**",
+      "admin/**",
     ],
   },
 });
