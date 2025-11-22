@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { CaseContext } from "../context-manager";
 import { createAzureSearchService } from "./azure-search";
 import { getBusinessContextService } from "./business-context-service";
-import { config } from "../config";
+import { getLlmTimeout } from "../config/helpers";
 import { AnthropicChatService } from "./anthropic-chat";
 import { MessageEmojis } from "../utils/message-styling";
 import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
@@ -137,7 +137,7 @@ export class KBGenerator {
     try {
       // Search with KB-specific filters if your index has content_type field
       const results = await this.azureSearch.searchKnowledgeBase(query, {
-        topK: config.kbSimilarCasesTopK,
+        topK: 3, // TODO: Add to consolidated config
       });
 
       return results.map((r) => ({
@@ -240,10 +240,10 @@ Ensure accuracy, avoid assumptions, and keep the solution actionable.`;
           ],
           maxSteps: 3,
         }),
-        config.llmKBGenerationTimeoutMs,
+        getLlmTimeout("kbGeneration"),
         async () => {
           console.warn(
-            `[KB Generator] LLM timeout (${config.llmKBGenerationTimeoutMs}ms) - using fallback template`,
+            `[KB Generator] LLM timeout (${getLlmTimeout("kbGeneration")}ms) - using fallback template`,
           );
           return null;
         }

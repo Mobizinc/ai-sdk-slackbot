@@ -10,7 +10,7 @@
  */
 
 import { z } from "zod";
-import { config } from "../config";
+import { getLlmTimeout, getServiceNowConfig, getEscalationNotifyAssignedEngineer } from "../config/helpers";
 import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
 import { AnthropicChatService } from "./anthropic-chat";
 import type { EscalationContext, EscalationDecision } from "./escalation-service";
@@ -91,7 +91,7 @@ export async function buildEscalationMessage(
         ],
         maxSteps: 3,
       }),
-      config.llmEscalationTimeoutMs,
+      getLlmTimeout("escalation"),
     );
 
     let content: { summary: string; questions: string[] } | null = null;
@@ -231,7 +231,7 @@ function buildSlackBlocks(
     });
   }
 
-  if (context.assignedTo && config.escalationNotifyAssignedEngineer) {
+  if (context.assignedTo && getEscalationNotifyAssignedEngineer()) {
     businessContextFields.push({
       label: "Assigned",
       value: `<@${context.assignedTo}>`, // Slack user mentions are safe
@@ -502,7 +502,7 @@ function getFallbackContent(context: EscalationContext): { summary: string; ques
  * Get ServiceNow case URL
  */
 function getServiceNowUrl(caseSysId: string): string {
-  const instance =
-    (config.servicenowInstanceUrl || config.servicenowUrl || "https://your-instance.service-now.com").replace(/\/$/, "");
+  const snConfig = getServiceNowConfig();
+  const instance = (snConfig.instanceUrl || "https://your-instance.service-now.com").replace(/\/$/, "");
   return `${instance}/sn_customerservice_case.do?sys_id=${caseSysId}`;
 }

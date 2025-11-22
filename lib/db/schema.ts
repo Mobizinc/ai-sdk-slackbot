@@ -18,6 +18,7 @@ import {
   uuid,
   customType,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /**
  * Custom pgvector type for semantic search
@@ -773,54 +774,6 @@ export type CaseEscalation = typeof caseEscalations.$inferSelect;
 export type NewCaseEscalation = typeof caseEscalations.$inferInsert;
 
 /**
- * Interactive States Table
- * Stores state for interactive Slack components (modals, buttons, reactions)
- * Enables persistence across app restarts and provides audit trail
- *
- * Use cases:
- * - KB approval workflows
- * - Context update proposals
- * - Multi-step modal wizards
- * - Any interactive component that needs state persistence
- */
-export const interactiveStates = pgTable(
-  "interactive_states",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    // State identification
-    type: text("type").notNull(), // 'kb_approval', 'context_update', 'modal_wizard', etc.
-    // Slack message identification
-    channelId: text("channel_id").notNull(),
-    messageTs: text("message_ts").notNull(),
-    threadTs: text("thread_ts"), // Optional thread context
-    // State data
-    payload: jsonb("payload").notNull().$type<Record<string, any>>(), // Flexible payload for different state types
-    status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected', 'completed', 'expired'
-    // Lifecycle tracking
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // Auto-cleanup after this time
-    processedAt: timestamp("processed_at", { withTimezone: true }),
-    processedBy: text("processed_by"), // Slack user_id who processed
-    // Metadata
-    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
-    errorMessage: text("error_message"),
-  },
-  (table) => ({
-    // Composite index for quick lookups
-    channelMessageIdx: uniqueIndex("idx_interactive_channel_message").on(table.channelId, table.messageTs),
-    typeIdx: index("idx_interactive_type").on(table.type),
-    statusIdx: index("idx_interactive_status").on(table.status),
-    expiresAtIdx: index("idx_interactive_expires_at").on(table.expiresAt),
-    createdAtIdx: index("idx_interactive_created_at").on(table.createdAt),
-    // Composite for finding pending states by type
-    typePendingIdx: index("idx_interactive_type_pending").on(table.type, table.status),
-  })
-);
-
-export type InteractiveState = typeof interactiveStates.$inferSelect;
-export type NewInteractiveState = typeof interactiveStates.$inferInsert;
-
-/**
  * Project Interview Archive
  * Persists completed interview transcripts and scoring metadata for analytics and mentor review.
  */
@@ -1249,3 +1202,52 @@ export const exemplarQualitySignals = pgTable(
 
 export type ExemplarQualitySignal = typeof exemplarQualitySignals.$inferSelect;
 export type NewExemplarQualitySignal = typeof exemplarQualitySignals.$inferInsert;
+
+/**
+ * Workflows Table
+ * A unified table to track the state of all multi-step, asynchronous, or interactive processes.
+ */
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Core Workflow Identification
+    workflowType: text("workflow_type").notNull(), // e.g., 'PROJECT_INTERVIEW', 'SUPERVISOR_REVIEW', 'KB_GENERATION', 'INCIDENT_ENRICHMENT'
+    workflowReferenceId: text("workflow_reference_id").notNull(), // A stable, external ID unique to this instance of the workflow's subject (e.g., project_id, case_number, incident_sys_id). This helps link back to original entities.
+
+    // State Management
+    currentState: text("current_state").notNull(), // e.g., 'STARTED', 'AWAITING_USER_INPUT', 'PENDING_APPROVAL', 'COMPLETED', 'FAILED', 'EXPIRED'
+    lastTransitionAt: timestamp("last_transition_at", { withTimezone: true }).notNull().defaultNow(),
+    transitionReason: text("transition_reason"), // Optional: Why the state transition occurred
+
+    // Context & Linking (for communication channels or broader context)
+    contextKey: text("context_key"), // Denormalized or composite key for quick lookup of associated external entities, e.g., "slack:C12345:12345.678" or "case:CS0012345"
+    correlationId: text("correlation_id"), // Optional: For linking different workflows or external systems, e.g., an original request ID that spawns multiple workflows
+
+    // Workflow-specific Data
+    payload: jsonb("payload").$type<Record<string, any>>().notNull(), // Flexible JSONB for workflow-specific transient data
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(), // General metadata, e.g., originating agent, LLM details
+
+    // Lifecycle & Concurrency
+    version: integer("version").notNull().default(1), // For optimistic locking to prevent race conditions
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }), // For time-based cleanup
+    lastModifiedBy: text("last_modified_by"), // Optional: Reference to the user/agent that last modified the state
+  },
+  (table) => ({
+    // Indexes for efficient querying
+    workflowTypeIdx: index("idx_workflows_type").on(table.workflowType),
+    workflowReferenceIdIdx: index("idx_workflows_reference_id").on(table.workflowReferenceId),
+    currentStateIdx: index("idx_workflows_current_state").on(table.currentState),
+    contextKeyIdx: index("idx_workflows_context_key").on(table.contextKey),
+    expiresAtIdx: index("idx_workflows_expires_at").on(table.expiresAt),
+    // Ensures only one active workflow of a certain type for a given reference ID
+    uniqueActiveWorkflow: uniqueIndex("uq_active_workflow").on(table.workflowType, table.workflowReferenceId).where(
+      sql`"current_state" NOT IN ('COMPLETED', 'FAILED', 'EXPIRED')`
+    ),
+  })
+);
+
+export type Workflow = typeof workflows.$inferSelect;
+export type NewWorkflow = typeof workflows.$inferInsert;

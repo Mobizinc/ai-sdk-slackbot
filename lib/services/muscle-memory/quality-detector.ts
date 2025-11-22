@@ -10,7 +10,7 @@
  */
 
 import type { SupervisorDecision } from "../../supervisor";
-import type { InteractiveState } from "../../db/schema";
+import type { Workflow } from "../../db/schema";
 
 /**
  * Quality signal types that contribute to exemplar quality scoring
@@ -85,48 +85,48 @@ export class QualityDetector {
   }
 
   /**
-   * Detect human feedback signal from interactive state
+   * Detect human feedback signal from a workflow
    */
-  detectHumanFeedbackSignal(state: InteractiveState): QualitySignal | null {
-    // Check if state was approved/completed by a human
-    if (state.status === "approved" && state.processedBy) {
+  detectHumanFeedbackSignal(workflow: Workflow): QualitySignal | null {
+    // Check if workflow was approved/completed by a human
+    if (workflow.currentState === "APPROVED" && workflow.lastModifiedBy) {
       return {
         type: "human_feedback",
         value: "positive",
         weight: QUALITY_WEIGHTS.human_feedback,
         metadata: {
-          stateId: state.id,
-          stateType: state.type,
-          processedBy: state.processedBy,
-          processedAt: state.processedAt,
+          workflowId: workflow.id,
+          workflowType: workflow.workflowType,
+          processedBy: workflow.lastModifiedBy,
+          processedAt: workflow.updatedAt,
         },
         recordedAt: new Date(),
       };
     }
 
-    if (state.status === "rejected") {
+    if (workflow.currentState === "REJECTED") {
       return {
         type: "human_feedback",
         value: "negative",
         weight: -QUALITY_WEIGHTS.human_feedback, // Negative weight
         metadata: {
-          stateId: state.id,
-          stateType: state.type,
-          processedBy: state.processedBy,
-          errorMessage: state.errorMessage,
+            workflowId: workflow.id,
+            workflowType: workflow.workflowType,
+            processedBy: workflow.lastModifiedBy,
+            reason: workflow.transitionReason,
         },
         recordedAt: new Date(),
       };
     }
 
-    if (state.status === "completed") {
+    if (workflow.currentState === "COMPLETED") {
       return {
         type: "human_feedback",
         value: "positive",
         weight: QUALITY_WEIGHTS.human_feedback,
         metadata: {
-          stateId: state.id,
-          stateType: state.type,
+            workflowId: workflow.id,
+            workflowType: workflow.workflowType,
         },
         recordedAt: new Date(),
       };

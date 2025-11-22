@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { getConfigValue } from "../config";
-import { getInteractiveStateManager } from "../services/interactive-state-manager";
+import { getSupervisorEnabled, getSupervisorShadowMode, getSupervisorDuplicateWindowMinutes, getSupervisorAlertChannel } from "../config/helpers";
+import { workflowManager } from "../services/workflow-manager";
 import type { CaseClassification } from "../services/case-classifier";
 import { runSupervisorLlmReview, type SupervisorLlmReview } from "./llm-reviewer";
 
@@ -8,6 +8,26 @@ const SLACK_CONFIDENCE_THRESHOLD = 0.45;
 const SERVICENOW_CONFIDENCE_THRESHOLD = 0.4;
 const DEFAULT_SUPERVISOR_EXPIRATION_HOURS = 48;
 const MAX_SLACK_MESSAGE_LENGTH = 3500;
+const WORKFLOW_TYPE_SUPERVISOR_REVIEW = "SUPERVISOR_REVIEW";
+
+// Structured logging utility
+function logSupervisorEvent(level: 'info' | 'warn' | 'error', message: string, metadata?: Record<string, any>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    service: 'supervisor',
+    level,
+    message,
+    ...metadata
+  };
+
+  if (level === 'error') {
+    console.error(JSON.stringify(logEntry));
+  } else if (level === 'warn') {
+    console.warn(JSON.stringify(logEntry));
+  } else {
+    console.log(JSON.stringify(logEntry));
+  }
+}
 
 interface SupervisorMetadata {
   requiresSections?: boolean;
@@ -43,9 +63,22 @@ export interface ServiceNowArtifactInput extends BaseArtifactInput {}
 
 const recentSlackArtifacts = new Map<string, { hash: string; timestamp: number }>();
 const recentWorkNotes = new Map<string, { hash: string; timestamp: number }>();
+const llmReviewCache = new Map<string, { result: SupervisorLlmReview; timestamp: number }>();
+
+// Circuit breaker for LLM review failures
+let llmCircuitBreaker = {
+  failures: 0,
+  lastFailureTime: 0,
+  state: 'closed' as 'closed' | 'open',
+  nextAttemptTime: 0
+};
+
+const LLM_FAILURE_THRESHOLD = 3;
+const LLM_RESET_TIMEOUT = 60000; // 1 minute
+const LLM_CACHE_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 function getDuplicateWindowMs(): number {
-  const minutes = getConfigValue("supervisorDuplicateWindowMinutes");
+  const minutes = getSupervisorDuplicateWindowMinutes();
   if (typeof minutes !== "number" || Number.isNaN(minutes) || minutes <= 0) {
     return 5 * 60 * 1000;
   }
@@ -140,8 +173,7 @@ function evaluateWorkNoteViolations(input: ServiceNowArtifactInput): string[] {
 }
 
 async function persistSupervisorState(
-  channelId: string,
-  messageTs: string,
+  referenceId: string,
   payload: {
     artifactType: "slack_message" | "servicenow_work_note";
     caseNumber?: string;
@@ -152,22 +184,30 @@ async function persistSupervisorState(
     metadata?: Record<string, unknown>;
     llmReview?: SupervisorLlmReview | null;
   },
-  threadTs?: string
+  contextKey?: string,
 ): Promise<string | undefined> {
-  const manager = getInteractiveStateManager();
-  const state = await manager.saveState("supervisor_review", channelId, messageTs, {
-    ...payload,
-    blockedAt: new Date().toISOString(),
-  }, {
-    threadTs,
-    expiresInHours: DEFAULT_SUPERVISOR_EXPIRATION_HOURS,
-  });
+    if (!workflowManager) {
+        logSupervisorEvent('error', 'WorkflowManager not available, cannot persist review state', { referenceId });
+        return undefined;
+    }
+    
+    const workflow = await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_SUPERVISOR_REVIEW,
+        workflowReferenceId: referenceId,
+        initialState: 'PENDING_REVIEW',
+        payload: {
+            ...payload,
+            blockedAt: new Date().toISOString(),
+        },
+        contextKey,
+        expiresInSeconds: DEFAULT_SUPERVISOR_EXPIRATION_HOURS * 3600,
+    });
 
-  return state?.id;
+  return workflow?.id;
 }
 
 async function notifySupervisorAlert(message: string): Promise<void> {
-  const alertChannel = getConfigValue("supervisorAlertChannel");
+  const alertChannel = getSupervisorAlertChannel();
   if (!alertChannel) {
     console.warn(`[Supervisor] ${message}`);
     return;
@@ -186,11 +226,11 @@ async function notifySupervisorAlert(message: string): Promise<void> {
 }
 
 function supervisorDisabled(): boolean {
-  return !getConfigValue("supervisorEnabled");
+  return !getSupervisorEnabled();
 }
 
 function isShadowMode(): boolean {
-  return Boolean(getConfigValue("supervisorShadowMode"));
+  return Boolean(getSupervisorShadowMode());
 }
 
 export async function reviewSlackArtifact(
@@ -240,9 +280,11 @@ export async function reviewSlackArtifact(
     return { status: "approved", reason, llmReview };
   }
 
+  const referenceId = `${input.channelId}:${input.threadTs || "root"}`;
+  const contextKey = `slack:${input.channelId}:${input.threadTs || "root"}:${Date.now()}`;
+
   const stateId = await persistSupervisorState(
-    input.channelId,
-    `${input.threadTs}-${Date.now()}`,
+    referenceId,
     {
       artifactType: "slack_message",
       caseNumber: input.caseNumber,
@@ -256,7 +298,7 @@ export async function reviewSlackArtifact(
       },
       llmReview,
     },
-    input.threadTs
+    contextKey
   );
 
   return {
@@ -315,9 +357,11 @@ export async function reviewServiceNowArtifact(
   }
 
   const caseIdentifier = input.caseNumber ?? "unknown";
+  const referenceId = `servicenow:${caseIdentifier}`;
+  const contextKey = `${referenceId}:${Date.now()}`;
+
   const stateId = await persistSupervisorState(
-    `servicenow:${caseIdentifier}`,
-    `${Date.now()}`,
+    referenceId,
     {
       artifactType: "servicenow_work_note",
       caseNumber: input.caseNumber,
@@ -325,7 +369,8 @@ export async function reviewServiceNowArtifact(
       reason,
       metadata: input.metadata,
       llmReview,
-    }
+    },
+    contextKey,
   );
 
   return {
@@ -336,9 +381,30 @@ export async function reviewServiceNowArtifact(
   };
 }
 
+// Periodic cleanup of LLM cache
+setInterval(() => {
+  const now = Date.now();
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+  for (const [key, value] of llmReviewCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      llmReviewCache.delete(key);
+    }
+  }
+
+  console.log(`[Supervisor][Cache] Cleaned up LLM cache, ${llmReviewCache.size} entries remaining`);
+}, LLM_CACHE_CLEANUP_INTERVAL);
+
 export function __resetSupervisorCaches(): void {
   recentSlackArtifacts.clear();
   recentWorkNotes.clear();
+  llmReviewCache.clear();
+  llmCircuitBreaker = {
+    failures: 0,
+    lastFailureTime: 0,
+    state: 'closed',
+    nextAttemptTime: 0
+  };
 }
 
 async function maybeRunLlmReview(params: {
@@ -348,8 +414,62 @@ async function maybeRunLlmReview(params: {
   classification?: CaseClassification;
 }): Promise<SupervisorLlmReview | null> {
   try {
-    return await runSupervisorLlmReview(params);
+    // Check circuit breaker
+    if (llmCircuitBreaker.state === 'open') {
+      if (Date.now() < llmCircuitBreaker.nextAttemptTime) {
+        logSupervisorEvent('warn', 'LLM circuit breaker open, skipping review', {
+      artifactType: params.artifactType,
+      caseNumber: params.caseNumber
+    });
+        return null;
+      }
+      // Attempt to close circuit breaker
+      llmCircuitBreaker.state = 'closed';
+      llmCircuitBreaker.failures = 0;
+    }
+
+    // Confidence-based gating: skip LLM review for high-confidence classifications
+    const confidence = params.classification?.confidence_score;
+    if (confidence && confidence > 0.8) {
+      console.log(`[Supervisor][LLM] Skipping review for high-confidence classification (${confidence.toFixed(2)})`);
+      return null;
+    }
+
+    // Check cache for recent identical content
+    const cacheKey = `${params.artifactType}:${createHash("sha256").update(params.content).digest("hex")}`;
+    const cached = llmReviewCache.get(cacheKey);
+    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+      console.log(`[Supervisor][LLM] Using cached review result`);
+      return cached.result;
+    }
+
+    const result = await runSupervisorLlmReview(params);
+
+    // Reset circuit breaker on success
+    llmCircuitBreaker.failures = 0;
+
+    // Cache the result
+    if (result) {
+      llmReviewCache.set(cacheKey, { result, timestamp: Date.now() });
+    }
+
+    return result;
   } catch (error) {
+    // Update circuit breaker on failure
+    llmCircuitBreaker.failures++;
+    llmCircuitBreaker.lastFailureTime = Date.now();
+
+    if (llmCircuitBreaker.failures >= LLM_FAILURE_THRESHOLD) {
+      llmCircuitBreaker.state = 'open';
+      llmCircuitBreaker.nextAttemptTime = Date.now() + LLM_RESET_TIMEOUT;
+      logSupervisorEvent('warn', 'LLM circuit breaker opened', {
+        failures: llmCircuitBreaker.failures,
+        resetTime: new Date(llmCircuitBreaker.nextAttemptTime).toISOString()
+      });
+    }
+
     console.warn("[Supervisor][LLM] Unable to run review:", error);
     return null;
   }

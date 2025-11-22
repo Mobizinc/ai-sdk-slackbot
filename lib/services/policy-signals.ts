@@ -11,7 +11,7 @@
 
 import type { Case, Incident } from "../infrastructure/servicenow/types/domain-models";
 import type { BusinessEntityContext } from "./business-context-service";
-import { getConfigValue } from "../config";
+import { getPolicySignalsMaintenanceWindowEnabled, getPolicySignalsSLACheckEnabled, getPolicySignalsHighRiskCustomerEnabled, getPolicySignalsAfterHoursEnabled } from "../config/helpers";
 import { getChangeRepository, type ChangeRequest } from "../infrastructure/servicenow/repositories";
 
 /**
@@ -109,7 +109,7 @@ async function checkMaintenanceWindow(
   currentTime: Date
 ): Promise<PolicySignal | null> {
   // Feature flag check
-  const enabled = getConfigValue("policySignalsMaintenanceWindowEnabled");
+  const enabled = getPolicySignalsMaintenanceWindowEnabled();
   if (!enabled) {
     return null;
   }
@@ -173,7 +173,7 @@ function checkSLAStatus(caseOrIncident: Case | Incident, currentTime: Date): Pol
   const signals: PolicySignal[] = [];
 
   // Feature flag check
-  const enabled = getConfigValue("policySignalsSLACheckEnabled");
+  const enabled = getPolicySignalsSLACheckEnabled();
   if (!enabled) {
     return signals;
   }
@@ -238,7 +238,7 @@ function checkHighRiskCustomer(businessContext: BusinessEntityContext): PolicySi
   const signals: PolicySignal[] = [];
 
   // Feature flag check
-  const enabled = getConfigValue("policySignalsHighRiskCustomerEnabled");
+  const enabled = getPolicySignalsHighRiskCustomerEnabled();
   if (!enabled) {
     return signals;
   }
@@ -326,7 +326,7 @@ function checkPriorityStatus(caseOrIncident: Case | Incident): PolicySignal | nu
  */
 function checkAfterHours(currentTime: Date): PolicySignal | null {
   // Feature flag check
-  const enabled = getConfigValue("policySignalsAfterHoursEnabled");
+  const enabled = getPolicySignalsAfterHoursEnabled();
   if (!enabled) {
     return null;
   }

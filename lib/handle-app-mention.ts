@@ -9,6 +9,213 @@ import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-conte
 import { createStatusUpdater, clampTextForSlackDisplay } from "./utils/slack-status-updater";
 import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
 import { reviewSlackArtifact } from "./supervisor";
+import { detectIntentHybrid, QueryIntent } from "./intent-detection-llm";
+
+// Simple query handler - bypasses supervisor entirely for fast responses
+async function handleSimpleQuery(
+  event: AppMentionEvent,
+  caseNumbers: string[],
+  intent: QueryIntent,
+  setFinalMessage: (message: string) => Promise<void>
+): Promise<void> {
+  try {
+    const message = event.text || "";
+    const channel = event.channel;
+
+    // Find the most relevant case number
+    const primaryCaseNumber = caseNumbers[0];
+    if (!primaryCaseNumber) {
+      await setFinalMessage("I couldn't find a case number in your message. Please include a case number like SCS123456.");
+      return;
+    }
+
+    // Generate appropriate response based on intent
+    let response = "";
+    switch (intent) {
+      case 'status_query':
+        response = await generateStatusResponse(primaryCaseNumber);
+        break;
+      case 'latest_updates':
+        response = await generateUpdatesResponse(primaryCaseNumber);
+        break;
+      case 'assignment_info':
+        response = await generateAssignmentResponse(primaryCaseNumber);
+        break;
+      default:
+        response = await generateInfoResponse(primaryCaseNumber, message);
+    }
+
+    await setFinalMessage(response);
+  } catch (error) {
+    console.error('[SimpleQuery] Error handling query:', error);
+    await setFinalMessage("Sorry, I encountered an error while fetching that information. Please try again.");
+  }
+}
+
+// Aggregate query handler - handles statistics and counts across multiple records
+async function handleAggregateQuery(
+  event: AppMentionEvent,
+  intentResult: any,
+  setFinalMessage: (message: string) => Promise<void>
+): Promise<void> {
+  try {
+    const message = event.text || "";
+    const extractedEntities = intentResult.extractedEntities || {};
+
+    // Parse query parameters from LLM-extracted entities or message
+    const daysThreshold = extractedEntities.daysThreshold || extractDaysFromMessage(message) || 3;
+    const recordTypes = extractedEntities.recordTypes || extractRecordTypesFromMessage(message) || ['incidents', 'cases'];
+
+    // Use existing stale case detection service
+    const { findStaleCases } = await import('./services/case-aggregator');
+    const staleCases = await findStaleCases(daysThreshold);
+
+    // Filter by record types
+    const filteredCases = staleCases.filter(caseItem => {
+      const caseType = caseItem.case.number.startsWith('INC') ? 'incidents' :
+                      caseItem.case.number.startsWith('SCS') || caseItem.case.number.startsWith('CS') ? 'cases' : 'other';
+      return recordTypes.includes(caseType) || recordTypes.includes('tickets');
+    });
+
+    // Group by type
+    const stats = {
+      incidents: filteredCases.filter(c => c.case.number.startsWith('INC')).length,
+      cases: filteredCases.filter(c => c.case.number.startsWith('SCS') || c.case.number.startsWith('CS')).length,
+      total: filteredCases.length
+    };
+
+    const response = `📊 *Stale Records Summary (${daysThreshold}+ days):*\n` +
+                     `• Incidents: ${stats.incidents}\n` +
+                     `• Cases: ${stats.cases}\n` +
+                     `• Total: ${stats.total}\n\n` +
+                     `_Records not updated in ${daysThreshold} or more days_`;
+
+    await setFinalMessage(response);
+  } catch (error) {
+    console.error('[AggregateQuery] Error handling aggregate query:', error);
+    await setFinalMessage("Sorry, I encountered an error while fetching aggregate statistics. Please try again.");
+  }
+}
+
+// Helper functions for parsing aggregate queries
+function extractDaysFromMessage(message: string): number | null {
+  const daysMatch = message.match(/(\d+)\s*days?/i);
+  return daysMatch ? parseInt(daysMatch[1]) : null;
+}
+
+function extractRecordTypesFromMessage(message: string): string[] {
+  const types: string[] = [];
+  const lower = message.toLowerCase();
+
+  if (lower.includes('incident')) types.push('incidents');
+  if (lower.includes('case')) types.push('cases');
+  if (lower.includes('ticket')) types.push('tickets');
+
+  return types.length > 0 ? types : ['incidents', 'cases'];
+}
+
+// Helper functions for simple query responses
+async function generateStatusResponse(caseNumber: string): Promise<string> {
+  try {
+    // Quick ServiceNow lookup for status
+    const caseData = await serviceNowClient.getCase(caseNumber);
+
+    if (!caseData) {
+      return `I couldn't find case ${caseNumber}. Please check the case number and try again.`;
+    }
+
+    const status = caseData.state || 'Unknown';
+    const priority = caseData.priority || 'Unknown';
+    const assignedTo = caseData.assigned_to || 'Unassigned';
+
+    return `📋 *Case ${caseNumber} Status:*\n` +
+           `• State: ${status}\n` +
+           `• Priority: ${priority}\n` +
+           `• Assigned to: ${assignedTo}`;
+  } catch (error) {
+    console.error('[StatusResponse] Error fetching case status:', error);
+    return `I encountered an error while checking the status of ${caseNumber}. Please try again.`;
+  }
+}
+
+async function generateUpdatesResponse(caseNumber: string): Promise<string> {
+  try {
+    // First get the case to find its sys_id
+    const caseData = await serviceNowClient.getCase(caseNumber);
+
+    if (!caseData) {
+      return `I couldn't find case ${caseNumber}. Please check the case number and try again.`;
+    }
+
+    // Then get the journal entries
+    const journalEntries = await serviceNowClient.getCaseJournal(caseData.sys_id, { limit: 3 });
+
+    if (journalEntries.length === 0) {
+      return `📝 *Case ${caseNumber} Updates:*\nNo recent updates found.`;
+    }
+
+    let response = `📝 *Recent Updates for ${caseNumber}:*\n\n`;
+    journalEntries.forEach((entry: any, index: number) => {
+      const timestamp = entry.sys_created_on ? new Date(entry.sys_created_on).toLocaleString() : 'Unknown';
+      const author = entry.sys_created_by || 'System';
+      const content = entry.value?.substring(0, 200) || 'No content';
+
+      response += `*${index + 1}. ${timestamp}* by ${author}:\n${content}`;
+      if (entry.value && entry.value.length > 200) {
+        response += '...';
+      }
+      response += '\n\n';
+    });
+
+    return response;
+  } catch (error) {
+    console.error('[UpdatesResponse] Error fetching case updates:', error);
+    return `I encountered an error while fetching updates for ${caseNumber}. Please try again.`;
+  }
+}
+
+async function generateAssignmentResponse(caseNumber: string): Promise<string> {
+  try {
+    const caseData = await serviceNowClient.getCase(caseNumber);
+
+    if (!caseData) {
+      return `I couldn't find case ${caseNumber}. Please check the case number and try again.`;
+    }
+
+    const assignedTo = caseData.assigned_to || 'Unassigned';
+    const assignmentGroup = caseData.assignment_group || 'No group assigned';
+
+    return `👤 *Assignment Info for ${caseNumber}:*\n` +
+           `• Assigned to: ${assignedTo}\n` +
+           `• Assignment group: ${assignmentGroup}`;
+  } catch (error) {
+    console.error('[AssignmentResponse] Error fetching assignment info:', error);
+    return `I encountered an error while checking assignment info for ${caseNumber}. Please try again.`;
+  }
+}
+
+async function generateInfoResponse(caseNumber: string, originalMessage: string): Promise<string> {
+  try {
+    const caseData = await serviceNowClient.getCase(caseNumber);
+
+    if (!caseData) {
+      return `I couldn't find case ${caseNumber}. Please check the case number and try again.`;
+    }
+
+    const shortDesc = caseData.short_description || 'No description available';
+    const status = caseData.state || 'Unknown';
+    const priority = caseData.priority || 'Unknown';
+
+    return `ℹ️ *Information for ${caseNumber}:*\n` +
+           `• Description: ${shortDesc}\n` +
+           `• Status: ${status}\n` +
+           `• Priority: ${priority}\n\n` +
+           `For more details, try asking about "status" or "latest updates".`;
+  } catch (error) {
+    console.error('[InfoResponse] Error fetching case info:', error);
+    return `I encountered an error while fetching information for ${caseNumber}. Please try again.`;
+  }
+}
 
 const slackMessaging = getSlackMessagingService();
 
@@ -39,6 +246,36 @@ export async function handleNewAppMention(
 
   const contextManager = getContextManager();
   const mentionCaseNumbers = contextManager.extractCaseNumbers(event.text || "");
+
+  // Detect user intent to determine response strategy
+  const intentResult = await detectIntentHybrid({
+    message: event.text || "",
+    context: {
+      conversationHistory: [], // TODO: Add conversation history
+      userRole: undefined,
+      recentIntents: [] // TODO: Add recent intents
+    }
+  });
+
+  // Route based on intent - simple queries bypass supervisor entirely
+  switch (intentResult.intent) {
+    case 'status_query':
+    case 'latest_updates':
+    case 'assignment_info':
+    case 'info_request':
+      return await handleSimpleQuery(event, mentionCaseNumbers, intentResult.intent, setFinalMessage);
+
+    case 'aggregate_query':
+      return await handleAggregateQuery(event, intentResult, setFinalMessage);
+
+    case 'complex_analysis':
+      // Continue with existing triage/analysis flow
+      break;
+
+    default:
+      // Conservative default - treat as simple info request
+      return await handleSimpleQuery(event, mentionCaseNumbers, 'info_request', setFinalMessage);
+  }
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:

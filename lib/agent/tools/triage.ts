@@ -11,7 +11,7 @@ import { createTool, type AgentToolFactoryParams } from "./shared";
 import { createServiceNowContext } from "@/infrastructure/servicenow-context";
 import { optimizeImageForClaude, isSupportedImageFormat } from "@/utils/image-processing";
 import type { ContentBlock } from "@/services/anthropic-chat";
-import { config } from "@/config";
+import { getEnableMultimodalToolResults, getMaxImageAttachmentsPerTool, getMaxImageSizeBytes } from "@/config/helpers";
 
 export type TriageCaseInput = {
   caseNumber: string;
@@ -139,14 +139,14 @@ export function createTriageTool(params: AgentToolFactoryParams) {
         };
 
         // Handle screenshots if requested
-        if (includeScreenshots && config.enableMultimodalToolResults) {
+        if (includeScreenshots && getEnableMultimodalToolResults()) {
           try {
             updateStatus?.(`is fetching screenshots for ${caseNumber}...`);
 
             const attachments = await serviceNowClient.getAttachments(
               "sn_customerservice_case",
               caseDetails.sys_id,
-              config.maxImageAttachmentsPerTool
+              getMaxImageAttachmentsPerTool()
             );
 
             const imageAttachments = attachments.filter(a =>
@@ -162,7 +162,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
                   const optimized = await optimizeImageForClaude(
                     imageBuffer,
                     attachment.content_type,
-                    config.maxImageSizeBytes
+                    getMaxImageSizeBytes()
                   );
 
                   imageBlocks.push({

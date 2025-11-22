@@ -1,37 +1,65 @@
-import { getInteractiveStateManager, type SupervisorReviewStatePayload } from "../services/interactive-state-manager";
+import { workflowManager, Workflow, NotFoundError } from "../services/workflow-manager";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import { serviceNowClient } from "../tools/servicenow";
 import { createTriageSystemContext } from "../services/case-triage/context";
 
+// This is the expected structure of the payload within the 'SUPERVISOR_REVIEW' workflow
+export interface SupervisorReviewStatePayload {
+    artifactType: "slack_message" | "servicenow_work_note";
+    caseNumber?: string;
+    channelId?: string;
+    threadTs?: string;
+    content: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+    llmReview?: any | null; // Replace with actual LLM review type
+    blockedAt: string;
+}
+
 export class SupervisorStateNotFoundError extends Error {
-  constructor(stateId: string) {
-    super(`Supervisor state ${stateId} not found or already processed.`);
+  constructor(workflowId: string) {
+    super(`Supervisor workflow ${workflowId} not found or already processed.`);
     this.name = "SupervisorStateNotFoundError";
   }
 }
 
-export async function approveSupervisorState(stateId: string, reviewer: string) {
-  const manager = getInteractiveStateManager();
-  const state = await manager.getStateById<"supervisor_review">(stateId);
-  if (!state || state.type !== "supervisor_review") {
-    throw new SupervisorStateNotFoundError(stateId);
-  }
+export async function approveSupervisorState(workflowId: string, reviewer: string): Promise<Workflow> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager is not available.");
+    }
+    const workflow = await workflowManager.get(workflowId);
+    if (!workflow || workflow.workflowType !== "SUPERVISOR_REVIEW" || workflow.currentState !== 'PENDING_REVIEW') {
+        throw new SupervisorStateNotFoundError(workflowId);
+    }
 
-  await executeSupervisorState(state.payload);
-  await manager.markProcessed(state.channelId, state.messageTs, reviewer, "approved");
+    const payload = workflow.payload as SupervisorReviewStatePayload;
+    await executeSupervisorState(payload);
+    
+    const updatedWorkflow = await workflowManager.transition(workflow.id, workflow.version, {
+        toState: 'APPROVED',
+        lastModifiedBy: reviewer,
+        reason: `Approved by ${reviewer}`
+    });
 
-  return state;
+    return updatedWorkflow;
 }
 
-export async function rejectSupervisorState(stateId: string, reviewer: string) {
-  const manager = getInteractiveStateManager();
-  const state = await manager.getStateById<"supervisor_review">(stateId);
-  if (!state || state.type !== "supervisor_review") {
-    throw new SupervisorStateNotFoundError(stateId);
-  }
+export async function rejectSupervisorState(workflowId: string, reviewer: string): Promise<Workflow> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager is not available.");
+    }
+    const workflow = await workflowManager.get(workflowId);
+    if (!workflow || workflow.workflowType !== "SUPERVISOR_REVIEW" || workflow.currentState !== 'PENDING_REVIEW') {
+        throw new SupervisorStateNotFoundError(workflowId);
+    }
 
-  await manager.markProcessed(state.channelId, state.messageTs, reviewer, "rejected");
-  return state;
+    const updatedWorkflow = await workflowManager.transition(workflow.id, workflow.version, {
+        toState: 'REJECTED',
+        lastModifiedBy: reviewer,
+        reason: `Rejected by ${reviewer}`
+    });
+
+    return updatedWorkflow;
 }
 
 export async function executeSupervisorState(
@@ -59,7 +87,7 @@ export async function executeSupervisorState(
       throw new Error("Missing case number for ServiceNow artifact");
     }
 
-    const sysId = payload.metadata?.sysId;
+    const sysId = (payload.metadata as any)?.sysId;
     if (!sysId) {
       throw new Error("Missing sys_id in supervisor metadata");
     }
@@ -74,6 +102,6 @@ export async function executeSupervisorState(
   }
 
   // Handle unknown artifact types gracefully
-  console.warn(`Unknown artifact type: ${payload.artifactType}`);
+  console.warn(`Unknown artifact type: ${(payload as any).artifactType}`);
   return;
 }

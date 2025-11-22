@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { config as appConfig } from "../config";
+import { getServiceNowConfig } from "../config/helpers";
 import { featureFlags, hashUserId } from "../infrastructure/feature-flags";
 import type {
   CaseRepository,
@@ -75,16 +75,19 @@ function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const serviceNowConfig: ServiceNowConfig = {
-  instanceUrl: normalize(appConfig.servicenowInstanceUrl || appConfig.servicenowUrl),
-  username: normalize(appConfig.servicenowUsername),
-  password: normalize(appConfig.servicenowPassword),
-  apiToken: normalize(appConfig.servicenowApiToken),
-  caseTable: (appConfig.servicenowCaseTable || "sn_customerservice_case").trim(),
-  caseJournalName: (appConfig.servicenowCaseJournalName || "x_mobit_serv_case_service_case").trim(),
-  ciTable: (appConfig.servicenowCiTable || "cmdb_ci").trim(),
-  taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
-};
+const serviceNowConfig: ServiceNowConfig = (() => {
+  const snConfig = getServiceNowConfig();
+  return {
+    instanceUrl: normalize(snConfig.instanceUrl),
+    username: normalize(snConfig.username),
+    password: normalize(snConfig.password),
+    apiToken: normalize(snConfig.apiToken),
+    caseTable: snConfig.caseTable.trim(),
+    caseJournalName: snConfig.caseJournalName.trim(),
+    ciTable: snConfig.ciTable.trim(),
+    taskTable: snConfig.taskTable.trim(),
+  };
+})();
 
 const SERVER_CLASS_EXPANSION = [
   "cmdb_ci_server",

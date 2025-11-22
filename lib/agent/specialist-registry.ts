@@ -1,3 +1,5 @@
+import { getAgentHealth } from "../services/agent-health-monitor";
+import { serviceNowClient } from "../tools/servicenow";
 import type { ChatMessage } from "../services/anthropic-chat";
 
 const CASE_NUMBER_REGEX = /\b(?:SCS|CS|INC|RITM|REQ|CHG|PRB|SCTASK|TASK|STASK)[0-9]{4,}\b/gi;
@@ -41,6 +43,11 @@ export interface SpecialistAgentDefinition {
   costClass?: "low" | "medium" | "high";
   latencyClass?: "short" | "medium" | "long";
   baseWeight?: number;
+  healthCheck?: () => Promise<boolean>;
+  healthStatus?: 'healthy' | 'degraded' | 'down';
+  averageCost?: number;
+  averageLatency?: number;
+  includes?: string[];
 }
 
 export interface SpecialistAgentMatch {
@@ -101,14 +108,15 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
       "orchestrateServiceNowCase",
       "serviceNow",
       "searchCases",
-      "searchSimilarCases",
       "runClassificationAgent",
     ],
+    includes: ["classification_runner"],
     eventsEmitted: ["case.triage.completed"],
     entryPoint: "tool",
     costClass: "high",
     latencyClass: "long",
     baseWeight: 6,
+    healthCheck: async () => serviceNowClient.isConfigured(),
   },
   {
     id: "knowledge_base_agent",
@@ -138,7 +146,7 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     name: "CMDB Agent",
     description: "Finds or updates configuration items, relationships, and context for troubleshooting.",
     keywords: ["cmdb", "configuration item", "ci", "asset", "inventory", "infrastructure"],
-    toolNames: ["searchCMDB", "createConfigurationItem", "proposeContextUpdate"],
+    toolNames: ["searchConfigurationItems", "getCIRelationships", "createConfigurationItem", "proposeContextUpdate"],
     entryPoint: "tool",
     costClass: "medium",
     latencyClass: "medium",
@@ -266,6 +274,15 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
           score += 2;
         }
       }
+    }
+
+    const health = getAgentHealth(agent.id);
+    if (health) {
+        if (health.status === 'down') {
+            score = 0; // Don't use agents that are down
+        } else if (health.status === 'degraded') {
+            score *= 0.5; // Halve the score for degraded agents
+        }
     }
 
     const missingSignals: SpecialistSignal[] = [];

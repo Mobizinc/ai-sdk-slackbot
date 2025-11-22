@@ -35,17 +35,18 @@ import type { RequestedItemRepository } from "./requested-item-repository.interf
 import type { CatalogTaskRepository } from "./catalog-task-repository.interface";
 import type { AttachmentRepository } from "./attachment-repository.interface";
 import { ServiceNowTableAPIClient } from "../client/table-api-client";
-import { config } from "../../../config";
+import { getServiceNowConfig } from "../../../config/helpers";
 
 /**
  * Create ServiceNowHttpClient from environment configuration
  */
 export function createHttpClient(overrides?: Partial<ServiceNowClientConfig>): ServiceNowHttpClient {
+  const snConfig = getServiceNowConfig();
   const clientConfig: ServiceNowClientConfig = {
-    instanceUrl: overrides?.instanceUrl ?? config.servicenowInstanceUrl ?? config.servicenowUrl ?? "",
-    username: overrides?.username ?? config.servicenowUsername,
-    password: overrides?.password ?? config.servicenowPassword,
-    apiToken: overrides?.apiToken ?? config.servicenowApiToken,
+    instanceUrl: overrides?.instanceUrl ?? snConfig.instanceUrl,
+    username: overrides?.username ?? snConfig.username,
+    password: overrides?.password ?? snConfig.password,
+    apiToken: overrides?.apiToken ?? snConfig.apiToken,
     defaultTimeout: overrides?.defaultTimeout ?? 30000,
     maxRetries: overrides?.maxRetries ?? 3,
     retryDelay: overrides?.retryDelay ?? 1000,
@@ -63,8 +64,9 @@ export function createCaseRepository(
 ): CaseRepository {
   const client = httpClient ?? createHttpClient();
 
+  const snConfig = getServiceNowConfig();
   const repositoryConfig: Partial<CaseRepositoryConfig> = {
-    caseTable: repoConfig?.caseTable ?? config.servicenowCaseTable ?? "sn_customerservice_case",
+    caseTable: repoConfig?.caseTable ?? snConfig.caseTable ?? "sn_customerservice_case",
     caseJournalTable: repoConfig?.caseJournalTable ?? "sys_journal_field",
     incidentTable: repoConfig?.incidentTable ?? "incident",
   };

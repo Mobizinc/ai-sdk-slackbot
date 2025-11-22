@@ -4,7 +4,7 @@
  * Centralized constants and utilities for consistent Slack Block Kit messages
  */
 
-import { config } from '../config';
+import { getServiceNowConfig } from '../config/helpers';
 
 // ============================================================================
 // BLOCK KIT TYPE DEFINITIONS
@@ -1364,7 +1364,8 @@ export function truncateForMobile(text: string): string {
  * Get ServiceNow case URL
  */
 export function getServiceNowCaseUrl(sysId: string): string {
-  const instance = (config.servicenowInstanceUrl || config.servicenowUrl || '').replace(/\/$/, '');
+  const snConfig = getServiceNowConfig();
+  const instance = (snConfig.instanceUrl || '').replace(/\/$/, '');
   if (!instance) return '';
   return `${instance}/sn_customerservice_case.do?sys_id=${sysId}`;
 }
@@ -1373,7 +1374,8 @@ export function getServiceNowCaseUrl(sysId: string): string {
  * Get ServiceNow table URL
  */
 export function getServiceNowTableUrl(table: string, sysId: string): string {
-  const instance = (config.servicenowInstanceUrl || config.servicenowUrl || '').replace(/\/$/, '');
+  const snConfig = getServiceNowConfig();
+  const instance = (snConfig.instanceUrl || '').replace(/\/$/, '');
   if (!instance) return '';
   return `${instance}/${table}.do?sys_id=${sysId}`;
 }

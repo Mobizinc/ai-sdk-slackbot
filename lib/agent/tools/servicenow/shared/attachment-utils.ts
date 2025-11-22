@@ -11,7 +11,7 @@ import {
   optimizeImageForClaude,
   isSupportedImageFormat,
 } from "@/utils/image-processing";
-import { config } from "@/config";
+import { getEnableMultimodalToolResults, getMaxImageAttachmentsPerTool, getMaxImageSizeBytes } from "@/config/helpers";
 
 /**
  * Fetch and process attachments from ServiceNow for Claude consumption
@@ -31,14 +31,14 @@ export async function fetchAttachments(
   attachmentTypes?: string[]
 ): Promise<ContentBlock[]> {
   // Check if multimodal is enabled globally and requested
-  if (!config.enableMultimodalToolResults || !includeAttachments) {
+  if (!getEnableMultimodalToolResults() || !includeAttachments) {
     return [];
   }
 
   try {
     const attachmentLimit = Math.min(
-      maxAttachments ?? config.maxImageAttachmentsPerTool,
-      config.maxImageAttachmentsPerTool
+      maxAttachments ?? getMaxImageAttachmentsPerTool(),
+      getMaxImageAttachmentsPerTool()
     );
 
     // Fetch attachment metadata
@@ -84,7 +84,7 @@ export async function fetchAttachments(
         const optimized = await optimizeImageForClaude(
           imageBuffer,
           attachment.content_type,
-          config.maxImageSizeBytes
+          getMaxImageSizeBytes()
         );
 
         contentBlocks.push({

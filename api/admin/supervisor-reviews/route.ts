@@ -1,17 +1,20 @@
 import { authorizeAdminRequest, getCorsHeaders } from "../utils";
-import { getInteractiveStateManager, type SupervisorReviewStatePayload } from "../../../lib/services/interactive-state-manager";
+import { workflowManager, Workflow } from "../../../lib/services/workflow-manager";
 import {
   approveSupervisorState,
   rejectSupervisorState,
   SupervisorStateNotFoundError,
+  SupervisorReviewStatePayload
 } from "../../../lib/supervisor/actions";
-
-const stateManager = getInteractiveStateManager();
 
 export async function GET(request: Request) {
   const unauthorized = authorizeAdminRequest(request);
   if (unauthorized) {
     return unauthorized;
+  }
+  
+  if (!workflowManager) {
+    return new Response(JSON.stringify({ error: "WorkflowManager not available" }), { status: 500 });
   }
 
   try {
@@ -26,20 +29,21 @@ export async function GET(request: Request) {
     const minAgeMinutes = Number(searchParams.get("minAgeMinutes")) || 0;
     const limit = Math.min(Number(searchParams.get("limit")) || 25, 100);
 
-    const states = await stateManager.getPendingStatesByType("supervisor_review");
+    const states = await workflowManager.findByTypeAndState("SUPERVISOR_REVIEW", "PENDING_REVIEW");
     const now = Date.now();
 
     const filtered = states
       .filter((state) => {
-        if (typeFilter && state.payload.artifactType !== typeFilter) {
+        const payload = state.payload as SupervisorReviewStatePayload;
+        if (typeFilter && payload.artifactType !== typeFilter) {
           return false;
         }
-        if (verdictFilter && state.payload.llmReview?.verdict !== verdictFilter) {
+        if (verdictFilter && payload.llmReview?.verdict !== verdictFilter) {
           return false;
         }
         if (minAgeMinutes > 0) {
           const ageMinutes =
-            (now - new Date(state.payload.blockedAt).getTime()) / (60 * 1000);
+            (now - new Date(payload.blockedAt).getTime()) / (60 * 1000);
           if (ageMinutes < minAgeMinutes) {
             return false;
           }
@@ -83,11 +87,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const action = body?.action as "approve" | "reject";
-    const stateId = body?.stateId as string;
+    const workflowId = body?.workflowId as string;
     const reviewer = body?.reviewer || "admin-ui";
 
-    if (!action || !stateId) {
-      return new Response(JSON.stringify({ error: "action and stateId are required" }), {
+    if (!action || !workflowId) {
+      return new Response(JSON.stringify({ error: "action and workflowId are required" }), {
         status: 400,
         headers: getCorsHeaders(request, "GET,POST,OPTIONS"),
       });
@@ -95,9 +99,9 @@ export async function POST(request: Request) {
 
     let state;
     if (action === "approve") {
-      state = await approveSupervisorState(stateId, reviewer);
+      state = await approveSupervisorState(workflowId, reviewer);
     } else if (action === "reject") {
-      state = await rejectSupervisorState(stateId, reviewer);
+      state = await rejectSupervisorState(workflowId, reviewer);
     } else {
       return new Response(JSON.stringify({ error: "Unsupported action" }), {
         status: 400,
@@ -139,8 +143,8 @@ export async function OPTIONS(request: Request) {
   });
 }
 
-function mapState(state: any, now: number) {
-  const payload: SupervisorReviewStatePayload = state.payload;
+function mapState(state: Workflow, now: number) {
+  const payload = state.payload as SupervisorReviewStatePayload;
   const ageMinutes = Math.round(
     (now - new Date(payload.blockedAt).getTime()) / (60 * 1000)
   );
@@ -157,11 +161,11 @@ function mapState(state: any, now: number) {
     verdict: payload.llmReview?.verdict ?? null,
     llmReview: payload.llmReview ?? null,
     metadata: payload.metadata ?? {},
-    status: state.status,
+    status: state.currentState,
   };
 }
 
-function buildStats(states: any[], now: number) {
+function buildStats(states: Workflow[], now: number) {
   const sums = {
     totalPending: states.length,
     averageAgeMinutes: 0,
@@ -178,7 +182,7 @@ function buildStats(states: any[], now: number) {
   };
 
   for (const state of states) {
-    const payload: SupervisorReviewStatePayload = state.payload;
+    const payload = state.payload as SupervisorReviewStatePayload;
     const ageMinutes =
       (now - new Date(payload.blockedAt).getTime()) / (60 * 1000);
     sums.averageAgeMinutes += ageMinutes;
