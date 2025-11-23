@@ -58,7 +58,9 @@
     "openai": "^6.2.0",
     "sharp": "^0.34.4",
     "zod": "^3.25.76",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3",
+    "tsc-alias": "^1.8.10"
   },
   "devDependencies": {
     "@types/mssql": "^9.1.8",
@@ -68,8 +70,6 @@
     "drizzle-kit": "^0.31.5",
     "msw": "^2.3.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.5.3",
-    "tsc-alias": "^1.8.10"
+    "vitest": "^1.5.3"
   }
 }
