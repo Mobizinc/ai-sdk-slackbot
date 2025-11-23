@@ -1,0 +1,1 @@
+DROP TABLE "interactive_states" CASCADE;

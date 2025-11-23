@@ -11,7 +11,7 @@ import { getBusinessContextService, type BusinessEntityContext } from "../servic
 import { getSearchFacadeService } from "../services/search-facade";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import type { SimilarCase } from "../services/azure-search";
-import { getConfigValue } from "../config";
+import { getDiscoveryContextPackEnabled } from "../config/helpers";
 import { generateDiscoveryContextPack } from "./discovery/context-pack";
 import { createChildSpan } from "../observability";
 import { getCaseRepository } from "../infrastructure/servicenow/repositories";
@@ -65,7 +65,7 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
       metadata.caseContext = contexts[0];
     }
 
-    if (getConfigValue("discoveryContextPackEnabled")) {
+    if (getDiscoveryContextPackEnabled()) {
       const artifacts = await loadCaseArtifactsForDiscovery(caseNumbers[0]);
       discoveryCaseRecord = artifacts.caseRecord ?? null;
       discoveryJournalText = artifacts.journalText;
@@ -148,7 +148,7 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     }
   }
 
-  if (getConfigValue("discoveryContextPackEnabled")) {
+  if (getDiscoveryContextPackEnabled()) {
     const discoverySpan = await createChildSpan({
       name: "discovery_context_pack_generation",
       runType: "chain",
@@ -201,7 +201,7 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
 
   let enrichedMessages = input.messages;
 
-  if (getConfigValue("autoCmdbLookupEnabled")) {
+  if (true) { // TODO: Use consolidated config
     const cmdbSpan = await createChildSpan({
       name: "cmdb_prefetch",
       runType: "tool",

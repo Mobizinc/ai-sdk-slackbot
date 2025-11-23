@@ -1,10 +1,36 @@
 import { verifyRequest } from "../../lib/slack-utils";
-import { getInteractiveStateManager, type SupervisorReviewStatePayload } from "../../lib/services/interactive-state-manager";
+import { workflowManager, Workflow } from "../../lib/services/workflow-manager";
 import { approveSupervisorState, rejectSupervisorState, SupervisorStateNotFoundError } from "../../lib/supervisor/actions";
+import { getQStashClient, getWorkerUrl } from "../../lib/queue/qstash-client";
+import { supervisorRequestBatcher } from "../../lib/supervisor/batcher";
 
-const stateManager = getInteractiveStateManager();
+interface SupervisorReviewStatePayload {
+    artifactType: "slack_message" | "servicenow_work_note";
+    caseNumber?: string;
+    channelId?: string;
+    threadTs?: string;
+    content: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+    llmReview?: any | null; // Replace with actual LLM review type
+    blockedAt: string;
+}
+
+interface LlmIssue {
+    severity: string;
+    description: string;
+    recommendation?: string;
+}
+
 
 export async function POST(request: Request) {
+  if (!workflowManager) {
+    return new Response(JSON.stringify({ response_type: "ephemeral", text: "Error: WorkflowManager is not available." }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+  }
+
   const rawBody = await request.text();
   const verification = await verifyRequest({
     requestType: "command",
@@ -57,7 +83,7 @@ async function handleReviewCommand(payload: CommandPayload): Promise<CommandResp
   }
 
   return helpResponse(
-    "Usage: `/review-latest [list|approve <state_id>|reject <state_id>]`"
+    "Usage: `/review-latest [list|approve <workflow_id>|reject <workflow_id>]`"
   );
 }
 
@@ -74,7 +100,11 @@ interface ListFilters {
 const DEFAULT_LIST_LIMIT = 5;
 
 async function listPendingStates(options: ListFilters = {}): Promise<CommandResponse> {
-  const states = await stateManager.getPendingStatesByType("supervisor_review");
+  if (!workflowManager) {
+      return { status: 500, body: { response_type: "ephemeral", text: "WorkflowManager not available." } };
+  }
+  const states = await workflowManager.findByTypeAndState("SUPERVISOR_REVIEW", "PENDING_REVIEW");
+
   if (states.length === 0) {
     return {
       status: 200,
@@ -86,15 +116,16 @@ async function listPendingStates(options: ListFilters = {}): Promise<CommandResp
   }
 
   const filtered = states.filter((state) => {
-    if (options.typeFilter && state.payload.artifactType !== options.typeFilter) {
+    const payload = state.payload as SupervisorReviewStatePayload;
+    if (options.typeFilter && payload.artifactType !== options.typeFilter) {
       return false;
     }
-    if (options.verdictFilter && state.payload.llmReview?.verdict !== options.verdictFilter) {
+    if (options.verdictFilter && payload.llmReview?.verdict !== options.verdictFilter) {
       return false;
     }
     if (options.minAgeMinutes && options.minAgeMinutes > 0) {
       const ageMinutes =
-        (Date.now() - new Date(state.payload.blockedAt).getTime()) / (60 * 1000);
+        (Date.now() - new Date(payload.blockedAt).getTime()) / (60 * 1000);
       if (ageMinutes < options.minAgeMinutes) {
         return false;
       }
@@ -125,7 +156,7 @@ async function listPendingStates(options: ListFilters = {}): Promise<CommandResp
 
   const limit = options.limit && options.limit > 0 ? options.limit : DEFAULT_LIST_LIMIT;
   const sorted = filtered.sort((a, b) =>
-    new Date(b.payload.blockedAt).getTime() - new Date(a.payload.blockedAt).getTime()
+    new Date((b.payload as SupervisorReviewStatePayload).blockedAt).getTime() - new Date((a.payload as SupervisorReviewStatePayload).blockedAt).getTime()
   );
 
   const rows = sorted.slice(0, limit).map((state) => formatStateRow(state));
@@ -152,116 +183,152 @@ async function listPendingStates(options: ListFilters = {}): Promise<CommandResp
       response_type: "ephemeral",
       text:
         `Pending supervisor reviews (use key-value filters like \`type=slack verdict=revise min=15 limit=3\`):\n` +
-        `${rows.join("\n\n")}\n\n${filterSummary}\nApprove with \`/review-latest approve <state_id>\`, reject with \`/review-latest reject <state_id>\`.`,
+        `${rows.join("\n\n")} \n\n${filterSummary}\nApprove with \`/review-latest approve <workflow_id>\`, reject with \`/review-latest reject <workflow_id>\`.
+      `,
     },
   };
 }
 
-function formatStateRow(state: { id: string; payload: SupervisorReviewStatePayload }): string {
-  const payload = state.payload;
-  const typeLabel = payload.artifactType === "slack_message" ? "Slack response" : "ServiceNow work note";
-  const caseRef = payload.caseNumber ? ` for ${payload.caseNumber}` : "";
-  const ageMinutes = Math.round((Date.now() - new Date(payload.blockedAt).getTime()) / (60 * 1000));
-  const etaText = deriveEtaText(payload);
-  const verdict = payload.llmReview?.verdict
-    ? `${payload.llmReview.verdict.toUpperCase()}${payload.llmReview.confidence ? ` (${Math.round(payload.llmReview.confidence * 100)}%)` : ""}`
-    : "UNKNOWN";
-
-  const lines = [
-    `• *${state.id}*: ${typeLabel}${caseRef}`,
-    `   Reason: ${payload.reason}`,
-    `   Age: ${ageMinutes}m | ${etaText}`,
-    `   Verdict: ${verdict}`,
-  ];
-
-  if (payload.llmReview?.summary) {
-    lines.push(`   LLM: ${payload.llmReview.summary}`);
-  } else {
-    lines.push("   LLM: (no feedback)");
-  }
-
-  const issueLines = formatIssueLines(payload);
-  if (issueLines.length > 0) {
-    lines.push(...issueLines.map((line) => `   ${line}`));
-  }
-
-  const metadataParts: string[] = [];
-  if (payload.channelId) {
-    metadataParts.push(`channel ${payload.channelId}`);
-  }
-  if (payload.threadTs) {
-    metadataParts.push(`thread ${payload.threadTs}`);
-  }
-  if (metadataParts.length > 0) {
-    lines.push(`   Context: ${metadataParts.join(" | ")}`);
-  }
-
-  return lines.join("\n");
+function formatStateRow(state: Workflow): string {
+    const payload = state.payload as SupervisorReviewStatePayload;
+    const typeLabel = payload.artifactType === "slack_message" ? "Slack response" : "ServiceNow work note";
+    const caseRef = payload.caseNumber ? ` for ${payload.caseNumber}` : "";
+    const ageMinutes = Math.round((Date.now() - new Date(payload.blockedAt).getTime()) / (60 * 1000));
+    const etaText = deriveEtaText(payload);
+    const verdict = payload.llmReview?.verdict
+      ? `${payload.llmReview.verdict.toUpperCase()}${payload.llmReview.confidence ? ` (${Math.round(payload.llmReview.confidence * 100)}%)` : ""}`
+      : "UNKNOWN";
+  
+    const lines = [
+      `• *${state.id}*: ${typeLabel}${caseRef}`,
+      `   Reason: ${payload.reason}`,
+      `   Age: ${ageMinutes}m | ${etaText}`,
+      `   Verdict: ${verdict}`,
+    ];
+  
+    if (payload.llmReview?.summary) {
+      lines.push(`   LLM: ${payload.llmReview.summary}`);
+    } else {
+      lines.push("   LLM: (no feedback)");
+    }
+  
+    const issueLines = formatIssueLines(payload);
+    if (issueLines.length > 0) {
+      lines.push(...issueLines.map((line) => `   ${line}`));
+    }
+  
+    const metadataParts: string[] = [];
+    if (payload.channelId) {
+      metadataParts.push(`channel ${payload.channelId}`);
+    }
+    if (payload.threadTs) {
+      metadataParts.push(`thread ${payload.threadTs}`);
+    }
+    if (metadataParts.length > 0) {
+      lines.push(`   Context: ${metadataParts.join(" | ")}`);
+    }
+  
+    return lines.join("\n");
 }
 
 function formatIssueLines(payload: SupervisorReviewStatePayload): string[] {
-  const issues = payload.llmReview?.issues ?? [];
+  const issues: LlmIssue[] = payload.llmReview?.issues ?? [];
   if (issues.length === 0) {
     return [];
   }
 
-  return issues.slice(0, 3).map((issue, index) => {
+  return issues.slice(0, 3).map((issue: LlmIssue, index: number) => {
     const recommendation = issue.recommendation ? ` — ${issue.recommendation}` : "";
     return `${index + 1}. [${issue.severity}] ${issue.description}${recommendation}`;
   });
 }
 
-async function approveState(stateId: string, userId: string): Promise<CommandResponse> {
+async function approveState(workflowId: string, userId: string): Promise<CommandResponse> {
+  const qstashClient = getQStashClient();
+
+  if (qstashClient) {
+    try {
+      // Use batching for supervisor approvals
+      await supervisorRequestBatcher.addRequest(workflowId, userId, async (requests) => {
+        // Process batch of requests
+        for (const request of requests) {
+          await qstashClient.publishJSON({
+            url: getWorkerUrl('/api/workers/process-supervisor-approval'),
+            body: {
+              workflowId: request.workflowId,
+              reviewer: request.reviewer,
+            },
+          });
+        }
+      });
+
+      const pendingCount = supervisorRequestBatcher.getPendingCount();
+      return {
+        status: 200,
+        body: {
+          response_type: 'ephemeral',
+          text: `✅ Approval for workflow ${workflowId} queued (${pendingCount} pending).`,
+        },
+      };
+    } catch (error) {
+      console.error('[\/review-latest] Failed to enqueue supervisor approval job:', error);
+      return {
+        status: 200,
+        body: {
+          response_type: 'ephemeral',
+          text: '⚠️ Failed to enqueue approval job. Please try again.',
+        },
+      };
+    }
+  }
+
+  // Fallback to synchronous behavior if QStash is not configured
   try {
-    const state = await approveSupervisorState(stateId, userId);
-    const llmSummary = state.payload.llmReview?.summary
-      ? `\nLLM QA: ${state.payload.llmReview.summary}`
+    const state = await approveSupervisorState(workflowId, userId);
+    const payload = state.payload as SupervisorReviewStatePayload;
+    const llmSummary = payload.llmReview?.summary
+      ? `\nLLM QA: ${payload.llmReview.summary}`
       : "";
 
     return {
       status: 200,
       body: {
         response_type: "ephemeral",
-        text: `✅ Approved state ${stateId} (${state.payload.artifactType}).${llmSummary}`,
+        text: `✅ Approved workflow ${workflowId} for case ${payload.caseNumber || 'unknown'}.${llmSummary}`,
       },
     };
   } catch (error) {
-    if (error instanceof SupervisorStateNotFoundError) {
-      return notFoundResponse(stateId);
-    }
-    console.error("[/review-latest] Failed to approve supervisor state:", error);
+    console.error('[\/review-latest] Failed to approve supervisor state:', error);
     return {
       status: 200,
       body: {
-        response_type: "ephemeral",
-        text: `⚠️ Failed to execute state ${stateId}: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        response_type: 'ephemeral',
+        text: '❌ Failed to approve workflow. Please try again.',
       },
     };
   }
-}
+  }
 
-async function rejectState(stateId: string, userId: string): Promise<CommandResponse> {
+async function rejectState(workflowId: string, userId: string): Promise<CommandResponse> {
   try {
-    await rejectSupervisorState(stateId, userId);
+    await rejectSupervisorState(workflowId, userId);
     return {
       status: 200,
       body: {
         response_type: "ephemeral",
-        text: `🚫 Rejected state ${stateId}.`,
+        text: `🚫 Rejected workflow ${workflowId}.`,
       },
     };
   } catch (error) {
     if (error instanceof SupervisorStateNotFoundError) {
-      return notFoundResponse(stateId);
+      return notFoundResponse(workflowId);
     }
-    console.error("[/review-latest] Failed to reject supervisor state:", error);
+    console.error("[\/review-latest] Failed to reject supervisor state:", error);
     return {
       status: 200,
       body: {
         response_type: "ephemeral",
-        text: `⚠️ Failed to reject state ${stateId}: ${
+        text: `⚠️ Failed to reject state ${workflowId}: ${ 
           error instanceof Error ? error.message : "Unknown error"
         }`,
       },
@@ -274,7 +341,7 @@ function notFoundResponse(stateId: string): CommandResponse {
     status: 200,
     body: {
       response_type: "ephemeral",
-      text: `State \`${stateId}\` not found or already processed.`,
+      text: `Workflow \`${stateId}\` not found or already processed.`,
     },
   };
 }
@@ -285,7 +352,8 @@ function helpResponse(message: string): CommandResponse {
     body: {
       response_type: "ephemeral",
       text:
-        `${message}\nExamples: \`/review-latest list type=slack verdict=critical min=15 limit=3\`, \`/review-latest list servicenow 30\`.`,
+        `${message}\nExamples: \`/review-latest list type=slack verdict=critical min=15 limit=3\`, \`/review-latest list servicenow 30\`.
+      `,
     },
   };
 }

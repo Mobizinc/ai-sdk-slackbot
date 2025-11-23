@@ -5,7 +5,7 @@
  * Handles null/undefined fields gracefully and provides mobile-responsive designs.
  */
 
-import { config } from "../config";
+import { getServiceNowConfig } from "../config/helpers";
 
 /**
  * Slack Block Kit Constraints
@@ -220,9 +220,8 @@ function formatDate(dateString?: string): string {
  * Build ServiceNow deep link URL
  */
 function buildServiceNowLink(caseNumber: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -312,7 +311,8 @@ export function formatCaseAsMinimalCard(caseData: ServiceNowCase): any[] {
   });
 
   // Button to view full details in ServiceNow
-  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl || "https://mobiz.service-now.com";
   const caseUrl = `${instanceUrl}/nav_to.do?uri=x_mobit_serv_case_service_case.do?sys_id=${sysId}`;
 
   blocks.push({
@@ -568,7 +568,8 @@ export function formatIncidentAsMinimalCard(incidentData: ServiceNowCase): any[]
   });
 
   // Button to view full details in ServiceNow
-  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl || "https://mobiz.service-now.com";
   const incidentUrl = `${instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`;
 
   blocks.push({
@@ -806,9 +807,8 @@ export function formatIncidentAsBlockKit(
  * Build ServiceNow deep link URL for incidents
  */
 function buildIncidentServiceNowLink(incidentNumber: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -911,9 +911,8 @@ function formatEnvironment(environment: any): string {
  * Build ServiceNow deep link URL for CI
  */
 function buildCIServiceNowLink(ciName: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -1122,9 +1121,8 @@ import type { Request, RequestedItem, CatalogTask } from "../infrastructure/serv
  * Build ServiceNow deep link URL for catalog workflow records
  */
 function buildCatalogWorkflowLink(table: string, number: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 

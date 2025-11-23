@@ -1,70 +1,32 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { CIMatchingService } from "../lib/services/ci-matching-service";
 import { getCmdbRepository } from "../lib/infrastructure/servicenow/repositories/factory";
-import { readFileSync } from "fs";
-import { join } from "path";
 
 // Mock the dependencies
 vi.mock("../lib/infrastructure/servicenow/repositories/factory");
-vi.mock("fs", () => ({
-  readFileSync: vi.fn(),
-}));
-vi.mock("path", () => ({
-  join: vi.fn(),
-}));
 
 const mockCmdbRepo = {
+  findByName: vi.fn(),
+  findBySysId: vi.fn(),
   findByIpAddress: vi.fn(),
   findByFqdn: vi.fn(),
   search: vi.fn(),
+  findByClassName: vi.fn(),
+  linkToCase: vi.fn(),
+  findLinkedToCaseItem: vi.fn(),
+  findByOwnerGroup: vi.fn(),
+  findByEnvironment: vi.fn(),
+  getRelatedCIs: vi.fn(),
+  create: vi.fn(),
+  createRelationship: vi.fn(),
 };
 
 describe("CIMatchingService", () => {
   let service: CIMatchingService;
-  const mockVeloCloudInventory = {
-    generated_at: "2025-01-01T00:00:00Z",
-    source: "velocloud-api",
-    customers: [
-      {
-        customer: "Test Customer",
-        base_url: "https://test.velocloud.net",
-        enterprise_id: 12345,
-        edge_count: 2,
-        records: [
-          {
-            edge_id: 1,
-            edge_name: "edge-ACCT0242146-01",
-            logical_id: "edge-logical-id-1",
-            enterprise_id: 12345,
-            site_name: "Main Office",
-            edge_state: "CONNECTED",
-            activation_state: "ACTIVE",
-            model_number: "VCE-1100",
-            last_contact: "2025-01-01T12:00:00Z",
-            account_hint: "ACCT0242146",
-          },
-          {
-            edge_id: 2,
-            edge_name: "edge-ACCT0242147-01",
-            logical_id: "edge-logical-id-2",
-            enterprise_id: 12346,
-            site_name: "Branch Office",
-            edge_state: "DISCONNECTED",
-            activation_state: "INACTIVE",
-            model_number: "VCE-1100",
-            last_contact: "2024-12-31T12:00:00Z",
-            account_hint: "ACCT0242147",
-          },
-        ],
-      },
-    ],
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getCmdbRepository).mockReturnValue(mockCmdbRepo);
-    vi.mocked(join).mockReturnValue("/mocked/path/velocloud-edges.json");
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify(mockVeloCloudInventory));
     service = new CIMatchingService(70);
   });
 
@@ -73,124 +35,8 @@ describe("CIMatchingService", () => {
   });
 
   describe("Initialization", () => {
-    it("✓ Loads VeloCloud inventory on initialization", () => {
-      expect(readFileSync).toHaveBeenCalledWith(
-        "/mocked/path/velocloud-edges.json",
-        "utf-8"
-      );
+    it("✓ Initializes with confidence threshold", () => {
       expect(service).toBeInstanceOf(CIMatchingService);
-    });
-
-    it("✓ Handles inventory loading failure gracefully", () => {
-      vi.mocked(readFileSync).mockImplementation(() => {
-        throw new Error("File not found");
-      });
-      
-      const serviceWithFailedLoad = new CIMatchingService(70);
-      // Should not throw, just log error and continue
-      expect(serviceWithFailedLoad).toBeInstanceOf(CIMatchingService);
-    });
-  });
-
-  describe("Account Number Extraction", () => {
-    it("✓ Extracts account numbers from text (ACCT format)", () => {
-      const text = "The edge ACCT0242146 is having issues with ACCT0242147";
-      const accountNumbers = service["extractAccountNumbers"](text);
-      
-      expect(accountNumbers).toEqual(["ACCT0242146", "ACCT0242147"]);
-    });
-
-    it("✓ Handles case insensitive account numbers", () => {
-      const text = "Issues with acct0242146 and AcCt0242147";
-      const accountNumbers = service["extractAccountNumbers"](text);
-      
-      expect(accountNumbers).toEqual(["ACCT0242146", "ACCT0242147"]);
-    });
-
-    it("✓ Removes duplicate account numbers", () => {
-      const text = "ACCT0242146 appears twice: ACCT0242146";
-      const accountNumbers = service["extractAccountNumbers"](text);
-      
-      expect(accountNumbers).toEqual(["ACCT0242146"]);
-    });
-  });
-
-  describe("VeloCloud Edge Matching", () => {
-    it("✓ Matches VeloCloud edges by exact name (100% confidence)", async () => {
-      const entities = {
-        edge_names: ["edge-ACCT0242146-01"],
-      };
-
-      const result = await service.matchEntities(entities);
-
-      expect(result.matches).toHaveLength(1);
-      expect(result.matches[0]).toMatchObject({
-        sys_id: "edge-logical-id-1",
-        name: "edge-ACCT0242146-01",
-        class: "VeloCloud Edge",
-        confidence: 100,
-        source: "inventory",
-        match_reason: "Exact edge name match",
-      });
-    });
-
-    it("✓ Matches VeloCloud edges by partial name (85% confidence)", async () => {
-      const entities = {
-        edge_names: ["ACCT0242146"],
-      };
-
-      const result = await service.matchEntities(entities);
-
-      expect(result.matches).toHaveLength(1);
-      expect(result.matches[0]).toMatchObject({
-        sys_id: "edge-logical-id-1",
-        name: "edge-ACCT0242146-01",
-        class: "VeloCloud Edge",
-        confidence: 85,
-        source: "inventory",
-        match_reason: "Partial edge name match",
-      });
-    });
-
-    it("✓ Matches VeloCloud edges by account number (90% active, 75% inactive)", async () => {
-      const entities = {
-        account_numbers: ["ACCT0242146", "ACCT0242147"],
-      };
-
-      const result = await service.matchEntities(entities);
-
-      expect(result.matches).toHaveLength(2);
-      
-      // Active edge should have 90% confidence
-      const activeMatch = result.matches.find(m => m.confidence === 90);
-      expect(activeMatch).toMatchObject({
-        name: "edge-ACCT0242146-01",
-        confidence: 90,
-        match_reason: "Account number match (ACCT0242146) - Active",
-      });
-
-      // Inactive edge should have 75% confidence
-      const inactiveMatch = result.matches.find(m => m.confidence === 75);
-      expect(inactiveMatch).toMatchObject({
-        name: "edge-ACCT0242147-01",
-        confidence: 75,
-        match_reason: "Account number match (ACCT0242147) - Inactive",
-      });
-    });
-
-    it("✓ Matches by site name (80% confidence)", async () => {
-      const entities = {
-        system_names: ["Main Office"],
-      };
-
-      const result = await service.matchEntities(entities);
-
-      expect(result.matches).toHaveLength(1);
-      expect(result.matches[0]).toMatchObject({
-        name: "edge-ACCT0242146-01",
-        confidence: 80,
-        match_reason: "Site name match: Main Office",
-      });
     });
   });
 
@@ -214,12 +60,12 @@ describe("CIMatchingService", () => {
 
       expect(result.matches).toHaveLength(1);
       expect(result.matches[0]).toMatchObject({
-        sys_id: "ci-123",
+        sysId: "ci-123",
         name: "server01",
         class: "cmdb_ci_server",
         confidence: 95,
         source: "cmdb",
-        match_reason: "IP address match: 192.168.1.100",
+        matchReason: "IP address match: 192.168.1.100",
       });
 
       expect(mockCmdbRepo.findByIpAddress).toHaveBeenCalledWith("192.168.1.100");
@@ -244,12 +90,12 @@ describe("CIMatchingService", () => {
 
       expect(result.matches).toHaveLength(1);
       expect(result.matches[0]).toMatchObject({
-        sys_id: "ci-456",
+        sysId: "ci-456",
         name: "webserver.example.com",
         class: "cmdb_ci_web_server",
         confidence: 95,
         source: "cmdb",
-        match_reason: "Hostname match: webserver.example.com",
+        matchReason: "Hostname match: webserver.example.com",
       });
 
       expect(mockCmdbRepo.findByFqdn).toHaveBeenCalledWith("webserver.example.com");
@@ -274,12 +120,12 @@ describe("CIMatchingService", () => {
 
       expect(result.matches).toHaveLength(1);
       expect(result.matches[0]).toMatchObject({
-        sys_id: "ci-789",
+        sysId: "ci-789",
         name: "database-server",
         class: "cmdb_ci_database",
         confidence: 85,
         source: "cmdb",
-        match_reason: "Name match: database-server",
+        matchReason: "Name match: database-server",
       });
 
       expect(mockCmdbRepo.search).toHaveBeenCalledWith({ name: "database-server", limit: 5 });
@@ -300,12 +146,40 @@ describe("CIMatchingService", () => {
     });
   });
 
+  describe("Edge Name Processing", () => {
+    it("✓ Handles edge_names without inventory matching", async () => {
+      const entities = {
+        edge_names: ["edge-ACCT0242146-01"],
+      };
+
+      const result = await service.matchEntities(entities);
+
+      // Service no longer has VeloCloud inventory, so no matches expected
+      expect(result.matches).toHaveLength(0);
+      expect(result.highConfidenceMatches).toHaveLength(0);
+      expect(result.lowConfidenceMatches).toHaveLength(0);
+    });
+
+    it("✓ Handles account_numbers without inventory matching", async () => {
+      const entities = {
+        account_numbers: ["ACCT0242146", "ACCT0242147"],
+      };
+
+      const result = await service.matchEntities(entities);
+
+      // Service no longer has VeloCloud inventory, so no matches expected
+      expect(result.matches).toHaveLength(0);
+      expect(result.highConfidenceMatches).toHaveLength(0);
+      expect(result.lowConfidenceMatches).toHaveLength(0);
+    });
+  });
+
   describe("Deduplication and Confidence", () => {
     it("✓ Deduplicates matches (keeps highest confidence)", async () => {
       // Mock both inventory and CMDB to return matches for the same CI
       mockCmdbRepo.findByIpAddress.mockResolvedValue([
         {
-          sysId: "edge-logical-id-1", // Same sys_id as inventory match
+          sysId: "edge-logical-id-1", // Same sysId as inventory match
           name: "edge-ACCT0242146-01",
           className: "cmdb_ci_edge_device",
         },
@@ -320,9 +194,9 @@ describe("CIMatchingService", () => {
 
       // Should only have one match (deduplicated)
       expect(result.matches).toHaveLength(1);
-      // Should keep the highest confidence (100 from inventory vs 95 from CMDB)
-      expect(result.matches[0].confidence).toBe(100);
-      expect(result.matches[0].source).toBe("inventory");
+      // Should keep the highest confidence (95 from CMDB)
+      expect(result.matches[0].confidence).toBe(95);
+      expect(result.matches[0].source).toBe("cmdb");
     });
 
     it("✓ Separates high vs low confidence matches by threshold", async () => {
@@ -335,20 +209,19 @@ describe("CIMatchingService", () => {
       ]);
 
       const entities = {
-        edge_names: ["edge-ACCT0242146-01"], // 100 confidence
         ip_addresses: ["192.168.1.100"], // 95 confidence
       };
 
       const result = await service.matchEntities(entities);
 
-      expect(result.highConfidenceMatches).toHaveLength(2); // Both >= 70
+      expect(result.highConfidenceMatches).toHaveLength(1); // 95 >= 70
       expect(result.lowConfidenceMatches).toHaveLength(0);
 
       // Test with lower threshold
       const serviceWithHighThreshold = new CIMatchingService(95);
       const highThresholdResult = await serviceWithHighThreshold.matchEntities(entities);
 
-      expect(highThresholdResult.highConfidenceMatches).toHaveLength(2); // 100 and 95
+      expect(highThresholdResult.highConfidenceMatches).toHaveLength(1); // 95 >= 95
       expect(highThresholdResult.lowConfidenceMatches).toHaveLength(0);
     });
 
@@ -373,29 +246,36 @@ describe("CIMatchingService", () => {
       ]);
 
       const entities = {
-        edge_names: ["edge-ACCT0242146-01"], // 100 confidence
         ip_addresses: ["192.168.1.100"], // 95 confidence
       };
 
       const result = await service.matchEntities(entities);
 
-      // Should be average of all matches: (100 + 95) / 2 = 97.5
-      expect(result.overallConfidence).toBe(97.5);
+      // Should be 95 since only one match
+      expect(result.overallConfidence).toBe(95);
     });
   });
 
   describe("Service Methods", () => {
     it("✓ Returns recommended CI (highest confidence match)", async () => {
+      mockCmdbRepo.findByIpAddress.mockResolvedValue([
+        {
+          sysId: "ci-recommended",
+          name: "recommended-server",
+          className: "cmdb_ci_server",
+        },
+      ]);
+
       const entities = {
-        edge_names: ["edge-ACCT0242146-01"],
+        ip_addresses: ["192.168.1.100"],
       };
 
       const recommended = await service.getRecommendedCI(entities);
 
       expect(recommended).toMatchObject({
-        sys_id: "edge-logical-id-1",
-        name: "edge-ACCT0242146-01",
-        confidence: 100,
+        sysId: "ci-recommended",
+        name: "recommended-server",
+        confidence: 95,
       });
     });
 
@@ -408,41 +288,9 @@ describe("CIMatchingService", () => {
 
       expect(recommended).toBeNull();
     });
-
-    it("✓ Refreshes inventory", () => {
-      const serviceWithRefresh = new CIMatchingService(70);
-      
-      // Clear the mock to test refresh
-      vi.clearAllMocks();
-      vi.mocked(join).mockReturnValue("/mocked/path/velocloud-edges.json");
-      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(mockVeloCloudInventory));
-
-      serviceWithRefresh.refreshInventory();
-
-      expect(readFileSync).toHaveBeenCalledWith(
-        "/mocked/path/velocloud-edges.json",
-        "utf-8"
-      );
-    });
   });
 
   describe("Error Handling", () => {
-    it("✓ Handles missing VeloCloud inventory gracefully", async () => {
-      vi.mocked(readFileSync).mockImplementation(() => {
-        throw new Error("File not found");
-      });
-
-      const serviceWithNoInventory = new CIMatchingService(70);
-      const entities = {
-        edge_names: ["edge-ACCT0242146-01"],
-      };
-
-      const result = await serviceWithNoInventory.matchEntities(entities);
-
-      // Should still work with CMDB matches only
-      expect(result.matches).toHaveLength(0); // No CMDB mocks in this test
-    });
-
     it("✓ Handles CMDB repository errors", async () => {
       vi.mocked(getCmdbRepository).mockImplementation(() => {
         throw new Error("CMDB repository unavailable");
@@ -450,15 +298,14 @@ describe("CIMatchingService", () => {
 
       const serviceWithBrokenCMDB = new CIMatchingService(70);
       const entities = {
-        edge_names: ["edge-ACCT0242146-01"],
+        ip_addresses: ["192.168.1.100"],
       };
 
       // Should not throw
       const result = await serviceWithBrokenCMDB.matchEntities(entities);
 
-      // Should still have inventory matches
-      expect(result.matches).toHaveLength(1);
-      expect(result.matches[0].source).toBe("inventory");
+      // Should have no matches due to error
+      expect(result.matches).toHaveLength(0);
     });
   });
 });

@@ -1,6 +1,6 @@
 import type { GenericMessageEvent } from "../slack-event-types";
 import { getSlackMessagingService, type SlackMessagingService } from "../services/slack-messaging";
-import { getInteractiveStateManager } from "../services/interactive-state-manager";
+import { workflowManager, Workflow } from "../services/workflow-manager";
 import { getProjectById } from "./catalog";
 import { scoreInterviewAgainstProject, scoreInterviewEnhanced, type MatchScore, type EnhancedMatchScore } from "./matching-service";
 import type {
@@ -49,7 +49,7 @@ const DEFAULT_QUESTION_SET: InterviewQuestion[] = [
     helper: "Experience is not required—let me know if this would be new for you.",
   },
   {
-    id: "learning_goals",
+id: "learning_goals",
     prompt: "What do you hope to learn by joining this project?",
   },
   {
@@ -63,9 +63,9 @@ const DEFAULT_QUESTION_SET: InterviewQuestion[] = [
 ];
 
 const INTERVIEW_EXPIRY_HOURS = 12;
+const WORKFLOW_TYPE_PROJECT_INTERVIEW = "PROJECT_INTERVIEW";
 
 const slackMessaging = getSlackMessagingService();
-const stateManager = getInteractiveStateManager();
 
 function buildIntroMessage(project: ProjectDefinition, question: InterviewQuestion, index: number, total: number): string {
   const helperSuffix = question.helper ? `\n_${question.helper}_` : "";
@@ -120,7 +120,7 @@ function buildMentorNotificationMessage(
     .map((answer, index) => `*Q${index + 1} (${answer.questionId}):* ${answer.response}`)
     .join("\n");
 
-  const tasksSection =
+  const tasksSection = 
     matchSummary.recommendedTasks.length > 0
       ? `*Recommended starting tasks:*\n${matchSummary.recommendedTasks.map((task) => `• ${task}`).join("\n")}\n`
       : "";
@@ -167,12 +167,20 @@ function buildMentorNotificationMessage(
 }
 
 async function ensureNoActiveInterview(channelId: string): Promise<boolean> {
-  const existing = await stateManager.getStateByChannel(channelId, "project_interview");
+  if (!workflowManager) {
+      console.warn("WorkflowManager not available, cannot check for active interview.");
+      return true; // Fails open
+  }
+  const existing = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_PROJECT_INTERVIEW, channelId);
   return existing === null;
 }
 
 export async function startInterviewSession(options: StartInterviewOptions): Promise<void> {
   const { project, userId, initiatedBy } = options;
+
+  if (!workflowManager) {
+    throw new Error("WorkflowManager not available, cannot start interview session.");
+  }
 
   const bypassPrechecks = options.skipPrechecks ?? false;
   let interest: ProjectInterest | null = options.interest ?? null;
@@ -300,7 +308,7 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     throw new Error("Failed to start interview session (missing message timestamp)");
   }
 
-  const sessionState: any = {
+  const sessionState: InterviewSessionState = {
     projectId: project.id,
     userId,
     userName: options.userName,
@@ -312,24 +320,18 @@ export async function startInterviewSession(options: StartInterviewOptions): Pro
     questionSource,
     generatorModel,
     startedAt: new Date().toISOString(),
-    interestId: activeInterest.id, // Link to interest record
+    interestId: activeInterest.id,
   };
 
-  await stateManager.saveState(
-    "project_interview",
-    dmConversation.channelId,
-    message.ts,
-    sessionState,
-    {
-      expiresInHours: INTERVIEW_EXPIRY_HOURS,
-      metadata: {
-        initiatedBy,
-        projectId: project.id,
-        sourceMessageTs: options.sourceMessageTs,
-        interestId: activeInterest.id,
-      },
-    },
-  );
+  await workflowManager.start({
+      workflowType: WORKFLOW_TYPE_PROJECT_INTERVIEW,
+      workflowReferenceId: dmConversation.channelId,
+      initialState: 'AWAITING_RESPONSE',
+      payload: sessionState,
+      expiresInSeconds: INTERVIEW_EXPIRY_HOURS * 3600,
+      contextKey: `slack:${dmConversation.channelId}:${message.ts}`,
+      correlationId: options.sourceMessageTs
+  });
 }
 
 function assertQuestion(questions: InterviewQuestion[], step: number): InterviewQuestion | null {
@@ -356,13 +358,18 @@ export async function handleInterviewResponse(
   if (!event.channel || !event.user || !event.text) {
     return false;
   }
+  
+  if (!workflowManager) {
+      console.warn("WorkflowManager not available, cannot handle interview response.");
+      return false;
+  }
 
-  const session = await stateManager.getStateByChannel(event.channel, "project_interview");
-  if (!session) {
+  const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_PROJECT_INTERVIEW, event.channel);
+  if (!workflow) {
     return false;
   }
 
-  const { payload, messageTs } = session;
+  const payload = workflow.payload as InterviewSessionState;
   if (payload.userId !== event.user) {
     // Ignore messages from others in same channel
     return false;
@@ -393,13 +400,20 @@ export async function handleInterviewResponse(
   ];
 
   const nextStep = payload.currentStep + 1;
+  const isComplete = nextStep >= payload.questions.length;
 
-  await stateManager.updatePayload(session.channelId, session.messageTs, {
-    answers: updatedAnswers,
-    currentStep: nextStep,
-  } as Partial<InterviewSessionState>);
+  const updatePayload = {
+      answers: updatedAnswers,
+      currentStep: nextStep,
+  };
+  
+  await workflowManager.transition(workflow.id, workflow.version, {
+      toState: isComplete ? "SCORING" : "AWAITING_RESPONSE",
+      updatePayload,
+      lastModifiedBy: event.user,
+  });
 
-  if (nextStep < payload.questions.length) {
+  if (!isComplete) {
     const nextQuestion = assertQuestion(payload.questions, nextStep);
     if (nextQuestion) {
       await sendNextQuestion(slackMessaging, event.channel, nextQuestion, nextStep, payload.questions.length);
@@ -413,7 +427,7 @@ export async function handleInterviewResponse(
       channel: event.channel,
       text: "I lost the project context while saving your interview. Please let the platform team know.",
     });
-    await stateManager.markProcessed(session.channelId, session.messageTs, event.user, "completed", "project not found");
+    await workflowManager.transition(workflow.id, workflow.version + 1, { toState: "FAILED", reason: "Project not found" });
     return true;
   }
 
@@ -474,7 +488,7 @@ export async function handleInterviewResponse(
     }
   }
 
-  await stateManager.markProcessed(session.channelId, session.messageTs, event.user, "completed");
+  await workflowManager.transition(workflow.id, workflow.version + 1, { toState: "COMPLETED", lastModifiedBy: event.user });
   emitProjectInterviewCompleted({
     project,
     candidateId: payload.userId,
@@ -501,7 +515,7 @@ interface PersistInterviewResultOptions {
   matchSummary: MatchScore | EnhancedMatchScore;
   startedAt: string;
   completedAt: string;
-  scoringPrompt?: string;
+scoringPrompt?: string;
   questionSource: InterviewSessionState["questionSource"];
   generatorModel?: string;
   interestId?: string; // Link to interest record

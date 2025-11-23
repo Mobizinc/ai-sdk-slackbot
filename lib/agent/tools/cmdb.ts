@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { createTool, type AgentToolFactoryParams } from "./shared";
-import { serviceNowClient } from "../../tools/servicenow";
-import type { ServiceNowConfigurationItem } from "../../tools/servicenow";
-import { formatConfigurationItemsForLLM } from "../../services/servicenow-formatters";
-import { createServiceNowContext } from "../../infrastructure/servicenow-context";
+import { serviceNowClient } from "@/tools/servicenow";
+import type { ServiceNowConfigurationItem } from "@/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
+import { createServiceNowContext } from "@/infrastructure/servicenow-context";
 
 export type SearchCmdbInput = {
   ciName?: string;

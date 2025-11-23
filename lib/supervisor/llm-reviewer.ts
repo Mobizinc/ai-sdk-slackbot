@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getConfigValue } from "../config";
+import { getSupervisorLlmReviewModel } from "../config/helpers";
 import { AnthropicChatService } from "../services/anthropic-chat";
 import type { CaseClassification } from "../services/case-classifier";
 
@@ -45,9 +45,7 @@ export async function runSupervisorLlmReview(
   input: LlmReviewInput
 ): Promise<SupervisorLlmReview | null> {
   const chatService = AnthropicChatService.getInstance();
-  const model =
-    (getConfigValue("supervisorLlmReviewModel") as string | undefined) ??
-    "claude-sonnet-4-5";
+  const model = getSupervisorLlmReviewModel() ?? "claude-sonnet-4-5";
 
   const prompt = buildPrompt(input);
 

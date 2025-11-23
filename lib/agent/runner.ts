@@ -2,7 +2,7 @@ import type { CoreMessage, UpdateStatusFn, GenerateResponseOptions } from "./typ
 import type { ChatMessage, ToolDefinition, ExecuteToolResult } from "../services/anthropic-chat";
 import { AnthropicChatService } from "../services/anthropic-chat";
 import { getToolRegistry } from "./tool-registry";
-import { config } from "../config";
+import { getAgentMaxToolIterations } from "../config/helpers";
 import { withLangSmithTrace, createChildSpan, traceLLMCall, traceToolExecution } from "../observability";
 import { buildToolAllowList } from "./specialist-registry";
 
@@ -95,7 +95,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         });
       }
 
-      const maxSteps = config.agentMaxToolIterations;
+      const maxSteps = getAgentMaxToolIterations();
 
       for (let step = 0; step < maxSteps; step += 1) {
         // Create a child span for each LLM call
@@ -282,7 +282,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
       metadata: {
         messageCount: params.messages.length,
         caseNumbers: params.caseNumbers,
-        maxIterations: config.agentMaxToolIterations,
+        maxIterations: getAgentMaxToolIterations(),
       },
       tags: {
         component: "runner",

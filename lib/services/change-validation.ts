@@ -14,7 +14,7 @@ import {
   extractDocumentationFields,
   type ComponentType
 } from "../schemas/servicenow-change-webhook";
-import { config } from "../config";
+import { getServiceNowConfig } from "../config/helpers";
 import {
   getAnthropicClient,
   getConfiguredModel,
@@ -93,7 +93,7 @@ class ChangeValidationService {
   private readonly codeExecutionBetaHeader = "code-execution-2025-08-25";
 
   private getCabSkillId(): string | undefined {
-    const skillId = config.servicenowCabSkillId?.trim();
+    const skillId = undefined; // TODO: Add to consolidated config
     return skillId ? skillId : undefined;
   }
 
@@ -401,9 +401,9 @@ Before responding, load the ServiceNow Architect skill instructions by reading /
           ];
           let containerId: string | undefined;
           let response: any;
-          const maxSkillIterations = Number(config.servicenowSkillMaxIterations ?? 6) || 6;
-          const skillTimeoutMs = Number(config.servicenowSkillTimeoutMs ?? 30000) || 30000;
-          const perCallMaxTokens = Number(config.servicenowSkillMaxTokens ?? 1024) || 1024;
+          const maxSkillIterations = 6; // TODO: Add to consolidated config
+          const skillTimeoutMs = 30000; // TODO: Add to consolidated config
+          const perCallMaxTokens = 1024; // TODO: Add to consolidated config
 
           const fetchSkillResponse = async (): Promise<any> => {
             const timeoutController = new AbortController();
@@ -671,8 +671,9 @@ Before responding, load the ServiceNow Architect skill instructions by reading /
   }
 
   private async collectCloneFreshness(record: ChangeValidation): Promise<CloneFreshnessResult> {
-    const targetInstance = config.servicenowCloneTargetInstance || "mobizuat";
-    const sourceInstance = config.servicenowCloneSourceInstance || "mobizprod";
+    const snConfig = getServiceNowConfig();
+    const targetInstance = snConfig.cloneTargetInstance || "mobizuat";
+    const sourceInstance = snConfig.cloneSourceInstance || "mobizprod";
 
     if (!this.shouldCheckCloneFreshness(record)) {
       return {

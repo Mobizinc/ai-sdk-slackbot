@@ -10,7 +10,7 @@ import type { ContextLoaderResult } from "./context-loader";
 import { getSystemPrompt } from "../system-prompt";
 import { getBusinessContextService } from "../services/business-context-service";
 import type { DiscoveryContextPack } from "./discovery/context-pack";
-import { getConfigValue } from "../config";
+import { getDiscoveryContextPackEnabled } from "../config/helpers";
 
 export interface PromptBuilderInput {
   context: ContextLoaderResult;
@@ -41,7 +41,7 @@ export async function buildPrompt(input: PromptBuilderInput): Promise<PromptBuil
   );
 
   // Append discovery context pack if available
-  if (getConfigValue("discoveryContextPackEnabled")) {
+  if (getDiscoveryContextPackEnabled()) {
     const discoveryPack = context.metadata.discovery as DiscoveryContextPack | undefined;
     if (discoveryPack) {
       const discoverySection = formatDiscoveryContextForPrompt(discoveryPack);

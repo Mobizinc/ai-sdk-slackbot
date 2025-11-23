@@ -9,7 +9,7 @@
  */
 
 import type { DiscoveryContextPack } from "./context-pack";
-import { getConfigValue } from "../../config";
+import { getDiscoveryContextCachingEnabled } from "../../config/helpers";
 
 interface CacheEntry {
   pack: DiscoveryContextPack;
@@ -134,8 +134,8 @@ let cacheInstance: DiscoveryContextCache | null = null;
  */
 export function getDiscoveryContextCache(): DiscoveryContextCache {
   if (!cacheInstance) {
-    const maxSize = ensurePositiveInt(getConfigValue("discoveryContextCacheSize"), 100);
-    const ttlMinutes = ensurePositiveInt(getConfigValue("discoveryContextCacheTTLMinutes"), 15);
+    const maxSize = ensurePositiveInt(100, 100); // TODO: Add to consolidated config
+    const ttlMinutes = ensurePositiveInt(15, 15); // TODO: Add to consolidated config
 
     cacheInstance = new DiscoveryContextCache(maxSize, ttlMinutes);
 
@@ -182,7 +182,7 @@ export function generateCacheKey(options: {
  * Check if caching is enabled
  */
 export function isCachingEnabled(): boolean {
-  return getConfigValue("discoveryContextCachingEnabled") === true;
+  return getDiscoveryContextCachingEnabled();
 }
 
 function ensurePositiveInt(value: unknown, fallback: number): number {

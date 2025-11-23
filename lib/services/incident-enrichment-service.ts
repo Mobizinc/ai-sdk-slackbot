@@ -231,13 +231,13 @@ export class IncidentEnrichmentService {
         );
 
         // Link CI to incident
-        await serviceNowClient.linkCiToIncident(incidentSysId, topMatch.sys_id);
+        await serviceNowClient.linkCiToIncident(incidentSysId, topMatch.sysId);
 
         // Add work note with enrichment details
         const enrichmentNote = noteAnalyzer.generateEnrichmentSummary(
           analysisResult.entities
         );
-        const workNote = `${enrichmentNote}\n\n**Matched Configuration Item:**\n- **Name:** ${topMatch.name}\n- **Class:** ${topMatch.class}\n- **Confidence:** ${topMatch.confidence}%\n- **Source:** ${topMatch.source}\n- **Reason:** ${topMatch.match_reason}`;
+        const workNote = `${enrichmentNote}\n\n**Matched Configuration Item:**\n- **Name:** ${topMatch.name}\n- **Class:** ${topMatch.class}\n- **Confidence:** ${topMatch.confidence}%\n- **Source:** ${topMatch.source}\n- **Reason:** ${topMatch.matchReason}`;
 
         await serviceNowClient.addIncidentWorkNote(incidentSysId, workNote);
 
@@ -250,7 +250,14 @@ export class IncidentEnrichmentService {
         // Update enrichment state
         await repository.updateMatchedCis(
           incidentSysId,
-          [topMatch],
+          [{
+            sys_id: topMatch.sysId,
+            name: topMatch.name,
+            class: topMatch.class,
+            confidence: topMatch.confidence,
+            source: topMatch.source,
+            matched_at: topMatch.matchedAt,
+          }],
           {
             overall: matchingResult.overallConfidence,
             ci_match: topMatch.confidence,
@@ -264,7 +271,7 @@ export class IncidentEnrichmentService {
           stage: "enriched",
           message: `Successfully linked CI: ${topMatch.name}`,
           ciLinked: true,
-          ciSysId: topMatch.sys_id,
+          ciSysId: topMatch.sysId,
           ciName: topMatch.name,
           confidence: topMatch.confidence,
           entities: analysisResult.entities,
@@ -282,7 +289,14 @@ export class IncidentEnrichmentService {
         // Update enrichment state with low confidence matches
         await repository.updateMatchedCis(
           incidentSysId,
-          matchingResult.lowConfidenceMatches,
+          matchingResult.lowConfidenceMatches.map(match => ({
+            sys_id: match.sysId,
+            name: match.name,
+            class: match.class,
+            confidence: match.confidence,
+            source: match.source,
+            matched_at: match.matchedAt,
+          })),
           {
             overall: matchingResult.overallConfidence,
             ci_match: matchingResult.lowConfidenceMatches[0]?.confidence || 0,
@@ -296,11 +310,11 @@ export class IncidentEnrichmentService {
           incidentSysId,
           incidentNumber: enrichmentState.incidentNumber,
           candidateCIs: matchingResult.lowConfidenceMatches.map((match) => ({
-            sys_id: match.sys_id,
+            sys_id: match.sysId,
             name: match.name,
             class: match.class,
             confidence: match.confidence,
-            match_reason: match.match_reason,
+            match_reason: match.matchReason,
           })),
           // Use case's Slack channel/thread if available
           channelId: enrichmentState.metadata?.slack_channel_id as string | undefined,

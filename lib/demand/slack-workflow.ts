@@ -11,10 +11,7 @@ import {
   type WorkflowMetadata,
 } from "../services/demand-workflow-service";
 import { getSlackMessagingService } from "../services/slack-messaging";
-import {
-  getInteractiveStateManager,
-  type DemandWorkflowStatePayload,
-} from "../services/interactive-state-manager";
+import { workflowManager, Workflow } from "../services/workflow-manager";
 import {
   sanitizeMrkdwn,
   sanitizePlainText,
@@ -23,11 +20,26 @@ import {
 import type { FinalSummary } from "../strategy/types";
 
 const slackMessaging = getSlackMessagingService();
-const interactiveStateManager = getInteractiveStateManager();
 
 export const DemandCallbackIds = {
   MODAL: "demand_request_modal",
 } as const;
+
+const WORKFLOW_TYPE_DEMAND_REQUEST = "DEMAND_REQUEST";
+
+// Define the payload structure for the demand request workflow
+export interface DemandWorkflowStatePayload {
+    sessionId: string;
+    userId: string;
+    projectName: string;
+    demandRequest: DemandRequestPayload;
+    pendingQuestions: WorkflowQuestion[];
+    status: 'needs_clarification' | 'complete' | 'error';
+    analysis?: WorkflowMetadata["analysis"];
+    metadata?: WorkflowMetadata;
+    summary?: FinalSummary;
+    lastResponseAt?: string;
+  }
 
 const ROI_OPTIONS = [
   { label: "High (>=200%)", value: "high" },
@@ -577,8 +589,12 @@ function buildSummaryBlocks(summary: FinalSummary): any[] {
 async function finalizeDemandSession(
   channelId: string,
   threadTs: string,
-  statePayload: DemandWorkflowStatePayload,
+  workflow: Workflow,
 ): Promise<void> {
+  if (!workflowManager) {
+    throw new Error("WorkflowManager not available.");
+  }
+  const statePayload = workflow.payload as DemandWorkflowStatePayload;
   try {
     const finalizeResponse = await finalizeDemandRequest(statePayload.sessionId);
     const summary = finalizeResponse.summary;
@@ -601,17 +617,12 @@ async function finalizeDemandSession(
       blocks: summaryBlocks,
     });
 
-    await interactiveStateManager.updatePayload<'demand_request'>(channelId, threadTs, {
-      summary,
-      status: "complete",
-    } as Partial<DemandWorkflowStatePayload>);
-
-    await interactiveStateManager.markProcessed(
-      channelId,
-      threadTs,
-      statePayload.userId,
-      "completed",
-    );
+    await workflowManager.transition(workflow.id, workflow.version, {
+        toState: 'COMPLETED',
+        updatePayload: { summary, status: "complete" },
+        lastModifiedBy: 'system',
+        reason: 'Finalized after clarification'
+    });
   } catch (error) {
     console.error("[Demand] Failed to finalize session:", error);
     await slackMessaging.postMessage({
@@ -619,6 +630,7 @@ async function finalizeDemandSession(
       threadTs,
       text: "⚠️ Failed to finalize demand request. Please try again later.",
     });
+    await workflowManager.transition(workflow.id, workflow.version, { toState: 'FAILED', reason: 'Finalization API error' });
   }
 }
 
@@ -632,12 +644,15 @@ export async function handleDemandModalSubmission(payload: any): Promise<void> {
     console.error("[Demand] Missing metadata on demand modal submission");
     return;
   }
+  if (!workflowManager) {
+    console.error("[Demand] WorkflowManager not available.");
+    return;
+  }
 
   try {
     const request = buildDemandRequestFromView(payload.view.state.values);
     const analysisResponse = await analyzeDemandRequest(request);
-    const schema = await fetchDemandSchema();
-
+    
     const threadTs = await postInitialAnalysisMessage(
       metadata.channelId,
       metadata.userId,
@@ -657,20 +672,17 @@ export async function handleDemandModalSubmission(payload: any): Promise<void> {
       metadata: analysisResponse.metadata,
     };
 
-    await interactiveStateManager.saveState(
-      "demand_request",
-      metadata.channelId,
-      threadTs,
-      statePayload,
-      {
-        threadTs,
-        expiresInHours: 72,
-        metadata: {
-          projectName: request.projectName,
-          userId: metadata.userId,
-        },
-      },
-    );
+    const initialState = analysisResponse.status === 'needs_clarification' ? 'AWAITING_CLARIFICATION' : 'COMPLETED';
+
+    const workflow = await workflowManager.start({
+      workflowType: WORKFLOW_TYPE_DEMAND_REQUEST,
+      workflowReferenceId: threadTs,
+      initialState,
+      payload: statePayload,
+      expiresInSeconds: 72 * 3600,
+      contextKey: `slack:${metadata.channelId}:${threadTs}`,
+      correlationId: analysisResponse.sessionId,
+    });
 
     if (analysisResponse.status === "needs_clarification" && analysisResponse.questions?.length) {
       await postClarificationQuestion(
@@ -680,22 +692,23 @@ export async function handleDemandModalSubmission(payload: any): Promise<void> {
         Math.max(analysisResponse.questions.length - 1, 0),
       );
     } else if (analysisResponse.status === "complete") {
-      await finalizeDemandSession(metadata.channelId, threadTs, statePayload);
+      await finalizeDemandSession(metadata.channelId, threadTs, workflow);
     } else if (analysisResponse.status === "error") {
       await slackMessaging.postMessage({
         channel: metadata.channelId,
         threadTs,
-        text: `⚠️ Demand request failed: ${
-          analysisResponse.error?.message ?? "Unknown error"
+        text: `⚠️ Demand request failed: ${ 
+          analysisResponse.error?.message ?? "Unknown error" 
         }`,
       });
+      await workflowManager.transition(workflow.id, workflow.version, { toState: 'FAILED', reason: 'Analysis API error' });
     }
   } catch (error) {
     console.error("[Demand] Error handling modal submission:", error);
     await slackMessaging.postMessage({
       channel: metadata.channelId,
-      text: `⚠️ Failed to analyze demand request: ${
-        error instanceof Error ? error.message : "Unknown error"
+      text: `⚠️ Failed to analyze demand request: ${ 
+        error instanceof Error ? error.message : "Unknown error" 
       }`,
     });
   }
@@ -708,32 +721,30 @@ export async function handleDemandThreadReply(
     return false;
   }
 
-  const state = await interactiveStateManager.getState<'demand_request'>(
-    event.channel,
-    event.thread_ts,
-    "demand_request",
-  );
+  if (!workflowManager) {
+      console.warn("[Demand] WorkflowManager not available. Cannot handle thread reply.");
+      return false;
+  }
 
-  if (!state) {
+  const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_DEMAND_REQUEST, event.thread_ts);
+
+  if (!workflow || workflow.currentState !== 'AWAITING_CLARIFICATION') {
     return false;
   }
 
-  if (event.user !== state.payload.userId) {
+  const payload = workflow.payload as DemandWorkflowStatePayload;
+  if (event.user !== payload.userId) {
     await slackMessaging.postMessage({
       channel: event.channel,
       threadTs: event.thread_ts,
-      text: `Only <@${state.payload.userId}> can answer the follow-up questions for this demand request.`,
+      text: `Only <@${payload.userId}> can answer the follow-up questions for this demand request.`,
     });
     return true;
   }
 
-  const pending = state.payload.pendingQuestions;
+  const pending = payload.pendingQuestions;
   if (!pending || pending.length === 0) {
-    await slackMessaging.postMessage({
-      channel: event.channel,
-      threadTs: event.thread_ts,
-      text: "There are no pending questions right now.",
-    });
+    // This case should ideally not happen if state is correct, but we handle it.
     return true;
   }
 
@@ -751,17 +762,24 @@ export async function handleDemandThreadReply(
 
   try {
     const clarifyResponse = await clarifyDemandRequest({
-      sessionId: state.payload.sessionId,
+      sessionId: payload.sessionId,
       questionId: activeQuestion?.id,
       answer,
     });
 
-    await interactiveStateManager.updatePayload<'demand_request'>(event.channel, event.thread_ts, {
-      pendingQuestions: clarifyResponse.questions ?? [],
-      metadata: clarifyResponse.metadata,
-      status: clarifyResponse.status,
-      lastResponseAt: new Date().toISOString(),
-    } as Partial<DemandWorkflowStatePayload>);
+    const nextState = clarifyResponse.status === 'needs_clarification' ? 'AWAITING_CLARIFICATION' : 'COMPLETING';
+    
+    const updatedWorkflow = await workflowManager.transition(workflow.id, workflow.version, {
+        toState: nextState,
+        updatePayload: { 
+            pendingQuestions: clarifyResponse.questions ?? [],
+            metadata: clarifyResponse.metadata,
+            status: clarifyResponse.status,
+            lastResponseAt: new Date().toISOString()
+        },
+        lastModifiedBy: event.user,
+        reason: `User provided clarification.`
+    });
 
     if (clarifyResponse.response) {
       await slackMessaging.postMessage({
@@ -779,19 +797,16 @@ export async function handleDemandThreadReply(
         Math.max(clarifyResponse.questions.length - 1, 0),
       );
     } else if (clarifyResponse.status === "complete") {
-      await finalizeDemandSession(event.channel, event.thread_ts, {
-        ...state.payload,
-        pendingQuestions: clarifyResponse.questions ?? [],
-        metadata: clarifyResponse.metadata,
-      });
+      // Pass the most up-to-date workflow object to finalize
+      await finalizeDemandSession(event.channel, event.thread_ts, updatedWorkflow);
     }
   } catch (error) {
     console.error("[Demand] Failed to process clarification:", error);
     await slackMessaging.postMessage({
       channel: event.channel,
       threadTs: event.thread_ts,
-      text: `⚠️ Failed to process clarification: ${
-        error instanceof Error ? error.message : "Unknown error"
+      text: `⚠️ Failed to process clarification: ${ 
+        error instanceof Error ? error.message : "Unknown error" 
       }`,
     });
   }

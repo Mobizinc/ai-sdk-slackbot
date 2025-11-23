@@ -11,7 +11,7 @@ import {
   STANDUP_REMINDER_BUFFER_MINUTES,
 } from "./standup-constants";
 import type { ProjectDefinition, StandupConfig, StandupQuestion, StandupSessionState } from "./types";
-import { getInteractiveStateManager } from "../services/interactive-state-manager";
+import { workflowManager } from "../services/workflow-manager";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import {
   createActionsBlock,
@@ -27,6 +27,8 @@ import {
   composeAdaptiveQuestions,
   type StandupParticipantContext,
 } from "./standup-context";
+
+const WORKFLOW_TYPE_PROJECT_STANDUP = "PROJECT_STANDUP_PROMPT";
 
 function truncateText(value: string, maxLength = 140): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
@@ -59,7 +61,6 @@ interface StandupCreateResult {
   participants: string[];
 }
 
-const stateManager = getInteractiveStateManager();
 const slackMessaging = getSlackMessagingService();
 
 type StandupPromptReason = "initial" | "reminder";
@@ -404,6 +405,11 @@ async function sendStandupPromptMessage(params: {
 }): Promise<boolean> {
   const { project, config, standup, participantId, questions, reason, context, reminderCount } = params;
 
+  if (!workflowManager) {
+    console.warn("[Standup] WorkflowManager not available, cannot send prompt.");
+    return false;
+  }
+
   try {
     const conversation = await slackMessaging.openConversation(participantId);
     if (!conversation.channelId) {
@@ -441,19 +447,15 @@ async function sendStandupPromptMessage(params: {
     const expiresInHours =
       Math.ceil((config.collectionWindowMinutes ?? DEFAULT_STANDUP_COLLECTION_MINUTES) / 60) + 1;
 
-    await stateManager.saveState(
-      "project_standup",
-      conversation.channelId,
-      message.ts,
-      payload,
-      {
-        expiresInHours,
-        metadata: {
-          standupId: standup.id,
-          projectId: project.id,
-        },
-      },
-    );
+    await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_PROJECT_STANDUP,
+        workflowReferenceId: `${conversation.channelId}:${message.ts}`,
+        initialState: 'AWAITING_RESPONSE',
+        payload,
+        expiresInSeconds: expiresInHours * 3600,
+        contextKey: `standup:${standup.id}`,
+        correlationId: participantId,
+    });
 
     return true;
   } catch (error) {
@@ -748,7 +750,7 @@ async function postStandupSummary(
   const blocks = [
     createHeaderBlock(`📋 Stand-up summary — ${project.name}`),
     createContextBlock(
-      `Scheduled for ${standup.scheduledFor.toISOString()} (UTC). ${responders.length}/${participants.length} responded.`,
+      `Scheduled for ${standup.scheduledFor.toISOString()} (UTC). ${responders.length}/${participants.length} responded.`, 
     ),
     createDivider(),
   ];
@@ -862,7 +864,7 @@ async function postStandupSummary(
 
   if (followUpLines.length > 0) {
     blocks.push(createDivider());
-    blocks.push(createSectionBlock(`🔁 *Plan follow-ups*\n${followUpLines.join("\n")}`));
+    blocks.push(createSectionBlock(`🔁 *Plan follow-ups*\n${followUpLines.join("\n")} `));
   }
 
   const channelId = config.channelId ?? project.channelId;

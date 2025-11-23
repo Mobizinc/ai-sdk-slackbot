@@ -5,7 +5,7 @@ import type { CaseContext } from "../../context-manager";
 import { getContextManager } from "../../context-manager";
 import type { SimilarCase } from "../../services/azure-search";
 import { getSearchFacadeService } from "../../services/search-facade";
-import { getConfigValue } from "../../config";
+import { getDiscoveryContextPackEnabled } from "../../config/helpers";
 import type { ConfigurationItem } from "../../infrastructure/servicenow/types/domain-models";
 import { getCmdbRepository, getRequestRepository, getRequestedItemRepository, getCatalogTaskRepository } from "../../infrastructure/servicenow/repositories";
 import type { PolicySignal } from "../../services/policy-signals";
@@ -233,7 +233,7 @@ export async function generateDiscoveryContextPack(
   }
 
   // Retrieve muscle memory exemplars (if enabled)
-  const muscleMemoryEnabled = getConfigValue("muscleMemoryRetrievalEnabled");
+  const muscleMemoryEnabled = true; // TODO: Use consolidated config
   if (muscleMemoryEnabled) {
     try {
       const { retrievalService } = await import("../../services/muscle-memory");
@@ -388,7 +388,7 @@ function summariseCaseContext(context: CaseContext) {
 }
 
 function buildSlackSummary(options: GenerateDiscoveryContextPackOptions) {
-  const limit = ensurePositiveInt(getConfigValue("discoverySlackMessageLimit"), 5);
+  const limit = ensurePositiveInt(5, 5); // TODO: Add to consolidated config
   const recordSource = options.threadHistory ?? options.messages ?? [];
   const flattened = recordSource
     .filter((msg) => msg.role === "user" || msg.role === "assistant")
@@ -428,7 +428,7 @@ async function resolveSimilarCases(
   }
 
   try {
-    const topK = ensurePositiveInt(getConfigValue("discoverySimilarCasesTopK"), 3);
+    const topK = ensurePositiveInt(3, 3); // TODO: Add to consolidated config
     return await searchFacade.searchSimilarCases(transcript, {
       topK,
       clientId: options.companyName,
@@ -444,7 +444,7 @@ async function resolveCMDBHits(
   slackSummary: { messages: DiscoverySlackMessageSummary[] }
 ): Promise<Array<ConfigurationItem & { matchReason: string }>> {
   // Feature flag check
-  const enabled = getConfigValue("discoveryContextPackEnabled");
+  const enabled = getDiscoveryContextPackEnabled();
   if (!enabled) {
     return [];
   }

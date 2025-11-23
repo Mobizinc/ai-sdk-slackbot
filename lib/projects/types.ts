@@ -190,6 +190,7 @@ export interface InterviewSessionState {
   questionSource: "config" | "generator" | "default";
   generatorModel?: string;
   startedAt: string;
+  interestId?: string;
 }
 
 /**

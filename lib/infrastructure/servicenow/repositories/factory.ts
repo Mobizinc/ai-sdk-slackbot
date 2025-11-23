@@ -19,6 +19,7 @@ import { ServiceNowSPMRepository, type SPMRepositoryConfig } from "./spm-reposit
 import { ServiceNowRequestRepository, type RequestRepositoryConfig } from "./request-repository.impl";
 import { ServiceNowRequestedItemRepository, type RequestedItemRepositoryConfig } from "./requested-item-repository.impl";
 import { ServiceNowCatalogTaskRepository, type CatalogTaskRepositoryConfig } from "./catalog-task-repository.impl";
+import { ServiceNowAttachmentRepository } from "./attachment-repository.impl";
 import type { CaseRepository } from "./case-repository.interface";
 import type { IncidentRepository } from "./incident-repository.interface";
 import type { KnowledgeRepository } from "./knowledge-repository.interface";
@@ -32,18 +33,20 @@ import type { SPMRepository } from "./spm-repository.interface";
 import type { RequestRepository } from "./request-repository.interface";
 import type { RequestedItemRepository } from "./requested-item-repository.interface";
 import type { CatalogTaskRepository } from "./catalog-task-repository.interface";
+import type { AttachmentRepository } from "./attachment-repository.interface";
 import { ServiceNowTableAPIClient } from "../client/table-api-client";
-import { config } from "../../../config";
+import { getServiceNowConfig } from "../../../config/helpers";
 
 /**
  * Create ServiceNowHttpClient from environment configuration
  */
 export function createHttpClient(overrides?: Partial<ServiceNowClientConfig>): ServiceNowHttpClient {
+  const snConfig = getServiceNowConfig();
   const clientConfig: ServiceNowClientConfig = {
-    instanceUrl: overrides?.instanceUrl ?? config.servicenowInstanceUrl ?? config.servicenowUrl ?? "",
-    username: overrides?.username ?? config.servicenowUsername,
-    password: overrides?.password ?? config.servicenowPassword,
-    apiToken: overrides?.apiToken ?? config.servicenowApiToken,
+    instanceUrl: overrides?.instanceUrl ?? snConfig.instanceUrl,
+    username: overrides?.username ?? snConfig.username,
+    password: overrides?.password ?? snConfig.password,
+    apiToken: overrides?.apiToken ?? snConfig.apiToken,
     defaultTimeout: overrides?.defaultTimeout ?? 30000,
     maxRetries: overrides?.maxRetries ?? 3,
     retryDelay: overrides?.retryDelay ?? 1000,
@@ -61,8 +64,9 @@ export function createCaseRepository(
 ): CaseRepository {
   const client = httpClient ?? createHttpClient();
 
+  const snConfig = getServiceNowConfig();
   const repositoryConfig: Partial<CaseRepositoryConfig> = {
-    caseTable: repoConfig?.caseTable ?? config.servicenowCaseTable ?? "sn_customerservice_case",
+    caseTable: repoConfig?.caseTable ?? snConfig.caseTable ?? "sn_customerservice_case",
     caseJournalTable: repoConfig?.caseJournalTable ?? "sys_journal_field",
     incidentTable: repoConfig?.incidentTable ?? "incident",
   };
@@ -233,6 +237,7 @@ let spmRepositoryInstance: SPMRepository | undefined;
 let requestRepositoryInstance: RequestRepository | undefined;
 let requestedItemRepositoryInstance: RequestedItemRepository | undefined;
 let catalogTaskRepositoryInstance: CatalogTaskRepository | undefined;
+let attachmentRepositoryInstance: AttachmentRepository | undefined;
 let tableClientInstance: ServiceNowTableAPIClient | undefined;
 
 /**
@@ -382,6 +387,16 @@ export function getCatalogTaskRepository(): CatalogTaskRepository {
 }
 
 /**
+ * Get shared AttachmentRepository instance
+ */
+export function getAttachmentRepository(): AttachmentRepository {
+  if (!attachmentRepositoryInstance) {
+    attachmentRepositoryInstance = new ServiceNowAttachmentRepository(getHttpClient());
+  }
+  return attachmentRepositoryInstance;
+}
+
+/**
  * Reset singleton instances (useful for testing)
  */
 export function resetRepositories(): void {
@@ -401,4 +416,5 @@ export function resetRepositories(): void {
   requestRepositoryInstance = undefined;
   requestedItemRepositoryInstance = undefined;
   catalogTaskRepositoryInstance = undefined;
+  attachmentRepositoryInstance = undefined;
 }

@@ -8,7 +8,7 @@ import type { AzureSearchService, SimilarCase } from "./azure-search";
 import type { ServiceNowCaseResult } from "../tools/servicenow";
 import { getBusinessContextService } from "./business-context-service";
 import { getAnthropicClient, getConfiguredModel } from "../anthropic-provider";
-import { config } from "../config";
+import { getAssistantActiveStates, getAssistantMinDescriptionLength, getAssistantSimilarCasesTopK } from "../config/helpers";
 import { generatePatternSummary } from "../utils/content-helpers";
 import {
   MessageEmojis,
@@ -42,7 +42,7 @@ export function shouldProvideAssistance(caseDetails: ServiceNowCaseResult | null
   }
 
   // Check if state is in the configured active states list
-  const isActive = config.assistantActiveStates.some(
+  const isActive = getAssistantActiveStates().some(
     (activeState) => caseState.toLowerCase().includes(activeState.toLowerCase())
   );
 
@@ -265,7 +265,7 @@ async function generateProactiveGuidance(
 
   if (
     !problemDescription ||
-    problemDescription.length < config.assistantMinDescriptionLength
+    problemDescription.length < getAssistantMinDescriptionLength()
   ) {
     // Too vague to search with current threshold
     console.log(
@@ -278,7 +278,7 @@ async function generateProactiveGuidance(
   console.log(`[Intelligent Assistant] Calling Azure Search with query: "${problemDescription.substring(0, 80)}..."`);
 
   const similarCases = await searchService.searchSimilarCases(problemDescription, {
-    topK: config.assistantSimilarCasesTopK,
+    topK: getAssistantSimilarCasesTopK(),
   });
 
   console.log(`[Intelligent Assistant] Azure Search returned ${similarCases.length} similar cases`);

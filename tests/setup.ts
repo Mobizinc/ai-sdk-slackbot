@@ -83,6 +83,10 @@ vi.mock("../lib/supervisor/llm-reviewer", () => ({
   runSupervisorLlmReview: vi.fn(async () => null),
 }));
 
+// Mock console methods to prevent "unhandled errors" during tests
+vi.spyOn(console, 'error').mockImplementation(() => {});
+vi.spyOn(console, 'log').mockImplementation(() => {});
+
 export const server = setupServer();
 
 beforeAll(() => {

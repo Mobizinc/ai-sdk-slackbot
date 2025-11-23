@@ -6,9 +6,8 @@ import { notifyResolution } from "./handle-passive-messages";
 import { serviceNowClient } from "./tools/servicenow";
 import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
-import { createStatusUpdater, clampTextForSlackDisplay } from "./utils/slack-status-updater";
+import { createStatusUpdater } from "./utils/slack-status-updater";
 import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
-import { reviewSlackArtifact } from "./supervisor";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -169,28 +168,6 @@ export async function handleNewAppMention(
       }
       response += `_`;
 
-      const supervisorDecision = await reviewSlackArtifact({
-        channelId: channel,
-        threadTs: thread_ts ?? event.ts,
-        caseNumber,
-        content: response,
-        classification,
-        metadata: {
-          requiresSections: true,
-          duplicateKey: `${channel}:${thread_ts ?? event.ts}`,
-          contextCaseNumbers: [caseNumber],
-          artifactLabel: "triage_response",
-        },
-      });
-
-      if (supervisorDecision.status === "blocked") {
-        const reason = supervisorDecision.reason ?? "Response held for supervisor review.";
-        await setFinalMessage(
-          `${reason} Use \`/review-latest\` to approve or provide updated guidance.`
-        );
-        return;
-      }
-
       await setFinalMessage(response);
       return;
 
@@ -205,7 +182,7 @@ export async function handleNewAppMention(
     }
   }
 
-  // If not a triage command, proceed with normal AI response
+  // If not a triage command, proceed with normal AI response (full agent/tools)
   let result: string;
   if (thread_ts) {
     const messages = await slackMessaging.getThread(channel, thread_ts, botUserId);
@@ -226,29 +203,6 @@ export async function handleNewAppMention(
 
   // Extract and trim plain text from result
   const plainText = extractSummaryText(result) || result;
-
-  const generalSupervisorDecision = await reviewSlackArtifact({
-    channelId: channel,
-    threadTs: thread_ts ?? event.ts,
-    caseNumber: mentionCaseNumbers[0],
-    content: plainText,
-    metadata: {
-      requiresSections: mentionCaseNumbers.length > 0,
-      duplicateKey: `${channel}:${thread_ts ?? event.ts}`,
-      contextCaseNumbers: mentionCaseNumbers,
-      artifactLabel: "general_response",
-    },
-  });
-
-  if (generalSupervisorDecision.status === "blocked") {
-    const reason =
-      generalSupervisorDecision.reason ?? "Response held for supervisor review.";
-    await setFinalMessage(
-      `${reason} Use \`/review-latest\` to approve or provide updated guidance.`
-    );
-    return;
-  }
-
   await setFinalMessage(plainText);
 
   // After responding, check for case numbers and trigger intelligent workflow
