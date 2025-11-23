@@ -57,7 +57,8 @@
     "node-cron": "^4.2.1",
     "openai": "^6.2.0",
     "sharp": "^0.34.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/mssql": "^9.1.8",
