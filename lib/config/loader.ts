@@ -10,9 +10,14 @@ const config: ConfigValueMap = createInitialConfig();
 let initialized = false;
 let loadPromise: Promise<ConfigValueMap> | null = null;
 
-void ensureConfigLoaded();
+// Don't auto-load config at module initialization to prevent race conditions
+// Config will be loaded on first getConfig() call or when explicitly refreshed
 
 export function getConfigSync(): ConfigValueMap {
+  if (!initialized) {
+    console.warn('[Config] WARN: Accessing config before async load completed - using env vars only');
+    console.warn('[Config] Call await getConfig() before accessing config values to ensure DB overrides are loaded');
+  }
   return config;
 }
 
@@ -62,11 +67,14 @@ async function ensureConfigLoaded(): Promise<ConfigValueMap> {
 
 async function loadAndApplyConfig(): Promise<ConfigValueMap> {
   try {
+    console.log('[Config] Loading configuration from database...');
     const overrides = await loadOverridesFromDatabase();
     applyOverrides(config, overrides);
-    console.log(`[Config] Loaded ${overrides.size} config overrides from database`);
+    console.log(`[Config] Successfully loaded ${overrides.size} config overrides from database`);
+    console.log('[Config] Configuration initialization complete');
   } catch (error) {
-    console.error("[Config] Failed to load overrides from database:", error);
+    console.error("[Config] CRITICAL: Failed to load overrides from database:", error);
+    console.error("[Config] Error details:", error instanceof Error ? error.stack : String(error));
     console.log("[Config] Falling back to environment variables and defaults");
   } finally {
     initialized = true;

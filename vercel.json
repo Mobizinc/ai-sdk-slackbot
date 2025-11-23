@@ -1,9 +1,6 @@
 {
   "buildCommand": "pnpm build:api && pnpm build:admin",
   "installCommand": "pnpm install -r --frozen-lockfile && pnpm db:migrate:vercel",
-  "env": {
-    "NODE_OPTIONS": "--require tsconfig-paths/register"
-  },
   "redirects": [
     {
       "source": "/",

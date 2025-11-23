@@ -14,6 +14,7 @@ import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
 import { handleInterviewResponse } from "../lib/projects/interview-session";
 import { handleDemandThreadReply } from "../lib/demand/slack-workflow";
+import { getConfig } from "../lib/config";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -23,6 +24,10 @@ initializeDatabase().catch((err) => {
 });
 
 export async function POST(request: Request) {
+  // Ensure config is fully loaded before processing events
+  // This prevents race conditions where Slack tokens aren't available yet
+  await getConfig();
+
   const rawBody = await request.text();
   const payload = JSON.parse(rawBody);
   const requestType = payload.type as "url_verification" | "event_callback";
