@@ -1,5 +1,5 @@
 import { AnthropicChatService } from "./anthropic-chat";
-import { caseSearchService, type CaseSearchResult } from "./case-search-service";
+import { getCaseSearchService, CaseSearchService, type CaseSearchResult } from "./case-search-service";
 import { findStaleCases, type StaleCaseSummary } from "./case-aggregator";
 import { getCaseRepository } from "../infrastructure/servicenow/repositories/factory";
 import type { Case } from "../infrastructure/servicenow/types/domain-models";
@@ -34,7 +34,7 @@ export interface FollowupRunSummary {
 }
 
 interface FollowupDependencies {
-  caseSearch: Pick<typeof caseSearchService, "searchWithMetadata">;
+  caseSearch: Pick<CaseSearchService, "searchWithMetadata">;
   caseRepository: Pick<CaseRepository, "getJournalEntries" | "addWorkNote">;
   slack: SlackMessagingService;
   chat: AnthropicChatService;
@@ -80,7 +80,7 @@ export class StaleCaseFollowupService {
   private readonly journalLimit = Math.max(DEFAULT_JOURNAL_LIMIT, 3);
 
   constructor(private readonly deps: FollowupDependencies = {
-    caseSearch: caseSearchService,
+    caseSearch: getCaseSearchService(),
     caseRepository: getCaseRepository(),
     slack: getSlackMessagingService(),
     chat: AnthropicChatService.getInstance(),

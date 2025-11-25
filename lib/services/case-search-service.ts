@@ -218,4 +218,12 @@ export class CaseSearchService {
   }
 }
 
-export const caseSearchService = new CaseSearchService();
+// Lazy initialization to avoid module-load-time ServiceNow client creation
+// (Vercel serverless needs env vars to be loaded first)
+let _caseSearchService: CaseSearchService | null = null;
+export function getCaseSearchService(): CaseSearchService {
+  if (!_caseSearchService) {
+    _caseSearchService = new CaseSearchService();
+  }
+  return _caseSearchService;
+}

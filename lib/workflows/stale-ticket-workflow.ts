@@ -5,7 +5,7 @@
  * with quick threshold selection and bulk notification options.
  */
 
-import { caseSearchService, type CaseSearchFilters } from "../services/case-search-service";
+import { getCaseSearchService, type CaseSearchFilters } from "../services/case-search-service";
 import { findStaleCases, type StaleCaseSummary } from "../services/case-aggregator";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import { workflowManager } from "../services/workflow-manager";
@@ -48,7 +48,7 @@ export class StaleTicketWorkflow {
       },
       threshold,
     );
-    const filterSummary = caseSearchService.buildFilterSummary(searchResult.appliedFilters);
+    const filterSummary = getCaseSearchService().buildFilterSummary(searchResult.appliedFilters);
     const display = this.buildBlocks(
       searchResult.staleCases,
       threshold,
@@ -94,7 +94,7 @@ export class StaleTicketWorkflow {
     const payload = workflow.payload as StaleWorkflowState;
     const filters = payload.filters ?? {};
     const refreshed = await this.fetchStaleCases(filters, thresholdDays);
-    const filterSummary = caseSearchService.buildFilterSummary(refreshed.appliedFilters);
+    const filterSummary = getCaseSearchService().buildFilterSummary(refreshed.appliedFilters);
     const display = this.buildBlocks(
       refreshed.staleCases,
       thresholdDays,
@@ -173,7 +173,7 @@ export class StaleTicketWorkflow {
       limit: filters.limit ?? 100,
     };
 
-    const searchResult = await caseSearchService.searchWithMetadata(effectiveFilters);
+    const searchResult = await getCaseSearchService().searchWithMetadata(effectiveFilters);
     const staleCases = findStaleCases(searchResult.cases, thresholdDays);
 
     return {
