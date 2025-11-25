@@ -6,10 +6,10 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getCatalogTaskRepository } from "@/infrastructure/servicenow/repositories";
-import { createServiceNowContext } from "@/infrastructure/servicenow-context";
-import { normalizeCaseId, findMatchingCaseNumber } from "@/utils/case-number-normalizer";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getCatalogTaskRepository } from "../../../../infrastructure/servicenow/repositories";
+import { createServiceNowContext } from "../../../../infrastructure/servicenow-context";
+import { normalizeCaseId, findMatchingCaseNumber } from "../../../../utils/case-number-normalizer";
 import {
   createErrorResult,
   createSuccessResult,

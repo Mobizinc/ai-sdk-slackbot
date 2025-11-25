@@ -3,14 +3,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createCreateCaseTool } from "@/agent/tools/servicenow/case/create-case.tool";
-import type { Case } from "@/infrastructure/servicenow/types/domain-models";
+import { createCreateCaseTool } from "../../../../../lib/agent/tools/servicenow/case/create-case.tool";
+import type { Case } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getCaseRepository: vi.fn(),
 }));
 
-import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { getCaseRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
 
 describe("Create Case Tool", () => {
   let mockCaseRepo: any;

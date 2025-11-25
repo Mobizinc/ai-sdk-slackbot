@@ -9,14 +9,14 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
-import { getIncidentRepository } from "@/infrastructure/servicenow/repositories";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
+import { getIncidentRepository } from "../../../../infrastructure/servicenow/repositories";
 import {
   normalizeCaseId,
   findMatchingCaseNumber,
   detectTableFromPrefix,
-} from "@/utils/case-number-normalizer";
+} from "../../../../utils/case-number-normalizer";
 import { fetchAttachments, extractReference } from "../shared/attachment-utils";
 import {
   createErrorResult,

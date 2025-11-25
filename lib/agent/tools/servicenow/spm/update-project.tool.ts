@@ -3,8 +3,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getSPMRepository } from "@/infrastructure/servicenow/repositories";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getSPMRepository } from "../../../../infrastructure/servicenow/repositories";
 import { createErrorResult, createSuccessResult, ServiceNowErrorCodes } from "../shared/types";
 
 const UpdateProjectInputSchema = z.object({

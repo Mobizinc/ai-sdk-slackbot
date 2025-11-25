@@ -3,8 +3,8 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
 import { createErrorResult, createSuccessResult, ServiceNowErrorCodes } from "../shared/types";
 
 const CloseCaseInputSchema = z.object({

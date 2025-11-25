@@ -29,8 +29,8 @@ vi.mock("../../../../../lib/services/servicenow-formatters", () => ({
   extractReference: vi.fn((value) => value),
 }));
 
-import { serviceNowClient } from "@/tools/servicenow";
-import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
+import { serviceNowClient } from "../../../../../lib/tools/servicenow";
+import { formatConfigurationItemsForLLM } from "../../../../../lib/services/servicenow-formatters";
 
 describe("Search Configuration Items Tool", () => {
   let tool: any;

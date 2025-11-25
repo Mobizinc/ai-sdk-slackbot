@@ -6,10 +6,10 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
-import { normalizeCaseId, findMatchingCaseNumber } from "@/utils/case-number-normalizer";
-import { formatJournalEntriesForLLM } from "@/services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getCaseRepository } from "../../../../infrastructure/servicenow/repositories";
+import { normalizeCaseId, findMatchingCaseNumber } from "../../../../utils/case-number-normalizer";
+import { formatJournalEntriesForLLM } from "../../../../services/servicenow-formatters";
 import { extractReference } from "../shared/attachment-utils";
 import {
   createErrorResult,

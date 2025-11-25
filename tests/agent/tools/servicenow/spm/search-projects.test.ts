@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createSearchProjectsTool } from "@/agent/tools/servicenow/spm/search-projects.tool";
+import { createSearchProjectsTool } from "../../../../../lib/agent/tools/servicenow/spm/search-projects.tool";
 
 vi.mock("../../../../../lib/infrastructure/servicenow-context", () => ({
   createServiceNowContext: vi.fn(() => ({ channelId: "test-channel" })),
@@ -15,7 +15,7 @@ vi.mock("../../../../../lib/tools/servicenow", () => ({
   },
 }));
 
-import { serviceNowClient } from "@/tools/servicenow";
+import { serviceNowClient } from "../../../../../lib/tools/servicenow";
 
 describe("Search Projects Tool", () => {
   let tool: any;

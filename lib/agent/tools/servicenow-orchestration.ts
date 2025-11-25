@@ -13,10 +13,10 @@
 
 import { z } from "zod";
 import { createTool, type AgentToolFactoryParams } from "./shared";
-import { getCaseTriageService } from "@/services/case-triage";
+import { getCaseTriageService } from "../../services/case-triage";
 import type { ServiceNowCaseWebhook } from "../../schemas/servicenow-webhook";
-import { serviceNowClient } from "@/tools/servicenow";
-import { createTriageSystemContext } from "@/services/case-triage/context";
+import { serviceNowClient } from "../../tools/servicenow";
+import { createTriageSystemContext } from "../../services/case-triage/context";
 
 const orchestrationInputSchema = z.object({
   caseNumber: z

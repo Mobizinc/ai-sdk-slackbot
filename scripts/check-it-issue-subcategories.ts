@@ -4,8 +4,8 @@ import { resolve } from 'path';
 // Load env vars
 config({ path: resolve(process.cwd(), '.env.local') });
 
-import { getDb } from '@/lib/db';
-import { servicenowChoiceCache } from '@/lib/db/schema';
+import { getDb } from '../lib/db';
+import { servicenowChoiceCache } from '../lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 async function main() {

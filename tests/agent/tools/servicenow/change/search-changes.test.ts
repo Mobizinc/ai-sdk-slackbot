@@ -3,13 +3,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createSearchChangesTool } from "@/agent/tools/servicenow/change/search-changes.tool";
+import { createSearchChangesTool } from "../../../../../lib/agent/tools/servicenow/change/search-changes.tool";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getChangeRepository: vi.fn(),
 }));
 
-import { getChangeRepository } from "@/infrastructure/servicenow/repositories";
+import { getChangeRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
 
 describe("Search Changes Tool", () => {
   let mockChangeRepo: any;

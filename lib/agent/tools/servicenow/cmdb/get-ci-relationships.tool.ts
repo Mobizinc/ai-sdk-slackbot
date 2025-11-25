@@ -6,9 +6,9 @@
  */
 
 import { z } from "zod";
-import { createTool, type AgentToolFactoryParams } from "@/agent/tools/shared";
-import { getCmdbRepository } from "@/infrastructure/servicenow/repositories";
-import { formatConfigurationItemsForLLM } from "@/services/servicenow-formatters";
+import { createTool, type AgentToolFactoryParams } from "../../shared";
+import { getCmdbRepository } from "../../../../infrastructure/servicenow/repositories";
+import { formatConfigurationItemsForLLM } from "../../../../services/servicenow-formatters";
 import {
   createErrorResult,
   createSuccessResult,

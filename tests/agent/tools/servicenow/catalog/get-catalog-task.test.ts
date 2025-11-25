@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createGetCatalogTaskTool } from "@/agent/tools/servicenow/catalog/get-catalog-task.tool";
-import type { CatalogTask } from "@/infrastructure/servicenow/types/domain-models";
+import { createGetCatalogTaskTool } from "../../../../../lib/agent/tools/servicenow/catalog/get-catalog-task.tool";
+import type { CatalogTask } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getCatalogTaskRepository: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("../../../../../lib/utils/case-number-normalizer", () => ({
   findMatchingCaseNumber: vi.fn(() => null),
 }));
 
-import { getCatalogTaskRepository } from "@/infrastructure/servicenow/repositories";
+import { getCatalogTaskRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
 
 describe("Get Catalog Task Tool", () => {
   let mockCatalogTaskRepo: any;

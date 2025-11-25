@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createSearchKnowledgeTool } from "@/agent/tools/servicenow/knowledge/search-knowledge.tool";
+import { createSearchKnowledgeTool } from "../../../../../lib/agent/tools/servicenow/knowledge/search-knowledge.tool";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow-context", () => ({
@@ -16,7 +16,7 @@ vi.mock("../../../../../lib/tools/servicenow", () => ({
   },
 }));
 
-import { serviceNowClient } from "@/tools/servicenow";
+import { serviceNowClient } from "../../../../../lib/tools/servicenow";
 
 describe("Search Knowledge Tool", () => {
   let tool: any;

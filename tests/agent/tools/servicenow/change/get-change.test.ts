@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createGetChangeTool } from "@/agent/tools/servicenow/change/get-change.tool";
-import type { ChangeRequest } from "@/infrastructure/servicenow/repositories/change-repository.impl";
+import { createGetChangeTool } from "../../../../../lib/agent/tools/servicenow/change/get-change.tool";
+import type { ChangeRequest } from "../../../../../lib/infrastructure/servicenow/repositories/change-repository.impl";
 
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
   getChangeRepository: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("../../../../../lib/utils/case-number-normalizer", () => ({
   findMatchingCaseNumber: vi.fn(() => null),
 }));
 
-import { getChangeRepository } from "@/infrastructure/servicenow/repositories";
+import { getChangeRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
 
 describe("Get Change Tool", () => {
   let mockChangeRepo: any;

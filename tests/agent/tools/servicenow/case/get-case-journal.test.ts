@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createGetCaseJournalTool } from "@/agent/tools/servicenow/case/get-case-journal.tool";
-import type { Case } from "@/infrastructure/servicenow/types/domain-models";
+import { createGetCaseJournalTool } from "../../../../../lib/agent/tools/servicenow/case/get-case-journal.tool";
+import type { Case } from "../../../../../lib/infrastructure/servicenow/types/domain-models";
 
 // Mock dependencies
 vi.mock("../../../../../lib/infrastructure/servicenow/repositories", () => ({
@@ -41,9 +41,9 @@ vi.mock("../../../../../lib/agent/tools/servicenow/shared/attachment-utils", () 
   extractReference: vi.fn((value) => value),
 }));
 
-import { getCaseRepository } from "@/infrastructure/servicenow/repositories";
-import { serviceNowClient } from "@/tools/servicenow";
-import { formatJournalEntriesForLLM } from "@/services/servicenow-formatters";
+import { getCaseRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
+import { serviceNowClient } from "../../../../../lib/tools/servicenow";
+import { formatJournalEntriesForLLM } from "../../../../../lib/services/servicenow-formatters";
 
 describe("Get Case Journal Tool", () => {
   let mockCaseRepo: any;
