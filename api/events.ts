@@ -24,6 +24,14 @@ initializeDatabase().catch((err) => {
 });
 
 export async function POST(request: Request) {
+  // Ignore Slack retries - we already processed the original event
+  const retryNum = request.headers.get("x-slack-retry-num");
+  const retryReason = request.headers.get("x-slack-retry-reason");
+  if (retryNum) {
+    console.log(`[Events] Ignoring Slack retry #${retryNum} (reason: ${retryReason})`);
+    return new Response("OK", { status: 200 });
+  }
+
   // Ensure config is fully loaded before processing events
   // This prevents race conditions where Slack tokens aren't available yet
   await getConfig();
