@@ -10,8 +10,9 @@ const config: ConfigValueMap = createInitialConfig();
 let initialized = false;
 let loadPromise: Promise<ConfigValueMap> | null = null;
 
-// Don't auto-load config at module initialization to prevent race conditions
-// Config will be loaded on first getConfig() call or when explicitly refreshed
+// Auto-load config at module initialization (non-blocking)
+// This starts loading during cold start so config is ready when first request arrives
+void ensureConfigLoaded();
 
 export function getConfigSync(): ConfigValueMap {
   if (!initialized) {
