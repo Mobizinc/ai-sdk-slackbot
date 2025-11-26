@@ -1,10 +1,9 @@
 import { getSlackMessagingService } from "./slack-messaging";
-import { CaseSearchService } from "./case-search-service";
+import { getCaseSearchService } from "./case-search-service";
 import type { Case } from "../infrastructure/servicenow/types/domain-models";
 import { config } from "../config";
 
 const slackMessaging = getSlackMessagingService();
-const caseSearchService = new CaseSearchService();
 
 const DEFAULT_LOOKBACK_DAYS = 14;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";
@@ -58,7 +57,7 @@ async function fetchCasesForLeaderboard(start: Date): Promise<Case[]> {
     const limit = SEARCH_PAGE_SIZE;
 
     while (true) {
-      const result = await caseSearchService.searchWithMetadata({
+      const result = await getCaseSearchService().searchWithMetadata({
         assignmentGroup: group,
         activeOnly: true, // Get all active cases (works like stale case query)
         includeChildDomains: true,
