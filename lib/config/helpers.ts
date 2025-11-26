@@ -3,20 +3,35 @@ import { getConfigValue } from "./loader";
 
 export function getServiceNowConfig() {
   const environment = getConfigValue("servicenowEnvironment") as string;
-  const environments = JSON.parse(getConfigValue("servicenowEnvironments") as string);
+  const environmentsJson = getConfigValue("servicenowEnvironments") as string;
 
-  if (!environments[environment]) {
-    throw new Error(`ServiceNow environment '${environment}' not configured`);
+  let environments: Record<string, any> = {};
+  try {
+    environments = JSON.parse(environmentsJson);
+  } catch (e) {
+    console.warn("[Config] Failed to parse servicenowEnvironments JSON, using fallback");
   }
 
+  const envConfig = environments[environment] || {};
+
+  // Backward compatibility: fall back to direct env vars if environment config is empty
+  const instanceUrl = envConfig.instanceUrl || process.env.SERVICENOW_INSTANCE_URL || process.env.SERVICENOW_URL || "";
+  const username = envConfig.username || process.env.SERVICENOW_USERNAME || "";
+  const password = envConfig.password || process.env.SERVICENOW_PASSWORD || "";
+  const apiToken = getConfigValue("servicenowApiToken") as string || process.env.SERVICENOW_API_TOKEN || "";
+
   return {
-    ...environments[environment],
+    ...envConfig,
     environment,
+    instanceUrl,
+    username,
+    password,
+    apiToken,
+    caseTable: envConfig.caseTable || process.env.SERVICENOW_CASE_TABLE || "sn_customerservice_case",
     caseJournalName: getConfigValue("servicenowCaseJournalName"),
-    apiToken: getConfigValue("servicenowApiToken"),
     webhookSecret: getConfigValue("servicenowWebhookSecret"),
-    cloneTargetInstance: environments[environment].cloneTargetInstance || "mobizuat",
-    cloneSourceInstance: environments[environment].cloneSourceInstance || "mobizprod"
+    cloneTargetInstance: envConfig.cloneTargetInstance || "mobizuat",
+    cloneSourceInstance: envConfig.cloneSourceInstance || "mobizprod"
   };
 }
 
