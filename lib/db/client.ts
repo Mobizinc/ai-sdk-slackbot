@@ -126,6 +126,7 @@ export async function testDatabaseConnection(): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("[Database] Connection test failed:", error);
-    return false;
+    // Surface the original error so retry logic can classify retryable failures (e.g., fetch failed)
+    throw error;
   }
 }

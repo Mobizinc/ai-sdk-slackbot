@@ -27,7 +27,8 @@ interface ToolCall {
 export async function runAgent(params: RunnerParams): Promise<string> {
   return withLangSmithTrace(
     async () => {
-      params.updateStatus?.("thinking");
+      // Note: "thinking" status is already shown by initial message in createStatusUpdater
+      // Removed redundant updateStatus("thinking") to reduce Slack API calls
 
       const chatService = AnthropicChatService.getInstance();
       const toolRegistry = getToolRegistry();
@@ -203,7 +204,8 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           content: response.message.content, // Preserve actual blocks (tool_use, text, etc.)
         });
 
-        params.updateStatus?.("calling-tool");
+        // Note: Removed redundant updateStatus("calling-tool") - individual tools
+        // report their own status which is more descriptive (e.g., "is looking up case...")
 
         // Create a child span for tool execution batch
         const toolBatchSpan = await createChildSpan({

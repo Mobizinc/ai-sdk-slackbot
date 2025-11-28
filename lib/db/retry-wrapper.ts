@@ -73,6 +73,7 @@ const RETRYABLE_ERROR_PATTERNS = [
   // Neon-specific errors
   'Error connecting to database',
   'NeonDbError',
+  'database connection test failed',
 
   // Timeout errors
   'statement timeout',

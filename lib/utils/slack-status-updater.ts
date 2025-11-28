@@ -16,6 +16,14 @@ import { getSlackMessagingService } from '../services/slack-messaging';
 const SLACK_DISPLAY_TEXT_LIMIT = 12000;
 
 /**
+ * Debounce configuration for status updates
+ * - MIN_UPDATE_INTERVAL_MS: Minimum time between actual Slack API calls
+ * - DEBOUNCE_DELAY_MS: Wait this long before sending to coalesce rapid updates
+ */
+const MIN_UPDATE_INTERVAL_MS = 5000;  // 5 seconds between updates
+const DEBOUNCE_DELAY_MS = 2000;       // 2 second debounce to coalesce rapid changes
+
+/**
  * Status emoji mapping for different operations
  */
 const STATUS_EMOJIS: Record<string, string> = {
@@ -116,9 +124,14 @@ export async function createStatusUpdater(
     throw new Error("Failed to post initial message");
   }
 
-  // Non-destructive status update - only updates the status block
-  const updateStatus = async (status: string) => {
-    // Find matching emoji
+  // Debouncing state for this status updater instance
+  let lastUpdateTime = 0;
+  let lastStatus = initialStatus;
+  let pendingStatus: string | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Helper to actually send the status update to Slack
+  const sendStatusUpdate = async (status: string) => {
     const emojiKey = Object.keys(STATUS_EMOJIS).find(key => status.includes(key)) || '';
     const emoji = STATUS_EMOJIS[emojiKey] || '⚙️';
 
@@ -146,10 +159,58 @@ export async function createStatusUpdater(
         }
       ]
     });
+
+    lastUpdateTime = Date.now();
+    lastStatus = status;
+  };
+
+  // Non-destructive status update with debouncing
+  // Coalesces rapid status changes into one update
+  const updateStatus = async (status: string) => {
+    // Skip duplicate statuses
+    if (status === lastStatus && status === pendingStatus) {
+      return;
+    }
+
+    pendingStatus = status;
+
+    // Clear any existing debounce timer
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTime;
+
+    // If enough time has passed, send immediately
+    if (timeSinceLastUpdate >= MIN_UPDATE_INTERVAL_MS) {
+      await sendStatusUpdate(status);
+      pendingStatus = null;
+      return;
+    }
+
+    // Otherwise, debounce - wait and coalesce rapid updates
+    debounceTimer = setTimeout(async () => {
+      if (pendingStatus && pendingStatus !== lastStatus) {
+        try {
+          await sendStatusUpdate(pendingStatus);
+        } catch (error) {
+          console.error('[StatusUpdater] Debounced update failed:', error);
+        }
+        pendingStatus = null;
+      }
+    }, DEBOUNCE_DELAY_MS);
   };
 
   // Destructive final update - replaces entire message with final content
   const setFinalMessage = async (text: string, blocks?: any[]) => {
+    // Cancel any pending debounced status update
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    pendingStatus = null;
+
     const displayText = clampTextForSlackDisplay(text);
     let finalBlocks = blocks;
 
