@@ -9,9 +9,13 @@ export async function fetchCaseData(
   deps: TriggerKBWorkflowDeps,
   caseNumber: string,
 ) {
-  const caseDetails = await deps.caseData.getCase(caseNumber);
-  const journalEntries = await deps.caseData.getCaseJournal(caseNumber);
-  return { caseDetails, journalEntries };
+  // Use getCaseWithJournal which correctly resolves case number → sys_id → journal
+  // The sys_journal_field table's element_id column stores sys_id, not case number
+  const result = await deps.caseData.getCaseWithJournal(caseNumber);
+  return {
+    caseDetails: result?.case ?? null,
+    journalEntries: result?.journal ?? [],
+  };
 }
 
 export async function postResolutionSummary(

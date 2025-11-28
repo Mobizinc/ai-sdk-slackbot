@@ -8,6 +8,7 @@ import { getCaseTriageService } from "./services/case-triage";
 import { getServiceNowContextFromEvent } from "./infrastructure/servicenow-context";
 import { createStatusUpdater } from "./utils/slack-status-updater";
 import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
+import { getResolutionDetector } from "./passive/detectors/resolution-detector";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -220,43 +221,25 @@ export async function handleNewAppMention(
         thread_ts: thread_ts,
       });
 
-      // Check if case is resolved
+      // Check if case is resolved using the centralized detector
       const context = contextManager.getContextSync(caseNumber, actualThreadTs);
-
-      // Extract ServiceNow context for feature flag routing
-      const snContext = getServiceNowContextFromEvent(event);
-
-      // Check ServiceNow state
-      let isResolvedInServiceNow = false;
-      if (serviceNowClient.isConfigured()) {
-        try {
-          const caseDetails = await serviceNowClient.getCase(caseNumber, snContext);
-          if (caseDetails?.state?.toLowerCase().includes("closed") ||
-              caseDetails?.state?.toLowerCase().includes("resolved")) {
-            isResolvedInServiceNow = true;
-          }
-        } catch (error) {
-          console.log(`[App Mention] Could not fetch case ${caseNumber}:`, error);
-        }
-      }
-
-      // Trigger KB workflow only if BOTH conversation AND ServiceNow agree it's resolved
-      // OR if ServiceNow is not configured (rely on conversation only)
+      
       if (context && !context._notified) {
-        const shouldTriggerKB = (context.isResolved || isResolvedInServiceNow) &&
-                                (!serviceNowClient.isConfigured() || isResolvedInServiceNow);
+        const detector = getResolutionDetector();
+        const resolution = await detector.shouldTriggerKBWorkflow(context);
 
-        if (shouldTriggerKB) {
-          console.log(`[App Mention] Case ${caseNumber} is resolved, triggering KB workflow (ServiceNow confirmed: ${isResolvedInServiceNow})`);
+        if (resolution.isResolved) {
+          console.log(`[App Mention] Case ${caseNumber} resolution detected: ${resolution.reason}`);
           // Fire and forget - don't block the response
           notifyResolution(caseNumber, channel, actualThreadTs).catch((err) => {
             console.error(`[App Mention] Error in notifyResolution for ${caseNumber}:`, err);
           });
           context._notified = true;
-        } else if (context.isResolved && !isResolvedInServiceNow) {
-          console.log(`[App Mention] Skipping KB workflow - conversation suggests resolution but ServiceNow state doesn't confirm it yet`);
-          // Reset isResolved flag since ServiceNow doesn't confirm
-          context.isResolved = false;
+        } else if (context.isResolved && !resolution.isValidatedByServiceNow) {
+           // Reset isResolved flag if ServiceNow validation failed (fail-safe from detector)
+           // This prevents stuck "resolved" state in context if the backend disagrees
+           console.log(`[App Mention] Resetting resolution flag: ${resolution.reason}`);
+           context.isResolved = false;
         }
       }
     }

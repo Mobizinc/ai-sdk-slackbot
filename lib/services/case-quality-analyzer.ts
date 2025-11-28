@@ -36,8 +36,8 @@ const QualityAssessmentSchema = z.object({
   solutionClarity: z.enum(["clear", "vague", "missing"]),
   stepsDocumented: z.boolean(),
   rootCauseIdentified: z.boolean(),
-  missingInfo: z.array(z.string().max(50)).max(4),
-  reasoning: z.string().max(120),
+  missingInfo: z.array(z.string()).max(5),
+  reasoning: z.string(),
 }) as z.ZodTypeAny;
 
 const QUALITY_ASSESSMENT_JSON_SCHEMA = {
@@ -50,10 +50,10 @@ const QUALITY_ASSESSMENT_JSON_SCHEMA = {
     rootCauseIdentified: { type: "boolean" },
     missingInfo: {
       type: "array",
-      items: { type: "string", maxLength: 50 },
-      maxItems: 4,
+      items: { type: "string" },
+      maxItems: 5,
     },
-    reasoning: { type: "string", maxLength: 120 },
+    reasoning: { type: "string" },
   },
   required: [
     "score",
@@ -96,7 +96,7 @@ Description: ${caseDetails.description || caseDetails.short_description || "N/A"
         {
           role: "system",
           content:
-            "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment.",
+            "You are a meticulous knowledge base quality analyst. You must call the `report_quality` tool exactly once with your structured assessment. Keep your reasoning concise (1-2 sentences).",
         },
         {
           role: "user",

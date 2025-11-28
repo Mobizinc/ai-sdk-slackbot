@@ -87,11 +87,12 @@ export class ResolutionDetector {
         error
       );
 
-      // ServiceNow check failed, fall back to conversation-based detection
+      // ServiceNow check failed, fall back to fail-safe (assume NOT resolved)
+      // We don't want to trigger KB workflows on unverified conversational signals if the source of truth is unreachable.
       return {
-        isResolved: true,
+        isResolved: false,
         isValidatedByServiceNow: false,
-        reason: 'ServiceNow validation failed, using conversation-based detection',
+        reason: 'ServiceNow validation failed (fail-safe)',
       };
     }
   }
