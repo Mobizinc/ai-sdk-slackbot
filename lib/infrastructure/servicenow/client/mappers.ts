@@ -138,9 +138,15 @@ export function normalizeIpAddresses(field: ServiceNowField | ServiceNowField[] 
 
 /**
  * Build ServiceNow record URL
+ * Handles sys_id as either string or ServiceNow reference object
  */
-export function buildRecordUrl(instanceUrl: string, table: string, sysId: string): string {
-  return `${instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`;
+export function buildRecordUrl(
+  instanceUrl: string,
+  table: string,
+  sysId: string | ServiceNowField | undefined | null
+): string {
+  const id = extractSysId(sysId) ?? String(sysId ?? "");
+  return `${instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${id}`;
 }
 
 /**
