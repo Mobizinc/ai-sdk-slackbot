@@ -16,6 +16,17 @@ describe("specialist registry", () => {
     expect(routing.matches[0]?.agent.id).toBe("servicenow_orchestration");
   });
 
+  it("still routes case-number-only requests to ServiceNow orchestration", () => {
+    const routing = buildToolAllowList({
+      messages: [makeMessage("SCS0050980")],
+      caseNumbers: ["SCS0050980"],
+    });
+
+    expect(routing.allowlist).toBeDefined();
+    expect(routing?.allowlist).toContain("orchestrateServiceNowCase");
+    expect(routing?.matches[0]?.agent.id).toBe("servicenow_orchestration");
+  });
+
   it("selects KB tooling for knowledge base requests", () => {
     const routing = buildToolAllowList({
       messages: [

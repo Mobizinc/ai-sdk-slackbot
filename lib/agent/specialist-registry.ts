@@ -261,6 +261,7 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
   const matches: SpecialistAgentMatch[] = SPECIALIST_AGENTS.map((agent) => {
     let score = agent.baseWeight ?? 0;
     const matchedKeywords: string[] = [];
+    let hasRequiredContextSatisfied = false;
 
     for (const keyword of agent.keywords) {
       const normalized = keyword.toLowerCase();
@@ -302,24 +303,27 @@ export function matchSpecialistAgents(input: SpecialistRoutingInput): Specialist
 
     const missingContextRequirements: SpecialistContextRequirementId[] = [];
     if (agent.requiredContext) {
+      let contextSatisfied = true;
       for (const requirementId of agent.requiredContext) {
         const requirement = REQUIREMENT_CONFIGS[requirementId];
         if (!requirement) continue;
         const satisfied = requirement.isSatisfied({ signals, routingInput: input });
         if (!satisfied) {
           missingContextRequirements.push(requirementId);
+          contextSatisfied = false;
           score -= 1;
         } else {
           score += 0.5;
         }
       }
+      hasRequiredContextSatisfied = contextSatisfied;
     }
 
     const hasRequiredSignalSatisfied = Boolean(
       agent.requiredSignals?.some((signal) => signals.has(signal))
     );
 
-    if (matchedKeywords.length === 0 && !hasRequiredSignalSatisfied) {
+    if (matchedKeywords.length === 0 && !hasRequiredSignalSatisfied && !hasRequiredContextSatisfied) {
       return null;
     }
 
