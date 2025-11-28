@@ -31,6 +31,9 @@ export interface RetryOptions {
 
   /** Operation name for logging (default: 'database operation') */
   operationName: string;
+
+  /** Force retry even if error classification can't determine retryability (default: false) */
+  forceRetryable?: boolean;
 }
 
 export interface RetryMetrics {
@@ -242,7 +245,7 @@ export async function withRetry<T>(
       const errorMessage = getErrorMessage(error);
 
       // Determine if we should retry
-      const shouldRetry = isRetryableError(error);
+      const shouldRetry = opts.forceRetryable ? true : isRetryableError(error);
       const isLastAttempt = attempt === opts.maxAttempts - 1;
 
       if (!shouldRetry) {
@@ -335,5 +338,6 @@ export async function withInitRetry<T>(
     initialDelayMs: 500,
     maxDelayMs: 5000,
     backoffMultiplier: 2,
+    forceRetryable: true, // Startup connectivity to Neon can flake; retry even if classification is uncertain
   });
 }

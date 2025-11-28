@@ -1,5 +1,6 @@
 // Haiku-powered intent detection for complex queries
 import { AnthropicChatService } from "./services/anthropic-chat";
+import { ANTHROPIC_MODELS } from "./anthropic-provider";
 import { detectIntent, IntentDetectionResult, QueryIntent } from "./intent-detection";
 
 export type { QueryIntent };
@@ -117,7 +118,7 @@ export async function detectIntentWithLLM(request: LLMIntentRequest): Promise<LL
 
     const response = await chatService.send({
       messages: [{ role: 'user', content: prompt }],
-      model: 'claude-haiku-4',
+      model: ANTHROPIC_MODELS.HAIKU_45,
       maxTokens: 500,
       temperature: 0.1, // Low temperature for consistent classification
     });

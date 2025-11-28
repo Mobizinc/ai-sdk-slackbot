@@ -222,6 +222,28 @@ function buildSlackBlocks(
       label: "Client",
       value: sanitizeMrkdwn(context.companyName),
     });
+  } else if (context.classification.scope_evaluation?.clientName) {
+    businessContextFields.push({
+      label: "Client",
+      value: sanitizeMrkdwn(context.classification.scope_evaluation.clientName),
+    });
+  } else {
+    const bi = context.classification.business_intelligence as { clientName?: string; client_name?: string } | undefined;
+    const biClient = bi?.clientName || bi?.client_name;
+    if (biClient) {
+      businessContextFields.push({
+        label: "Client",
+        value: sanitizeMrkdwn(biClient),
+      });
+    }
+  }
+
+  const requestSummary = context.caseData.short_description || context.caseData.description;
+  if (requestSummary) {
+    businessContextFields.push({
+      label: "Request",
+      value: sanitizeMrkdwn(requestSummary),
+    });
   }
 
   if (context.contactName) {

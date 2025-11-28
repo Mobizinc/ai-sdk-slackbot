@@ -25,6 +25,8 @@ import { calculateBusinessIntelligenceScore } from "./business-intelligence";
 import { getSlackMessagingService } from "./slack-messaging";
 import type { CaseClassificationResult } from "../schemas/servicenow-webhook";
 import type { NewCaseEscalation } from "../db/schema";
+import { getCaseRepository } from "../infrastructure/servicenow/repositories";
+import type { Case } from "../infrastructure/servicenow/types/domain-models";
 
 export interface EscalationContext {
   caseNumber: string;
@@ -74,6 +76,7 @@ export class EscalationService {
     console.log(`[Escalation Service] Evaluating escalation for ${context.caseNumber}`);
 
     // Step 1: Decide if escalation is needed (rule-based)
+    const resolvedCompanyName = await resolveCompanyName(context);
     const decision = this.shouldEscalate(context.classification);
 
     if (!decision.shouldEscalate) {
@@ -105,7 +108,7 @@ export class EscalationService {
 
     // Step 3: Determine target Slack channel
     const channel = this.getTargetChannel(
-      context.companyName,
+      resolvedCompanyName || context.companyName,
       context.classification.category,
       context.assignmentGroup
     );
@@ -119,18 +122,27 @@ export class EscalationService {
 
     try {
       if (config.escalationUseLlmMessages) {
-        const llmResult = await buildEscalationMessage(context, decision);
+        const llmResult = await buildEscalationMessage(
+          { ...context, companyName: resolvedCompanyName || context.companyName },
+          decision
+        );
         message = llmResult.blocks;
         llmGenerated = true;
         tokenUsage = llmResult.tokenUsage || 0;
       } else {
         // Use template-based fallback
-        message = buildFallbackEscalationMessage(context, decision);
+        message = buildFallbackEscalationMessage(
+          { ...context, companyName: resolvedCompanyName || context.companyName },
+          decision
+        );
       }
     } catch (error) {
       console.error("[Escalation Service] Error building escalation message:", error);
       // Fall back to template if LLM fails
-      message = buildFallbackEscalationMessage(context, decision);
+      message = buildFallbackEscalationMessage(
+        { ...context, companyName: resolvedCompanyName || context.companyName },
+        decision
+      );
       llmGenerated = false;
     }
 
@@ -163,7 +175,7 @@ export class EscalationService {
         // slackThreadTs is not applicable for top-level messages, only for thread replies
         assignedTo: context.assignedTo,
         assignmentGroup: context.assignmentGroup,
-        companyName: context.companyName,
+        companyName: resolvedCompanyName || context.companyName,
         category: context.classification.category,
         subcategory: context.classification.subcategory,
         priority: context.caseData.priority,
@@ -324,6 +336,46 @@ export class EscalationService {
     // TODO: Handle specific actions (create_project, reassign, etc.)
     // This will be implemented when we add the interactive buttons in events.ts
   }
+}
+
+function looksLikeSysId(value?: string | null): boolean {
+  return typeof value === "string" && /^[0-9a-f]{32}$/i.test(value);
+}
+
+async function resolveCompanyName(context: EscalationContext): Promise<string | undefined> {
+  // Prefer explicit companyName if already a display value (not a sys_id)
+  if (context.companyName && !looksLikeSysId(context.companyName)) {
+    return context.companyName;
+  }
+
+  // Classification may carry clientName/client_name
+  const bi = context.classification.business_intelligence as
+    | { clientName?: string; client_name?: string }
+    | undefined;
+  const biClient = bi?.clientName || bi?.client_name;
+  if (biClient) {
+    return biClient;
+  }
+
+  // Try to resolve from ServiceNow using the case sys_id (account/company display values)
+  try {
+    const caseRepo = getCaseRepository();
+    const caseRecord: Case | null = await caseRepo.findBySysId(context.caseSysId);
+    if (caseRecord?.companyName && !looksLikeSysId(caseRecord.companyName)) {
+      return caseRecord.companyName;
+    }
+    if (caseRecord?.accountName && !looksLikeSysId(caseRecord.accountName)) {
+      return caseRecord.accountName;
+    }
+  } catch (error) {
+    console.warn(
+      `[Escalation Service] Failed to resolve company name for ${context.caseNumber} via ServiceNow:`,
+      error
+    );
+  }
+
+  // Fall back to whatever was provided (may be a sys_id)
+  return context.companyName;
 }
 
 // Singleton instance
