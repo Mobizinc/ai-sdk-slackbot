@@ -1,5 +1,5 @@
 import { getAgentHealth } from "../services/agent-health-monitor";
-import { serviceNowClient } from "../tools/servicenow";
+import { isServiceNowConfigured } from "../config/helpers";
 import type { ChatMessage } from "../services/anthropic-chat";
 
 const CASE_NUMBER_REGEX = /\b(?:SCS|CS|INC|RITM|REQ|CHG|PRB|SCTASK|TASK|STASK)[0-9]{4,}\b/gi;
@@ -119,7 +119,7 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     costClass: "high",
     latencyClass: "long",
     baseWeight: 6,
-    healthCheck: async () => serviceNowClient.isConfigured(),
+    healthCheck: async () => isServiceNowConfigured(),
   },
   {
     id: "knowledge_base_agent",

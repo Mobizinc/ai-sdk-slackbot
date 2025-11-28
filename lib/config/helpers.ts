@@ -35,6 +35,17 @@ export function getServiceNowConfig() {
   };
 }
 
+/**
+ * Check if ServiceNow is properly configured with credentials
+ * Used for health checks and feature availability
+ */
+export function isServiceNowConfigured(): boolean {
+  const config = getServiceNowConfig();
+  const hasInstanceUrl = Boolean(config.instanceUrl);
+  const hasAuth = Boolean(config.apiToken || (config.username && config.password));
+  return hasInstanceUrl && hasAuth;
+}
+
 export function getLlmTimeout(operation: "general" | "classification" | "kbGeneration" | "escalation"): number {
   const timeouts = JSON.parse(getConfigValue("llmTimeouts") as string);
   return timeouts[operation] || timeouts.general;

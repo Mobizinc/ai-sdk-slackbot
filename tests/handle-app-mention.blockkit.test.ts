@@ -52,18 +52,22 @@ vi.mock("../lib/handle-passive-messages", () => ({
   notifyResolution: vi.fn(),
 }));
 
-vi.mock("../lib/tools/servicenow", () => ({
-  serviceNowClient: {
-    isConfigured: vi.fn().mockReturnValue(false),
-  },
+vi.mock("../lib/config/helpers", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/config/helpers")>();
+  return {
+    ...actual,
+    isServiceNowConfigured: vi.fn().mockReturnValue(false),
+  };
+});
+
+vi.mock("../lib/infrastructure/servicenow/repositories", () => ({
+  getCaseRepository: vi.fn().mockReturnValue({
+    findByNumber: vi.fn().mockResolvedValue(null),
+  }),
 }));
 
 vi.mock("../lib/services/case-triage", () => ({
   getCaseTriageService: vi.fn(),
-}));
-
-vi.mock("../lib/infrastructure/servicenow-context", () => ({
-  getServiceNowContextFromEvent: vi.fn().mockReturnValue({}),
 }));
 
 import { handleNewAppMention } from "../lib/handle-app-mention";
