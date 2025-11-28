@@ -14,6 +14,7 @@ import {
   createSuccessResult,
   ServiceNowErrorCodes,
 } from "../shared/types";
+import { detectTableFromPrefix } from "../../../../utils/case-number-normalizer";
 
 /**
  * Input schema for search_configuration_items tool
@@ -131,7 +132,15 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
       "- At least ONE search criterion must be provided\n" +
       "- Multiple criteria are combined with AND logic (all must match)\n" +
       "- Most string fields support partial matching\n" +
-      "- Returns summary of found CIs with key attributes",
+      "- Returns summary of found CIs with key attributes\n\n" +
+      "**DO NOT use this tool for ServiceNow record numbers:**\n" +
+      "- SCS/CS (e.g., SCS0050980) → use get_case\n" +
+      "- INC (e.g., INC0012345) → use get_incident\n" +
+      "- REQ/RITM/SCTASK → use appropriate service catalog tools\n" +
+      "- CHG (e.g., CHG0005678) → use get_change\n" +
+      "- CTASK (e.g., CTASK0012972) → use get_change_tasks\n" +
+      "- PRB (e.g., PRB0001234) → use get_problem\n" +
+      "This tool is ONLY for infrastructure CIs like servers, switches, databases, and applications.",
 
     inputSchema: SearchConfigurationItemsInputSchema,
 
@@ -148,6 +157,39 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
       limit = 10,
     }: SearchConfigurationItemsInput) => {
       try {
+        // Check if ciName is actually a ServiceNow record number (case, incident, etc.)
+        // Only match if it's PREFIX followed by digits (e.g., SCS0050980, INC0012345)
+        // This avoids false positives like "Incinerator-01" or "ChangeControlServer"
+        if (ciName) {
+          const snRecordPattern = /^(SCS|CS|INC|REQ|RITM|SCTASK|CHG|PRB|CTASK)\d{4,}$/i;
+          if (snRecordPattern.test(ciName)) {
+            const detectedTable = detectTableFromPrefix(ciName);
+            if (detectedTable) {
+              const toolMapping: Record<string, string> = {
+                sn_customerservice_case: "get_case",
+                incident: "get_incident",
+                sc_request: "get_request",
+                sc_req_item: "get_requested_item",
+                sc_task: "get_catalog_task",
+                change_request: "get_change",
+                problem: "get_problem",
+                change_task: "get_change_tasks",
+              };
+              const correctTool = toolMapping[detectedTable.table] || "get_case";
+              return createErrorResult(
+                ServiceNowErrorCodes.INVALID_INPUT,
+                `"${ciName}" is a ServiceNow record number (${detectedTable.table}), not a Configuration Item name. Use the ${correctTool} tool instead to look up this record.`,
+                {
+                  detectedPrefix: detectedTable.prefix,
+                  detectedTable: detectedTable.table,
+                  suggestedTool: correctTool,
+                  providedValue: ciName,
+                }
+              );
+            }
+          }
+        }
+
         // Validate that at least one search criterion is provided
         if (
           !ciName &&
