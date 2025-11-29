@@ -2404,7 +2404,8 @@ export class ServiceNowClient {
 
     // Check if updates contain only repository-supported fields
     const supportedFields = ['shortDescription', 'description', 'priority', 'state', 'category', 'subcategory', 'assignmentGroup', 'assignedTo',
-                              'short_description', 'assignment_group', 'assigned_to']; // Include both camelCase and snake_case
+                              'short_description', 'assignment_group', 'assigned_to',
+                              'closeNotes', 'close_notes', 'closeCode', 'close_code', 'incident', 'problem']; // Include both camelCase and snake_case
     const updateKeys = Object.keys(updates);
     const hasUnsupportedFields = updateKeys.some(key => !supportedFields.includes(key));
 
@@ -2433,6 +2434,12 @@ export class ServiceNowClient {
         if (updates.subcategory) typedUpdates.subcategory = updates.subcategory;
         if (updates.assignment_group) typedUpdates.assignmentGroup = updates.assignment_group;
         if (updates.assigned_to) typedUpdates.assignedTo = updates.assigned_to;
+        if (updates.close_notes) typedUpdates.closeNotes = updates.close_notes;
+        if (updates.closeNotes) typedUpdates.closeNotes = updates.closeNotes;
+        if (updates.close_code) typedUpdates.closeCode = updates.close_code;
+        if (updates.closeCode) typedUpdates.closeCode = updates.closeCode;
+        if (updates.incident) typedUpdates.incident = updates.incident;
+        if (updates.problem) typedUpdates.problem = updates.problem;
 
         await caseRepo.update(sysId, typedUpdates);
 

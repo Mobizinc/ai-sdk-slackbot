@@ -247,6 +247,10 @@ export interface UpdateCaseInput {
   subcategory?: string;
   assignmentGroup?: string;
   assignedTo?: string;
+  closeNotes?: string;
+  closeCode?: string;
+  incident?: string;
+  problem?: string;
 }
 
 /**

@@ -1,4 +1,3 @@
-import { config as runtimeConfig } from "../../../../lib/config";
 import {
   fetchProjectById,
   updateProject,
@@ -13,69 +12,7 @@ import {
 import { type NewProjectRecord } from "../../../../lib/db/schema";
 import { getSPMRepository } from "../../../../lib/infrastructure/servicenow/repositories/factory";
 import type { SPMProject, SPMEpic, SPMStory } from "../../../../lib/infrastructure/servicenow/types/domain-models";
-
-function buildUnauthorizedResponse(message: string, status: number): Response {
-  return new Response(message, {
-    status,
-    headers: {
-      "Content-Type": "text/plain",
-    },
-  });
-}
-
-function authorize(request: Request): Response | null {
-  const isDevelopment =
-    !runtimeConfig.vercelEnv || runtimeConfig.vercelEnv === "development";
-  if (isDevelopment) {
-    return null;
-  }
-
-  const adminToken = runtimeConfig.adminApiToken;
-  if (!adminToken) {
-    return buildUnauthorizedResponse(
-      "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
-      403,
-    );
-  }
-
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return buildUnauthorizedResponse(
-      "Unauthorized. Provide Bearer token in Authorization header.",
-      401,
-    );
-  }
-
-  const provided = authHeader.substring(7);
-  if (provided !== adminToken) {
-    return buildUnauthorizedResponse("Forbidden. Invalid admin token.", 403);
-  }
-
-  return null;
-}
-
-const ALLOWED_ORIGINS = [
-  "https://admin.mobiz.solutions",
-  "https://dev.admin.mobiz.solutions",
-];
-
-function getAllowedOrigin(request: Request): string {
-  const origin = request.headers.get("origin");
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    return origin;
-  }
-  return ALLOWED_ORIGINS[0]; // Default to production
-}
-
-function getCorsHeaders(request: Request): Record<string, string> {
-  return {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-    "Access-Control-Allow-Origin": getAllowedOrigin(request),
-    "Access-Control-Allow-Methods": "GET, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
-}
+import { authorizeAdminRequest, getCorsHeaders } from "../../utils";
 
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
@@ -88,7 +25,7 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } },
 ): Promise<Response> {
-  const unauthorized = authorize(request);
+  const unauthorized = authorizeAdminRequest(request);
   if (unauthorized) {
     return unauthorized;
   }
@@ -209,7 +146,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } },
 ): Promise<Response> {
-  const unauthorized = authorize(request);
+  const unauthorized = authorizeAdminRequest(request);
   if (unauthorized) {
     return unauthorized;
   }
@@ -363,7 +300,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } },
 ): Promise<Response> {
-  const unauthorized = authorize(request);
+  const unauthorized = authorizeAdminRequest(request);
   if (unauthorized) {
     return unauthorized;
   }
