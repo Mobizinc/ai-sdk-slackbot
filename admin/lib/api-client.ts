@@ -246,11 +246,133 @@ export interface StrategicEvaluationSummary {
   demandRequest: Record<string, unknown> | null
 }
 
+// SPM (Service Portfolio Management) Types
+export interface SPMProject {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  priority?: string
+  assignedTo?: string
+  assignedToName?: string
+  assignedToSysId?: string
+  assignmentGroup?: string
+  assignmentGroupName?: string
+  assignmentGroupSysId?: string
+  parent?: string
+  parentNumber?: string
+  openedAt?: string
+  closedAt?: string
+  dueDate?: string
+  startDate?: string
+  endDate?: string
+  percentComplete?: number
+  cost?: number
+  projectManager?: string
+  projectManagerName?: string
+  projectManagerSysId?: string
+  sponsor?: string
+  sponsorName?: string
+  portfolio?: string
+  portfolioName?: string
+  lifecycleStage?: string
+  active?: boolean
+  url: string
+}
+
+export interface SPMEpic {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  parent: string
+  parentNumber?: string
+  assignedTo?: string
+  assignedToName?: string
+  priority?: string
+  percentComplete?: number
+  dueDate?: string
+  url: string
+}
+
+export interface SPMStory {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  parent: string
+  parentNumber?: string
+  assignedTo?: string
+  assignedToName?: string
+  priority?: string
+  storyPoints?: number
+  sprintSysId?: string
+  url: string
+}
+
+export interface SPMLinkAction {
+  action: "link"
+  spmSysId?: string
+  spmNumber?: string
+}
+
+export interface SPMCreateAction {
+  action: "create"
+  shortDescription?: string
+  description?: string
+  projectManager?: string
+  assignmentGroup?: string
+  priority?: string
+  dueDate?: string
+  lifecycleStage?: string
+}
+
+export interface SPMSyncAction {
+  action: "sync"
+}
+
+export type SPMAction = SPMLinkAction | SPMCreateAction | SPMSyncAction
+
+export interface SPMOperationResponse {
+  success: boolean
+  message: string
+  project: Project
+  spmProject?: SPMProject
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  unlinked?: {
+    spmSysId: string
+    spmNumber: string
+  }
+}
+
+export interface SPMStatusResponse {
+  linked: boolean
+  orphaned?: boolean
+  message?: string
+  spmProject?: SPMProject
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  lastSyncedAt?: string
+  syncEnabled?: boolean
+  cachedData?: {
+    spmSysId: string
+    spmNumber: string
+    spmState: string
+    spmLastSyncedAt: string
+  }
+}
+
 // Projects
 export interface Project {
   id: string
   name: string
   status: string
+  type: string
+  source: string
   githubUrl: string | null
   summary: string
   background: string | null
@@ -273,6 +395,26 @@ export interface Project {
   githubDefaultBranch: string | null
   createdAt: string
   updatedAt: string
+  // SPM Integration fields
+  spmSysId: string | null
+  spmNumber: string | null
+  spmState: string | null
+  spmPriority: string | null
+  spmPercentComplete: number | null
+  spmLifecycleStage: string | null
+  spmProjectManagerSysId: string | null
+  spmProjectManagerName: string | null
+  spmAssignmentGroupSysId: string | null
+  spmAssignmentGroupName: string | null
+  spmParentSysId: string | null
+  spmParentNumber: string | null
+  spmPortfolioName: string | null
+  spmUrl: string | null
+  spmOpenedAt: string | null
+  spmClosedAt: string | null
+  spmDueDate: string | null
+  spmLastSyncedAt: string | null
+  spmSyncEnabled: boolean
 }
 
 export interface ProjectStats {
@@ -360,6 +502,12 @@ export interface ProjectWithRelations extends Project {
   interviews: Interview[]
   initiations: ProjectInitiation[]
   evaluations: StrategicEvaluationSummary[]
+  // SPM integration data (live from ServiceNow)
+  spmProject?: SPMProject | null
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  spmError?: { message: string; timestamp: string } | null
+  usingSPMCache?: boolean
 }
 
 export interface ProjectAnalytics {
@@ -508,7 +656,7 @@ class ApiClient {
     this.authToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN
   }
 
-  private async request<T>(
+  async request<T>(
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
@@ -797,6 +945,55 @@ class ApiClient {
   // Project Analytics
   async getProjectAnalytics(projectId: string): Promise<ProjectAnalytics> {
     return this.request(`/api/admin/projects/${projectId}/analytics`)
+  }
+
+  // SPM Integration
+  async getSPMStatus(projectId: string): Promise<SPMStatusResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`)
+  }
+
+  async linkSPMProject(
+    projectId: string,
+    identifier: { spmSysId?: string; spmNumber?: string }
+  ): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'link', ...identifier }),
+    })
+  }
+
+  async createSPMProject(
+    projectId: string,
+    data: Omit<SPMCreateAction, 'action'>
+  ): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', ...data }),
+    })
+  }
+
+  async syncSPMProject(projectId: string): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'sync' }),
+    })
+  }
+
+  async unlinkSPMProject(projectId: string): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'DELETE',
+    })
+  }
+
+  async updateProjectWithSPMSync(
+    id: string,
+    data: Partial<Project>,
+    syncToSPM: boolean = false
+  ): Promise<{ project: Project; spmSyncResult?: { success: boolean; error?: string } }> {
+    return this.request(`/api/admin/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...data, syncToSPM }),
+    })
   }
 }
 

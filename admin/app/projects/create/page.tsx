@@ -15,6 +15,8 @@ interface ProjectFormData {
   id: string;
   name: string;
   status: string;
+  type: string;
+  source: string;
   summary: string;
   background: string;
   githubUrl: string;
@@ -40,6 +42,8 @@ export default function CreateProjectPage() {
     id: "",
     name: "",
     status: "draft",
+    type: "internal",
+    source: "local",
     summary: "",
     background: "",
     githubUrl: "",
@@ -114,6 +118,8 @@ export default function CreateProjectPage() {
         id: formData.id,
         name: formData.name,
         status: activateNow ? "active" : formData.status,
+        type: formData.type,
+        source: formData.source,
         summary: formData.summary,
         background: formData.background || null,
         githubUrl: formData.githubUrl || null,
@@ -184,14 +190,31 @@ export default function CreateProjectPage() {
               />
             </FieldGroup>
 
-            <FieldGroup label="Status" required>
-              <Select value={formData.status} onChange={(e) => updateField("status", e.target.value)}>
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-              </Select>
-            </FieldGroup>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FieldGroup label="Status" required>
+                <Select value={formData.status} onChange={(e) => updateField("status", e.target.value)}>
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="completed">Completed</option>
+                </Select>
+              </FieldGroup>
+              <FieldGroup label="Type" required description="Delivery vs internal/demand">
+                <Select value={formData.type} onChange={(e) => updateField("type", e.target.value)}>
+                  <option value="delivery">Delivery</option>
+                  <option value="internal">Internal</option>
+                  <option value="demand">Demand</option>
+                  <option value="learning">Learning</option>
+                </Select>
+              </FieldGroup>
+              <FieldGroup label="Source" required description="System of record">
+                <Select value={formData.source} onChange={(e) => updateField("source", e.target.value)}>
+                  <option value="local">Local</option>
+                  <option value="spm">ServiceNow SPM</option>
+                  <option value="github">GitHub</option>
+                </Select>
+              </FieldGroup>
+            </div>
 
             <FieldGroup label="Summary" required description="Brief one-line description">
               <Textarea

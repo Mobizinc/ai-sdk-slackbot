@@ -5,6 +5,8 @@ import { projects, type ProjectRecord, type NewProjectRecord } from "../schema";
 export interface ProjectFilters {
   status?: string | string[];
   mentorSlackUserId?: string;
+  type?: string | string[];
+  source?: string | string[];
   search?: string;
   limit?: number;
   offset?: number;
@@ -220,6 +222,22 @@ function buildProjectFilters(filters?: ProjectFilters) {
       conditions.push(inArray(projects.status, filters.status));
     } else {
       conditions.push(eq(projects.status, filters.status));
+    }
+  }
+
+  if (filters.type) {
+    if (Array.isArray(filters.type)) {
+      conditions.push(inArray(projects.type, filters.type));
+    } else {
+      conditions.push(eq(projects.type, filters.type));
+    }
+  }
+
+  if (filters.source) {
+    if (Array.isArray(filters.source)) {
+      conditions.push(inArray(projects.source, filters.source));
+    } else {
+      conditions.push(eq(projects.source, filters.source));
     }
   }
 
