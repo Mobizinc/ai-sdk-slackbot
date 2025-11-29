@@ -6,6 +6,7 @@ export interface GenerateResponseOptions {
   channelId?: string;
   channelName?: string;
   threadTs?: string;
+  model?: string;
 }
 
 export interface LegacyExecutorDeps {

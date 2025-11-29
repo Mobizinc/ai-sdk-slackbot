@@ -2,14 +2,16 @@ import type { CoreMessage, UpdateStatusFn, GenerateResponseOptions } from "./typ
 import type { ChatMessage, ToolDefinition, ExecuteToolResult } from "../services/anthropic-chat";
 import { AnthropicChatService } from "../services/anthropic-chat";
 import { getToolRegistry } from "./tool-registry";
-import { config } from "../config";
+import { getAgentMaxToolIterations } from "../config/helpers";
 import { withLangSmithTrace, createChildSpan, traceLLMCall, traceToolExecution } from "../observability";
+import { buildToolAllowList } from "./specialist-registry";
 
 export interface RunnerParams {
   messages: CoreMessage[];
   updateStatus?: UpdateStatusFn;
   options?: GenerateResponseOptions;
   caseNumbers?: string[];
+  contextMetadata?: Record<string, unknown>;
 }
 
 interface ToolCall {
@@ -25,22 +27,84 @@ interface ToolCall {
 export async function runAgent(params: RunnerParams): Promise<string> {
   return withLangSmithTrace(
     async () => {
-      params.updateStatus?.("thinking");
+      // Note: "thinking" status is already shown by initial message in createStatusUpdater
+      // Removed redundant updateStatus("thinking") to reduce Slack API calls
 
       const chatService = AnthropicChatService.getInstance();
       const toolRegistry = getToolRegistry();
+
+      const routing = buildToolAllowList({
+        messages: params.messages,
+        caseNumbers: params.caseNumbers,
+        contextMetadata: params.contextMetadata,
+      });
+
+      const specialistMetadata = routing.matches.map((match) => ({
+        id: match.agent.id,
+        name: match.agent.name,
+        score: match.score,
+        matchedKeywords: match.matchedKeywords,
+        missingSignals: match.missingSignals,
+        missingContextRequirements: match.missingContextRequirements,
+      }));
+
+      if (routing.allowlist && routing.allowlist.length > 0) {
+        const summary = routing.matches
+          .slice(0, 3)
+          .map((match) => `${match.agent.name} (${match.score.toFixed(1)})`)
+          .join(", ");
+        console.log(
+          `[Agent] Specialist shortlist → ${summary} | tools: ${routing.allowlist.join(", ")}`
+        );
+      }
+
+      if (routing.pendingRequirements && routing.pendingRequirements.length > 0) {
+        const reqSummary = routing.pendingRequirements
+          .map((req) => `${req.label}`)
+          .join(", ");
+        console.log(`[Agent] Pending specialist requirements → ${reqSummary}`);
+      }
+
+      // Determine model: explicit override > routing recommendation > default
+      const model = params.options?.model ??
+        (routing.recommendedModel === "haiku" ? "claude-haiku-4-5" : undefined);
+
+      if (routing.recommendedModel) {
+        console.log(`[Agent] Recommended model: ${routing.recommendedModel} → ${model ?? "default"}`);
+      }
+
+      const augmentedMetadata = {
+        ...(params.contextMetadata || {}),
+        specialistShortlist: specialistMetadata,
+        pendingRequirements: routing.pendingRequirements,
+      };
 
       const availableTools = toolRegistry.createTools({
         caseNumbers: params.caseNumbers ?? [],
         messages: params.messages,
         updateStatus: params.updateStatus,
         options: params.options,
+        contextMetadata: augmentedMetadata,
+        allowedTools: routing.allowlist,
       });
 
       const toolDefinitions = buildToolDefinitions(availableTools);
       const conversation: ChatMessage[] = params.messages.map(toChatMessage);
 
-      const maxSteps = config.agentMaxToolIterations;
+      if (routing.pendingRequirements && routing.pendingRequirements.length > 0) {
+        const requirementText = routing.pendingRequirements
+          .map((req) => `• ${req.prompt}`)
+          .join("\n");
+        conversation.unshift({
+          role: "system",
+          content:
+            "The user is requesting automation that requires additional context before you can proceed.\n" +
+            `${requirementText}\n` +
+            "Ask the user to provide each missing item and wait for their response before attempting to call specialized tools.",
+        });
+      }
+
+      const maxSteps = getAgentMaxToolIterations();
 
       for (let step = 0; step < maxSteps; step += 1) {
         // Create a child span for each LLM call
@@ -66,6 +130,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           // toolResults are now appended directly to conversation (see line 206-209)
           // to preserve proper message ordering for Anthropic 0.67+
           toolResults: [],
+          model,
         });
 
         // Handle max_tokens truncation during tool use
@@ -81,6 +146,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
               tools: toolDefinitions,
               toolResults: [], // Already spliced above
               maxTokens: 8192,
+              model,
             });
           }
         }
@@ -110,6 +176,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
             messages: conversation,
             tools: toolDefinitions,
             toolResults: [],
+            model,
           });
         }
 
@@ -129,6 +196,14 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           // Don't call updateStatus("complete") - it overwrites the actual response message
           // The actual text response will be displayed by the handler
 
+          // Capture successful agent execution as muscle memory (async, non-blocking)
+          captureAgentExecution({
+            caseNumbers: params.caseNumbers,
+            messages: params.messages,
+            outputText: text,
+            toolCalls: [], // No tool calls in final response
+          }).catch((err) => console.error("[MuscleMemory] Agent execution capture failed:", err));
+
           return text.trim();
         }
 
@@ -140,7 +215,8 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           content: response.message.content, // Preserve actual blocks (tool_use, text, etc.)
         });
 
-        params.updateStatus?.("calling-tool");
+        // Note: Removed redundant updateStatus("calling-tool") - individual tools
+        // report their own status which is more descriptive (e.g., "is looking up case...")
 
         // Create a child span for tool execution batch
         const toolBatchSpan = await createChildSpan({
@@ -219,7 +295,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
       metadata: {
         messageCount: params.messages.length,
         caseNumbers: params.caseNumbers,
-        maxIterations: config.agentMaxToolIterations,
+        maxIterations: getAgentMaxToolIterations(),
       },
       tags: {
         component: "runner",
@@ -361,4 +437,59 @@ function extractText(message: any): string | undefined {
     .join("\n")
     .trim();
   return text || undefined;
+}
+
+/**
+ * Capture successful agent execution as muscle memory exemplar
+ * Called asynchronously after agent completes successfully
+ */
+async function captureAgentExecution(params: {
+  caseNumbers?: string[];
+  messages: CoreMessage[];
+  outputText: string;
+  toolCalls: ToolCall[];
+}): Promise<void> {
+  try {
+    const { getConfigValue } = await import("../config");
+    if (!getConfigValue("muscleMemoryCollectionEnabled")) {
+      return;
+    }
+
+    const { muscleMemoryService, qualityDetector } = await import("../services/muscle-memory");
+
+    // Extract user request from messages
+    const userMessage = params.messages.find((m) => m.role === "user");
+    const userRequest = userMessage ? String(userMessage.content).substring(0, 500) : "";
+
+    // Default to generic interaction type for agent executions
+    const interactionType: any = "generic";
+
+    // Detect implicit quality signals (clean execution with no tool errors)
+    const implicitSignal = qualityDetector.detectImplicitSignals({
+      hadUserCorrection: false,
+      hadFollowUpEscalation: false,
+      messageCount: params.messages.length,
+    });
+
+    const qualitySignals = implicitSignal ? [implicitSignal] : [];
+
+    // Capture the execution
+    await muscleMemoryService.captureExemplar({
+      caseNumber: params.caseNumbers?.[0] || "UNKNOWN",
+      interactionType,
+      inputContext: {
+        userRequest,
+      },
+      actionTaken: {
+        agentType: "agent",
+        workNotes: [params.outputText.substring(0, 500)],
+      },
+      outcome: "success", // Successful completion
+      qualitySignals,
+    });
+
+    console.log(`[MuscleMemory] Captured agent execution for ${params.caseNumbers?.[0] || "UNKNOWN"}`);
+  } catch (error) {
+    console.error("[MuscleMemory] Failed to capture agent execution:", error);
+  }
 }

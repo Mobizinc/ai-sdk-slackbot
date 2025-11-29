@@ -45,33 +45,59 @@ export const CONFIG_DEFINITIONS = {
     group: "knowledge_base",
     description: "Maximum retries when fetching KB context.",
   },
-  assistantMinDescriptionLength: {
-    envVar: "ASSISTANT_MIN_DESCRIPTION_LENGTH",
-    type: "number",
-    default: 10,
-    group: "assistant",
-    description: "Minimum characters required to trigger assistant analysis.",
+  agentProfiles: {
+    envVar: "AGENT_PROFILES",
+    type: "string",
+    default: JSON.stringify({
+      assistant: {
+        minDescriptionLength: 10,
+        similarCasesTopK: 3,
+        maxToolIterations: 6,
+        activeStates: [
+          "New",
+          "In Progress",
+          "On Hold",
+          "Pending",
+          "Awaiting Info",
+          "Work in Progress",
+        ],
+        proactiveTroubleshooting: true,
+        maxClarifyingQuestions: 4,
+        enableMultimodalToolResults: false,
+        maxImageAttachmentsPerTool: 3,
+        maxImageSizeBytes: 5242880
+      },
+      supervisor: {
+        enabled: true,
+        shadowMode: false,
+        duplicateWindowMinutes: 5,
+        alertChannel: "",
+        llmReviewModel: "claude-sonnet-4-5"
+      },
+      escalation: {
+        enabled: true,
+        biScoreThreshold: 20,
+        defaultChannel: "case-escalations",
+        notifyAssignedEngineer: true,
+        useLlmMessages: true
+      }
+    }),
+    group: "agent",
+    description: "Agent configuration profiles for assistant and supervisor.",
   },
-  assistantSimilarCasesTopK: {
-    envVar: "ASSISTANT_SIMILAR_CASES_TOP_K",
-    type: "number",
-    default: 3,
-    group: "assistant",
-    description: "Number of similar cases to surface for assistants.",
-  },
-  agentMaxToolIterations: {
-    envVar: "AGENT_MAX_TOOL_ITERATIONS",
-    type: "number",
-    default: 6,
-    group: "assistant",
-    description: "Maximum number of tool execution iterations allowed in agent runner.",
-  },
-  discoveryContextPackEnabled: {
-    envVar: "DISCOVERY_CONTEXT_PACK_ENABLED",
-    type: "boolean",
-    default: false,
+  discoveryFeatures: {
+    envVar: "DISCOVERY_FEATURES",
+    type: "string",
+    default: JSON.stringify({
+      contextPackEnabled: false,
+      maintenanceWindowDetection: false,
+      slaChecks: true,
+      highRiskCustomers: true,
+      afterHours: false,
+      contextCachingEnabled: true
+    }),
     group: "discovery",
-    description: "Enable deterministic discovery context pack generation.",
+    description: "Discovery and policy signals feature flags.",
   },
   discoverySlackMessageLimit: {
     envVar: "DISCOVERY_SLACK_MESSAGE_LIMIT",
@@ -86,6 +112,38 @@ export const CONFIG_DEFINITIONS = {
     default: 3,
     group: "discovery",
     description: "Number of similar cases to fetch for discovery context packs.",
+  },
+
+
+
+  discoveryContextCacheSize: {
+    envVar: "DISCOVERY_CONTEXT_CACHE_SIZE",
+    type: "number",
+    default: 100,
+    group: "discovery",
+    description: "Maximum number of context packs to cache in memory.",
+  },
+  discoveryContextCacheTTLMinutes: {
+    envVar: "DISCOVERY_CONTEXT_CACHE_TTL_MINUTES",
+    type: "number",
+    default: 15,
+    group: "discovery",
+    description: "Time-to-live for cached context packs in minutes.",
+  },
+  demandApiBaseUrl: {
+    envVar: "DEMAND_API_BASE_URL",
+    type: "string",
+    default: "",
+    group: "demand",
+    description: "Base URL for the strategic demand request service (e.g., https://demand-app.vercel.app).",
+  },
+  demandApiKey: {
+    envVar: "DEMAND_API_KEY",
+    type: "string",
+    default: "",
+    group: "demand",
+    description: "API key used to authenticate calls to the strategic demand request service.",
+    sensitive: true,
   },
   kbSimilarCasesTopK: {
     envVar: "KB_SIMILAR_CASES_TOP_K",
@@ -108,27 +166,8 @@ export const CONFIG_DEFINITIONS = {
     group: "classification",
     description: "Maximum retry attempts for classification jobs.",
   },
-  assistantActiveStates: {
-    envVar: "ASSISTANT_ACTIVE_STATES",
-    type: "string[]",
-    default: [
-      "New",
-      "In Progress",
-      "On Hold",
-      "Pending",
-      "Awaiting Info",
-      "Work in Progress",
-    ],
-    group: "assistant",
-    description: "Case states that allow intelligent assistance.",
-  },
-  proactiveTroubleshootingEnabled: {
-    envVar: "PROACTIVE_TROUBLESHOOTING_ENABLED",
-    type: "boolean",
-    default: true,
-    group: "assistant",
-    description: "Enable proactive troubleshooting suggestions.",
-  },
+
+
   autoCmdbLookupEnabled: {
     envVar: "AUTO_CMDB_LOOKUP_ENABLED",
     type: "boolean",
@@ -136,13 +175,7 @@ export const CONFIG_DEFINITIONS = {
     group: "cmdb",
     description: "Auto-fetch CMDB context during triage.",
   },
-  maxClarifyingQuestions: {
-    envVar: "MAX_CLARIFYING_QUESTIONS",
-    type: "number",
-    default: 4,
-    group: "assistant",
-    description: "Maximum follow-up questions the assistant asks.",
-  },
+
   cmdbReconciliationEnabled: {
     envVar: "CMDB_RECONCILIATION_ENABLED",
     type: "boolean",
@@ -264,33 +297,17 @@ export const CONFIG_DEFINITIONS = {
     group: "github",
     description: "Comma-separated labels to apply to feedback issues.",
   },
-  llmTimeoutMs: {
-    envVar: "LLM_TIMEOUT_MS",
-    type: "number",
-    default: 30_000,
+  llmTimeouts: {
+    envVar: "LLM_TIMEOUTS",
+    type: "string",
+    default: JSON.stringify({
+      general: 30000,
+      classification: 15000,
+      kbGeneration: 45000,
+      escalation: 20000
+    }),
     group: "llm",
-    description: "Default timeout (ms) for general LLM operations.",
-  },
-  llmClassificationTimeoutMs: {
-    envVar: "LLM_CLASSIFICATION_TIMEOUT_MS",
-    type: "number",
-    default: 15_000,
-    group: "llm",
-    description: "Timeout (ms) for case classification requests.",
-  },
-  llmKBGenerationTimeoutMs: {
-    envVar: "LLM_KB_GENERATION_TIMEOUT_MS",
-    type: "number",
-    default: 45_000,
-    group: "llm",
-    description: "Timeout (ms) for KB generation tasks.",
-  },
-  llmEscalationTimeoutMs: {
-    envVar: "LLM_ESCALATION_TIMEOUT_MS",
-    type: "number",
-    default: 20_000,
-    group: "llm",
-    description: "Timeout (ms) for escalation message generation.",
+    description: "LLM timeout configurations (ms) by operation type.",
   },
   catalogRedirectEnabled: {
     envVar: "CATALOG_REDIRECT_ENABLED",
@@ -343,50 +360,51 @@ export const CONFIG_DEFINITIONS = {
     description: "Bot token for Slack API calls.",
     sensitive: true,
   },
-  servicenowInstanceUrl: {
-    envVar: "SERVICENOW_INSTANCE_URL",
+  servicenowEnvironment: {
+    envVar: "SERVICENOW_ENVIRONMENT",
     type: "string",
-    default: "",
+    default: "prod",
     group: "servicenow",
-    description: "Base URL for the ServiceNow instance (e.g., https://example.service-now.com).",
+    description: "Active ServiceNow environment (prod, uat, dev).",
   },
-  servicenowUrl: {
-    envVar: "SERVICENOW_URL",
+  servicenowEnvironments: {
+    envVar: "SERVICENOW_ENVIRONMENTS",
     type: "string",
-    default: "",
+    default: JSON.stringify({
+      prod: {
+        instanceUrl: "",
+        username: "",
+        password: "",
+        caseTable: "sn_customerservice_case",
+        ciTable: "cmdb_ci",
+        taskTable: "sn_customerservice_task",
+        companyId: "",
+        cloneTargetInstance: "mobizuat",
+        cloneSourceInstance: "mobizprod"
+      },
+      uat: {
+        instanceUrl: "",
+        username: "",
+        password: "",
+        caseTable: "",
+        ciTable: "cmdb_ci",
+        taskTable: "sn_customerservice_task",
+        companyId: ""
+      },
+      dev: {
+        instanceUrl: "",
+        username: "",
+        password: "",
+        caseTable: "",
+        ciTable: "cmdb_ci",
+        taskTable: "sn_customerservice_task"
+      }
+    }),
     group: "servicenow",
-    description: "Alias for ServiceNow instance URL (legacy support).",
-  },
-  servicenowUsername: {
-    envVar: "SERVICENOW_USERNAME",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "ServiceNow username for basic auth.",
+    description: "ServiceNow environment configurations (JSON).",
     sensitive: true,
   },
-  servicenowPassword: {
-    envVar: "SERVICENOW_PASSWORD",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "ServiceNow password for basic auth.",
-    sensitive: true,
-  },
-  servicenowCloneTargetInstance: {
-    envVar: "SERVICENOW_CLONE_TARGET_INSTANCE",
-    type: "string",
-    default: "mobizuat",
-    group: "servicenow",
-    description: "Display name (or substring) of the target instance used for clone freshness checks (e.g., mobizuat).",
-  },
-  servicenowCloneSourceInstance: {
-    envVar: "SERVICENOW_CLONE_SOURCE_INSTANCE",
-    type: "string",
-    default: "mobizprod",
-    group: "servicenow",
-    description: "Display name (or substring) of the source instance used for clone freshness checks (e.g., mobizprod).",
-  },
+
   servicenowCabSkillId: {
     envVar: "SERVICENOW_CAB_SKILL_ID",
     type: "string",
@@ -423,33 +441,12 @@ export const CONFIG_DEFINITIONS = {
     description: "ServiceNow API token for bearer authentication.",
     sensitive: true,
   },
-  servicenowCaseTable: {
-    envVar: "SERVICENOW_CASE_TABLE",
-    type: "string",
-    default: "sn_customerservice_case",
-    group: "servicenow",
-    description: "Table name used for ServiceNow case records.",
-  },
   servicenowCaseJournalName: {
     envVar: "SERVICENOW_CASE_JOURNAL_NAME",
     type: "string",
     default: "x_mobit_serv_case_service_case",
     group: "servicenow",
     description: "Journal field name used for case work notes.",
-  },
-  servicenowCiTable: {
-    envVar: "SERVICENOW_CI_TABLE",
-    type: "string",
-    default: "cmdb_ci",
-    group: "servicenow",
-    description: "Configuration item table name in ServiceNow.",
-  },
-  servicenowTaskTable: {
-    envVar: "SERVICENOW_TASK_TABLE",
-    type: "string",
-    default: "sn_customerservice_task",
-    group: "servicenow",
-    description: "Task table name used for ServiceNow sub-tasks.",
   },
   openaiApiKey: {
     envVar: "OPENAI_API_KEY",
@@ -524,6 +521,27 @@ export const CONFIG_DEFINITIONS = {
     group: "telemetry",
     description: "Enable LangSmith tracing for LLM providers. Defaults to true, but tracing requires BOTH this flag to be true AND a valid LANGSMITH_API_KEY to be set. Set to false to explicitly disable tracing even when API key is present.",
   },
+  cacheTtlCase: {
+    envVar: "CACHE_TTL_CASE",
+    type: "number",
+    default: 600,
+    group: "cache",
+    description: "Cache TTL (seconds) for ServiceNow case/incident lookups.",
+  },
+  cacheTtlSpm: {
+    envVar: "CACHE_TTL_SPM",
+    type: "number",
+    default: 600,
+    group: "cache",
+    description: "Cache TTL (seconds) for ServiceNow SPM project lookups.",
+  },
+  cacheTtlCi: {
+    envVar: "CACHE_TTL_CI",
+    type: "number",
+    default: 900,
+    group: "cache",
+    description: "Cache TTL (seconds) for CMDB CI lookups.",
+  },
   azureSearchEndpoint: {
     envVar: "AZURE_SEARCH_ENDPOINT",
     type: "string",
@@ -577,65 +595,22 @@ export const CONFIG_DEFINITIONS = {
     description: "Next signing key from Upstash QStash for upcoming rotation.",
     sensitive: true,
   },
-  webexAccessToken: {
-    envVar: "WEBEX_CC_ACCESS_TOKEN",
+  webexConfig: {
+    envVar: "WEBEX_CONFIG",
     type: "string",
-    default: "",
+    default: JSON.stringify({
+      accessToken: "",
+      clientId: "",
+      clientSecret: "",
+      refreshToken: "",
+      orgId: "",
+      baseUrl: "https://webexapis.com",
+      tasksPath: "v1/tasks",
+      tokenUrl: "https://webexapis.com/v1/access_token"
+    }),
     group: "webex",
-    description: "Webex Contact Center access token.",
+    description: "Webex Contact Center integration configuration.",
     sensitive: true,
-  },
-  webexClientId: {
-    envVar: "WEBEX_CC_CLIENT_ID",
-    type: "string",
-    default: "",
-    group: "webex",
-    description: "Webex Contact Center OAuth client ID.",
-    sensitive: true,
-  },
-  webexClientSecret: {
-    envVar: "WEBEX_CC_CLIENT_SECRET",
-    type: "string",
-    default: "",
-    group: "webex",
-    description: "Webex Contact Center OAuth client secret.",
-    sensitive: true,
-  },
-  webexRefreshToken: {
-    envVar: "WEBEX_CC_REFRESH_TOKEN",
-    type: "string",
-    default: "",
-    group: "webex",
-    description: "Webex Contact Center refresh token.",
-    sensitive: true,
-  },
-  webexOrgId: {
-    envVar: "WEBEX_CC_ORG_ID",
-    type: "string",
-    default: "",
-    group: "webex",
-    description: "Webex organization identifier.",
-  },
-  webexBaseUrl: {
-    envVar: "WEBEX_CC_BASE_URL",
-    type: "string",
-    default: "https://webexapis.com",
-    group: "webex",
-    description: "Base URL for Webex Contact Center API.",
-  },
-  webexTasksPath: {
-    envVar: "WEBEX_CC_TASKS_PATH",
-    type: "string",
-    default: "v1/tasks",
-    group: "webex",
-    description: "Tasks path for Webex Contact Center API.",
-  },
-  webexTokenUrl: {
-    envVar: "WEBEX_CC_TOKEN_URL",
-    type: "string",
-    default: "https://webexapis.com/v1/access_token",
-    group: "webex",
-    description: "OAuth token endpoint for Webex.",
   },
   relayWebhookSecret: {
     envVar: "RELAY_WEBHOOK_SECRET",
@@ -705,7 +680,7 @@ export const CONFIG_DEFINITIONS = {
     sensitive: true,
   },
   adminApiToken: {
-    envVar: "ADMIN_API_TOKEN",
+    envVar: "NEXT_PUBLIC_ADMIN_TOKEN",
     type: "string",
     default: "",
     group: "admin",
@@ -741,35 +716,7 @@ export const CONFIG_DEFINITIONS = {
     description: "Primary Postgres connection string.",
     sensitive: true,
   },
-  devServicenowUrl: {
-    envVar: "DEV_SERVICENOW_URL",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "Development ServiceNow instance URL (scripts/testing).",
-  },
-  devServicenowUsername: {
-    envVar: "DEV_SERVICENOW_USERNAME",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "Development ServiceNow username.",
-  },
-  devServicenowPassword: {
-    envVar: "DEV_SERVICENOW_PASSWORD",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "Development ServiceNow password.",
-    sensitive: true,
-  },
-  devServicenowCaseTable: {
-    envVar: "DEV_SERVICENOW_CASE_TABLE",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "Development ServiceNow case table name.",
-  },
+
   dryRun: {
     envVar: "DRY_RUN",
     type: "boolean",
@@ -841,6 +788,20 @@ export const CONFIG_DEFINITIONS = {
     group: "slack",
     description: "Slack channel ID for Mobiz service desk leaderboard posts.",
   },
+  staleCaseNetworkChannel: {
+    envVar: "STALE_CASE_NETWORK_CHANNEL_ID",
+    type: "string",
+    default: "C045N8WF3NE",
+    group: "slack",
+    description: "Slack channel ID for Network Engineers stale case follow-up notifications.",
+  },
+  staleCaseIcmChannel: {
+    envVar: "STALE_CASE_ICM_CHANNEL_ID",
+    type: "string",
+    default: "C01FFQTMAD9",
+    group: "slack",
+    description: "Slack channel ID for Incident and Case Management stale case follow-up notifications.",
+  },
   nextPublicAdminToken: {
     envVar: "NEXT_PUBLIC_ADMIN_TOKEN",
     type: "string",
@@ -855,13 +816,7 @@ export const CONFIG_DEFINITIONS = {
     group: "admin_ui",
     description: "Override API base URL for the admin UI (useful in development).",
   },
-  servicenowCompanyId: {
-    envVar: "SERVICENOW_COMPANY_ID",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "Default ServiceNow company ID used in scripts/tests.",
-  },
+
   servicenowWebhookSecret: {
     envVar: "SERVICENOW_WEBHOOK_SECRET",
     type: "string",
@@ -877,42 +832,7 @@ export const CONFIG_DEFINITIONS = {
     group: "testing",
     description: "Default case number used in test scripts.",
   },
-  uatServicenowUrl: {
-    envVar: "UAT_SERVICENOW_URL",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "UAT ServiceNow instance URL.",
-  },
-  uatServicenowUsername: {
-    envVar: "UAT_SERVICENOW_USERNAME",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "UAT ServiceNow username.",
-  },
-  uatServicenowPassword: {
-    envVar: "UAT_SERVICENOW_PASSWORD",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "UAT ServiceNow password.",
-    sensitive: true,
-  },
-  uatServicenowCaseTable: {
-    envVar: "UAT_SERVICENOW_CASE_TABLE",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "UAT ServiceNow case table name.",
-  },
-  uatServicenowCompanyId: {
-    envVar: "UAT_SERVICENOW_COMPANY_ID",
-    type: "string",
-    default: "",
-    group: "servicenow",
-    description: "UAT ServiceNow company ID.",
-  },
+
   vercelEnv: {
     envVar: "VERCEL_ENV",
     type: "string",
@@ -942,26 +862,41 @@ export const CONFIG_DEFINITIONS = {
     group: "integrations",
     description: "Minutes lookback when syncing voice worknotes.",
   },
-  enableMultimodalToolResults: {
-    envVar: "ENABLE_MULTIMODAL_TOOL_RESULTS",
+
+  muscleMemoryCollectionEnabled: {
+    envVar: "MUSCLE_MEMORY_COLLECTION_ENABLED",
     type: "boolean",
     default: false,
-    group: "assistant",
-    description: "Enable image and document content blocks in tool results. Significantly increases token usage.",
+    group: "muscle_memory",
+    description: "Enable automatic collection of high-quality agent interactions as muscle memory exemplars.",
   },
-  maxImageAttachmentsPerTool: {
-    envVar: "MAX_IMAGE_ATTACHMENTS_PER_TOOL",
+  muscleMemoryRetrievalEnabled: {
+    envVar: "MUSCLE_MEMORY_RETRIEVAL_ENABLED",
+    type: "boolean",
+    default: false,
+    group: "muscle_memory",
+    description: "Enable semantic retrieval of muscle memory exemplars in discovery context packs.",
+  },
+  muscleMemoryTopK: {
+    envVar: "MUSCLE_MEMORY_TOP_K",
     type: "number",
     default: 3,
-    group: "assistant",
-    description: "Maximum number of image attachments to include per tool call.",
+    group: "muscle_memory",
+    description: "Maximum number of similar exemplars to retrieve for context enrichment.",
   },
-  maxImageSizeBytes: {
-    envVar: "MAX_IMAGE_SIZE_BYTES",
+  muscleMemoryMinQuality: {
+    envVar: "MUSCLE_MEMORY_MIN_QUALITY",
     type: "number",
-    default: 5242880,
-    group: "assistant",
-    description: "Maximum size of individual images to process in bytes (default: 5MB).",
+    default: 0.7,
+    group: "muscle_memory",
+    description: "Minimum quality score (0.0-1.0) for exemplars to be included in retrieval results.",
+  },
+  muscleMemoryQualityThreshold: {
+    envVar: "MUSCLE_MEMORY_QUALITY_THRESHOLD",
+    type: "number",
+    default: 0.6,
+    group: "muscle_memory",
+    description: "Minimum quality score (0.0-1.0) required for an interaction to be stored as an exemplar.",
   },
 } as const satisfies Record<string, ConfigDefinition>;
 

@@ -1,8 +1,8 @@
-import type { BusinessContextCmdbIdentifier } from "./db/schema";
+import type { BusinessContextCmdbIdentifier, Workflow } from "./db/schema";
 import { getBusinessContextRepository } from "./db/repositories/business-context-repository";
 import { getBusinessContextService } from "./services/business-context-service";
 import { getSlackMessagingService } from "./services/slack-messaging";
-import { getInteractiveStateManager } from "./services/interactive-state-manager";
+import { workflowManager } from "./services/workflow-manager";
 import {
   createSectionBlock,
   createDivider,
@@ -15,7 +15,7 @@ import {
 } from "./utils/message-styling";
 
 const slackMessaging = getSlackMessagingService();
-const stateManager = getInteractiveStateManager();
+const WORKFLOW_TYPE_CONTEXT_UPDATE = "CONTEXT_UPDATE_PROPOSAL";
 
 export type ContextUpdateAction =
   | {
@@ -40,12 +40,23 @@ export interface ContextUpdateProposal {
   confidence?: "LOW" | "MEDIUM" | "HIGH";
 }
 
-interface PendingContextUpdate {
-  proposal: ContextUpdateProposal;
-  approvalMessageTs: string;
-  approvalChannelId: string;
-  createdAt: Date;
+// Corresponds to the payload in the workflow
+interface ContextUpdateWorkflowPayload {
+    entityName: string;
+    proposedChanges: {
+        summary: string;
+        details?: string;
+        actions: ContextUpdateAction[];
+        confidence?: "LOW" | "MEDIUM" | "HIGH";
+    };
+    proposedBy: string;
+    sourceChannelId: string;
+    sourceThreadTs?: string;
+    caseNumber?: string;
+    stewardChannelName?: string;
+    blockedAt: string;
 }
+
 
 function buildMentionText(targets: string[]): string {
   if (targets.length === 0) {
@@ -54,7 +65,8 @@ function buildMentionText(targets: string[]): string {
   return targets.join(" ");
 }
 
-function formatConfidence(confidence: ContextUpdateProposal["confidence"]): string {
+function formatConfidence(confidence: ContextUpdateProposal["confidence"]):
+ string {
   if (!confidence) return "Not provided";
   if (confidence === "HIGH") return "High";
   if (confidence === "MEDIUM") return "Medium";
@@ -96,14 +108,12 @@ function formatActions(actions: ContextUpdateAction[]): string {
 }
 
 export class ContextUpdateManager {
-  private pending = new Map<string, PendingContextUpdate>();
   private repository = getBusinessContextRepository();
 
-  private getCacheKey(channelId: string, messageTs: string): string {
-    return `${channelId}:${messageTs}`;
-  }
-
   async postProposal(proposal: ContextUpdateProposal): Promise<{ messageTs: string }> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available. Cannot post proposal.");
+    }
     const stewardText = buildMentionText(proposal.stewardMentions); // User mentions are safe
     const actionsText = formatActions(proposal.actions); // Already sanitized in formatActions
     const confidenceText = formatConfidence(proposal.confidence); // Enum value, safe
@@ -131,8 +141,8 @@ export class ContextUpdateManager {
     const blocks: KnownBlock[] = [
       createSectionBlock(headerText),
       createSectionBlock(
-        `${stewardText}\n${initiatorLine}${
-          caseLine ? `\n${caseLine}` : ""
+        `${stewardText}\n${initiatorLine}${ 
+          caseLine ? `\n${caseLine}` : "" 
         }\nConfidence: *${confidenceText}*`
       ),
       createSectionBlock(summaryBlock),
@@ -153,13 +163,8 @@ export class ContextUpdateManager {
     if (!result.ts) {
       throw new Error("Failed to post context update proposal (missing timestamp)");
     }
-
-    // Persist to database (48-hour expiration) instead of in-memory Map
-    await stateManager.saveState(
-      'context_update',
-      proposal.stewardChannelId,
-      result.ts,
-      {
+    
+    const payload: ContextUpdateWorkflowPayload = {
         entityName: proposal.entityName,
         proposedChanges: {
           summary: proposal.summary,
@@ -170,30 +175,19 @@ export class ContextUpdateManager {
         proposedBy: proposal.initiatedBy || 'PeterPool (auto)',
         sourceChannelId: proposal.sourceChannelId,
         sourceThreadTs: proposal.sourceThreadTs,
-      },
-      {
-        expiresInHours: 48,
-        threadTs: proposal.sourceThreadTs,
-        metadata: {
-          caseNumber: proposal.caseNumber,
-          stewardChannelName: proposal.stewardChannelName,
-        },
-      }
-    );
+        caseNumber: proposal.caseNumber,
+        stewardChannelName: proposal.stewardChannelName,
+        blockedAt: new Date().toISOString(),
+    };
 
-    // DEPRECATED: Keep in-memory cache for backward compatibility (will be removed)
-    const key = this.getCacheKey(proposal.stewardChannelId, result.ts);
-    this.pending.set(key, {
-      proposal,
-      approvalMessageTs: result.ts,
-      approvalChannelId: proposal.stewardChannelId,
-      createdAt: new Date(),
+    await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_CONTEXT_UPDATE,
+        workflowReferenceId: `${proposal.stewardChannelId}:${result.ts}`,
+        initialState: 'PENDING_APPROVAL',
+        payload,
+        expiresInSeconds: 48 * 3600,
+        contextKey: `case:${proposal.caseNumber}`
     });
-
-    // Auto-cleanup after 48 hours
-    setTimeout(() => {
-      this.pending.delete(key);
-    }, 48 * 60 * 60 * 1000);
 
     console.log(
       `[Context Update Manager] Posted proposal for ${sanitizedEntityName} ` +
@@ -209,42 +203,16 @@ export class ContextUpdateManager {
     reaction: string,
     userId: string
   ): Promise<void> {
-    // Try to get from database first (persistent), then fall back to in-memory cache
-    let pending: PendingContextUpdate | null = null;
-    let fromDatabase = false;
-
-    // Check database first
-    const dbState = await stateManager.getState<'context_update'>(channelId, messageTs, 'context_update');
-    if (dbState) {
-      fromDatabase = true;
-      // Reconstruct PendingContextUpdate from database state
-      pending = {
-        proposal: {
-          entityName: dbState.payload.entityName,
-          summary: dbState.payload.proposedChanges.summary,
-          details: dbState.payload.proposedChanges.details,
-          actions: dbState.payload.proposedChanges.actions,
-          stewardMentions: [], // Not needed for approval
-          stewardChannelId: channelId,
-          sourceChannelId: dbState.payload.sourceChannelId,
-          sourceThreadTs: dbState.payload.sourceThreadTs,
-          initiatedBy: dbState.payload.proposedBy,
-          caseNumber: dbState.metadata?.caseNumber,
-          confidence: dbState.payload.proposedChanges.confidence,
-        },
-        approvalMessageTs: messageTs,
-        approvalChannelId: channelId,
-        createdAt: dbState.createdAt,
-      };
-    } else {
-      // Fall back to in-memory cache
-      const key = this.getCacheKey(channelId, messageTs);
-      pending = this.pending.get(key) || null;
+    if (!workflowManager) {
+        console.warn("[Context Update Manager] WorkflowManager not available.");
+        return;
     }
 
-    if (!pending) {
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_CONTEXT_UPDATE, `${channelId}:${messageTs}`);
+
+    if (!workflow || workflow.currentState !== 'PENDING_APPROVAL') {
       console.log(`[Context Update Manager] No pending update found for ${channelId}:${messageTs}`);
-      return; // Not a tracked message
+      return; // Not a tracked message or already processed
     }
 
     const isApproval =
@@ -256,38 +224,44 @@ export class ContextUpdateManager {
     }
 
     if (isApproval) {
-      await this.applyApprovedUpdate(pending, userId);
-      // Mark as approved in database
-      await stateManager.markProcessed(channelId, messageTs, userId, 'approved');
+      await this.applyApprovedUpdate(workflow, userId);
     } else if (isRejection) {
-      await this.rejectUpdate(pending, userId);
-      // Mark as rejected in database
-      await stateManager.markProcessed(channelId, messageTs, userId, 'rejected');
+      await this.rejectUpdate(workflow, userId);
     }
-
-    // Clean up in-memory cache
-    const key = this.getCacheKey(channelId, messageTs);
-    this.pending.delete(key);
 
     console.log(
       `[Context Update Manager] Processed ${isApproval ? 'approval' : 'rejection'} ` +
-      `for ${pending.proposal.entityName} (source: ${fromDatabase ? 'database' : 'memory'})`
+      `for ${(workflow.payload as ContextUpdateWorkflowPayload).entityName}`
     );
   }
 
-  private async applyApprovedUpdate(pending: PendingContextUpdate, userId: string): Promise<void> {
-    const { proposal } = pending;
-    const repo = this.repository;
-    const service = getBusinessContextService();
+  private async applyApprovedUpdate(workflow: Workflow, userId: string): Promise<void> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available.");
+    }
 
-    // CRITICAL: Sanitize entity name for display
+    const payload = workflow.payload as ContextUpdateWorkflowPayload;
+    const proposal: ContextUpdateProposal = {
+        entityName: payload.entityName,
+        summary: payload.proposedChanges.summary,
+        details: payload.proposedChanges.details,
+        actions: payload.proposedChanges.actions,
+        confidence: payload.proposedChanges.confidence,
+        stewardMentions: [], // Not needed for approval logic
+        stewardChannelId: workflow.contextKey?.split(':')[1] || '',
+        sourceChannelId: payload.sourceChannelId,
+        sourceThreadTs: payload.sourceThreadTs,
+        initiatedBy: payload.proposedBy,
+        caseNumber: payload.caseNumber,
+    };
+
     const sanitizedEntityName = sanitizeMrkdwn(proposal.entityName);
     const sanitizedSummary = sanitizeMrkdwn(proposal.summary);
 
     try {
       for (const action of proposal.actions) {
         if (action.type === "append_cmdb_identifier") {
-          await repo.appendCmdbIdentifier(proposal.entityName, action.identifier, {
+          await this.repository.appendCmdbIdentifier(proposal.entityName, action.identifier, {
             createIfMissing: action.createEntityIfMissing,
             entityType: action.entityTypeIfCreate,
           });
@@ -296,7 +270,6 @@ export class ContextUpdateManager {
         }
       }
 
-      // Build blocks using design system with sanitized data
       const blocks: KnownBlock[] = [
         createSectionBlock(
           `${MessageEmojis.SUCCESS} *Context update applied* for *${sanitizedEntityName}* by <@${userId}>`
@@ -305,11 +278,13 @@ export class ContextUpdateManager {
       ];
 
       await slackMessaging.updateMessage({
-        channel: pending.approvalChannelId,
-        ts: pending.approvalMessageTs,
+        channel: workflow.contextKey?.split(':')[1] || '',
+        ts: workflow.workflowReferenceId.split(':')[1],
         text: `${MessageEmojis.SUCCESS} Context update applied for ${sanitizePlainText(proposal.entityName, 100)}`,
         blocks,
       });
+      
+      await workflowManager.transition(workflow.id, workflow.version, { toState: 'APPROVED', lastModifiedBy: userId });
 
       if (proposal.sourceThreadTs) {
         await slackMessaging.postMessage({
@@ -320,27 +295,35 @@ export class ContextUpdateManager {
       }
 
       // Refresh cache so subsequent lookups see latest data
-      await service.refreshContext(proposal.entityName);
+      await getBusinessContextService().refreshContext(proposal.entityName);
     } catch (error) {
       console.error("[ContextUpdateManager] Failed to apply context update", error);
       await slackMessaging.postMessage({
-        channel: pending.approvalChannelId,
-        threadTs: pending.approvalMessageTs,
+        channel: workflow.contextKey?.split(':')[1] || '',
+        threadTs: workflow.workflowReferenceId.split(':')[1],
         text: `${MessageEmojis.ERROR} Error applying context update for ${sanitizePlainText(proposal.entityName, 100)}: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
       });
+       await workflowManager.transition(workflow.id, workflow.version, { toState: 'FAILED', reason: 'Failed to apply update' });
     }
   }
 
-  private async rejectUpdate(pending: PendingContextUpdate, userId: string): Promise<void> {
-    const { proposal } = pending;
+  private async rejectUpdate(workflow: Workflow, userId: string): Promise<void> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available.");
+    }
+    const payload = workflow.payload as ContextUpdateWorkflowPayload;
+    const proposal: ContextUpdateProposal = {
+        entityName: payload.entityName,
+        summary: payload.proposedChanges.summary,
+        //...
+    } as ContextUpdateProposal;
 
-    // CRITICAL: Sanitize entity name and summary for display
+
     const sanitizedEntityName = sanitizeMrkdwn(proposal.entityName);
     const sanitizedSummary = sanitizeMrkdwn(proposal.summary);
 
-    // Build blocks using design system with sanitized data
     const blocks: KnownBlock[] = [
       createSectionBlock(
         `${MessageEmojis.ERROR} *Context update rejected* for *${sanitizedEntityName}* by <@${userId}>`
@@ -349,16 +332,18 @@ export class ContextUpdateManager {
     ];
 
     await slackMessaging.updateMessage({
-      channel: pending.approvalChannelId,
-      ts: pending.approvalMessageTs,
+        channel: workflow.contextKey?.split(':')[1] || '',
+        ts: workflow.workflowReferenceId.split(':')[1],
       text: `${MessageEmojis.ERROR} Context update rejected for ${sanitizePlainText(proposal.entityName, 100)}`,
       blocks,
     });
+    
+    await workflowManager.transition(workflow.id, workflow.version, { toState: 'REJECTED', lastModifiedBy: userId });
 
-    if (proposal.sourceThreadTs) {
+    if (payload.sourceThreadTs) {
       await slackMessaging.postMessage({
-        channel: proposal.sourceChannelId,
-        threadTs: proposal.sourceThreadTs,
+        channel: payload.sourceChannelId,
+        threadTs: payload.sourceThreadTs,
         text: `${MessageEmojis.ERROR} Context update was rejected by <@${userId}>. No changes were made.`,
       });
     }

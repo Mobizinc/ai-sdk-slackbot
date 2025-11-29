@@ -13,6 +13,8 @@ import { getKBApprovalManager } from "../lib/handle-kb-approval";
 import { getContextUpdateManager } from "../lib/context-update-manager";
 import { initializeDatabase } from "../lib/db/init";
 import { handleInterviewResponse } from "../lib/projects/interview-session";
+import { handleDemandThreadReply } from "../lib/demand/slack-workflow";
+import { getConfig } from "../lib/config";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -22,6 +24,18 @@ initializeDatabase().catch((err) => {
 });
 
 export async function POST(request: Request) {
+  // Ignore Slack retries - we already processed the original event
+  const retryNum = request.headers.get("x-slack-retry-num");
+  const retryReason = request.headers.get("x-slack-retry-reason");
+  if (retryNum) {
+    console.log(`[Events] Ignoring Slack retry #${retryNum} (reason: ${retryReason})`);
+    return new Response("OK", { status: 200 });
+  }
+
+  // Ensure config is fully loaded before processing events
+  // This prevents race conditions where Slack tokens aren't available yet
+  await getConfig();
+
   const rawBody = await request.text();
   const payload = JSON.parse(rawBody);
   const requestType = payload.type as "url_verification" | "event_callback";
@@ -58,6 +72,15 @@ export async function POST(request: Request) {
       const isThreadReply =
         !!messageEvent.thread_ts && messageEvent.thread_ts !== messageEvent.ts;
       const isDirectMessage = messageEvent.channel_type === "im";
+
+      if (
+        isThreadReply &&
+        !messageEvent.subtype &&
+        !messageEvent.bot_id &&
+        !messageEvent.bot_profile
+      ) {
+        enqueueBackgroundTask(handleDemandThreadReply(messageEvent));
+      }
 
       // Handle direct messages with the assistant
       // Thread replies are handled by passive monitoring and @mentions only

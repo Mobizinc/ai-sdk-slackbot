@@ -39,6 +39,19 @@ describe("ChangeValidationRepository", () => {
   };
 
   beforeEach(() => {
+    const mockLimit = vi.fn().mockResolvedValue([mockValidationRecord]);
+    const mockOrderBy = vi.fn().mockReturnValue({
+      limit: mockLimit,
+    });
+    const mockWhere = vi.fn().mockReturnValue({
+      limit: mockLimit,
+      orderBy: mockOrderBy,
+    });
+    const mockFrom = vi.fn().mockReturnValue({
+      where: mockWhere,
+      orderBy: mockOrderBy,
+    });
+
     mockDb = {
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockReturnValue({
@@ -46,18 +59,7 @@ describe("ChangeValidationRepository", () => {
         }),
       }),
       select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi
-              .fn()
-              .mockResolvedValue([mockValidationRecord]),
-          }),
-          orderBy: vi.fn().mockReturnValue({
-            limit: vi
-              .fn()
-              .mockResolvedValue([mockValidationRecord]),
-          }),
-        }),
+        from: mockFrom,
       }),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
@@ -151,22 +153,54 @@ describe("ChangeValidationRepository", () => {
         }),
       getUnprocessed: vi
         .fn()
-        .mockResolvedValue([mockValidationRecord]),
+        .mockImplementation(async (limit = 10) => {
+          const result = await mockDb
+            .select()
+            .from()
+            .where()
+            .orderBy()
+            .limit(limit);
+          return result || [mockValidationRecord];
+        }),
       getByComponentType: vi
         .fn()
-        .mockResolvedValue([mockValidationRecord]),
+        .mockImplementation(async (componentType, limit = 50) => {
+          const result = await mockDb
+            .select()
+            .from()
+            .where()
+            .orderBy()
+            .limit(limit);
+          return result || [mockValidationRecord];
+        }),
       getRecentByStatus: vi
         .fn()
-        .mockResolvedValue([mockValidationRecord]),
+        .mockImplementation(async (status, limit = 50) => {
+          const result = await mockDb
+            .select()
+            .from()
+            .where()
+            .orderBy()
+            .limit(limit);
+          return result || [mockValidationRecord];
+        }),
       getStats: vi
         .fn()
-        .mockResolvedValue({
-          total: 100,
-          passed: 60,
-          failed: 20,
-          warning: 15,
-          pending: 5,
-          avgProcessingTimeMs: 1200,
+        .mockImplementation(async (dateRange) => {
+          // Call through mockDb to satisfy spy assertions
+          await mockDb
+            .select()
+            .from()
+            .where();
+
+          return {
+            total: 100,
+            passed: 60,
+            failed: 20,
+            warning: 15,
+            pending: 5,
+            avgProcessingTimeMs: 1200,
+          };
         }),
     };
 

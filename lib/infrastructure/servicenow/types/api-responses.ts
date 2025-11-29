@@ -55,6 +55,7 @@ export interface CaseRecord {
   opened_at: string;
   assignment_group: ServiceNowField;
   assigned_to: ServiceNowField;
+  active?: ServiceNowField | string | boolean;
   opened_by: ServiceNowField;
   caller_id: ServiceNowField;
   submitted_by: ServiceNowField;
@@ -62,6 +63,8 @@ export interface CaseRecord {
   u_contact_phone?: ServiceNowField;
   contact_phone?: ServiceNowField;
   account: ServiceNowField;
+  resolved_at?: string;
+  closed_at?: string;
   business_service?: ServiceNowField;
   location?: ServiceNowField;
   cmdb_ci?: ServiceNowField;
@@ -217,4 +220,75 @@ export interface AssignmentGroupRecord {
   manager: ServiceNowField;
   active: string | boolean;
   type: ServiceNowField;
+}
+
+/**
+ * Request record from ServiceNow API (sc_request table)
+ */
+export interface RequestRecord {
+  sys_id: string;
+  number: ServiceNowField;
+  short_description: ServiceNowField;
+  description: ServiceNowField;
+  requested_for: ServiceNowField;
+  requested_by: ServiceNowField;
+  state: ServiceNowField;
+  priority: ServiceNowField;
+  opened_at: string;
+  closed_at?: string;
+  due_date?: string;
+  stage: ServiceNowField;
+  approval: ServiceNowField;
+  delivery_address: ServiceNowField;
+  special_instructions: ServiceNowField;
+  price: ServiceNowField;
+  sys_created_on?: string;
+  sys_updated_on?: string;
+}
+
+/**
+ * Requested Item record from ServiceNow API (sc_req_item table)
+ */
+export interface RequestedItemRecord {
+  sys_id: string;
+  number: ServiceNowField;
+  short_description: ServiceNowField;
+  description: ServiceNowField;
+  request: ServiceNowField;
+  cat_item: ServiceNowField;
+  state: ServiceNowField;
+  stage: ServiceNowField;
+  opened_at: string;
+  closed_at?: string;
+  due_date?: string;
+  assigned_to: ServiceNowField;
+  assignment_group: ServiceNowField;
+  quantity: ServiceNowField;
+  price: ServiceNowField;
+  sys_created_on?: string;
+  sys_updated_on?: string;
+}
+
+/**
+ * Catalog Task record from ServiceNow API (sc_task table)
+ */
+export interface CatalogTaskRecord {
+  sys_id: string;
+  number: ServiceNowField;
+  short_description: ServiceNowField;
+  description: ServiceNowField;
+  request_item: ServiceNowField;
+  request: ServiceNowField;
+  state: ServiceNowField;
+  active: ServiceNowField | string | boolean;
+  opened_at: string;
+  closed_at?: string;
+  due_date?: string;
+  assigned_to: ServiceNowField;
+  assignment_group: ServiceNowField;
+  priority: ServiceNowField;
+  work_notes: ServiceNowField;
+  close_notes: ServiceNowField;
+  sys_created_on?: string;
+  sys_updated_on?: string;
 }

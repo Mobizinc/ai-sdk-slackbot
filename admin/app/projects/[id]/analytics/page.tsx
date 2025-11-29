@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { TrendingUp, Users, AlertTriangle, CheckCircle, Clock, Activity } from "lucide-react";
+import { TrendingUp, Users, AlertTriangle, CheckCircle, Clock, Activity, GitBranch, Shield } from "lucide-react";
 import { apiClient, type ProjectAnalytics } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -54,6 +54,43 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      {/* SPM & GitHub Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {analytics.spmSummary && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-purple-600" />
+              <h3 className="text-sm font-semibold text-gray-900">SPM</h3>
+            </div>
+            <p className="text-sm text-gray-900">Project: {analytics.spmSummary.number}</p>
+            <p className="text-sm text-gray-500">State: {analytics.spmSummary.state} | {analytics.spmSummary.percentComplete ?? 0}%</p>
+            <p className="text-sm text-gray-500">Priority: {analytics.spmSummary.priority || "n/a"}</p>
+            {analytics.spmSummary.stories && analytics.spmSummary.stories.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 uppercase">Stories</p>
+                <ul className="text-sm text-gray-800 list-disc list-inside space-y-1">
+                  {analytics.spmSummary.stories.slice(0, 5).map((s) => (
+                    <li key={s.number}>{s.number}: {s.shortDescription}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        {analytics.githubSummary && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <GitBranch className="w-4 h-4 text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-900">GitHub</h3>
+            </div>
+            <p className="text-sm text-gray-900">{analytics.githubSummary.fullName}</p>
+            <p className="text-sm text-gray-500">
+              Default branch: {analytics.githubSummary.defaultBranch} | Open issues: {analytics.githubSummary.openIssuesCount} | Open PRs: {analytics.githubSummary.openPrCount}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Standup Analytics */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">

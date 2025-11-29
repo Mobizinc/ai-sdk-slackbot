@@ -105,6 +105,87 @@ export interface QueueStats {
   timestamp: string
 }
 
+export type SupervisorReviewArtifactType = "slack_message" | "servicenow_work_note"
+export type SupervisorReviewVerdict = "pass" | "revise" | "critical"
+
+export interface SupervisorReviewIssue {
+  severity: "low" | "medium" | "high"
+  description: string
+  recommendation?: string
+}
+
+export interface SupervisorReviewFeedback {
+  verdict: SupervisorReviewVerdict
+  summary: string
+  confidence?: number
+  issues: SupervisorReviewIssue[]
+}
+
+export interface SupervisorReviewItem {
+  id: string
+  artifactType: SupervisorReviewArtifactType
+  caseNumber?: string
+  reason: string
+  blockedAt: string
+  ageMinutes: number
+  channelId?: string
+  threadTs?: string
+  verdict: SupervisorReviewVerdict | null
+  llmReview: SupervisorReviewFeedback | null
+  metadata: Record<string, JsonValue>
+  status: string
+}
+
+export interface SupervisorReviewStats {
+  totalPending: number
+  averageAgeMinutes: number
+  byType: Record<SupervisorReviewArtifactType, number>
+  byVerdict: Record<SupervisorReviewVerdict | "unknown", number>
+}
+
+export interface SupervisorReviewFiltersState {
+  type: SupervisorReviewArtifactType | "all"
+  verdict: SupervisorReviewVerdict | "all"
+  minAgeMinutes: number
+}
+
+export interface SupervisorReviewListResponse {
+  total: number
+  stats: SupervisorReviewStats
+  filters: SupervisorReviewFiltersState
+  items: SupervisorReviewItem[]
+}
+
+export interface SupervisorReviewQuery {
+  type?: SupervisorReviewArtifactType
+  verdict?: SupervisorReviewVerdict
+  minAgeMinutes?: number
+  limit?: number
+}
+
+export interface SupervisorReviewActionResponse {
+  success: boolean
+  status: "approved" | "rejected"
+  item: SupervisorReviewItem
+}
+
+export interface StaleCaseFollowupGroup {
+  assignmentGroup: string
+  slackChannel: string
+  slackChannelLabel?: string
+  totalCases: number
+  followupsPosted: number
+  summaryTs?: string
+  error?: string
+}
+
+export interface StaleCaseFollowupSummary {
+  runAt: string
+  thresholdDays: number
+  followupLimit: number
+  groups: StaleCaseFollowupGroup[]
+}
+
 export interface CustomCatalogMapping {
   requestType: string
   keywords: string[]
@@ -165,11 +246,133 @@ export interface StrategicEvaluationSummary {
   demandRequest: Record<string, unknown> | null
 }
 
+// SPM (Service Portfolio Management) Types
+export interface SPMProject {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  priority?: string
+  assignedTo?: string
+  assignedToName?: string
+  assignedToSysId?: string
+  assignmentGroup?: string
+  assignmentGroupName?: string
+  assignmentGroupSysId?: string
+  parent?: string
+  parentNumber?: string
+  openedAt?: string
+  closedAt?: string
+  dueDate?: string
+  startDate?: string
+  endDate?: string
+  percentComplete?: number
+  cost?: number
+  projectManager?: string
+  projectManagerName?: string
+  projectManagerSysId?: string
+  sponsor?: string
+  sponsorName?: string
+  portfolio?: string
+  portfolioName?: string
+  lifecycleStage?: string
+  active?: boolean
+  url: string
+}
+
+export interface SPMEpic {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  parent: string
+  parentNumber?: string
+  assignedTo?: string
+  assignedToName?: string
+  priority?: string
+  percentComplete?: number
+  dueDate?: string
+  url: string
+}
+
+export interface SPMStory {
+  sysId: string
+  number: string
+  shortDescription: string
+  description?: string
+  state: string
+  parent: string
+  parentNumber?: string
+  assignedTo?: string
+  assignedToName?: string
+  priority?: string
+  storyPoints?: number
+  sprintSysId?: string
+  url: string
+}
+
+export interface SPMLinkAction {
+  action: "link"
+  spmSysId?: string
+  spmNumber?: string
+}
+
+export interface SPMCreateAction {
+  action: "create"
+  shortDescription?: string
+  description?: string
+  projectManager?: string
+  assignmentGroup?: string
+  priority?: string
+  dueDate?: string
+  lifecycleStage?: string
+}
+
+export interface SPMSyncAction {
+  action: "sync"
+}
+
+export type SPMAction = SPMLinkAction | SPMCreateAction | SPMSyncAction
+
+export interface SPMOperationResponse {
+  success: boolean
+  message: string
+  project: Project
+  spmProject?: SPMProject
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  unlinked?: {
+    spmSysId: string
+    spmNumber: string
+  }
+}
+
+export interface SPMStatusResponse {
+  linked: boolean
+  orphaned?: boolean
+  message?: string
+  spmProject?: SPMProject
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  lastSyncedAt?: string
+  syncEnabled?: boolean
+  cachedData?: {
+    spmSysId: string
+    spmNumber: string
+    spmState: string
+    spmLastSyncedAt: string
+  }
+}
+
 // Projects
 export interface Project {
   id: string
   name: string
   status: string
+  type: string
+  source: string
   githubUrl: string | null
   summary: string
   background: string | null
@@ -192,6 +395,26 @@ export interface Project {
   githubDefaultBranch: string | null
   createdAt: string
   updatedAt: string
+  // SPM Integration fields
+  spmSysId: string | null
+  spmNumber: string | null
+  spmState: string | null
+  spmPriority: string | null
+  spmPercentComplete: number | null
+  spmLifecycleStage: string | null
+  spmProjectManagerSysId: string | null
+  spmProjectManagerName: string | null
+  spmAssignmentGroupSysId: string | null
+  spmAssignmentGroupName: string | null
+  spmParentSysId: string | null
+  spmParentNumber: string | null
+  spmPortfolioName: string | null
+  spmUrl: string | null
+  spmOpenedAt: string | null
+  spmClosedAt: string | null
+  spmDueDate: string | null
+  spmLastSyncedAt: string | null
+  spmSyncEnabled: boolean
 }
 
 export interface ProjectStats {
@@ -201,10 +424,14 @@ export interface ProjectStats {
   paused: number
   completed: number
   archived: number
+  byType?: Record<string, number>
+  bySource?: Record<string, number>
 }
 
 export interface ProjectFilters {
   status?: string | string[]
+  type?: string | string[]
+  source?: string | string[]
   mentor?: string
   search?: string
   limit?: number
@@ -279,6 +506,12 @@ export interface ProjectWithRelations extends Project {
   interviews: Interview[]
   initiations: ProjectInitiation[]
   evaluations: StrategicEvaluationSummary[]
+  // SPM integration data (live from ServiceNow)
+  spmProject?: SPMProject | null
+  spmEpics?: SPMEpic[]
+  spmStories?: SPMStory[]
+  spmError?: { message: string; timestamp: string } | null
+  usingSPMCache?: boolean
 }
 
 export interface ProjectAnalytics {
@@ -307,6 +540,22 @@ export interface ProjectAnalytics {
     taskVelocity: number
   }
   timeline: TimelineEntry[]
+  spmSummary?: {
+    number: string
+    state: string
+    percentComplete: number | null
+    priority: string | null
+    stories?: Array<{
+      number: string
+      shortDescription: string
+    }>
+  }
+  githubSummary?: {
+    fullName: string
+    defaultBranch: string
+    openIssuesCount: number
+    openPrCount: number
+  }
 }
 
 export interface MissingCategoriesStatistics {
@@ -385,6 +634,11 @@ export interface StandupConfig extends JsonObject {
   // Legacy fields (for backwards compatibility)
   cadence?: string
   time?: string
+  dataSources?: {
+    useSpmTasks?: boolean
+    useGithubIssues?: boolean
+    useLocalOpenTasks?: boolean
+  }
   // Participant configuration
   participants?: string[]
   includeMentor?: boolean
@@ -427,7 +681,7 @@ class ApiClient {
     this.authToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN
   }
 
-  private async request<T>(
+  async request<T>(
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
@@ -451,6 +705,15 @@ class ApiClient {
     }
 
     return response.json()
+  }
+
+  // Slack helpers (admin)
+  async listSlackChannels(): Promise<{ channels: Array<{ id: string; name: string; isPrivate?: boolean }> }> {
+    return this.request('/api/admin/slack/channels')
+  }
+
+  async validateSlackChannel(channelId: string): Promise<{ ok: boolean; channel?: { id: string; name: string } }> {
+    return this.request(`/api/admin/slack/validate-channel?channelId=${encodeURIComponent(channelId)}`)
   }
 
   // Business Contexts
@@ -520,6 +783,76 @@ class ApiClient {
   // Queue Stats
   async getQueueStats(): Promise<QueueStats> {
     return this.request<QueueStats>('/api/admin/queue-stats')
+  }
+
+  // Supervisor Reviews
+  async getSupervisorReviews(params?: SupervisorReviewQuery): Promise<SupervisorReviewListResponse> {
+    const search = new URLSearchParams()
+    if (params?.type) {
+      search.set('type', params.type)
+    }
+    if (params?.verdict) {
+      search.set('verdict', params.verdict)
+    }
+    if (params?.minAgeMinutes && params.minAgeMinutes > 0) {
+      search.set('minAgeMinutes', params.minAgeMinutes.toString())
+    }
+    if (params?.limit) {
+      search.set('limit', params.limit.toString())
+    }
+
+    const query = search.toString() ? `?${search.toString()}` : ''
+    return this.request<SupervisorReviewListResponse>(`/api/admin/supervisor-reviews${query}`)
+  }
+
+  async approveSupervisorReview(stateId: string, reviewer?: string): Promise<SupervisorReviewActionResponse> {
+    const payload: Record<string, unknown> = {
+      action: 'approve',
+      stateId,
+    }
+
+    if (reviewer) {
+      payload.reviewer = reviewer
+    }
+
+    return this.request<SupervisorReviewActionResponse>('/api/admin/supervisor-reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  async rejectSupervisorReview(stateId: string, reviewer?: string): Promise<SupervisorReviewActionResponse> {
+    const payload: Record<string, unknown> = {
+      action: 'reject',
+      stateId,
+    }
+
+    if (reviewer) {
+      payload.reviewer = reviewer
+    }
+
+    return this.request<SupervisorReviewActionResponse>('/api/admin/supervisor-reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
+
+  // Stale case follow-up
+  async getStaleCaseFollowupSummary(): Promise<StaleCaseFollowupSummary | null> {
+    const response = await this.request<{ status: string; summary: StaleCaseFollowupSummary | null }>(
+      '/api/admin/stale-case-followup'
+    )
+    return response.summary
+  }
+
+  async triggerStaleCaseFollowup(): Promise<StaleCaseFollowupSummary> {
+    const response = await this.request<{ status: string; summary: StaleCaseFollowupSummary }>(
+      '/api/admin/stale-case-followup',
+      {
+        method: 'POST',
+      }
+    )
+    return response.summary
   }
 
   // Reports
@@ -646,6 +979,55 @@ class ApiClient {
   // Project Analytics
   async getProjectAnalytics(projectId: string): Promise<ProjectAnalytics> {
     return this.request(`/api/admin/projects/${projectId}/analytics`)
+  }
+
+  // SPM Integration
+  async getSPMStatus(projectId: string): Promise<SPMStatusResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`)
+  }
+
+  async linkSPMProject(
+    projectId: string,
+    identifier: { spmSysId?: string; spmNumber?: string }
+  ): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'link', ...identifier }),
+    })
+  }
+
+  async createSPMProject(
+    projectId: string,
+    data: Omit<SPMCreateAction, 'action'>
+  ): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'create', ...data }),
+    })
+  }
+
+  async syncSPMProject(projectId: string): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'sync' }),
+    })
+  }
+
+  async unlinkSPMProject(projectId: string): Promise<SPMOperationResponse> {
+    return this.request(`/api/admin/projects/${projectId}/spm`, {
+      method: 'DELETE',
+    })
+  }
+
+  async updateProjectWithSPMSync(
+    id: string,
+    data: Partial<Project>,
+    syncToSPM: boolean = false
+  ): Promise<{ project: Project; spmSyncResult?: { success: boolean; error?: string } }> {
+    return this.request(`/api/admin/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ...data, syncToSPM }),
+    })
   }
 }
 

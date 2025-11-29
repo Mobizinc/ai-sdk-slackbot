@@ -11,7 +11,7 @@ import { createTool, type AgentToolFactoryParams } from "./shared";
 import { createServiceNowContext } from "../../infrastructure/servicenow-context";
 import { optimizeImageForClaude, isSupportedImageFormat } from "../../utils/image-processing";
 import type { ContentBlock } from "../../services/anthropic-chat";
-import { config } from "../../config";
+import { getEnableMultimodalToolResults, getMaxImageAttachmentsPerTool, getMaxImageSizeBytes } from "../../config/helpers";
 
 export type TriageCaseInput = {
   caseNumber: string;
@@ -65,7 +65,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
 
         const caseTriageService = getCaseTriageService();
 
-        const triageResult = await caseTriageService.triageCase(
+        const classificationStage = await caseTriageService.runClassificationStage(
           {
             case_number: caseDetails.number,
             sys_id: caseDetails.sys_id,
@@ -92,6 +92,16 @@ export function createTriageTool(params: AgentToolFactoryParams) {
             writeToServiceNow: false,
           }
         );
+
+        const triageResult = {
+          caseNumber: classificationStage.core.caseNumber,
+          classification: classificationStage.core.classification,
+          similarCases: classificationStage.core.similarCases,
+          kbArticles: classificationStage.core.kbArticles,
+          processingTimeMs: classificationStage.core.processingTimeMs,
+          cached: classificationStage.core.cached,
+          recordTypeSuggestion: classificationStage.core.recordTypeSuggestion,
+        };
 
         const classification = triageResult.classification;
         const confidencePercent = Math.round((classification.confidence_score || 0) * 100);
@@ -129,14 +139,14 @@ export function createTriageTool(params: AgentToolFactoryParams) {
         };
 
         // Handle screenshots if requested
-        if (includeScreenshots && config.enableMultimodalToolResults) {
+        if (includeScreenshots && getEnableMultimodalToolResults()) {
           try {
             updateStatus?.(`is fetching screenshots for ${caseNumber}...`);
 
             const attachments = await serviceNowClient.getAttachments(
               "sn_customerservice_case",
               caseDetails.sys_id,
-              config.maxImageAttachmentsPerTool
+              getMaxImageAttachmentsPerTool()
             );
 
             const imageAttachments = attachments.filter(a =>
@@ -152,7 +162,7 @@ export function createTriageTool(params: AgentToolFactoryParams) {
                   const optimized = await optimizeImageForClaude(
                     imageBuffer,
                     attachment.content_type,
-                    config.maxImageSizeBytes
+                    getMaxImageSizeBytes()
                   );
 
                   imageBlocks.push({

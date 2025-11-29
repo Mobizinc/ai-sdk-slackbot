@@ -3,19 +3,19 @@
  *
  * Manages pagination state for case search results using hybrid approach:
  * - Simple filters: Encoded in button values (stateless)
- * - Complex filters: Stored in database (stateful)
+ * - Complex filters: Stored in database via WorkflowManager (stateful)
  *
  * Benefits:
  * - No state management for simple searches (fast, scalable)
  * - Database fallback for complex searches (reliable)
- * - Automatic cleanup via state manager
+ * - Automatic cleanup via workflow expiration
  */
 
-import { getInteractiveStateManager } from "./interactive-state-manager";
+import { workflowManager } from "./workflow-manager";
 import type { CaseSearchFilters } from "./case-search-service";
 
-const stateManager = getInteractiveStateManager();
 const MAX_ENCODED_LENGTH = 70; // Slack button value limit is 75 chars
+const WORKFLOW_TYPE_CASE_SEARCH = "CASE_SEARCH_PAGINATION";
 
 /**
  * Simplified pagination state for encoding
@@ -43,6 +43,12 @@ export class CaseSearchPagination {
     offset: number,
     userId: string
   ): Promise<string> {
+    if (!workflowManager) {
+        console.warn("[Pagination] WorkflowManager not available. Using stateless encoding only.");
+        // Fallback to simple encoding even if it's too long, might fail but won't crash.
+        const simpleState = this.buildSimpleState(filters, offset);
+        return `s:${this.encodeSimpleState(simpleState)}`;
+    }
     // Try simple encoding first
     const simpleState = this.buildSimpleState(filters, offset);
     const encoded = this.encodeSimpleState(simpleState);
@@ -55,18 +61,18 @@ export class CaseSearchPagination {
     // Too complex - use database approach
     const searchId = this.generateSearchId();
 
-    await stateManager.saveState(
-      'case_search',
-      userId,
-      searchId,
-      {
-        filters: filters as any,
-        currentOffset: offset,
-        totalResults: 0, // Not available at encode time
-        userId,
-      },
-      { expiresInHours: 1 } // Short expiration for pagination state
-    );
+    await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_CASE_SEARCH,
+        workflowReferenceId: searchId,
+        initialState: 'ACTIVE',
+        payload: {
+            filters: filters as any,
+            currentOffset: offset,
+            totalResults: 0, // Not available at encode time
+            userId,
+        },
+        expiresInSeconds: 3600 // 1 hour expiration
+    });
 
     return `d:${searchId}`; // Prefix 'd:' indicates database/stateful
   }
@@ -162,17 +168,23 @@ export class CaseSearchPagination {
     searchId: string,
     userId: string
   ): Promise<{ filters: CaseSearchFilters; offset: number } | null> {
+    if (!workflowManager) {
+        console.warn("[Pagination] WorkflowManager not available. Cannot decode from database.");
+        return null;
+    }
     try {
-      const state = await stateManager.getStateById<'case_search'>(searchId);
+      const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_CASE_SEARCH, searchId);
 
-      if (!state) {
-        console.warn('[Pagination] Search state not found in database:', searchId);
+      if (!workflow) {
+        console.warn('[Pagination] Search workflow not found in database:', searchId);
         return null;
       }
+      
+      const payload = workflow.payload as any;
 
       return {
-        filters: state.payload.filters as CaseSearchFilters,
-        offset: state.payload.currentOffset,
+        filters: payload.filters as CaseSearchFilters,
+        offset: payload.currentOffset,
       };
     } catch (error) {
       console.error('[Pagination] Failed to decode from database:', error);

@@ -16,7 +16,32 @@ import {
   primaryKey,
   real,
   uuid,
+  customType,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+/**
+ * Custom pgvector type for semantic search
+ * Supports vector embeddings with specified dimensions (default: 1536 for OpenAI text-embedding-3-small)
+ */
+const vector = customType<{ data: number[]; config: { dimensions: number } }>({
+  dataType(config) {
+    return `vector(${config?.dimensions ?? 1536})`;
+  },
+  toDriver(value: number[]): string {
+    return JSON.stringify(value);
+  },
+  fromDriver(value: unknown): number[] {
+    if (typeof value === "string") {
+      // pgvector returns vectors as strings like "[0.1,0.2,0.3]"
+      return JSON.parse(value) as number[];
+    }
+    if (Array.isArray(value)) {
+      return value as number[];
+    }
+    throw new Error(`Unsupported vector value: ${String(value)}`);
+  },
+});
 
 /**
  * Case Contexts Table
@@ -749,54 +774,6 @@ export type CaseEscalation = typeof caseEscalations.$inferSelect;
 export type NewCaseEscalation = typeof caseEscalations.$inferInsert;
 
 /**
- * Interactive States Table
- * Stores state for interactive Slack components (modals, buttons, reactions)
- * Enables persistence across app restarts and provides audit trail
- *
- * Use cases:
- * - KB approval workflows
- * - Context update proposals
- * - Multi-step modal wizards
- * - Any interactive component that needs state persistence
- */
-export const interactiveStates = pgTable(
-  "interactive_states",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    // State identification
-    type: text("type").notNull(), // 'kb_approval', 'context_update', 'modal_wizard', etc.
-    // Slack message identification
-    channelId: text("channel_id").notNull(),
-    messageTs: text("message_ts").notNull(),
-    threadTs: text("thread_ts"), // Optional thread context
-    // State data
-    payload: jsonb("payload").notNull().$type<Record<string, any>>(), // Flexible payload for different state types
-    status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected', 'completed', 'expired'
-    // Lifecycle tracking
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // Auto-cleanup after this time
-    processedAt: timestamp("processed_at", { withTimezone: true }),
-    processedBy: text("processed_by"), // Slack user_id who processed
-    // Metadata
-    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(),
-    errorMessage: text("error_message"),
-  },
-  (table) => ({
-    // Composite index for quick lookups
-    channelMessageIdx: uniqueIndex("idx_interactive_channel_message").on(table.channelId, table.messageTs),
-    typeIdx: index("idx_interactive_type").on(table.type),
-    statusIdx: index("idx_interactive_status").on(table.status),
-    expiresAtIdx: index("idx_interactive_expires_at").on(table.expiresAt),
-    createdAtIdx: index("idx_interactive_created_at").on(table.createdAt),
-    // Composite for finding pending states by type
-    typePendingIdx: index("idx_interactive_type_pending").on(table.type, table.status),
-  })
-);
-
-export type InteractiveState = typeof interactiveStates.$inferSelect;
-export type NewInteractiveState = typeof interactiveStates.$inferInsert;
-
-/**
  * Project Interview Archive
  * Persists completed interview transcripts and scoring metadata for analytics and mentor review.
  */
@@ -818,6 +795,8 @@ export const projects = pgTable(
     openTasks: jsonb("open_tasks").$type<string[]>().default([]).notNull(),
     mentorSlackUserId: text("mentor_slack_user_id"),
     mentorName: text("mentor_name"),
+    type: text("type").notNull().default("internal"),
+    source: text("source").notNull().default("local"),
     interviewConfig: jsonb("interview_config").$type<Record<string, any> | null>().default(null),
     standupConfig: jsonb("standup_config").$type<Record<string, any> | null>().default(null),
     maxCandidates: integer("max_candidates"),
@@ -828,9 +807,33 @@ export const projects = pgTable(
     githubDefaultBranch: text("github_default_branch"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // SPM (ServiceNow Service Portfolio Management) Integration fields
+    spmSysId: text("spm_sys_id"),
+    spmNumber: text("spm_number"),
+    spmState: text("spm_state"),
+    spmPriority: text("spm_priority"),
+    spmPercentComplete: integer("spm_percent_complete"),
+    spmLifecycleStage: text("spm_lifecycle_stage"),
+    spmProjectManagerSysId: text("spm_project_manager_sys_id"),
+    spmProjectManagerName: text("spm_project_manager_name"),
+    spmAssignmentGroupSysId: text("spm_assignment_group_sys_id"),
+    spmAssignmentGroupName: text("spm_assignment_group_name"),
+    spmParentSysId: text("spm_parent_sys_id"),
+    spmParentNumber: text("spm_parent_number"),
+    spmPortfolioName: text("spm_portfolio_name"),
+    spmUrl: text("spm_url"),
+    spmOpenedAt: timestamp("spm_opened_at", { withTimezone: true }),
+    spmClosedAt: timestamp("spm_closed_at", { withTimezone: true }),
+    spmDueDate: timestamp("spm_due_date", { withTimezone: true }),
+    spmLastSyncedAt: timestamp("spm_last_synced_at", { withTimezone: true }),
+    spmSyncEnabled: boolean("spm_sync_enabled").default(false),
   },
   (table) => ({
     statusIdx: index("idx_projects_status").on(table.status),
+    typeIdx: index("idx_projects_type").on(table.type),
+    sourceIdx: index("idx_projects_source").on(table.source),
+    spmSysIdIdx: index("idx_projects_spm_sys_id").on(table.spmSysId),
+    spmNumberIdx: index("idx_projects_spm_number").on(table.spmNumber),
   }),
 );
 
@@ -1134,3 +1137,143 @@ export const changeValidations = pgTable(
 
 export type ChangeValidation = typeof changeValidations.$inferSelect;
 export type NewChangeValidation = typeof changeValidations.$inferInsert;
+
+/**
+ * Muscle Memory Exemplars Table
+ * Stores high-quality agent interactions for semantic retrieval and learning
+ * Supports pgvector for similarity search on embeddings
+ */
+export const muscleMemoryExemplars = pgTable(
+  "muscle_memory_exemplars",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    caseNumber: text("case_number").notNull(),
+    interactionType: text("interaction_type").notNull(), // triage, kb_generation, escalation, connectivity, etc.
+    inputContext: jsonb("input_context").notNull().$type<{
+      discoveryPack?: Record<string, any>;
+      caseSnapshot?: Record<string, any>;
+      userRequest?: string;
+    }>(),
+    actionTaken: jsonb("action_taken").notNull().$type<{
+      agentType: string;
+      classification?: Record<string, any>;
+      workNotes?: string[];
+      escalations?: Record<string, any>[];
+      kbArticle?: Record<string, any>;
+      diagnostics?: Record<string, any>;
+    }>(),
+    outcome: text("outcome").notNull(), // success, partial_success, failure, user_corrected
+    embedding: vector({ dimensions: 1536 }),
+    qualityScore: real("quality_score").notNull(), // 0.0-1.0, weighted from quality signals
+    qualitySignals: jsonb("quality_signals").notNull().$type<{
+      supervisorApproval?: boolean;
+      humanFeedback?: "positive" | "negative" | null;
+      outcomeSuccess?: boolean;
+      implicitPositive?: boolean;
+      signalWeights?: Record<string, number>;
+    }>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // HNSW index for fast approximate nearest neighbor search on embeddings
+    embeddingIdx: index("idx_muscle_memory_embedding_hnsw").using(
+      "hnsw",
+      table.embedding.asc().op("vector_cosine_ops")
+    ),
+    interactionTypeIdx: index("idx_muscle_memory_interaction_type").on(table.interactionType),
+    qualityScoreIdx: index("idx_muscle_memory_quality_score").on(table.qualityScore),
+    caseNumberIdx: index("idx_muscle_memory_case_number").on(table.caseNumber),
+    createdAtIdx: index("idx_muscle_memory_created_at").on(table.createdAt),
+    // Composite index for filtered vector searches
+    typeQualityIdx: index("idx_muscle_memory_type_quality").on(
+      table.interactionType,
+      table.qualityScore
+    ),
+  })
+);
+
+export type MuscleMemoryExemplar = typeof muscleMemoryExemplars.$inferSelect;
+export type NewMuscleMemoryExemplar = typeof muscleMemoryExemplars.$inferInsert;
+
+/**
+ * Exemplar Quality Signals Table
+ * Tracks individual quality signals that contribute to exemplar quality scores
+ * Supports incremental quality updates as new signals arrive
+ */
+export const exemplarQualitySignals = pgTable(
+  "exemplar_quality_signals",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    exemplarId: uuid("exemplar_id")
+      .notNull()
+      .references(() => muscleMemoryExemplars.id, { onDelete: "cascade" }),
+    signalType: text("signal_type").notNull(), // supervisor, human_feedback, outcome, implicit
+    signalValue: text("signal_value").notNull(), // approved, positive, success, etc.
+    signalWeight: real("signal_weight").notNull(), // contribution to quality score
+    signalMetadata: jsonb("signal_metadata").$type<{
+      supervisorReviewId?: string;
+      interactiveStateId?: string;
+      caseResolutionData?: Record<string, any>;
+      userReaction?: string;
+    }>(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    exemplarIdIdx: index("idx_quality_signals_exemplar_id").on(table.exemplarId),
+    signalTypeIdx: index("idx_quality_signals_type").on(table.signalType),
+    recordedAtIdx: index("idx_quality_signals_recorded_at").on(table.recordedAt),
+  })
+);
+
+export type ExemplarQualitySignal = typeof exemplarQualitySignals.$inferSelect;
+export type NewExemplarQualitySignal = typeof exemplarQualitySignals.$inferInsert;
+
+/**
+ * Workflows Table
+ * A unified table to track the state of all multi-step, asynchronous, or interactive processes.
+ */
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    // Core Workflow Identification
+    workflowType: text("workflow_type").notNull(), // e.g., 'PROJECT_INTERVIEW', 'SUPERVISOR_REVIEW', 'KB_GENERATION', 'INCIDENT_ENRICHMENT'
+    workflowReferenceId: text("workflow_reference_id").notNull(), // A stable, external ID unique to this instance of the workflow's subject (e.g., project_id, case_number, incident_sys_id). This helps link back to original entities.
+
+    // State Management
+    currentState: text("current_state").notNull(), // e.g., 'STARTED', 'AWAITING_USER_INPUT', 'PENDING_APPROVAL', 'COMPLETED', 'FAILED', 'EXPIRED'
+    lastTransitionAt: timestamp("last_transition_at", { withTimezone: true }).notNull().defaultNow(),
+    transitionReason: text("transition_reason"), // Optional: Why the state transition occurred
+
+    // Context & Linking (for communication channels or broader context)
+    contextKey: text("context_key"), // Denormalized or composite key for quick lookup of associated external entities, e.g., "slack:C12345:12345.678" or "case:CS0012345"
+    correlationId: text("correlation_id"), // Optional: For linking different workflows or external systems, e.g., an original request ID that spawns multiple workflows
+
+    // Workflow-specific Data
+    payload: jsonb("payload").$type<Record<string, any>>().notNull(), // Flexible JSONB for workflow-specific transient data
+    metadata: jsonb("metadata").$type<Record<string, any>>().default({}).notNull(), // General metadata, e.g., originating agent, LLM details
+
+    // Lifecycle & Concurrency
+    version: integer("version").notNull().default(1), // For optimistic locking to prevent race conditions
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }), // For time-based cleanup
+    lastModifiedBy: text("last_modified_by"), // Optional: Reference to the user/agent that last modified the state
+  },
+  (table) => ({
+    // Indexes for efficient querying
+    workflowTypeIdx: index("idx_workflows_type").on(table.workflowType),
+    workflowReferenceIdIdx: index("idx_workflows_reference_id").on(table.workflowReferenceId),
+    currentStateIdx: index("idx_workflows_current_state").on(table.currentState),
+    contextKeyIdx: index("idx_workflows_context_key").on(table.contextKey),
+    expiresAtIdx: index("idx_workflows_expires_at").on(table.expiresAt),
+    // Ensures only one active workflow of a certain type for a given reference ID
+    uniqueActiveWorkflow: uniqueIndex("uq_active_workflow").on(table.workflowType, table.workflowReferenceId).where(
+      sql`"current_state" NOT IN ('COMPLETED', 'FAILED', 'EXPIRED')`
+    ),
+  })
+);
+
+export type Workflow = typeof workflows.$inferSelect;
+export type NewWorkflow = typeof workflows.$inferInsert;

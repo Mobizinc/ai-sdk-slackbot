@@ -18,7 +18,7 @@ import {
   type OldestCaseSummary,
   type StaleCaseSummary,
 } from "../../services/case-aggregator";
-import { caseSearchService, type CaseSearchFilters } from "../../services/case-search-service";
+import { getCaseSearchService, type CaseSearchFilters } from "../../services/case-search-service";
 import {
   createDivider,
   createSectionBlock,
@@ -284,7 +284,7 @@ export function createCaseAggregationTool(params: AgentToolFactoryParams) {
 
       updateStatus?.("is gathering case metrics...");
 
-      const searchResult = await caseSearchService.searchWithMetadata({
+      const searchResult = await getCaseSearchService().searchWithMetadata({
         ...filters,
         limit: filters.limit ?? Math.max(limit ?? 50, 50),
       });
@@ -323,7 +323,7 @@ export function createCaseAggregationTool(params: AgentToolFactoryParams) {
         staleDays,
       });
 
-      const filterSummary = caseSearchService.buildFilterSummary(searchResult.appliedFilters);
+      const filterSummary = getCaseSearchService().buildFilterSummary(searchResult.appliedFilters);
       if (filterSummary !== "No filters applied") {
         display.blocks.push(createContextBlock(`Filters: ${filterSummary}`));
       }

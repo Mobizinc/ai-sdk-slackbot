@@ -17,6 +17,9 @@ import type {
   Choice,
   CustomerAccount,
   AssignmentGroup,
+  Request,
+  RequestedItem,
+  CatalogTask,
 } from "../types/domain-models";
 import type {
   CaseRecord,
@@ -30,6 +33,9 @@ import type {
   ChoiceRecord,
   CustomerAccountRecord,
   AssignmentGroupRecord,
+  RequestRecord,
+  RequestedItemRecord,
+  CatalogTaskRecord,
 } from "../types/api-responses";
 
 /**
@@ -132,9 +138,15 @@ export function normalizeIpAddresses(field: ServiceNowField | ServiceNowField[] 
 
 /**
  * Build ServiceNow record URL
+ * Handles sys_id as either string or ServiceNow reference object
  */
-export function buildRecordUrl(instanceUrl: string, table: string, sysId: string): string {
-  return `${instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`;
+export function buildRecordUrl(
+  instanceUrl: string,
+  table: string,
+  sysId: string | ServiceNowField | undefined | null
+): string {
+  const id = extractSysId(sysId) ?? String(sysId ?? "");
+  return `${instanceUrl}/nav_to.do?uri=${table}.do?sys_id=${id}`;
 }
 
 /**
@@ -143,6 +155,25 @@ export function buildRecordUrl(instanceUrl: string, table: string, sysId: string
 export function mapCase(record: CaseRecord, instanceUrl: string): Case {
   const openedAt = parseServiceNowDate(record.opened_at);
   const updatedOn = parseServiceNowDate((record as any).sys_updated_on); // Extract sys_updated_on
+  const resolvedAt = parseServiceNowDate((record as any).resolved_at);
+  const closedAt = parseServiceNowDate((record as any).closed_at);
+  const assignedToEmail =
+    typeof (record as any)["assigned_to.email"] === "object"
+      ? extractDisplayValue((record as any)["assigned_to.email"])
+      : typeof (record as any)["assigned_to.email"] === "string"
+        ? (record as any)["assigned_to.email"]
+        : undefined;
+  let active: boolean | undefined;
+  if (typeof record.active === "string") {
+    active = record.active.toLowerCase() === "true";
+  } else if (typeof record.active === "boolean") {
+    active = record.active;
+  } else if (record.active && typeof record.active === "object") {
+    const display = extractDisplayValue(record.active)?.toLowerCase();
+    if (display === "true" || display === "false") {
+      active = display === "true";
+    }
+  }
 
   // Calculate age in days if openedAt is available
   const ageDays = openedAt
@@ -166,6 +197,7 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     assignmentGroupSysId: extractSysId(record.assignment_group),
     assignedTo: extractDisplayValue(record.assigned_to),
     assignedToSysId: extractSysId(record.assigned_to),
+    assignedToEmail: assignedToEmail ?? null,
     openedBy: extractDisplayValue(record.opened_by),
     openedBySysId: extractSysId(record.opened_by),
     callerId: extractDisplayValue(record.caller_id),
@@ -184,6 +216,9 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     urgency: extractDisplayValue(record.urgency),
     sysDomain: extractSysId(record.sys_domain),
     sysDomainPath: extractDisplayValue(record.sys_domain_path),
+    resolvedAt,
+    closedAt,
+    active,
     url: buildRecordUrl(instanceUrl, "sn_customerservice_case", record.sys_id),
   };
 }
@@ -358,5 +393,105 @@ export function mapAssignmentGroup(record: AssignmentGroupRecord, instanceUrl: s
     manager: extractDisplayValue(record.manager),
     active: typeof record.active === "string" ? record.active === "true" : Boolean(record.active),
     url: buildRecordUrl(instanceUrl, "sys_user_group", record.sys_id),
+  };
+}
+
+/**
+ * Map RequestRecord to Request domain model
+ */
+export function mapRequest(record: RequestRecord, instanceUrl: string): Request {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
+  return {
+    sysId,
+    number: extractDisplayValue(record.number),
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    requestedFor: extractSysId(record.requested_for),
+    requestedForName: extractDisplayValue(record.requested_for),
+    requestedBy: extractSysId(record.requested_by),
+    requestedByName: extractDisplayValue(record.requested_by),
+    state: extractDisplayValue(record.state),
+    priority: extractDisplayValue(record.priority),
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    stage: extractDisplayValue(record.stage),
+    approvalState: extractDisplayValue(record.approval),
+    deliveryAddress: extractDisplayValue(record.delivery_address),
+    specialInstructions: extractDisplayValue(record.special_instructions),
+    price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
+    url: buildRecordUrl(instanceUrl, "sc_request", sysId),
+  };
+}
+
+/**
+ * Map RequestedItemRecord to RequestedItem domain model
+ */
+export function mapRequestedItem(record: RequestedItemRecord, instanceUrl: string): RequestedItem {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
+  return {
+    sysId,
+    number: extractDisplayValue(record.number),
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    request: extractSysId(record.request),
+    requestNumber: extractDisplayValue(record.request),
+    catalogItem: extractSysId(record.cat_item),
+    catalogItemName: extractDisplayValue(record.cat_item),
+    state: extractDisplayValue(record.state),
+    stage: extractDisplayValue(record.stage),
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    assignedTo: extractSysId(record.assigned_to),
+    assignedToName: extractDisplayValue(record.assigned_to),
+    assignmentGroup: extractSysId(record.assignment_group),
+    assignmentGroupName: extractDisplayValue(record.assignment_group),
+    quantity: record.quantity ? parseInt(extractDisplayValue(record.quantity), 10) : undefined,
+    price: record.price ? parseFloat(extractDisplayValue(record.price)) : undefined,
+    url: buildRecordUrl(instanceUrl, "sc_req_item", sysId),
+  };
+}
+
+/**
+ * Map CatalogTaskRecord to CatalogTask domain model
+ */
+export function mapCatalogTask(record: CatalogTaskRecord, instanceUrl: string): CatalogTask {
+  const sysId = typeof record.sys_id === "string" ? record.sys_id : extractDisplayValue(record.sys_id);
+
+  let active: boolean | undefined;
+  if (typeof record.active === "string") {
+    active = record.active.toLowerCase() === "true";
+  } else if (typeof record.active === "boolean") {
+    active = record.active;
+  } else if (record.active && typeof record.active === "object") {
+    const display = extractDisplayValue(record.active)?.toLowerCase();
+    if (display === "true" || display === "false") {
+      active = display === "true";
+    }
+  }
+
+  return {
+    sysId,
+    number: extractDisplayValue(record.number),
+    shortDescription: extractDisplayValue(record.short_description),
+    description: extractDisplayValue(record.description),
+    requestItem: extractSysId(record.request_item),
+    requestItemNumber: extractDisplayValue(record.request_item),
+    request: extractSysId(record.request),
+    requestNumber: extractDisplayValue(record.request),
+    state: extractDisplayValue(record.state),
+    active,
+    openedAt: parseServiceNowDate(record.opened_at),
+    closedAt: parseServiceNowDate(record.closed_at),
+    dueDate: parseServiceNowDate(record.due_date),
+    assignedTo: extractSysId(record.assigned_to),
+    assignedToName: extractDisplayValue(record.assigned_to),
+    assignmentGroup: extractSysId(record.assignment_group),
+    assignmentGroupName: extractDisplayValue(record.assignment_group),
+    priority: extractDisplayValue(record.priority),
+    workNotes: extractDisplayValue(record.work_notes),
+    closeNotes: extractDisplayValue(record.close_notes),
+    url: buildRecordUrl(instanceUrl, "sc_task", sysId),
   };
 }

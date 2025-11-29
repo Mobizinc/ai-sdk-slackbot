@@ -22,8 +22,7 @@ import {
 } from '../lib/schemas/servicenow-webhook';
 import { getQStashClient, getWorkerUrl, isQStashEnabled } from '../lib/queue/qstash-client';
 import {
-  authenticateWebhookRequest,
-  parseWebhookPayload,
+  parseAndValidateWebhookRequest,
   validateWebhook,
   buildTriageSuccessResponse,
   buildQueuedResponse,
@@ -92,76 +91,22 @@ async function postImpl(request: Request) {
       );
     }
 
-    // Get request body
-    const payload = await request.text();
+    const parsedRequest = await parseAndValidateWebhookRequest<ServiceNowCaseWebhook>(
+      request,
+      {
+        validator: validateWebhook,
+        webhookSecret: WEBHOOK_SECRET,
+        useNewParser: USE_NEW_PARSER,
+        treatEmptyObjectAsValidationError: true,
+        label: "CaseWebhook",
+      }
+    );
 
-    // Authenticate webhook request
-    const authResult = await authenticateWebhookRequest(request, payload, WEBHOOK_SECRET);
-    if (!authResult.authenticated) {
-      console.warn('[Webhook] Authentication failed');
-      return buildErrorResponse({
-        type: 'authentication_error',
-        message: 'Authentication failed',
-        statusCode: 401,
-      });
-    }
-    console.info(`[Webhook] Authenticated via ${authResult.method}`);
-
-
-    // Parse payload
-    const parseResult = parseWebhookPayload(payload, USE_NEW_PARSER);
-    if (!parseResult.success) {
-      console.error('[Webhook] Parsing failed:', parseResult.error?.message);
-
-      // Treat empty objects as validation errors (422) not parse errors (400)
-      const isEmptyObject = parseResult.data !== undefined &&
-                           typeof parseResult.data === 'object' &&
-                           Object.keys(parseResult.data as Record<string, unknown>).length === 0;
-
-      const statusCode = isEmptyObject ? 422 : 400;
-      const errorType = isEmptyObject ? 'validation_error' : 'parse_error';
-      const parserDetails = parseResult.error?.message;
-      const errorMessage = isEmptyObject
-        ? 'Invalid webhook payload schema - payload cannot be empty'
-        : 'Failed to parse payload';
-
-      return buildErrorResponse({
-        type: errorType,
-        message: errorMessage,
-        details: {
-          ...parseResult.metadata,
-          parserError: parserDetails,
-        },
-        statusCode,
-      });
+    if (!parsedRequest.ok) {
+      return parsedRequest.response;
     }
 
-    // Log parsing metrics for monitoring
-    if (parseResult.metadata) {
-      console.log('[Webhook] Parser metrics:', parseResult.metadata);
-    }
-
-    // Log warnings for debugging
-    if (parseResult.metadata?.warnings && parseResult.metadata.warnings.length > 0) {
-      console.warn('[Webhook] Parser warnings:', parseResult.metadata.warnings);
-    }
-
-    // Validate payload against schema
-    const validationResult = validateWebhook(parseResult.data);
-    if (!validationResult.success) {
-      console.error('[Webhook] Schema validation failed:', validationResult.errors);
-      return buildErrorResponse({
-        type: 'validation_error',
-        message: 'Invalid webhook payload schema',
-        details: {
-          errors: validationResult.errors,
-          issues: validationResult.issues,
-        },
-        statusCode: 422,
-      });
-    }
-
-    const webhookData: ServiceNowCaseWebhook = validationResult.data!;
+    const webhookData = parsedRequest.data;
 
     // Log webhook with company/account info for debugging
     const companyInfo = webhookData.company ? `Company: ${webhookData.company}` : '';
@@ -179,30 +124,7 @@ async function postImpl(request: Request) {
       return queuedResponse;
     }
 
-    // Sync mode: Execute centralized triage workflow immediately
-    const triageResult = await caseTriageService.triageCase(webhookData, {
-      enableCaching: true,
-      enableSimilarCases: true,
-      enableKBArticles: true,
-      enableBusinessContext: true,
-      enableWorkflowRouting: true,
-      writeToServiceNow: true,
-      enableCatalogRedirect: true,
-    });
-
-    const processingTime = Date.now() - startTime;
-
-    console.info(
-      `[Webhook] Case ${triageResult.caseNumber} classified as ${triageResult.classification.category}` +
-      `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
-      ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
-      ` in ${processingTime}ms` +
-      `${triageResult.cached ? ' [CACHED]' : ''}` +
-      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}` +
-      `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
-    );
-
-    return buildTriageSuccessResponse(triageResult);
+    return handleSyncCase(webhookData, startTime);
 
   } catch (error) {
     console.error('[Webhook] Processing failed:', error);
@@ -213,6 +135,44 @@ async function postImpl(request: Request) {
       statusCode: 500,
     });
   }
+}
+
+async function handleSyncCase(
+  webhookData: ServiceNowCaseWebhook,
+  startTime: number
+): Promise<Response> {
+  const classificationStage = await caseTriageService.runClassificationStage(webhookData, {
+    enableCaching: true,
+    enableSimilarCases: true,
+    enableKBArticles: true,
+    enableBusinessContext: true,
+    enableWorkflowRouting: true,
+    writeToServiceNow: true,
+    enableCatalogRedirect: true,
+  });
+
+  const triageResult = await caseTriageService.applyDeterministicActions(classificationStage, {
+    enableCatalogRedirect: true,
+    writeToServiceNow: true,
+  });
+
+  const processingTime = Date.now() - startTime;
+
+  console.info(
+    `[Webhook] Case ${triageResult.caseNumber} classified as ${triageResult.classification.category}` +
+      `${triageResult.classification.subcategory ? ` > ${triageResult.classification.subcategory}` : ''}` +
+      ` (${Math.round((triageResult.classification.confidence_score || 0) * 100)}% confidence)` +
+      ` in ${processingTime}ms` +
+      `${triageResult.cached ? ' [CACHED]' : ''}` +
+      `${triageResult.incidentCreated ? ` | Incident ${triageResult.incidentNumber} created` : ''}` +
+      `${triageResult.catalogRedirected ? ` | Redirected to catalog (${triageResult.catalogItemsProvided} items)` : ''}`
+  );
+
+  return buildTriageSuccessResponse({
+    ...triageResult,
+    processingTimeMs: processingTime,
+    queueTimeMs: triageResult.queueTimeMs ?? undefined,
+  });
 }
 
 export const POST = postImpl;

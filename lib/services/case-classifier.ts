@@ -17,6 +17,12 @@ import { getCaseClassificationRepository } from '../db/repositories/case-classif
 import { getCategoryMismatchRepository } from '../db/repositories/category-mismatch-repository';
 import { createAzureSearchClient } from './azure-search-client';
 import type { SimilarCaseResult } from '../schemas/servicenow-webhook';
+import { runCategorizationStage } from '../agent/classification/pipeline/stage-categorization';
+import { runNarrativeStage } from '../agent/classification/pipeline/stage-narrative';
+import { runBusinessIntelStage } from '../agent/classification/pipeline/stage-business-intel';
+import type { StageContext } from '../agent/classification/pipeline/context';
+import type { ClientScopePolicySummary } from './client-scope-policy-service';
+import { getConfigValue } from '../config';
 
 export interface CaseData {
   case_number: string;
@@ -31,6 +37,7 @@ export interface CaseData {
   company_name?: string;
   current_category?: string;
   sys_created_on?: string;
+  client_scope_policy?: ClientScopePolicySummary;
 }
 
 export interface TechnicalEntities {
@@ -59,6 +66,32 @@ export interface BusinessIntelligence {
   systemic_issue_detected?: boolean;
   systemic_issue_reason?: string;
   affected_cases_same_client?: number;
+}
+
+export type ScopeEffortConfidence = 'low' | 'medium' | 'high';
+
+export interface ScopeAnalysis {
+  estimated_effort_hours?: number;
+  effort_confidence?: ScopeEffortConfidence;
+  requires_onsite_support?: boolean;
+  onsite_hours_estimate?: number;
+  is_new_capability?: boolean;
+  needs_project_sow?: boolean;
+  reasoning?: string;
+  contract_flags?: string[];
+}
+
+export interface ScopeEvaluationResult {
+  clientName?: string;
+  shouldEscalate?: boolean;
+  reasons?: string[];
+  exceededEffortThreshold?: boolean;
+  exceededOnsiteThreshold?: boolean;
+  flaggedProjectWork?: boolean;
+  estimatedEffortHours?: number;
+  onsiteHoursEstimate?: number;
+  policyEffortThresholds?: ClientScopePolicySummary['effortThresholds'];
+  policyOnsiteSupport?: ClientScopePolicySummary['onsiteSupport'];
 }
 
 export interface RecordTypeSuggestion {
@@ -102,8 +135,23 @@ export interface CaseClassification {
   kb_articles?: KBArticle[];
   similar_cases_count?: number;
   kb_articles_count?: number;
+  scope_analysis?: ScopeAnalysis;
+  scope_evaluation?: ScopeEvaluationResult;
 }
 
+/**
+ * TODO: Refactor as callable sub-agent (agent-architecture.md)
+ *
+ * Future improvements to align with target architecture:
+ * 1. Accept DiscoveryContextPack as structured input (from lib/agent/discovery/context-pack.ts)
+ * 2. Consume CMDB hits and policy alerts from discovery pack
+ * 3. Separate into orchestrator-invocable agent with clear input/output contract
+ * 4. Use discovery pack's business context, similar cases, and policy signals
+ * 5. Return structured JSON output for ServiceNow orchestration agent
+ *
+ * Current state: Monolithic service with embedded data fetching
+ * Target state: Stateless sub-agent that consumes pre-gathered discovery context
+ */
 export class CaseClassifier {
   private businessContextService = getBusinessContextService();
   private searchClient = createAzureSearchClient(); // NEW: Use vector search client with MSP attribution
@@ -212,12 +260,65 @@ export class CaseClassifier {
         console.log(`[CaseClassifier] No business context available for ${companyIdentifier}`);
       }
 
-      // Use existing classification method with enhanced context
-      const classification = await this.classifyCase(caseData, businessContext, {
-        includeSimilarCases: true,
-        includeKBArticles: true,
-        workflowId: routingResult.workflowId
-      });
+      let classification: CaseClassification;
+
+      try {
+        classification = await this.classifyCaseWithMicroAgents({
+          caseData,
+          businessContext,
+          similarCases: intelligenceResult.similarCases.map(sc => ({
+            case_number: sc.caseNumber,
+            short_description: sc.title,
+            description: sc.description,
+            similarity_score: sc.similarityScore,
+            opened_at: sc.openedAt,
+            state: sc.state,
+            assignment_group: sc.assignmentGroup,
+            priority: sc.priority
+          })),
+          kbArticles: intelligenceResult.kbArticles.map(kb => ({
+            kb_number: kb.number,
+            title: kb.title,
+            category: kb.category,
+            similarity_score: kb.relevanceScore,
+            url: kb.url,
+            summary: kb.summary
+          })),
+        });
+        console.log(`[CaseClassifier] Micro-agent pipeline completed for ${caseData.case_number}`);
+      } catch (pipelineError) {
+        console.warn(
+          `[CaseClassifier] Micro-agent pipeline failed for ${caseData.case_number}, falling back to monolithic classifier:`,
+          pipelineError
+        );
+        classification = await this.classifyCase(caseData, businessContext, {
+          includeSimilarCases: true,
+          includeKBArticles: true,
+          workflowId: routingResult.workflowId,
+        });
+      }
+
+      // Attach search context results (micro-agent path requires this explicitly)
+      classification.similar_cases = intelligenceResult.similarCases.map(sc => ({
+            case_number: sc.caseNumber,
+            short_description: sc.title,
+            description: sc.description,
+            similarity_score: sc.similarityScore,
+            opened_at: sc.openedAt,
+            state: sc.state,
+            assignment_group: sc.assignmentGroup,
+            priority: sc.priority
+          }));
+      classification.similar_cases_count = intelligenceResult.similarCases?.length || 0;
+      classification.kb_articles = intelligenceResult.kbArticles.map(kb => ({
+            kb_number: kb.number,
+            title: kb.title,
+            category: kb.category,
+            similarity_score: kb.relevanceScore,
+            url: kb.url,
+            summary: kb.summary
+          }));
+      classification.kb_articles_count = intelligenceResult.kbArticles?.length || 0;
 
       // Merge entities from different sources
       const llmEntities: DiscoveredEntity[] = [];
@@ -455,6 +556,12 @@ If you detect any of the following exceptions based on the client's business con
 13. OUTSIDE SERVICE HOURS: If case arrived outside contracted service hours (e.g., weekend/after-hours for 12x5 support), flag it with service hours note
 14. SYSTEMIC ISSUE: **CRITICAL** - Follow <pattern_analysis_requirements>. Set systemic_issue_detected=true ONLY if ALL criteria met: (a) 2+ RECENT cases (last 14 days) from same client, AND (b) resolution notes show SAME/SIMILAR root cause (verified by reading resolution notes). If resolutions differ significantly (e.g., one=KMS server fix, another=user email correction), set systemic_issue_detected=FALSE - these are different problems, not a systemic pattern.
 
+CLIENT SCOPE POLICY ANALYSIS (if <client_scope_policy> is provided):
+- Summarize how the request maps to the client's contract. Estimate TOTAL engineering effort hours (round to whole numbers) and set scope_analysis.estimated_effort_hours.
+- Determine if onsite work is required. If yes, estimate onsite hours consumed from the monthly allocation and set scope_analysis.requires_onsite_support + scope_analysis.onsite_hours_estimate.
+- Compare the work to disallowed/project examples and contractual thresholds. If effort exceeds limits (e.g., >24h incident, >8h service request) or requires new builds/migrations, set scope_analysis.needs_project_sow=true and explain why.
+- Capture any relevant contract-specific notes in scope_analysis.reasoning and list short flags in scope_analysis.contract_flags (e.g., "exceeds_incident_threshold", "onsite_over_cap").
+
 SERVICE PORTFOLIO CLASSIFICATION:
 Identify which Service Offering best matches this case. Select ONE of the following:
 
@@ -616,6 +723,16 @@ Respond with a JSON object in this exact format:
     "is_major_incident": false,
     "reasoning": "Service disruption explanation"
   },
+  "scope_analysis": {
+    "estimated_effort_hours": 6,
+    "effort_confidence": "medium",
+    "requires_onsite_support": false,
+    "onsite_hours_estimate": 0,
+    "is_new_capability": false,
+    "needs_project_sow": false,
+    "reasoning": "Reference the client limits documented in <client_scope_policy> (e.g., 24h incident cap)",
+    "contract_flags": ["exceeds_incident_threshold"]
+  },
   "service_offering": "Helpdesk and Endpoint - Standard",
   "application_service": "Office 365" (optional, only if service_offering is "Application Administration")
 }
@@ -663,6 +780,55 @@ Important: Return ONLY the JSON object, no additional text.
 
     const businessContextText = this.businessContextService.toPromptText(businessContext);
     return `\n\n<business_context>\n${businessContextText}\n</business_context>`;
+  }
+
+  private buildClientScopePolicySection(policy?: ClientScopePolicySummary): string {
+    if (!policy) {
+      return '';
+    }
+
+    const lines: string[] = [`- Client: ${policy.clientName}`];
+
+    if (policy.effortThresholds) {
+      const thresholds: string[] = [];
+      if (typeof policy.effortThresholds.incidentHours === 'number') {
+        thresholds.push(`Incidents ≤ ${policy.effortThresholds.incidentHours} hours`);
+      }
+      if (typeof policy.effortThresholds.serviceRequestHours === 'number') {
+        thresholds.push(`Service Requests ≤ ${policy.effortThresholds.serviceRequestHours} hours`);
+      }
+      if (thresholds.length > 0) {
+        lines.push(`- Effort Thresholds: ${thresholds.join('; ')}`);
+      }
+    }
+
+    if (policy.onsiteSupport) {
+      const onsiteBits: string[] = [];
+      if (typeof policy.onsiteSupport.includedHoursPerMonth === 'number') {
+        onsiteBits.push(
+          `Included Onsite Hours/Month: ${policy.onsiteSupport.includedHoursPerMonth}`
+        );
+      }
+      if (policy.onsiteSupport.requiresPreapproval) {
+        onsiteBits.push('Additional onsite hours require pre-approval');
+      }
+      if (policy.onsiteSupport.emergencyOnlyDefinition) {
+        onsiteBits.push(`Emergency Definition: ${policy.onsiteSupport.emergencyOnlyDefinition}`);
+      }
+      if (onsiteBits.length > 0) {
+        lines.push(`- Onsite Support: ${onsiteBits.join(' | ')}`);
+      }
+    }
+
+    if (policy.disallowedWorkExamples && policy.disallowedWorkExamples.length > 0) {
+      lines.push(`- Disallowed Examples: ${policy.disallowedWorkExamples.slice(0, 3).join('; ')}`);
+    }
+
+    if (policy.allowedWorkExamples && policy.allowedWorkExamples.length > 0) {
+      lines.push(`- Included Examples: ${policy.allowedWorkExamples.slice(0, 3).join('; ')}`);
+    }
+
+    return `\n\n<client_scope_policy>\n${lines.join('\n')}\n</client_scope_policy>`;
   }
 
   /**
@@ -892,6 +1058,14 @@ Important: Return ONLY the JSON object, no additional text.
         });
       }
 
+      const clientPolicySection = this.buildClientScopePolicySection(caseData.client_scope_policy);
+      if (clientPolicySection) {
+        userContentBlocks.push({
+          type: 'text',
+          text: clientPolicySection
+        });
+      }
+
       if (kbArticles.length > 0) {
         userContentBlocks.push({
           type: 'text',
@@ -1014,6 +1188,82 @@ Important: Return ONLY the JSON object, no additional text.
       console.error(`[CaseClassifier] Anthropic classification with caching failed for ${caseData.case_number}:`, error);
       throw error;
     }
+  }
+
+  private async classifyCaseWithMicroAgents(params: {
+    caseData: CaseData;
+    businessContext?: BusinessEntityContext | null;
+    similarCases?: SimilarCaseResult[];
+    kbArticles?: KBArticle[];
+  }): Promise<CaseClassification> {
+    // Retrieve muscle memory exemplars for few-shot learning
+    let muscleMemoryExemplars: any[] | undefined;
+    try {
+      if (getConfigValue("muscleMemoryRetrievalEnabled")) {
+        const { retrievalService } = await import("./muscle-memory");
+        // Build minimal context pack for retrieval
+        const contextForRetrieval = {
+          metadata: { caseNumbers: [params.caseData.case_number] },
+          businessContext: params.businessContext ? {
+            entityName: params.businessContext.entityName,
+            industry: params.businessContext.industry,
+          } : undefined,
+        };
+
+        muscleMemoryExemplars = await retrievalService.getTopExemplars("triage", 3);
+        if (muscleMemoryExemplars.length > 0) {
+          console.log(`[CaseClassifier] Loaded ${muscleMemoryExemplars.length} muscle memory exemplars for classification`);
+        }
+      }
+    } catch (error) {
+      console.warn("[CaseClassifier] Failed to load muscle memory exemplars:", error);
+      // Continue without exemplars - graceful degradation
+    }
+
+    const stageContext: StageContext = {
+      caseData: params.caseData,
+      businessContext: params.businessContext,
+      similarCases: params.similarCases,
+      kbArticles: params.kbArticles,
+      muscleMemoryExemplars,
+    };
+
+    const categorization = await runCategorizationStage(stageContext);
+    const narrative = await runNarrativeStage(stageContext, categorization.data);
+    const businessIntel = await runBusinessIntelStage(
+      stageContext,
+      categorization.data,
+      narrative.data
+    );
+
+    const usageTotals = combineUsage([
+      categorization.usage,
+      narrative.usage,
+      businessIntel.usage,
+    ]);
+
+    return {
+      category: categorization.data.category,
+      subcategory: categorization.data.subcategory || undefined,
+      incident_category: categorization.data.incident_category,
+      incident_subcategory: categorization.data.incident_subcategory,
+      confidence_score: categorization.data.confidence_score ?? 0.65,
+      reasoning: categorization.data.reasoning,
+      keywords: categorization.data.keywords ?? [],
+      quick_summary: narrative.data.quick_summary,
+      immediate_next_steps: narrative.data.immediate_next_steps,
+      technical_entities: ensureTechnicalEntities(categorization.data.technical_entities),
+      urgency_level: categorization.data.urgency_level ?? "Medium",
+      business_intelligence: businessIntel.data.business_intelligence,
+      record_type_suggestion: categorization.data.record_type_suggestion,
+      service_offering: categorization.data.service_offering,
+      application_service: categorization.data.application_service,
+      token_usage_input: usageTotals?.inputTokens || 0,
+      token_usage_output: usageTotals?.outputTokens || 0,
+      total_tokens: (usageTotals?.inputTokens || 0) + (usageTotals?.outputTokens || 0),
+      llm_provider: "anthropic",
+      model_used: "anthropic-micro-agents",
+    } as CaseClassification;
   }
 
   /**
@@ -1216,6 +1466,11 @@ Important: Return ONLY the JSON object, no additional text.
       prompt += `\n\n<business_context>\n`;
       prompt += businessContextText;
       prompt += `\n</business_context>`;
+    }
+
+    const clientPolicySection = this.buildClientScopePolicySection(caseData.client_scope_policy);
+    if (clientPolicySection) {
+      prompt += clientPolicySection;
     }
 
     // Add similar cases context if available (using NEW structure with MSP attribution)
@@ -1633,6 +1888,19 @@ Important: Return ONLY the JSON object, no additional text.
    * Validate and normalize classification result (DUAL CATEGORIZATION)
    */
   private async validateClassification(classification: any): Promise<CaseClassification> {
+    const normalizeNumber = (value: unknown): number | undefined => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+      }
+      if (typeof value === 'string') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+          return parsed;
+        }
+      }
+      return undefined;
+    };
+
     // Use available categories from ServiceNow (table-specific)
     const validCaseCategories = this.availableCaseCategories.length > 0
       ? this.availableCaseCategories
@@ -1762,6 +2030,25 @@ Important: Return ONLY the JSON object, no additional text.
       classification.business_intelligence.outside_service_hours = !!classification.business_intelligence.outside_service_hours;
     }
 
+    if (classification.scope_analysis && typeof classification.scope_analysis === 'object') {
+      const scope = classification.scope_analysis;
+      scope.estimated_effort_hours = normalizeNumber(scope.estimated_effort_hours);
+      scope.onsite_hours_estimate = normalizeNumber(scope.onsite_hours_estimate);
+
+      if (scope.contract_flags && !Array.isArray(scope.contract_flags)) {
+        scope.contract_flags = [String(scope.contract_flags)].filter(Boolean);
+      }
+      if (scope.contract_flags) {
+        scope.contract_flags = (scope.contract_flags as any[]).filter((flag: any) => typeof flag === 'string' && flag.trim().length > 0);
+      }
+
+      if (scope.effort_confidence && !['low', 'medium', 'high'].includes(scope.effort_confidence)) {
+        scope.effort_confidence = undefined;
+      }
+    } else {
+      delete classification.scope_analysis;
+    }
+
     return classification as CaseClassification;
   }
 
@@ -1847,4 +2134,38 @@ function extractAnthropicText(message: any): string | undefined {
     .join('\n')
     .trim();
   return text || undefined;
+}
+
+function ensureTechnicalEntities(entities: CaseClassification['technical_entities'] | undefined): CaseClassification['technical_entities'] {
+  const template = {
+    ip_addresses: [] as string[],
+    systems: [] as string[],
+    users: [] as string[],
+    software: [] as string[],
+    error_codes: [] as string[],
+  };
+  if (!entities) {
+    return template;
+  }
+  return {
+    ip_addresses: entities.ip_addresses || [],
+    systems: entities.systems || [],
+    users: entities.users || [],
+    software: entities.software || [],
+    error_codes: entities.error_codes || [],
+  };
+}
+
+function combineUsage(usages: Array<{ inputTokens?: number; outputTokens?: number } | undefined>) {
+  return usages.reduce(
+    (acc: { inputTokens: number; outputTokens: number }, usage) => {
+      if (!usage) {
+        return acc;
+      }
+      acc.inputTokens += usage.inputTokens ?? 0;
+      acc.outputTokens += usage.outputTokens ?? 0;
+      return acc;
+    },
+    { inputTokens: 0, outputTokens: 0 }
+  );
 }

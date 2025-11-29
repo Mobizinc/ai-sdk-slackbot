@@ -1,0 +1,624 @@
+{
+  "tenant": {
+    "id": "64c9180e-db30-45b8-af76-82f8930da669",
+    "name": "Altus Community Healthcare",
+    "domain": "ztaltus.onmicrosoft.com"
+  },
+  "discovered_at": "2025-11-13T03:08:23.593Z",
+  "vm_count": 40,
+  "resource_group_count": 40,
+  "vms": [
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-AZMIG-V2/providers/Microsoft.Compute/virtualMachines/AZMIGAPPv2",
+      "name": "AZMIGAPPv2",
+      "resourceGroup": "RG-ALTUS-SCUS-AZMIG-V2",
+      "location": "southcentralus",
+      "vmSize": "Standard_D16s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.3.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCADVANTX1",
+      "name": "AHCADVANTX1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.13"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCAPPSRV1",
+      "name": "AHCAPPSRV1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.12"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/ahccbomedsrv",
+      "name": "ahccbomedsrv",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.54"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCEPOWERSRV",
+      "name": "AHCEPOWERSRV",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D8s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.40"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCERICOMGRID",
+      "name": "AHCERICOMGRID",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.38"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCERICOMSAG",
+      "name": "AHCERICOMSAG",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.37"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCGCS",
+      "name": "AHCGCS",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.10"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCGCS1",
+      "name": "AHCGCS1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.9"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCMDREPDB",
+      "name": "AHCMDREPDB",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.75"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCMDREPINF",
+      "name": "AHCMDREPINF",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.76"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCRDP2",
+      "name": "AHCRDP2",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D8s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.46"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCRDP3",
+      "name": "AHCRDP3",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D8s_v4",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.47"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCSPAPP1",
+      "name": "AHCSPAPP1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.30"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCSPDB1",
+      "name": "AHCSPDB1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.31"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCSPUAT",
+      "name": "AHCSPUAT",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.29"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCSPWEB1",
+      "name": "AHCSPWEB1",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.32"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/ahctsyseva",
+      "name": "ahctsyseva",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.73"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/AHCUTILITY",
+      "name": "AHCUTILITY",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.25"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/ALTUSCORPGCS",
+      "name": "ALTUSCORPGCS",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D8s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.3.5"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/ALTUSERLJ",
+      "name": "ALTUSERLJ",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v4",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.3.7"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/ALTUSERWAX",
+      "name": "ALTUSERWAX",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.3.6"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/LUMHOSPGCS",
+      "name": "LUMHOSPGCS",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_F8s_v2",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.3.8"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/RG-ALTUS-SCUS-WORKLOADS-01/providers/Microsoft.Compute/virtualMachines/RISIW",
+      "name": "RISIW",
+      "resourceGroup": "RG-ALTUS-SCUS-WORKLOADS-01",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "172.16.2.55"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/MAIN/providers/Microsoft.Compute/virtualMachines/ACH-OnePACS-GW",
+      "name": "ACH-OnePACS-GW",
+      "resourceGroup": "MAIN",
+      "location": "eastus",
+      "vmSize": "Standard_D4as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.25"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/MAIN/providers/Microsoft.Compute/virtualMachines/dc-altus-azure",
+      "name": "dc-altus-azure",
+      "resourceGroup": "MAIN",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.5"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/MAIN/providers/Microsoft.Compute/virtualMachines/FS-AHS",
+      "name": "FS-AHS",
+      "resourceGroup": "MAIN",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/MAIN/providers/Microsoft.Compute/virtualMachines/restore-fshs",
+      "name": "restore-fshs",
+      "resourceGroup": "MAIN",
+      "location": "eastus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM deallocated",
+      "privateIpAddresses": [
+        "10.0.90.7"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/RG-ALTUS-SCUS-JMPBX-01/providers/Microsoft.Compute/virtualMachines/AZMIGAPP01",
+      "name": "AZMIGAPP01",
+      "resourceGroup": "RG-ALTUS-SCUS-JMPBX-01",
+      "location": "eastus",
+      "vmSize": "Standard_D4as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.10"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/RG-ALTUS-SCUS-JMPBX-01/providers/Microsoft.Compute/virtualMachines/JMPBX-ALT01",
+      "name": "JMPBX-ALT01",
+      "resourceGroup": "RG-ALTUS-SCUS-JMPBX-01",
+      "location": "eastus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.8"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/RG-ALTUS-SCUS-VEEAM-ASR01/providers/Microsoft.Compute/virtualMachines/VEEAM-ASR01",
+      "name": "VEEAM-ASR01",
+      "resourceGroup": "RG-ALTUS-SCUS-VEEAM-ASR01",
+      "location": "eastus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.0.90.9"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/RG-ALTUS-NCUS-FABRIC-01/providers/Microsoft.Compute/virtualMachines/ACHMSSQL01",
+      "name": "ACHMSSQL01",
+      "resourceGroup": "RG-ALTUS-NCUS-FABRIC-01",
+      "location": "northcentralus",
+      "vmSize": "Standard_D8s_v4",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.2.148"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/RG-ALTUS-NCUS-FABRIC-01/providers/Microsoft.Compute/virtualMachines/ACHWEBAPP01",
+      "name": "ACHWEBAPP01",
+      "resourceGroup": "RG-ALTUS-NCUS-FABRIC-01",
+      "location": "northcentralus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.2.149"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-PALOALTO-001/providers/Microsoft.Compute/virtualMachines/vm-altus-paloalto-firewall-001",
+      "name": "vm-altus-paloalto-firewall-001",
+      "resourceGroup": "RG-ALTUS-SCUS-PALOALTO-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_F8s_v2",
+      "osType": "Linux",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.0.4",
+        "10.52.0.36",
+        "10.52.0.20",
+        "10.52.0.52"
+      ],
+      "publicIpAddresses": [
+        "4.151.177.55"
+      ],
+      "tags": {
+        "Client": "Altus Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "Altus",
+        "Purpose": "Palo Alto VM-Series Firewall"
+      }
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-001/providers/Microsoft.Compute/virtualMachines/ACHADSYNC",
+      "name": "ACHADSYNC",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.4"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-001/providers/Microsoft.Compute/virtualMachines/ACHSNOWMID",
+      "name": "ACHSNOWMID",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-001",
+      "location": "southcentralus",
+      "vmSize": "Standard_D4s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.5"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/ACHDC01",
+      "name": "ACHDC01",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.20"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/ACHDC02",
+      "name": "ACHDC02",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.21"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/ACHDC03x",
+      "name": "ACHDC03x",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2as_v5",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.22"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/RG-ALTUS-SCUS-SHAREDSERVICES-002/providers/Microsoft.Compute/virtualMachines/vm-vpn-test",
+      "name": "vm-vpn-test",
+      "resourceGroup": "RG-ALTUS-SCUS-SHAREDSERVICES-002",
+      "location": "southcentralus",
+      "vmSize": "Standard_D2s_v3",
+      "osType": "Windows",
+      "provisioningState": "Succeeded",
+      "powerState": "VM running",
+      "privateIpAddresses": [
+        "10.52.1.28"
+      ],
+      "publicIpAddresses": [],
+      "tags": {}
+    }
+  ]
+}

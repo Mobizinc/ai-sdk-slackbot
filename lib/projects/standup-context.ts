@@ -153,16 +153,22 @@ async function fetchLastResponse(
 export async function buildStandupParticipantContexts(
   project: ProjectDefinition,
   participantIds: string[],
+  options?: {
+    extraDependencyNotes?: string[];
+    extraIssueRefs?: IssueReference[];
+  }
 ): Promise<Map<string, StandupParticipantContext>> {
   const contexts = new Map<string, StandupParticipantContext>();
+  const extraNotes = options?.extraDependencyNotes ?? [];
+  const extraIssueRefs = options?.extraIssueRefs ?? [];
 
   for (const participantId of participantIds) {
     const raw = await fetchLastResponse(project.id, participantId);
     if (!raw) {
       contexts.set(participantId, {
         participantId,
-        issueReferences: [],
-        dependencyNotes: [],
+        issueReferences: [...extraIssueRefs],
+        dependencyNotes: [...extraNotes],
       });
       continue;
     }
@@ -171,8 +177,8 @@ export async function buildStandupParticipantContexts(
       (raw.answers?.today as string | undefined)?.trim() ||
       (raw.answers?.plan_followup as string | undefined)?.trim();
     const previousBlockers = (raw.answers?.blockers as string | undefined)?.trim();
-    const issueReferences = extractIssueReferences(previousPlan);
-    const dependencyNotes = buildDependencyNotes(issueReferences);
+    const issueReferences = [...extraIssueRefs, ...extractIssueReferences(previousPlan)];
+    const dependencyNotes = [...extraNotes, ...buildDependencyNotes(issueReferences)];
 
     const context: StandupParticipantContext = {
       participantId,

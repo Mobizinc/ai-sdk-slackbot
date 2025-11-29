@@ -11,8 +11,11 @@ import { getBusinessContextService, type BusinessEntityContext } from "../servic
 import { getSearchFacadeService } from "../services/search-facade";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import type { SimilarCase } from "../services/azure-search";
-import { getConfigValue } from "../config";
+import { getDiscoveryContextPackEnabled } from "../config/helpers";
 import { generateDiscoveryContextPack } from "./discovery/context-pack";
+import { createChildSpan } from "../observability";
+import { getCaseRepository } from "../infrastructure/servicenow/repositories";
+import type { Case } from "../infrastructure/servicenow/types/domain-models";
 import { maybePrefetchCmdb } from "./cmdb-prefetch";
 
 export interface ContextLoaderInput {
@@ -28,7 +31,21 @@ export interface ContextLoaderResult {
 }
 
 export async function loadContext(input: ContextLoaderInput): Promise<ContextLoaderResult> {
+  const loadSpan = await createChildSpan({
+    name: "context_loader",
+    runType: "chain",
+    metadata: {
+      channelId: input.channelId,
+      threadTs: input.threadTs,
+    },
+    tags: {
+      component: "context-loader",
+    },
+  });
+
   const metadata: Record<string, unknown> = {};
+  let discoveryCaseRecord: Case | null = null;
+  let discoveryJournalText: string | undefined;
 
   const contextManager = getContextManager();
   const businessContextService = getBusinessContextService();
@@ -46,6 +63,12 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     const contexts = contextManager.getContextsForCase(caseNumbers[0]);
     if (contexts.length > 0) {
       metadata.caseContext = contexts[0];
+    }
+
+    if (getDiscoveryContextPackEnabled()) {
+      const artifacts = await loadCaseArtifactsForDiscovery(caseNumbers[0]);
+      discoveryCaseRecord = artifacts.caseRecord ?? null;
+      discoveryJournalText = artifacts.journalText;
     }
   }
 
@@ -125,7 +148,22 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
     }
   }
 
-  if (getConfigValue("discoveryContextPackEnabled")) {
+  if (getDiscoveryContextPackEnabled()) {
+    const discoverySpan = await createChildSpan({
+      name: "discovery_context_pack_generation",
+      runType: "chain",
+      metadata: {
+        caseNumberCount: caseNumbers.length,
+        companyName: metadata.companyName,
+        hasBusinessContext: !!metadata.businessContext,
+        hasSimilarCases: (metadata.similarCases as any[] ?? []).length > 0,
+      },
+      tags: {
+        component: "discovery_agent",
+        phase: "context_loading",
+      },
+    });
+
     try {
       const discoveryPack = await generateDiscoveryContextPack({
         channelId: input.channelId,
@@ -137,31 +175,76 @@ export async function loadContext(input: ContextLoaderInput): Promise<ContextLoa
         caseContext: metadata.caseContext as CaseContext | undefined,
         similarCases: metadata.similarCases as SimilarCase[] | undefined,
         threadHistory: metadata.threadHistory as CoreMessage[] | undefined,
+        caseData: discoveryCaseRecord ?? undefined,
+        journalText: discoveryJournalText,
       });
       metadata.discovery = discoveryPack;
+
+      if (discoverySpan) {
+        await discoverySpan.end({
+          outputs: {
+            hasCMDBHits: discoveryPack.cmdbHits ? discoveryPack.cmdbHits.total : 0,
+            policyAlertCount: discoveryPack.policyAlerts ? discoveryPack.policyAlerts.length : 0,
+            similarCasesCount: discoveryPack.similarCases ? discoveryPack.similarCases.total : 0,
+          },
+        });
+      }
     } catch (error) {
       console.warn("[Context Loader] Failed to generate discovery context pack:", error);
+      if (discoverySpan) {
+        await discoverySpan.end({
+          error: error as Error,
+        });
+      }
     }
   }
 
   let enrichedMessages = input.messages;
 
-  if (getConfigValue("autoCmdbLookupEnabled")) {
-    const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
-      channelId: input.channelId,
-      companyName: metadata.companyName as string | undefined,
+  if (true) { // TODO: Use consolidated config
+    const cmdbSpan = await createChildSpan({
+      name: "cmdb_prefetch",
+      runType: "tool",
+      metadata: {
+        companyName: metadata.companyName,
+      },
+      tags: {
+        component: "context-loader",
+      },
     });
 
-    if (cmdbPrefetch) {
-      enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
-      metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+    try {
+      const cmdbPrefetch = await maybePrefetchCmdb(input.messages, {
+        channelId: input.channelId,
+        companyName: metadata.companyName as string | undefined,
+      });
+
+      if (cmdbPrefetch) {
+        enrichedMessages = [...enrichedMessages, cmdbPrefetch.message];
+        metadata.cmdbPrefetch = cmdbPrefetch.metadata;
+        await cmdbSpan?.end({
+          results: cmdbPrefetch.metadata,
+        });
+      } else {
+        await cmdbSpan?.end();
+      }
+    } catch (error) {
+      await cmdbSpan?.end({ error: error as Error });
     }
   }
 
-  return {
+  const result = {
     messages: enrichedMessages,
     metadata,
   };
+
+  await loadSpan?.end({
+    caseNumbers: metadata.caseNumbers,
+    hasDiscovery: Boolean(metadata.discovery),
+    hasCmdbPrefetch: Boolean(metadata.cmdbPrefetch),
+  });
+
+  return result;
 }
 
 function extractCaseNumbersFromMessages(
@@ -178,6 +261,41 @@ function normalizeContent(content: CoreMessage["content"]): string {
   // CoreMessage content can be string | undefined based on ChatMessage type
   // String() handles undefined gracefully, converting to empty string
   return String(content);
+}
+
+async function loadCaseArtifactsForDiscovery(
+  caseNumber: string
+): Promise<{ caseRecord?: Case; journalText?: string }> {
+  try {
+    const caseRepo = getCaseRepository();
+    const caseRecord = await caseRepo.findByNumber(caseNumber);
+    if (!caseRecord?.sysId) {
+      return { caseRecord: caseRecord ?? undefined };
+    }
+
+    const journalEntries = await caseRepo.getJournalEntries(caseRecord.sysId, {
+      limit: 20,
+      journalName: "work_notes",
+    });
+
+    const journalText = journalEntries
+      .map((entry) => {
+        const timestamp = entry.createdOn ? new Date(entry.createdOn).toISOString() : "unknown-time";
+        const author = entry.createdBy ?? "unknown-user";
+        const value = (entry.value ?? "").trim();
+        return `[${timestamp}] ${author}: ${value}`;
+      })
+      .join("\n")
+      .slice(0, 2000);
+
+    return {
+      caseRecord,
+      journalText: journalText.length > 0 ? journalText : undefined,
+    };
+  } catch (error) {
+    console.warn(`[Context Loader] Failed to load case data for ${caseNumber}:`, error);
+    return {};
+  }
 }
 
 function resolveCompanyName(metadata: Record<string, unknown>): string | undefined {

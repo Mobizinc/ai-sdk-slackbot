@@ -233,8 +233,32 @@ export async function PATCH(
     }
 
     // Update standup config
+    // Basic validation defaults
+    const config = body.config ?? {};
+    const frequency = config.schedule?.frequency || config.cadence || "daily";
+    const timeUtc = config.schedule?.timeUtc || config.timeUtc || config.time || "13:00";
+    const dayOfWeek = config.schedule?.dayOfWeek;
+
+    const normalizedConfig = {
+      enabled: Boolean(config.enabled),
+      channelId: config.channelId || project.channelId || null,
+      cadence: frequency,
+      timeUtc,
+      schedule: {
+        frequency,
+        timeUtc,
+        dayOfWeek,
+      },
+      participants: Array.isArray(config.participants) ? config.participants : [],
+      dataSources: {
+        useSpmTasks: Boolean(config.dataSources?.useSpmTasks),
+        useGithubIssues: Boolean(config.dataSources?.useGithubIssues),
+        useLocalOpenTasks: config.dataSources?.useLocalOpenTasks !== false, // default true
+      },
+    };
+
     const updated = await updateProject(id, {
-      standupConfig: body.config,
+      standupConfig: normalizedConfig,
     });
 
     if (!updated) {

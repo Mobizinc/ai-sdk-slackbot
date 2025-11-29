@@ -25,7 +25,9 @@ type EditableField =
   | "learningOpportunities"
   | "openTasks"
   | "mentorSlackUserId"
-  | "mentorName";
+  | "mentorName"
+  | "type"
+  | "source";
 
 const extractProjectFields = (item: ProjectWithRelations): Project =>
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -163,6 +165,47 @@ export default function ProjectOverviewPage() {
             <div>
               <span className="text-sm font-medium text-gray-500">Summary:</span>
               <p className="text-gray-900">{project.summary}</p>
+            </div>
+          </div>
+        )}
+      </EditableSection>
+
+      {/* Classification Section */}
+      <EditableSection
+        title="Classification"
+        isEditing={editingSections.classification}
+        onEdit={() => startEditing("classification")}
+        onCancel={() => cancelEditing("classification")}
+        onSave={() => saveSection("classification", ["type", "source"])}
+        isSaving={savingSection === "classification"}
+      >
+        {editingSections.classification ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FieldGroup label="Type" required>
+              <Select value={formData.type} onChange={(e) => updateField("type", e.target.value)}>
+                <option value="delivery">Delivery</option>
+                <option value="internal">Internal</option>
+                <option value="demand">Demand</option>
+                <option value="learning">Learning</option>
+              </Select>
+            </FieldGroup>
+            <FieldGroup label="Source" required>
+              <Select value={formData.source} onChange={(e) => updateField("source", e.target.value)}>
+                <option value="local">Local</option>
+                <option value="spm">ServiceNow SPM</option>
+                <option value="github">GitHub</option>
+              </Select>
+            </FieldGroup>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-500">Type</span>
+              <p className="text-gray-900">{project.type}</p>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500">Source</span>
+              <p className="text-gray-900">{project.source}</p>
             </div>
           </div>
         )}

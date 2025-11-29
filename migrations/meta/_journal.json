@@ -176,6 +176,55 @@
       "when": 1762396357990,
       "tag": "0021_rainy_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1762400000000,
+      "tag": "0023_add_change_validations",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1762400001000,
+      "tag": "0024_add_template_cmdb_types",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1762400002000,
+      "tag": "0025_add_project_interests",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1763097540130,
+      "tag": "0026_enable_pgvector",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1763097540132,
+      "tag": "0027_add_muscle_memory",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1763707035087,
+      "tag": "0028_numerous_red_wolf",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1763737308943,
+      "tag": "0029_noisy_paibok",
+      "breakpoints": true
     }
   ]
 }

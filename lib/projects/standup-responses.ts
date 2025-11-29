@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getInteractiveStateManager } from "../services/interactive-state-manager";
+import { workflowManager } from "../services/workflow-manager";
 import { getSlackMessagingService } from "../services/slack-messaging";
 import type { StandupQuestion, StandupSessionState } from "./types";
 import { StandupCallbackIds } from "./standup-constants";
@@ -7,7 +7,8 @@ import { getDb } from "../db/client";
 import { projectStandupResponses, projectStandups } from "../db/schema";
 import { createPlainTextInput, createInputBlock, createModalView } from "../utils/message-styling";
 
-const stateManager = getInteractiveStateManager();
+const WORKFLOW_TYPE_PROJECT_STANDUP = "PROJECT_STANDUP_PROMPT";
+
 const slackMessaging = getSlackMessagingService();
 
 interface StandupModalMetadata {
@@ -16,6 +17,8 @@ interface StandupModalMetadata {
   standupId: string;
   projectId: string;
   participantId: string;
+  workflowId: string;
+  workflowVersion: number;
 }
 
 export async function openStandupModal(options: {
@@ -23,19 +26,25 @@ export async function openStandupModal(options: {
   channelId: string;
   messageTs: string;
 }): Promise<void> {
-  const state = await stateManager.getState<"project_standup">(options.channelId, options.messageTs, "project_standup");
-  if (!state) {
-    console.warn("[Standup] No stand-up state found for modal open", options);
+  if (!workflowManager) {
+      console.warn("[Standup] WorkflowManager not available, cannot open modal.");
+      return;
+  }
+  const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_PROJECT_STANDUP, `${options.channelId}:${options.messageTs}`);
+  if (!workflow) {
+    console.warn("[Standup] No stand-up workflow found for modal open", options);
     return;
   }
 
-  const payload = state.payload as StandupSessionState;
+  const payload = workflow.payload as StandupSessionState;
   const metadata: StandupModalMetadata = {
     channelId: options.channelId,
     messageTs: options.messageTs,
     standupId: payload.standupId,
     projectId: payload.projectId,
     participantId: payload.participantId,
+    workflowId: workflow.id,
+    workflowVersion: workflow.version,
   };
 
   const view = buildStandupModal(payload.questions, metadata);
@@ -70,27 +79,40 @@ function buildStandupModal(questions: StandupQuestion[], metadata: StandupModalM
 }
 
 export async function handleStandupModalSubmission(payload: any): Promise<void> {
+    if (!workflowManager) {
+        console.warn("[Standup] WorkflowManager not available, cannot handle modal submission.");
+        return;
+    }
   const metadata = parseMetadata(payload.view?.private_metadata);
   if (!metadata) {
     console.warn("[Standup] Invalid stand-up modal metadata");
     return;
   }
 
-  const state = await stateManager.getState<"project_standup">(metadata.channelId, metadata.messageTs, "project_standup");
-  if (!state) {
-    console.warn("[Standup] Stand-up state expired for", metadata);
+  const workflow = await workflowManager.get(metadata.workflowId);
+  if (!workflow || workflow.currentState !== 'AWAITING_RESPONSE') {
+    console.warn("[Standup] Stand-up workflow expired or already completed for", metadata);
+    // Optionally send a message to the user
+    await slackMessaging.postMessage({
+        channel: metadata.participantId, // DM channel
+        text: "Sorry, the time window for this stand-up submission has expired.",
+    });
     return;
   }
 
-  const payloadState = state.payload as StandupSessionState;
+  const payloadState = workflow.payload as StandupSessionState;
   const answers = extractAnswers(payload.view?.state?.values ?? {}, payloadState.questions);
 
   await upsertStandupResponse(metadata.standupId, metadata.participantId, answers);
 
-  await stateManager.markProcessed(metadata.channelId, metadata.messageTs, metadata.participantId, "completed");
+  await workflowManager.transition(workflow.id, workflow.version, {
+      toState: 'COMPLETED',
+      lastModifiedBy: metadata.participantId,
+      reason: 'User submitted stand-up via modal.'
+  });
 
   await slackMessaging.postMessage({
-    channel: metadata.channelId,
+    channel: metadata.participantId,
     text: "Thanks for your stand-up update!",
   });
 }
@@ -107,7 +129,9 @@ function parseMetadata(raw: string | undefined): StandupModalMetadata | null {
       typeof metadata.messageTs === "string" &&
       typeof metadata.standupId === "string" &&
       typeof metadata.projectId === "string" &&
-      typeof metadata.participantId === "string"
+      typeof metadata.participantId === "string" &&
+      typeof metadata.workflowId === "string" &&
+      typeof metadata.workflowVersion === "number"
     ) {
       return metadata;
     }
@@ -198,5 +222,16 @@ async function upsertStandupResponse(
 }
 
 export async function clearStandupState(channelId: string, messageTs: string, participantId: string): Promise<void> {
-  await stateManager.markProcessed(channelId, messageTs, participantId, "completed");
+    if (!workflowManager) {
+        console.warn("[Standup] WorkflowManager not available, cannot clear state.");
+        return;
+    }
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_PROJECT_STANDUP, `${channelId}:${messageTs}`);
+    if(workflow) {
+        await workflowManager.transition(workflow.id, workflow.version, {
+            toState: 'CANCELLED',
+            lastModifiedBy: participantId,
+            reason: 'Standup state cleared manually.'
+        });
+    }
 }

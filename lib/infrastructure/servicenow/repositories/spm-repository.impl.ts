@@ -17,6 +17,8 @@ import type {
 import { extractDisplayValue, extractSysId, parseServiceNowDate } from "../client/mappers";
 import { ServiceNowNotFoundError } from "../errors";
 import { SPM_PROJECT_STATES, SPM_TABLES, isSPMProjectActive } from "../spm/constants";
+import { cacheGet, cacheSet, cacheDel } from "../../../cache/redis";
+import { config } from "../../../config";
 
 /**
  * Configuration for SPM Repository
@@ -51,6 +53,10 @@ export class ServiceNowSPMRepository implements SPMRepository {
    * Find a project by its number
    */
   async findByNumber(number: string): Promise<SPMProject | null> {
+    const cacheKey = `sn:spm:number:${number}`;
+    const cached = await cacheGet<SPMProject>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.httpClient.get<any>(
       `/api/now/table/${this.projectTable}`,
       {
@@ -65,13 +71,19 @@ export class ServiceNowSPMRepository implements SPMRepository {
     }
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return this.mapProject(record);
+    const mapped = this.mapProject(record);
+    await cacheSet(cacheKey, mapped, config.cacheTtlSpm ?? 600);
+    return mapped;
   }
 
   /**
    * Find a project by its sys_id
    */
   async findBySysId(sysId: string): Promise<SPMProject | null> {
+    const cacheKey = `sn:spm:${sysId}`;
+    const cached = await cacheGet<SPMProject>(cacheKey);
+    if (cached) return cached;
+
     try {
       const response = await this.httpClient.get<any>(
         `/api/now/table/${this.projectTable}/${sysId}`,
@@ -85,7 +97,9 @@ export class ServiceNowSPMRepository implements SPMRepository {
         return null;
       }
 
-      return this.mapProject(record);
+      const mapped = this.mapProject(record);
+      await cacheSet(cacheKey, mapped, config.cacheTtlSpm ?? 600);
+      return mapped;
     } catch (error) {
       if (error instanceof ServiceNowNotFoundError) {
         return null;
@@ -331,7 +345,13 @@ export class ServiceNowSPMRepository implements SPMRepository {
     );
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return this.mapProject(record);
+    const mapped = this.mapProject(record);
+    await cacheDel(`sn:spm:${sysId}`, `sn:spm:number:${mapped.number}`, `sn:spm:epics:${sysId}`, `sn:spm:stories:${sysId}`);
+    await cacheSet(`sn:spm:${sysId}`, mapped, config.cacheTtlSpm ?? 600);
+    if (mapped.number) {
+      await cacheSet(`sn:spm:number:${mapped.number}`, mapped, config.cacheTtlSpm ?? 600);
+    }
+    return mapped;
   }
 
   /**
@@ -372,6 +392,10 @@ export class ServiceNowSPMRepository implements SPMRepository {
    * Find related epics for a project
    */
   async findRelatedEpics(projectSysId: string): Promise<SPMEpic[]> {
+    const cacheKey = `sn:spm:epics:${projectSysId}`;
+    const cached = await cacheGet<SPMEpic[]>(cacheKey);
+    if (cached) return cached;
+
     try {
       const response = await this.httpClient.get<any>(
         `/api/now/table/${this.epicTable}`,
@@ -382,7 +406,9 @@ export class ServiceNowSPMRepository implements SPMRepository {
       );
 
       const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
-      return records.map((record) => this.mapEpic(record));
+      const mapped = records.map((record) => this.mapEpic(record));
+      await cacheSet(cacheKey, mapped, config.cacheTtlSpm ?? 600);
+      return mapped;
     } catch (error: any) {
       // Gracefully handle missing table (e.g., pm_epic not installed in this instance)
       if (error.message?.includes(`Invalid table ${this.epicTable}`)) {
@@ -397,6 +423,10 @@ export class ServiceNowSPMRepository implements SPMRepository {
    * Find related stories for a project (via epics)
    */
   async findRelatedStories(projectSysId: string): Promise<SPMStory[]> {
+    const cacheKey = `sn:spm:stories:${projectSysId}`;
+    const cached = await cacheGet<SPMStory[]>(cacheKey);
+    if (cached) return cached;
+
     try {
       // First get all epics for the project
       const epics = await this.findRelatedEpics(projectSysId);
@@ -416,7 +446,9 @@ export class ServiceNowSPMRepository implements SPMRepository {
       );
 
       const records = Array.isArray(response.result) ? response.result : [response.result].filter(Boolean);
-      return records.map((record) => this.mapStory(record));
+      const mapped = records.map((record) => this.mapStory(record));
+      await cacheSet(cacheKey, mapped, config.cacheTtlSpm ?? 600);
+      return mapped;
     } catch (error: any) {
       // Gracefully handle missing table (e.g., rm_story not installed in this instance)
       if (error.message?.includes(`Invalid table ${this.storyTable}`)) {

@@ -34,17 +34,7 @@ const contextManagerMock = {
   removeStaleContexts: vi.fn(),
 };
 
-// Mock action objects outside of mock functions
-const mockAddToContextAction = {
-  addMessageFromEvent: vi.fn(),
-  getContext: vi.fn(),
-  addMessageToCase: vi.fn(),
-  updateChannelInfo: vi.fn(),
-  markAssistancePosted: vi.fn(),
-  markResolutionNotified: vi.fn(),
-  resetResolutionFlag: vi.fn(),
-  findContextsForThread: vi.fn(),
-};
+// Mock action objects will be defined inside mock factories to avoid hoisting issues
 
 // Set up mocks before importing the modules under test
 vi.mock("@slack/web-api", () => ({
@@ -122,22 +112,47 @@ vi.mock("../lib/services/channel-info", () => ({
   getPotentialCustomer: vi.fn(),
 }));
 
+// Create mock objects outside factory functions to ensure they're accessible
+const mockPostAssistanceAction = {
+  execute: vi.fn().mockResolvedValue(false),
+};
+
+const mockAddToContextAction = {
+  addMessageFromEvent: vi.fn(),
+  getContext: vi.fn().mockReturnValue(null),
+  addMessageToCase: vi.fn(),
+  updateChannelInfo: vi.fn(),
+  markAssistancePosted: vi.fn(),
+  markResolutionNotified: vi.fn(),
+  resetResolutionFlag: vi.fn(),
+  findContextsForThread: vi.fn().mockReturnValue([]),
+};
+
+const mockTriggerKBWorkflowAction = {
+  triggerWorkflow: vi.fn().mockResolvedValue(undefined),
+  handleUserResponse: vi.fn().mockResolvedValue(undefined),
+  cleanupTimedOut: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock("../lib/passive/actions/post-assistance", () => ({
-  PostAssistanceAction: vi.fn().mockImplementation(() => ({
-    execute: vi.fn(),
-  })),
-  getPostAssistanceAction: vi.fn().mockReturnValue({
-    execute: vi.fn(),
-  }),
+  PostAssistanceAction: vi.fn().mockImplementation(() => mockPostAssistanceAction),
+  getPostAssistanceAction: () => mockPostAssistanceAction,
   __resetPostAssistanceAction: vi.fn(),
   __setPostAssistanceAction: vi.fn(),
 }));
 
 vi.mock("../lib/passive/actions/add-to-context", () => ({
   AddToContextAction: vi.fn().mockImplementation(() => mockAddToContextAction),
-  getAddToContextAction: vi.fn().mockReturnValue(mockAddToContextAction),
+  getAddToContextAction: () => mockAddToContextAction,
   __resetAddToContextAction: vi.fn(),
   __setAddToContextAction: vi.fn(),
+}));
+
+vi.mock("../lib/passive/actions/trigger-kb-workflow", () => ({
+  TriggerKBWorkflowAction: vi.fn().mockImplementation(() => mockTriggerKBWorkflowAction),
+  getTriggerKBWorkflowAction: () => mockTriggerKBWorkflowAction,
+  __resetTriggerKBWorkflowAction: vi.fn(),
+  __setTriggerKBWorkflowAction: vi.fn(),
 }));
 
 // Import mocked modules
@@ -157,6 +172,13 @@ describe("handle-passive-messages - Integration Tests", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-set return values after clearAllMocks
+    mockAddToContextAction.getContext.mockReturnValue(null);
+    mockAddToContextAction.findContextsForThread.mockReturnValue([]);
+    mockPostAssistanceAction.execute.mockResolvedValue(false);
+    mockTriggerKBWorkflowAction.triggerWorkflow.mockResolvedValue(undefined);
+    mockTriggerKBWorkflowAction.handleUserResponse.mockResolvedValue(undefined);
+    mockTriggerKBWorkflowAction.cleanupTimedOut.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

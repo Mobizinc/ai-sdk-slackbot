@@ -36,7 +36,7 @@ describe("generateInterviewQuestions", () => {
         openTasks: ["Build onboarding flow"],
       } as any,
       questionCount: 3,
-      model: "claude-3-haiku-20240307",
+      model: "claude-haiku-4-5",
     });
 
     expect(questions).toHaveLength(3);
@@ -55,7 +55,7 @@ describe("generateInterviewQuestions", () => {
           status: "active",
         } as any,
         questionCount: 3,
-        model: "claude-3-haiku-20240307",
+        model: "claude-haiku-4-5",
       }),
     ).rejects.toThrow("Failed to parse generated interview questions JSON");
   });

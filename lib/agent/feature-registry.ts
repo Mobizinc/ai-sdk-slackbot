@@ -69,6 +69,15 @@ export const FEATURE_REGISTRY: FeatureCategory[] = [
         usage: "Slash command: /project-post",
         examples: ["Use /project-post to announce a new project opportunity"],
       },
+      {
+        name: "Strategic Demand Requests",
+        description: "Collect structured demand requests and run Mobizinc's strategic evaluation workflow inside Slack",
+        usage: "Slash command: /demand-request",
+        examples: [
+          "Use /demand-request to open the strategic intake form",
+          "Answer any follow-up questions in the thread, then review the final summary",
+        ],
+      },
     ],
   },
   {
@@ -135,6 +144,15 @@ export const FEATURE_REGISTRY: FeatureCategory[] = [
           "Show me open P1 cases for Altus",
           "Find cases assigned to John from last week",
           "Navigate results with Next/Previous buttons",
+        ],
+      },
+      {
+        name: "Supervisor Review",
+        description: "Review and approve blocked Slack responses or ServiceNow writes that require human oversight",
+        usage: "Slash command: /review-latest [list|approve <state_id>|reject <state_id>]",
+        examples: [
+          "/review-latest list",
+          "/review-latest approve abc123",
         ],
       },
     ],

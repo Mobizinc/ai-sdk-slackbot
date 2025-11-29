@@ -168,6 +168,26 @@ export default function StandupsPage() {
                 )}
               </p>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">SPM Tasks</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {config.dataSources?.useSpmTasks ? "Included" : "Disabled"}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">GitHub Issues/PRs</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {config.dataSources?.useGithubIssues ? "Included" : "Disabled"}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                <p className="text-xs text-gray-500 uppercase">Local Open Tasks</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {config.dataSources?.useLocalOpenTasks === false ? "Disabled" : "Included"}
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="text-center py-4">

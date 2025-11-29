@@ -5,7 +5,7 @@
  * Handles null/undefined fields gracefully and provides mobile-responsive designs.
  */
 
-import { config } from "../config";
+import { getServiceNowConfig } from "../config/helpers";
 
 /**
  * Slack Block Kit Constraints
@@ -220,9 +220,8 @@ function formatDate(dateString?: string): string {
  * Build ServiceNow deep link URL
  */
 function buildServiceNowLink(caseNumber: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -312,7 +311,8 @@ export function formatCaseAsMinimalCard(caseData: ServiceNowCase): any[] {
   });
 
   // Button to view full details in ServiceNow
-  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl || "https://mobiz.service-now.com";
   const caseUrl = `${instanceUrl}/nav_to.do?uri=x_mobit_serv_case_service_case.do?sys_id=${sysId}`;
 
   blocks.push({
@@ -568,7 +568,8 @@ export function formatIncidentAsMinimalCard(incidentData: ServiceNowCase): any[]
   });
 
   // Button to view full details in ServiceNow
-  const instanceUrl = config.servicenowInstanceUrl || "https://mobiz.service-now.com";
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl || "https://mobiz.service-now.com";
   const incidentUrl = `${instanceUrl}/nav_to.do?uri=incident.do?sys_id=${sysId}`;
 
   blocks.push({
@@ -806,9 +807,8 @@ export function formatIncidentAsBlockKit(
  * Build ServiceNow deep link URL for incidents
  */
 function buildIncidentServiceNowLink(incidentNumber: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -911,9 +911,8 @@ function formatEnvironment(environment: any): string {
  * Build ServiceNow deep link URL for CI
  */
 function buildCIServiceNowLink(ciName: string, sysId?: string): string {
-  const instanceUrl =
-    (config.servicenowInstanceUrl as string | undefined) ||
-    (config.servicenowUrl as string | undefined) ||
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
     process.env.SERVICENOW_INSTANCE_URL ||
     process.env.SERVICENOW_URL;
 
@@ -1111,4 +1110,410 @@ export function generateCIFallbackText(ciData: ConfigurationItem): string {
 
   const envPart = environment ? ` | Env: ${environment}` : "";
   return `CI: ${ciName} | Type: ${className} | Status: ${status}${envPart}`;
+}
+
+/**
+ * Catalog Workflow Types (Request, RequestedItem, CatalogTask)
+ */
+import type { Request, RequestedItem, CatalogTask } from "../infrastructure/servicenow/types/domain-models";
+
+/**
+ * Build ServiceNow deep link URL for catalog workflow records
+ */
+function buildCatalogWorkflowLink(table: string, number: string, sysId?: string): string {
+  const snConfig = getServiceNowConfig();
+  const instanceUrl = snConfig.instanceUrl ||
+    process.env.SERVICENOW_INSTANCE_URL ||
+    process.env.SERVICENOW_URL;
+
+  if (!instanceUrl) {
+    return `https://servicenow.com/${table}/${number}`;
+  }
+
+  const baseUrl = instanceUrl.replace(/\/$/, "");
+
+  if (sysId) {
+    return `${baseUrl}/nav_to.do?uri=${table}.do?sys_id=${sysId}`;
+  }
+
+  return `${baseUrl}/${table}_list.do?sysparm_query=number=${number}`;
+}
+
+/**
+ * Format Request (REQ) into Slack Block Kit blocks
+ */
+export function formatRequestAsBlockKit(request: Request, options: { includeParent?: boolean } = {}): any[] {
+  const blocks: any[] = [];
+
+  // Header
+  blocks.push({
+    type: "header",
+    text: {
+      type: "plain_text",
+      text: `📋 Request ${request.number}`,
+      emoji: true,
+    },
+  });
+
+  // Short description
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*${request.shortDescription}*`,
+    },
+  });
+
+  // Status row: State | Priority | Stage
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*State:*\n${formatState(request.state || "Unknown")}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Priority:*\n${formatPriority(request.priority || "Not set")}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Stage:*\n${request.stage || "Not specified"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Approval:*\n${request.approvalState || "Not specified"}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Requestor information
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Requested For:*\n${request.requestedForName || "Not specified"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Requested By:*\n${request.requestedByName || "Not specified"}`,
+      },
+    ],
+  });
+
+  // Timestamps
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `Opened: ${formatDate(request.openedAt?.toISOString())} | Due: ${formatDate(request.dueDate?.toISOString())}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Action button
+  const requestUrl = request.url || buildCatalogWorkflowLink("sc_request", request.number, request.sysId);
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Open in ServiceNow",
+          emoji: true,
+        },
+        url: requestUrl,
+        action_id: "open_servicenow_request",
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+/**
+ * Format Requested Item (RITM) into Slack Block Kit blocks
+ */
+export function formatRequestedItemAsBlockKit(
+  requestedItem: RequestedItem,
+  options: { parentRequest?: Request } = {},
+): any[] {
+  const blocks: any[] = [];
+
+  // Header with parent reference
+  const headerText = options.parentRequest
+    ? `🎫 Requested Item ${requestedItem.number} (${options.parentRequest.number})`
+    : `🎫 Requested Item ${requestedItem.number}`;
+
+  blocks.push({
+    type: "header",
+    text: {
+      type: "plain_text",
+      text: headerText,
+      emoji: true,
+    },
+  });
+
+  // Short description
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*${requestedItem.shortDescription}*`,
+    },
+  });
+
+  // Status row
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*State:*\n${formatState(requestedItem.state || "Unknown")}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Stage:*\n${requestedItem.stage || "Not specified"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Catalog Item:*\n${requestedItem.catalogItemName || "Not specified"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Quantity:*\n${requestedItem.quantity || 1}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Assignment information
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Assigned To:*\n${requestedItem.assignedToName || "Unassigned"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Assignment Group:*\n${requestedItem.assignmentGroupName || "Not assigned"}`,
+      },
+    ],
+  });
+
+  // Parent request link
+  if (options.parentRequest) {
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `↑ Parent Request: *${options.parentRequest.number}* - ${options.parentRequest.shortDescription}`,
+        },
+      ],
+    });
+  } else if (requestedItem.requestNumber) {
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `↑ Parent Request: *${requestedItem.requestNumber}*`,
+        },
+      ],
+    });
+  }
+
+  // Timestamps
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `Opened: ${formatDate(requestedItem.openedAt?.toISOString())} | Due: ${formatDate(requestedItem.dueDate?.toISOString())}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Action button
+  const ritmUrl = requestedItem.url || buildCatalogWorkflowLink("sc_req_item", requestedItem.number, requestedItem.sysId);
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Open in ServiceNow",
+          emoji: true,
+        },
+        url: ritmUrl,
+        action_id: "open_servicenow_ritm",
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+/**
+ * Format Catalog Task (CTASK) into Slack Block Kit blocks
+ */
+export function formatCatalogTaskAsBlockKit(
+  catalogTask: CatalogTask,
+  options: { parentRITM?: RequestedItem; grandparentREQ?: Request } = {},
+): any[] {
+  const blocks: any[] = [];
+
+  // Header with parent reference
+  let headerText = `✅ Catalog Task ${catalogTask.number}`;
+  if (options.parentRITM) {
+    headerText += ` (${options.parentRITM.number})`;
+  }
+
+  blocks.push({
+    type: "header",
+    text: {
+      type: "plain_text",
+      text: headerText,
+      emoji: true,
+    },
+  });
+
+  // Short description
+  blocks.push({
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: `*${catalogTask.shortDescription}*`,
+    },
+  });
+
+  // Status row
+  const activeStatus = catalogTask.active ? "🟢 Active" : "⚫ Inactive";
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*State:*\n${formatState(catalogTask.state || "Unknown")}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Priority:*\n${formatPriority(catalogTask.priority || "Not set")}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Active:*\n${activeStatus}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Assignment information
+  blocks.push({
+    type: "section",
+    fields: [
+      {
+        type: "mrkdwn",
+        text: `*Assigned To:*\n${catalogTask.assignedToName || "Unassigned"}`,
+      },
+      {
+        type: "mrkdwn",
+        text: `*Assignment Group:*\n${catalogTask.assignmentGroupName || "Not assigned"}`,
+      },
+    ],
+  });
+
+  // Parent-child relationship hierarchy
+  const hierarchy: string[] = [];
+  if (options.grandparentREQ) {
+    hierarchy.push(`↑ Request: *${options.grandparentREQ.number}* - ${options.grandparentREQ.shortDescription}`);
+  } else if (catalogTask.requestNumber) {
+    hierarchy.push(`↑ Request: *${catalogTask.requestNumber}*`);
+  }
+  if (options.parentRITM) {
+    hierarchy.push(`↑ Requested Item: *${options.parentRITM.number}* - ${options.parentRITM.shortDescription}`);
+  } else if (catalogTask.requestItemNumber) {
+    hierarchy.push(`↑ Requested Item: *${catalogTask.requestItemNumber}*`);
+  }
+
+  if (hierarchy.length > 0) {
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: hierarchy.join("\n"),
+        },
+      ],
+    });
+  }
+
+  // Timestamps
+  blocks.push({
+    type: "context",
+    elements: [
+      {
+        type: "mrkdwn",
+        text: `Opened: ${formatDate(catalogTask.openedAt?.toISOString())} | Due: ${formatDate(catalogTask.dueDate?.toISOString())}`,
+      },
+    ],
+  });
+
+  blocks.push({ type: "divider" });
+
+  // Action button
+  const ctaskUrl = catalogTask.url || buildCatalogWorkflowLink("sc_task", catalogTask.number, catalogTask.sysId);
+  blocks.push({
+    type: "actions",
+    elements: [
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Open in ServiceNow",
+          emoji: true,
+        },
+        url: ctaskUrl,
+        action_id: "open_servicenow_ctask",
+      },
+    ],
+  });
+
+  return blocks;
+}
+
+/**
+ * Generate fallback text for Request
+ */
+export function generateRequestFallbackText(request: Request): string {
+  return `Request ${request.number}: ${request.shortDescription} | State: ${request.state || "Unknown"} | Stage: ${request.stage || "Unknown"}`;
+}
+
+/**
+ * Generate fallback text for Requested Item
+ */
+export function generateRequestedItemFallbackText(requestedItem: RequestedItem): string {
+  return `RITM ${requestedItem.number}: ${requestedItem.shortDescription} | State: ${requestedItem.state || "Unknown"} | Catalog: ${requestedItem.catalogItemName || "Unknown"}`;
+}
+
+/**
+ * Generate fallback text for Catalog Task
+ */
+export function generateCatalogTaskFallbackText(catalogTask: CatalogTask): string {
+  const activeStr = catalogTask.active ? "Active" : "Inactive";
+  return `Catalog Task ${catalogTask.number}: ${catalogTask.shortDescription} | State: ${catalogTask.state || "Unknown"} | ${activeStr}`;
 }

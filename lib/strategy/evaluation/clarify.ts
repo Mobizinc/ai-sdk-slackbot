@@ -5,7 +5,7 @@ import {
 } from "../config/mobizinc-strategy";
 import type { ClarificationMessage, DemandRequest } from "../types";
 
-const DEFAULT_MODEL = "claude-3-haiku-20240307";
+const DEFAULT_MODEL = "claude-sonnet-4-5";
 const DEFAULT_MAX_TOKENS = 500;
 
 export interface ClarifyOptions {

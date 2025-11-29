@@ -65,6 +65,34 @@ export interface WebhookError {
   statusCode: number;
 }
 
+export type WebhookValidator<T> = (payload: unknown) => {
+  success: boolean;
+  data?: T;
+  errors?: string[];
+  issues?: z.ZodIssue[];
+};
+
+export interface ParseAndValidateOptions<T> {
+  validator: WebhookValidator<T>;
+  webhookSecret?: string;
+  useNewParser?: boolean;
+  treatEmptyObjectAsValidationError?: boolean;
+  label?: string;
+}
+
+export type ParsedWebhookResult<T> =
+  | {
+      ok: true;
+      rawPayload: string;
+      data: T;
+      parseMetadata?: ParseResult["metadata"];
+      authResult: AuthResult;
+    }
+  | {
+      ok: false;
+      response: Response;
+    };
+
 /**
  * Authenticate webhook request using multiple methods
  *
@@ -445,4 +473,120 @@ export function buildErrorResponse(error: WebhookError): Response {
   }
 
   return Response.json(responseBody, { status: statusCode });
+}
+
+export async function parseAndValidateWebhookRequest<T>(
+  request: Request,
+  options: ParseAndValidateOptions<T>
+): Promise<ParsedWebhookResult<T>> {
+  const label = options.label ?? "Webhook";
+  const rawPayload = await request.text();
+
+  if (!rawPayload) {
+    return {
+      ok: false,
+      response: buildErrorResponse({
+        type: "parse_error",
+        message: "Empty payload",
+        statusCode: 400,
+      }),
+    };
+  }
+
+  const authResult = await authenticateWebhookRequest(
+    request,
+    rawPayload,
+    options.webhookSecret
+  );
+
+  if (!authResult.authenticated) {
+    console.warn(`[${label}] Authentication failed`);
+    return {
+      ok: false,
+      response: buildErrorResponse({
+        type: "authentication_error",
+        message: "Authentication failed",
+        statusCode: 401,
+      }),
+    };
+  }
+
+  const parseResult = parseWebhookPayload(
+    rawPayload,
+    options.useNewParser !== false
+  );
+
+  if (!parseResult.success) {
+    console.error(`[${label}] Parsing failed:`, parseResult.error?.message);
+
+    const treatEmpty = options.treatEmptyObjectAsValidationError ?? false;
+    let treatAsValidationError = false;
+    if (treatEmpty) {
+      try {
+        const parsed = JSON.parse(rawPayload);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          !Array.isArray(parsed) &&
+          Object.keys(parsed).length === 0
+        ) {
+          treatAsValidationError = true;
+        }
+      } catch {
+        // ignore secondary parse errors
+      }
+    }
+
+    const statusCode = treatAsValidationError ? 422 : 400;
+    const type = treatAsValidationError ? "validation_error" : "parse_error";
+    const message = treatAsValidationError
+      ? "Invalid webhook payload schema - payload cannot be empty"
+      : "Failed to parse payload";
+
+    return {
+      ok: false,
+      response: buildErrorResponse({
+        type,
+        message,
+        details: {
+          ...parseResult.metadata,
+          parserError: parseResult.error?.message,
+        },
+        statusCode,
+      }),
+    };
+  }
+
+  if (parseResult.metadata) {
+    console.log(`[${label}] Parser metrics:`, parseResult.metadata);
+  }
+
+  if (parseResult.metadata?.warnings?.length) {
+    console.warn(`[${label}] Parser warnings:`, parseResult.metadata.warnings);
+  }
+
+  const validation = options.validator(parseResult.data);
+  if (!validation.success || !validation.data) {
+    console.error(`[${label}] Schema validation failed`, validation.errors);
+    return {
+      ok: false,
+      response: buildErrorResponse({
+        type: "validation_error",
+        message: "Invalid webhook payload schema",
+        details: {
+          errors: validation.errors,
+          issues: validation.issues,
+        },
+        statusCode: 422,
+      }),
+    };
+  }
+
+  return {
+    ok: true,
+    rawPayload,
+    data: validation.data,
+    parseMetadata: parseResult.metadata,
+    authResult,
+  };
 }

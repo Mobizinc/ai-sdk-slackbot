@@ -13,7 +13,6 @@
 // Import tool creators from dedicated modules
 import { createWeatherTool } from "./weather";
 import { createWebSearchTool } from "./web-search";
-import { createServiceNowTool } from "./service-now";
 import { createSearchTool } from "./search";
 import { createKnowledgeBaseTool } from "./knowledge-base";
 import { createContextUpdateTool } from "./context-update";
@@ -21,18 +20,51 @@ import { createCurrentIssuesTool } from "./current-issues";
 import { createCmdbTool, createConfigurationItemTool } from "./cmdb";
 import { createMicrosoftLearnTool } from "./microsoft-learn";
 import { createTriageTool } from "./triage";
+import { createClassificationAgentTool } from "./classification-agent";
+import { createServiceNowOrchestrationTool } from "./servicenow-orchestration";
 import { createCaseAggregationTool } from "./case-aggregation";
 import { createCaseSearchTool } from "./case-search";
 import { createFortiManagerMonitorTool } from "./fortimanager-monitor";
 import { createVeloCloudTool } from "./velocloud";
+import { createConnectivityReasoningTool } from "./connectivity-reasoning";
 import { createFeedbackCollectionTool } from "./feedback-collection";
 import { createDescribeCapabilitiesTool } from "./describe-capabilities";
+import { createServiceNowCatalogWorkflowTool } from "./servicenow-catalog-workflow";
 import type { AgentToolFactoryParams } from "./shared";
+
+// Import new modular ServiceNow tools (Phase 1)
+import { createGetIncidentTool } from "./servicenow/incident/get-incident.tool";
+import { createGetCaseTool } from "./servicenow/case/get-case.tool";
+import { createGetCaseJournalTool } from "./servicenow/case/get-case-journal.tool";
+import { createSearchKnowledgeTool } from "./servicenow/knowledge/search-knowledge.tool";
+import { createSearchConfigurationItemsTool } from "./servicenow/cmdb/search-configuration-items.tool";
+
+// Import new modular ServiceNow tools (Phase 2)
+import { createGetCIRelationshipsTool } from "./servicenow/cmdb/get-ci-relationships.tool";
+import { createGetRequestTool } from "./servicenow/catalog/get-request.tool";
+import { createGetRequestedItemTool } from "./servicenow/catalog/get-requested-item.tool";
+import { createGetCatalogTaskTool } from "./servicenow/catalog/get-catalog-task.tool";
+import { createGetProjectTool } from "./servicenow/spm/get-project.tool";
+import { createSearchProjectsTool } from "./servicenow/spm/search-projects.tool";
+import { createGetProjectEpicsTool } from "./servicenow/spm/get-project-epics.tool";
+import { createGetProjectStoriesTool } from "./servicenow/spm/get-project-stories.tool";
+import { createGetChangeTool } from "./servicenow/change/get-change.tool";
+import { createSearchChangesTool } from "./servicenow/change/search-changes.tool";
+import { createGetChangeTasksTool } from "./servicenow/change/get-change-tasks.tool";
+
+// Import new modular ServiceNow tools (Phase 3 - Write Operations)
+import { createCreateIncidentTool } from "./servicenow/incident/create-incident.tool";
+import { createUpdateIncidentTool } from "./servicenow/incident/update-incident.tool";
+import { createCloseIncidentTool } from "./servicenow/incident/close-incident.tool";
+import { createCreateCaseTool } from "./servicenow/case/create-case.tool";
+import { createUpdateCaseTool } from "./servicenow/case/update-case.tool";
+import { createCloseCaseTool } from "./servicenow/case/close-case.tool";
+import { createCreateProjectTool } from "./servicenow/spm/create-project.tool";
+import { createUpdateProjectTool } from "./servicenow/spm/update-project.tool";
 
 // Re-export types from individual tool modules for backward compatibility
 export type { WeatherToolInput } from "./weather";
 export type { SearchWebToolInput } from "./web-search";
-export type { ServiceNowToolInput } from "./service-now";
 export type { SearchSimilarCasesInput } from "./search";
 export type { GenerateKBArticleInput } from "./knowledge-base";
 export type { ProposeContextUpdateInput } from "./context-update";
@@ -43,9 +75,13 @@ export type { CaseAggregationInput } from "./case-aggregation";
 export type { CaseSearchInput } from "./case-search";
 export type { FortiManagerMonitorInput } from "./fortimanager-monitor";
 export type { VeloCloudToolInput } from "./velocloud";
+export type { ConnectivityReasoningToolInput } from "./connectivity-reasoning";
 export type { FeedbackCollectionInput } from "./feedback-collection";
 export type { DescribeCapabilitiesInput } from "./describe-capabilities";
+export type { ClassificationAgentInput } from "./classification-agent";
+export type { ServiceNowOrchestrationToolInput } from "./servicenow-orchestration";
 export type { CreateCmdbRecordInput } from "./cmdb";
+export type { CatalogWorkflowToolInput } from "./servicenow-catalog-workflow";
 
 // Re-export shared types
 export type { AgentToolFactoryParams } from "./shared";
@@ -61,11 +97,53 @@ export type { AgentToolFactoryParams } from "./shared";
  */
 export function createAgentTools(params: AgentToolFactoryParams) {
   // Create all tools as a single object
-  // describeCapabilities gets access to all tools via closure for true introspection
   const tools = {
     getWeather: createWeatherTool(params),
     searchWeb: createWebSearchTool(params),
-    serviceNow: createServiceNowTool(params),
+
+    // ===== ServiceNow Modular Tools (Phase 1 & 2) =====
+    // Single-purpose tools for improved LLM tool selection
+
+    // Incident domain (read + write)
+    getIncident: createGetIncidentTool(params),
+    createIncident: createCreateIncidentTool(params), // Phase 3
+    updateIncident: createUpdateIncidentTool(params), // Phase 3
+    closeIncident: createCloseIncidentTool(params), // Phase 3
+
+    // Case domain (read + write)
+    getCase: createGetCaseTool(params),
+    getCaseJournal: createGetCaseJournalTool(params),
+    createCase: createCreateCaseTool(params), // Phase 3
+    updateCase: createUpdateCaseTool(params), // Phase 3
+    closeCase: createCloseCaseTool(params), // Phase 3
+
+    // CMDB domain
+    searchConfigurationItems: createSearchConfigurationItemsTool(params),
+    getCIRelationships: createGetCIRelationshipsTool(params), // Phase 2
+
+    // Knowledge domain
+    searchKnowledge: createSearchKnowledgeTool(params),
+
+    // Catalog domain (Phase 2)
+    getRequest: createGetRequestTool(params),
+    getRequestedItem: createGetRequestedItemTool(params),
+    getCatalogTask: createGetCatalogTaskTool(params),
+
+    // SPM domain (read + write)
+    getProject: createGetProjectTool(params),
+    searchProjects: createSearchProjectsTool(params),
+    getProjectEpics: createGetProjectEpicsTool(params),
+    getProjectStories: createGetProjectStoriesTool(params),
+    createProject: createCreateProjectTool(params), // Phase 3
+    updateProject: createUpdateProjectTool(params), // Phase 3
+
+    // Change domain (Phase 2)
+    getChange: createGetChangeTool(params),
+    searchChanges: createSearchChangesTool(params),
+    getChangeTasks: createGetChangeTasksTool(params),
+
+
+    // Other tools
     searchSimilarCases: createSearchTool(params),
     searchCases: createCaseSearchTool(params),
     generateKBArticle: createKnowledgeBaseTool(params),
@@ -75,24 +153,45 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     searchCMDB: createCmdbTool(params),
     createConfigurationItem: createConfigurationItemTool(params),
     triageCase: createTriageTool(params),
+    runClassificationAgent: createClassificationAgentTool(params),
+    orchestrateServiceNowCase: createServiceNowOrchestrationTool(params),
     caseAggregation: createCaseAggregationTool(params),
     getFirewallStatus: createFortiManagerMonitorTool(params),
     queryVelocloud: createVeloCloudTool(params),
+    diagnoseConnectivity: createConnectivityReasoningTool(params),
     collectFeatureFeedback: createFeedbackCollectionTool(params),
+    getServiceNowCatalogWorkflow: createServiceNowCatalogWorkflowTool(params),
   };
 
-  // Create describeCapabilities with access to all other tools for runtime introspection
-  // This enables true dynamic discovery without hardcoded metadata
+  const filteredTools = filterToolsByAllowList(tools, params.allowedTools);
+
   const describeCapabilities = createDescribeCapabilitiesTool(
     params,
-    () => tools as any // Return all tools for introspection
+    () => filteredTools as any
   );
 
-  // Return complete tool set with describeCapabilities at the front for priority
   return {
     describeCapabilities,
-    ...tools,
+    ...filteredTools,
   };
+}
+
+function filterToolsByAllowList(
+  tools: Record<string, any>,
+  allowList?: string[]
+): Record<string, any> {
+  if (!allowList || allowList.length === 0) {
+    return tools;
+  }
+
+  const allowed = new Set(allowList);
+  const entries = Object.entries(tools).filter(([name]) => allowed.has(name));
+
+  if (entries.length === 0) {
+    return tools;
+  }
+
+  return Object.fromEntries(entries);
 }
 
 /**

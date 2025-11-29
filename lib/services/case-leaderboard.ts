@@ -1,12 +1,22 @@
-import { ConnectionPool } from "mssql";
-
 import { getSlackMessagingService } from "./slack-messaging";
-import { getAllowedMobizDomains, isMobizEmail } from "./mobiz-filter";
+import { getCaseSearchService } from "./case-search-service";
+import type { Case } from "../infrastructure/servicenow/types/domain-models";
+import { config } from "../config";
 
 const slackMessaging = getSlackMessagingService();
 
-const DEFAULT_LOOKBACK_DAYS = 7;
+const DEFAULT_LOOKBACK_DAYS = 14;
 const QUICKCHART_ENDPOINT = "https://quickchart.io/chart";
+const TARGET_ASSIGNMENT_GROUPS = (process.env.CASE_LEADERBOARD_GROUPS ?? "Incident and Case Management,Network Engineers")
+  .split(",")
+  .map((group) => group.trim())
+  .filter((group) => group.length > 0);
+const parsedMaxRecords = parseInt(process.env.CASE_LEADERBOARD_MAX_RECORDS ?? "2000", 10);
+const MAX_RECORDS = Number.isFinite(parsedMaxRecords) && parsedMaxRecords > 0 ? parsedMaxRecords : 2000;
+const SEARCH_PAGE_SIZE = Math.min(
+  Number(process.env.CASE_LEADERBOARD_PAGE_SIZE ?? "50"),
+  50,
+);
 
 export interface LeaderboardOptions {
   days?: number;
@@ -24,148 +34,159 @@ interface LeaderboardRow {
   avgResolutionMinutes: number | null;
 }
 
-interface SqlLeaderboardRow {
-  assigned_to_name: string;
-  assigned_to_email: string | null;
-  assigned_count: number;
-  resolved_count: number;
-  resolution_minutes_total: number;
-  resolution_samples: number;
+type RawTaskRecord = Record<string, any>;
+
+interface TaskAggregate {
+  name: string;
+  email: string | null;
+  assigned: number;
+  resolved: number;
+  active: number;
+  resolutionMinutesTotal: number;
+  resolutionSamples: number;
 }
 
-interface SqlActiveRow {
-  assigned_to_name: string;
-  assigned_to_email: string | null;
-  active_cases: number;
-}
+async function fetchCasesForLeaderboard(start: Date): Promise<Case[]> {
+  const collected = new Map<string, Case>();
 
-function parseConnectionUrl(rawUrl?: string) {
-  if (!rawUrl) {
-    throw new Error("AZURE_SQL_DATABASE_URL environment variable is not set");
-  }
+  // Simple approach: Get ALL active cases for each group (proven to work like stale case does)
+  // Then filter/aggregate in memory based on dates
+  for (const group of TARGET_ASSIGNMENT_GROUPS) {
+    let offset = 0;
+    let page = 0;
+    const limit = SEARCH_PAGE_SIZE;
 
-  const normalized = rawUrl.replace(/^mssql\+pyodbc:\/\//i, "https://");
-  const parsed = new URL(normalized);
+    while (true) {
+      const result = await getCaseSearchService().searchWithMetadata({
+        assignmentGroup: group,
+        activeOnly: true, // Get all active cases (works like stale case query)
+        includeChildDomains: true,
+        limit,
+        offset,
+      });
 
-  return {
-    user: decodeURIComponent(parsed.username || ""),
-    password: decodeURIComponent(parsed.password || ""),
-    server: parsed.hostname,
-    port: parsed.port ? parseInt(parsed.port, 10) : 1433,
-    database: decodeURIComponent(parsed.pathname.replace(/^\//, "")),
-    options: {
-      encrypt: true,
-      trustServerCertificate: false,
-    },
-  };
-}
+      result.cases.forEach((caseItem) => {
+        if (!collected.has(caseItem.sysId)) {
+          collected.set(caseItem.sysId, caseItem);
+        }
+      });
 
-async function withSqlPool<T>(callback: (pool: ConnectionPool) => Promise<T>): Promise<T> {
-  const config = parseConnectionUrl(process.env.AZURE_SQL_DATABASE_URL);
-  const pool = new ConnectionPool(config as any);
-  await pool.connect();
+      console.log(
+        `[Leaderboard] Fetched page ${page} for group "${group}": ${result.cases.length} cases (total: ${collected.size})`,
+      );
 
-  try {
-    return await callback(pool);
-  } finally {
-    await pool.close();
-  }
-}
+      if (!result.hasMore || result.cases.length === 0) {
+        break;
+      }
+      offset = result.nextOffset ?? offset + result.cases.length;
+      page += 1;
 
-async function fetchLeaderboardRows(start: Date, end: Date): Promise<SqlLeaderboardRow[]> {
-  return withSqlPool(async (pool) => {
-    const request = pool.request();
-    request.input("startUtc", start.toISOString());
-    request.input("endUtc", end.toISOString());
-
-    const query = `
-      SELECT
-        assigned_to_name,
-        assigned_to_email,
-        SUM(CASE WHEN assigned_on IS NOT NULL AND assigned_on >= @startUtc AND assigned_on < @endUtc THEN 1 ELSE 0 END) AS assigned_count,
-        SUM(CASE WHEN resolved_at IS NOT NULL AND resolved_at >= @startUtc AND resolved_at < @endUtc THEN 1 ELSE 0 END) AS resolved_count,
-        SUM(CASE WHEN resolved_at IS NOT NULL AND resolved_at >= @startUtc AND resolved_at < @endUtc AND assigned_on IS NOT NULL THEN DATEDIFF(minute, assigned_on, resolved_at) ELSE 0 END) AS resolution_minutes_total,
-        SUM(CASE WHEN resolved_at IS NOT NULL AND resolved_at >= @startUtc AND resolved_at < @endUtc AND assigned_on IS NOT NULL THEN 1 ELSE 0 END) AS resolution_samples
-      FROM dbo.customer_cases_denormalized
-      WHERE assigned_to_name IS NOT NULL
-        AND assigned_to_name <> ''
-        AND (
-          (assigned_on IS NOT NULL AND assigned_on >= @startUtc AND assigned_on < @endUtc)
-          OR (resolved_at IS NOT NULL AND resolved_at >= @startUtc AND resolved_at < @endUtc)
-        )
-      GROUP BY assigned_to_name, assigned_to_email;
-    `;
-
-    const result = await request.query(query);
-    return result.recordset as SqlLeaderboardRow[];
-  });
-}
-
-async function fetchActiveRows(): Promise<SqlActiveRow[]> {
-  return withSqlPool(async (pool) => {
-    const request = pool.request();
-    const result = await request.query(`
-      SELECT
-        assigned_to_name,
-        assigned_to_email,
-        COUNT(*) AS active_cases
-      FROM dbo.vw_customer_case_current
-      WHERE assigned_to_name IS NOT NULL
-        AND assigned_to_name <> ''
-        AND state NOT IN ('Closed', 'Resolved', '7', '3', '6')
-      GROUP BY assigned_to_name, assigned_to_email;
-    `);
-    return result.recordset as SqlActiveRow[];
-  });
-}
-
-function mergeLeaderboardData(
-  resolvedRows: SqlLeaderboardRow[],
-  activeRows: SqlActiveRow[],
-): LeaderboardRow[] {
-  const activeMap = new Map<string, SqlActiveRow>();
-  for (const row of activeRows) {
-    const email = row.assigned_to_email?.toLowerCase() ?? "";
-    const name = row.assigned_to_name ?? "";
-    const key = `${name}::${email}`;
-    activeMap.set(key, row);
-  }
-
-  const allowedDomains = getAllowedMobizDomains();
-  const results: LeaderboardRow[] = [];
-
-  for (const row of resolvedRows) {
-    const email = row.assigned_to_email?.toLowerCase() ?? null;
-    if (!email || !isMobizEmail(email)) {
-      continue;
+      if (collected.size >= MAX_RECORDS) {
+        break;
+      }
     }
 
-    const name = row.assigned_to_name?.trim();
+    if (collected.size >= MAX_RECORDS) {
+      break;
+    }
+  }
+
+  return Array.from(collected.values());
+}
+
+function normalizeName(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function extractCaseAssignee(record: Case): { name: string | null; email: string | null } {
+  const name = normalizeName(record.assignedTo);
+  const email = record.assignedToEmail ? record.assignedToEmail.toLowerCase() : null;
+  return { name, email };
+}
+
+function isCaseActive(record: Case): boolean {
+  if (typeof record.active === "boolean") {
+    return record.active;
+  }
+  const stateRaw = record.state?.toLowerCase() ?? "";
+  if (!stateRaw) {
+    return true;
+  }
+  if (stateRaw.includes("closed") || stateRaw.includes("resolved") || stateRaw.includes("cancel")) {
+    return false;
+  }
+  return true;
+}
+
+async function collectLeaderboardRows(start: Date): Promise<LeaderboardRow[]> {
+  // Use the custom case table directly (x_mobit_serv_case_service_case)
+  const caseRecords = await fetchCasesForLeaderboard(start);
+  console.log(`[Leaderboard] Retrieved ${caseRecords.length} ServiceNow cases for aggregation.`);
+
+  const cutoff = start.getTime();
+  const aggregates = new Map<string, TaskAggregate>();
+
+  const processRecord = (record: Case) => {
+    const { name, email } = extractCaseAssignee(record);
     if (!name) {
-      continue;
+      return;
     }
 
-    const key = `${name}::${email}`;
-    const active = activeMap.get(key)?.active_cases ?? 0;
-    const avgMinutes = row.resolution_samples > 0
-      ? row.resolution_minutes_total / row.resolution_samples
-      : null;
+    const key = (email ?? name).toLowerCase();
+    if (!aggregates.has(key)) {
+      aggregates.set(key, {
+        name,
+        email,
+        assigned: 0,
+        resolved: 0,
+        active: 0,
+        resolutionMinutesTotal: 0,
+        resolutionSamples: 0,
+      });
+    }
 
-    results.push({
-      name,
-      email,
-      assigned: Number(row.assigned_count ?? 0),
-      resolved: Number(row.resolved_count ?? 0),
-      active,
-      avgResolutionMinutes: avgMinutes,
+    const aggregate = aggregates.get(key)!;
+    const openedAt = record.openedAt ?? null;
+    const resolvedAt = record.resolvedAt ?? record.closedAt ?? null;
+    const active = isCaseActive(record);
+
+    if (openedAt && openedAt.getTime() >= cutoff) {
+      aggregate.assigned += 1;
+    }
+
+    if (resolvedAt && resolvedAt.getTime() >= cutoff) {
+      aggregate.resolved += 1;
+      if (openedAt) {
+        aggregate.resolutionMinutesTotal += (resolvedAt.getTime() - openedAt.getTime()) / (60 * 1000);
+        aggregate.resolutionSamples += 1;
+      }
+    }
+
+    if (active) {
+      aggregate.active += 1;
+    }
+  };
+
+  caseRecords.forEach((record) => processRecord(record));
+
+  return Array.from(aggregates.values())
+    .filter((row) => row.assigned > 0 || row.resolved > 0 || row.active > 0)
+    .map((row) => ({
+      name: row.name,
+      email: row.email,
+      assigned: row.assigned,
+      resolved: row.resolved,
+      active: row.active,
+      avgResolutionMinutes:
+        row.resolutionSamples > 0 ? row.resolutionMinutesTotal / row.resolutionSamples : null,
+    }))
+    .sort((a, b) => {
+      if (b.resolved !== a.resolved) return b.resolved - a.resolved;
+      if (b.assigned !== a.assigned) return b.assigned - a.assigned;
+      return a.name.localeCompare(b.name);
     });
-  }
-
-  return results.sort((a, b) => {
-    if (b.resolved !== a.resolved) return b.resolved - a.resolved;
-    if (b.assigned !== a.assigned) return b.assigned - a.assigned;
-    return a.name.localeCompare(b.name);
-  });
 }
 
 function formatHours(minutes: number | null): string {
@@ -294,18 +315,18 @@ async function generateLeaderboardChart(
 }
 
 export async function postCaseLeaderboard(options: LeaderboardOptions) {
-  const days = options.days ?? DEFAULT_LOOKBACK_DAYS;
   const limit = options.limit ?? 10;
   const now = new Date();
   const end = now;
-  const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
 
-  const [resolvedRows, activeRows] = await Promise.all([
-    fetchLeaderboardRows(start, end),
-    fetchActiveRows(),
-  ]);
+  // Use month-to-date by default (first day of current month to today)
+  // Allow override via days parameter for testing/manual runs
+  const start = options.days
+    ? new Date(end.getTime() - options.days * 24 * 60 * 60 * 1000)
+    : new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const leaderboard = mergeLeaderboardData(resolvedRows, activeRows);
+  const leaderboard = await collectLeaderboardRows(start);
+  console.log(`[Leaderboard] Collected ${leaderboard.length} rows:`, JSON.stringify(leaderboard.slice(0, 5), null, 2));
   const message = buildLeaderboardMessage(leaderboard, start, end, limit);
 
   const chart = await generateLeaderboardChart(leaderboard, limit, start, end);

@@ -67,6 +67,36 @@ export default function ProjectsPage() {
     return filters.status === status;
   };
 
+  const handleTypeFilter = (type: string) => {
+    const current = Array.isArray(filters.type)
+      ? filters.type
+      : filters.type
+      ? [filters.type]
+      : [];
+    const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
+    setFilters({ ...filters, type: next.length ? next : undefined });
+  };
+
+  const handleSourceFilter = (source: string) => {
+    const current = Array.isArray(filters.source)
+      ? filters.source
+      : filters.source
+      ? [filters.source]
+      : [];
+    const next = current.includes(source) ? current.filter((t) => t !== source) : [...current, source];
+    setFilters({ ...filters, source: next.length ? next : undefined });
+  };
+
+  const isTypeActive = (type: string) => {
+    if (!filters.type) return false;
+    return Array.isArray(filters.type) ? filters.type.includes(type) : filters.type === type;
+  };
+
+  const isSourceActive = (source: string) => {
+    if (!filters.source) return false;
+    return Array.isArray(filters.source) ? filters.source.includes(source) : filters.source === source;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -176,28 +206,58 @@ export default function ProjectsPage() {
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-1 border border-gray-200 rounded-md p-1">
+      <div className="flex items-center gap-1 border border-gray-200 rounded-md p-1">
+        <button
+          onClick={() => setViewMode("grid")}
+          className={`p-2 rounded ${
+            viewMode === "grid"
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Grid className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setViewMode("list")}
+          className={`p-2 rounded ${
+            viewMode === "list"
+              ? "bg-gray-100 text-gray-900"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <List className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+
+      {/* Type / Source Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {["delivery", "internal", "demand", "learning"].map((type) => (
           <button
-            onClick={() => setViewMode("grid")}
-            className={`p-2 rounded ${
-              viewMode === "grid"
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-500 hover:text-gray-700"
+            key={type}
+            onClick={() => handleTypeFilter(type)}
+            className={`px-3 py-2 text-sm rounded border transition ${
+              isTypeActive(type)
+                ? "border-blue-500 bg-blue-50 text-blue-700"
+                : "border-gray-200 text-gray-700 hover:border-gray-300"
             }`}
           >
-            <Grid className="w-4 h-4" />
+            Type: {type}
           </button>
+        ))}
+        {["spm", "github", "local"].map((src) => (
           <button
-            onClick={() => setViewMode("list")}
-            className={`p-2 rounded ${
-              viewMode === "list"
-                ? "bg-gray-100 text-gray-900"
-                : "text-gray-500 hover:text-gray-700"
+            key={src}
+            onClick={() => handleSourceFilter(src)}
+            className={`px-3 py-2 text-sm rounded border transition ${
+              isSourceActive(src)
+                ? "border-purple-500 bg-purple-50 text-purple-700"
+                : "border-gray-200 text-gray-700 hover:border-gray-300"
             }`}
           >
-            <List className="w-4 h-4" />
+            Source: {src}
           </button>
-        </div>
+        ))}
       </div>
 
       {/* Projects List/Grid */}

@@ -3,6 +3,7 @@ import { serviceNowClient } from "../tools/servicenow";
 import type { ServiceNowConfigurationItem } from "../tools/servicenow";
 import { createServiceNowContext } from "../infrastructure/servicenow-context";
 import { formatConfigurationItemsForLLM } from "../services/servicenow-formatters";
+import { createChildSpan } from "../observability";
 
 interface PrefetchOptions {
   channelId?: string;
@@ -64,17 +65,49 @@ export async function maybePrefetchCmdb(
   const aggregated = new Map<string, ServiceNowConfigurationItem>();
   const querySummaries: Array<{ label: string; count: number }> = [];
 
+  const prefetchSpan = await createChildSpan({
+    name: "cmdb_prefetch_queries",
+    runType: "tool",
+    metadata: {
+      triggerCount: triggers.length,
+      companyName: options.companyName,
+    },
+    tags: {
+      component: "context-loader",
+    },
+  });
+
   try {
     for (const query of queries.slice(0, options.maxQueries ?? 3)) {
-      const results =
-        (await serviceNowClient.searchConfigurationItems(
-          query.search,
-          cmdbContext,
-        )) ?? [];
-      results.forEach((item) => aggregated.set(item.sys_id, item));
-      querySummaries.push({ label: query.label, count: results.length });
-      if (aggregated.size >= 25) {
-        break;
+      const querySpan = await createChildSpan({
+        name: "cmdb_prefetch_query",
+        runType: "tool",
+        metadata: {
+          label: query.label,
+          search: query.search,
+        },
+        tags: {
+          component: "context-loader",
+        },
+      });
+
+      try {
+        const results =
+          (await serviceNowClient.searchConfigurationItems(
+            query.search,
+            cmdbContext,
+          )) ?? [];
+        results.forEach((item) => aggregated.set(item.sys_id, item));
+        querySummaries.push({ label: query.label, count: results.length });
+        await querySpan?.end({
+          resultsCount: results.length,
+        });
+        if (aggregated.size >= 25) {
+          break;
+        }
+      } catch (error) {
+        await querySpan?.end({ error: error as Error });
+        throw error;
       }
     }
 
@@ -92,7 +125,7 @@ export async function maybePrefetchCmdb(
       });
     }
 
-    return {
+    const result = {
       message: {
         role: "assistant",
         content: messageLines.join("\n"),
@@ -103,8 +136,16 @@ export async function maybePrefetchCmdb(
         queries: querySummaries,
       },
     };
+
+    await prefetchSpan?.end({
+      totalResults: aggregated.size,
+      queries: querySummaries,
+    });
+
+    return result as PrefetchResult;
   } catch (error) {
     console.error("[Auto CMDB Lookup] Prefetch failed:", error);
+    await prefetchSpan?.end({ error: error as Error });
     return null;
   }
 }

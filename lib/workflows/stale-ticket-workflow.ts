@@ -5,10 +5,10 @@
  * with quick threshold selection and bulk notification options.
  */
 
-import { caseSearchService, type CaseSearchFilters } from "../services/case-search-service";
+import { getCaseSearchService, type CaseSearchFilters } from "../services/case-search-service";
 import { findStaleCases, type StaleCaseSummary } from "../services/case-aggregator";
 import { getSlackMessagingService } from "../services/slack-messaging";
-import { getInteractiveStateManager } from "../services/interactive-state-manager";
+import { workflowManager } from "../services/workflow-manager";
 import {
   createSectionBlock,
   createDivider,
@@ -18,7 +18,7 @@ import {
 } from "../utils/message-styling";
 
 const DEFAULT_THRESHOLDS = [1, 3, 7, 14, 30];
-const WORKFLOW_STATE_TYPE = "stale_ticket_workflow";
+const WORKFLOW_TYPE_STALE_TICKET = "STALE_TICKET_EXPLORER";
 
 interface StaleWorkflowState {
   channelId: string;
@@ -29,7 +29,6 @@ interface StaleWorkflowState {
 }
 
 const slackMessaging = getSlackMessagingService();
-const stateManager = getInteractiveStateManager();
 
 export class StaleTicketWorkflow {
   async start(options: {
@@ -38,6 +37,9 @@ export class StaleTicketWorkflow {
     filters?: CaseSearchFilters;
     thresholdDays?: number;
   }): Promise<{ text: string; blocks: KnownBlock[] }> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available.");
+    }
     const threshold = options.thresholdDays ?? 7;
     const searchResult = await this.fetchStaleCases(
       {
@@ -46,7 +48,7 @@ export class StaleTicketWorkflow {
       },
       threshold,
     );
-    const filterSummary = caseSearchService.buildFilterSummary(searchResult.appliedFilters);
+    const filterSummary = getCaseSearchService().buildFilterSummary(searchResult.appliedFilters);
     const display = this.buildBlocks(
       searchResult.staleCases,
       threshold,
@@ -60,44 +62,52 @@ export class StaleTicketWorkflow {
     });
 
     if (message.ts) {
-      await stateManager.saveState(
-        WORKFLOW_STATE_TYPE,
-        options.channelId,
-        message.ts,
-        {
-          channelId: options.channelId,
-          messageTs: message.ts,
-          thresholdDays: threshold,
-          filters: searchResult.appliedFilters,
-          staleCases: searchResult.staleCases,
-        },
-        { expiresInHours: 4 },
-      );
+      await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_STALE_TICKET,
+        workflowReferenceId: `${options.channelId}:${message.ts}`,
+        initialState: 'ACTIVE',
+        payload: {
+            channelId: options.channelId,
+            messageTs: message.ts,
+            thresholdDays: threshold,
+            filters: searchResult.appliedFilters,
+            staleCases: searchResult.staleCases,
+          },
+        expiresInSeconds: 4 * 3600,
+      });
     }
 
     return display;
   }
 
   async handleThresholdSelection(channelId: string, messageTs: string, thresholdDays: number): Promise<void> {
-    const state = await stateManager.getState(channelId, messageTs, 'stale_ticket_workflow');
-    if (!state) {
+    if (!workflowManager) {
+        console.warn("[StaleTicketWorkflow] WorkflowManager not available.");
+        return;
+    }
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_STALE_TICKET, `${channelId}:${messageTs}`);
+    if (!workflow) {
       console.warn("[StaleTicketWorkflow] State not found for threshold selection");
       return;
     }
 
-    const filters = state.payload.filters ?? {};
+    const payload = workflow.payload as StaleWorkflowState;
+    const filters = payload.filters ?? {};
     const refreshed = await this.fetchStaleCases(filters, thresholdDays);
-    const filterSummary = caseSearchService.buildFilterSummary(refreshed.appliedFilters);
+    const filterSummary = getCaseSearchService().buildFilterSummary(refreshed.appliedFilters);
     const display = this.buildBlocks(
       refreshed.staleCases,
       thresholdDays,
       filterSummary !== "No filters applied" ? filterSummary : undefined,
     );
 
-    await stateManager.updatePayload<'stale_ticket_workflow'>(channelId, messageTs, {
-      thresholdDays,
-      filters: refreshed.appliedFilters,
-      staleCases: refreshed.staleCases,
+    await workflowManager.transition(workflow.id, workflow.version, {
+        toState: 'ACTIVE', // Remains active
+        updatePayload: {
+          thresholdDays,
+          filters: refreshed.appliedFilters,
+          staleCases: refreshed.staleCases,
+        }
     });
 
     await slackMessaging.updateMessage({
@@ -109,14 +119,20 @@ export class StaleTicketWorkflow {
   }
 
   async notifyAssignees(channelId: string, messageTs: string): Promise<void> {
-    const state = await stateManager.getState(channelId, messageTs, 'stale_ticket_workflow');
-    if (!state) {
+    if (!workflowManager) {
+        console.warn("[StaleTicketWorkflow] WorkflowManager not available.");
+        return;
+    }
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_STALE_TICKET, `${channelId}:${messageTs}`);
+    if (!workflow) {
       console.warn("[StaleTicketWorkflow] State not found for notify all action");
       return;
     }
 
+    const payload = workflow.payload as StaleWorkflowState;
+
     const assignees = new Map<string, StaleCaseSummary[]>();
-    for (const entry of state.payload.staleCases) {
+    for (const entry of payload.staleCases) {
       const key = entry.case.assignedTo ?? "Unassigned";
       const bucket = assignees.get(key);
       if (bucket) {
@@ -157,7 +173,7 @@ export class StaleTicketWorkflow {
       limit: filters.limit ?? 100,
     };
 
-    const searchResult = await caseSearchService.searchWithMetadata(effectiveFilters);
+    const searchResult = await getCaseSearchService().searchWithMetadata(effectiveFilters);
     const staleCases = findStaleCases(searchResult.cases, thresholdDays);
 
     return {
@@ -188,7 +204,7 @@ export class StaleTicketWorkflow {
       }
 
       return {
-        text: `No stale cases found for ${thresholdDays} day(s) threshold.`,
+        text: `No stale cases found for ${thresholdDays} day(s) threshold.`, 
         blocks,
       };
     }

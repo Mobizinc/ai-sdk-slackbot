@@ -41,11 +41,36 @@ describe("ServiceNowTableAPIClient", () => {
       fetchAll: vi
         .fn()
         .mockImplementation(async (table, options) => {
-          const response = await mockHttpClient.get(
-            `/api/now/table/${table}`,
-            options
-          );
-          return response.result || [];
+          const pageSize = options?.pageSize || 1000;
+          const maxRecords = options?.maxRecords;
+          let allRecords: any[] = [];
+          let offset = 0;
+          let hasMore = true;
+
+          while (hasMore) {
+            if (maxRecords && allRecords.length >= maxRecords) break;
+
+            const limit = maxRecords
+              ? Math.min(pageSize, maxRecords - allRecords.length)
+              : pageSize;
+
+            const params = { ...options, sysparm_limit: limit, sysparm_offset: offset };
+            const response = await mockHttpClient.get(
+              `/api/now/table/${table}`,
+              params
+            );
+
+            const records = response.result || [];
+            allRecords.push(...records);
+
+            if (records.length < limit) {
+              hasMore = false;
+            }
+
+            offset += limit;
+          }
+
+          return allRecords;
         }),
       fetchById: vi
         .fn()
@@ -148,6 +173,7 @@ describe("ServiceNowTableAPIClient", () => {
         headers: { "x-total-count": "150" },
       };
 
+      mockHttpClient.get.mockClear();
       mockHttpClient.get
         .mockResolvedValueOnce(page1)
         .mockResolvedValueOnce(page2);
@@ -156,9 +182,9 @@ describe("ServiceNowTableAPIClient", () => {
         pageSize: 100,
       });
 
-      // Should fetch multiple pages
+      // Should fetch multiple pages (page1 has 100 records == pageSize, so continues; page2 has 50 < pageSize, so stops)
       expect(mockHttpClient.get).toHaveBeenCalledTimes(2);
-      expect(records.length).toBeGreaterThanOrEqual(100);
+      expect(records.length).toBe(150);
     });
 
     it("should respect maxRecords limit", async () => {
@@ -231,6 +257,10 @@ describe("ServiceNowTableAPIClient", () => {
 
   describe("fetchById", () => {
     it("should fetch a single record by sys_id", async () => {
+      mockHttpClient.get.mockResolvedValueOnce({
+        result: mockTableRecord,
+      });
+
       const record = await tableClient.fetchById("change_request", "test-id-123");
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
@@ -253,10 +283,10 @@ describe("ServiceNowTableAPIClient", () => {
     it("should throw error for other HTTP errors", async () => {
       mockHttpClient.get.mockRejectedValueOnce({ statusCode: 500 });
 
-      // Should propagate non-404 errors
-      expect(
+      // Should reject with non-404 errors
+      await expect(
         tableClient.fetchById("change_request", "test-id")
-      ).toBeDefined();
+      ).rejects.toEqual({ statusCode: 500 });
     });
 
     it("should include query options in request", async () => {
@@ -508,8 +538,8 @@ describe("ServiceNowTableAPIClient", () => {
     it("should propagate HTTP client errors", async () => {
       mockHttpClient.get.mockRejectedValueOnce(new Error("Network error"));
 
-      // Should propagate error
-      expect(tableClient.fetchAll("change_request")).toBeDefined();
+      // Should reject with error
+      await expect(tableClient.fetchAll("change_request")).rejects.toThrow("Network error");
     });
 
     it("should handle timeout errors", async () => {
@@ -517,8 +547,8 @@ describe("ServiceNowTableAPIClient", () => {
         new Error("Request timeout")
       );
 
-      // Should handle gracefully
-      expect(tableClient.fetchAll("change_request")).toBeDefined();
+      // Should reject with error
+      await expect(tableClient.fetchAll("change_request")).rejects.toThrow("Request timeout");
     });
 
     it("should handle invalid table names", async () => {
@@ -526,8 +556,8 @@ describe("ServiceNowTableAPIClient", () => {
         new Error("Invalid table: unknown_table")
       );
 
-      // Should propagate error with clear message
-      expect(tableClient.fetchAll("unknown_table")).toBeDefined();
+      // Should reject with error
+      await expect(tableClient.fetchAll("unknown_table")).rejects.toThrow("Invalid table");
     });
 
     it("should handle malformed response", async () => {

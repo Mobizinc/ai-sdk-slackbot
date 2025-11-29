@@ -10,15 +10,21 @@ import { config } from "../config";
 
 export class EmbeddingService {
   private model: string;
-  private client: OpenAI;
+  private client: OpenAI | null = null;
 
   constructor(model: string = config.caseEmbeddingModel || "text-embedding-3-small") {
     this.model = model;
-    const apiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("OPENAI_API_KEY not configured for embedding generation");
+  }
+
+  private getClient(): OpenAI {
+    if (!this.client) {
+      const apiKey = (config.openaiApiKey || process.env.OPENAI_API_KEY)?.trim();
+      if (!apiKey) {
+        throw new Error("OPENAI_API_KEY not configured for embedding generation");
+      }
+      this.client = new OpenAI({ apiKey });
     }
-    this.client = new OpenAI({ apiKey });
+    return this.client;
   }
 
   /**
@@ -27,7 +33,7 @@ export class EmbeddingService {
    * Returns: 1536-dimensional vector for text-embedding-3-small
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    const response = await this.client.embeddings.create({
+    const response = await this.getClient().embeddings.create({
       model: this.model,
       input: text,
     });

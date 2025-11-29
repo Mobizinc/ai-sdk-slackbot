@@ -5,7 +5,19 @@ import type { CaseContext } from "../../context-manager";
 import { getContextManager } from "../../context-manager";
 import type { SimilarCase } from "../../services/azure-search";
 import { getSearchFacadeService } from "../../services/search-facade";
-import { getConfigValue } from "../../config";
+import { getDiscoveryContextPackEnabled } from "../../config/helpers";
+import type { ConfigurationItem } from "../../infrastructure/servicenow/types/domain-models";
+import { getCmdbRepository, getRequestRepository, getRequestedItemRepository, getCatalogTaskRepository } from "../../infrastructure/servicenow/repositories";
+import type { PolicySignal } from "../../services/policy-signals";
+import { detectPolicySignals } from "../../services/policy-signals";
+import type { ClientScopePolicySummary } from "../../services/client-scope-policy-service";
+import { getClientScopePolicyService } from "../../services/client-scope-policy-service";
+import {
+  getDiscoveryContextCache,
+  generateCacheKey,
+  isCachingEnabled,
+} from "./context-cache";
+import type { MuscleMemoryExemplarSummary } from "../../services/muscle-memory";
 
 export interface DiscoveryContextPackMetadata {
   caseNumbers: string[];
@@ -37,10 +49,44 @@ export interface DiscoverySimilarCaseSummary {
   url?: string;
 }
 
+export interface DiscoveryCMDBHitSummary {
+  name: string;
+  className?: string;
+  ipAddresses?: string[];
+  environment?: string;
+  status?: string;
+  ownerGroup?: string;
+  url?: string;
+  matchReason: string;
+  relatedItems?: DiscoveryCMDBRelatedItem[];
+}
+
+export interface DiscoveryCMDBRelatedItem {
+  name: string;
+  className?: string;
+  ownerGroup?: string;
+  environment?: string;
+  matchReason: string;
+}
+
+export interface DiscoveryCatalogWorkflowSummary {
+  recordNumber: string;
+  recordType: "request" | "requested_item" | "catalog_task";
+  shortDescription: string;
+  state?: string;
+  parentNumber?: string;
+  grandparentNumber?: string;
+  url?: string;
+}
+
+const CONTEXT_PACK_SCHEMA_VERSION = "1.1.0";
+
 export interface DiscoveryContextPack {
+  schemaVersion: string;
   generatedAt: string;
   metadata: DiscoveryContextPackMetadata;
   businessContext?: DiscoveryBusinessContextSummary;
+  clientScopePolicy?: ClientScopePolicySummary;
   caseContext?: {
     caseNumber: string;
     channelId?: string;
@@ -57,7 +103,19 @@ export interface DiscoveryContextPack {
     total: number;
     cases: DiscoverySimilarCaseSummary[];
   };
-  policyAlerts?: string[];
+  cmdbHits?: {
+    total: number;
+    items: DiscoveryCMDBHitSummary[];
+  };
+  policyAlerts?: PolicySignal[];
+  muscleMemoryExemplars?: {
+    total: number;
+    exemplars: MuscleMemoryExemplarSummary[];
+  };
+  catalogWorkflowContext?: {
+    total: number;
+    records: DiscoveryCatalogWorkflowSummary[];
+  };
 }
 
 export interface GenerateDiscoveryContextPackOptions {
@@ -67,16 +125,41 @@ export interface GenerateDiscoveryContextPackOptions {
   companyName?: string;
   messages?: CoreMessage[];
   businessContext?: BusinessEntityContext | null;
+  clientScopePolicy?: ClientScopePolicySummary | null;
   caseContext?: CaseContext;
   similarCases?: SimilarCase[];
   threadHistory?: CoreMessage[];
+  caseData?: any; // Case or Incident data for policy signals
+  journalText?: string; // Combined journal text for keyword extraction
 }
 
 const MAX_MESSAGE_PREVIEW_LENGTH = 280;
+const MAX_RELATED_CIS_PER_MATCH = 3;
+const MAX_BASE_MATCHES_FOR_RELATIONS = 3;
 
 export async function generateDiscoveryContextPack(
   options: GenerateDiscoveryContextPackOptions
 ): Promise<DiscoveryContextPack> {
+  // Check cache first
+  if (isCachingEnabled()) {
+    const cacheKey = generateCacheKey({
+      caseNumber: options.caseNumbers?.[0],
+      channelId: options.channelId,
+      threadTs: options.threadTs,
+      companyName: options.companyName,
+    });
+
+    const cache = getDiscoveryContextCache();
+    const cached = cache.get(cacheKey);
+
+    if (cached) {
+      console.log(`[Discovery] Cache hit for key: ${cacheKey}`);
+      return cached;
+    }
+
+    console.log(`[Discovery] Cache miss for key: ${cacheKey}, generating fresh pack`);
+  }
+
   const metadata: DiscoveryContextPackMetadata = {
     caseNumbers: options.caseNumbers ?? [],
     channelId: options.channelId,
@@ -85,6 +168,7 @@ export async function generateDiscoveryContextPack(
   };
 
   const pack: DiscoveryContextPack = {
+    schemaVersion: CONTEXT_PACK_SCHEMA_VERSION,
     generatedAt: new Date().toISOString(),
     metadata,
     policyAlerts: [],
@@ -93,6 +177,11 @@ export async function generateDiscoveryContextPack(
   const businessContext = await resolveBusinessContext(options);
   if (businessContext) {
     pack.businessContext = summariseBusinessContext(businessContext);
+  }
+
+  const clientPolicy = resolveClientScopePolicy(options, businessContext);
+  if (clientPolicy) {
+    pack.clientScopePolicy = clientPolicy;
   }
 
   const caseContext = await resolveCaseContext(options);
@@ -118,7 +207,107 @@ export async function generateDiscoveryContextPack(
     };
   }
 
+  // CMDB/CI matching - extract keywords and search for configuration items
+  const cmdbHits = await resolveCMDBHits(options, slackSummary);
+  if (cmdbHits.length > 0) {
+    pack.cmdbHits = {
+      total: cmdbHits.length,
+      items: cmdbHits.map((ci) => ({
+        name: ci.name ?? "Unknown",
+        className: ci.className,
+        ipAddresses: ci.ipAddresses,
+        environment: ci.environment,
+        status: ci.status,
+        ownerGroup: ci.ownerGroup,
+        url: ci.url,
+        matchReason: ci.matchReason,
+        relatedItems: (ci as any).relatedItems,
+      })),
+    };
+  }
+
+  // Policy signals - maintenance windows, SLA breaches, high-risk customers
+  const policySignals = await resolvePolicySignals(options, businessContext);
+  if (policySignals.signals.length > 0) {
+    pack.policyAlerts = policySignals.signals;
+  }
+
+  // Retrieve muscle memory exemplars (if enabled)
+  const muscleMemoryEnabled = true; // TODO: Use consolidated config
+  if (muscleMemoryEnabled) {
+    try {
+      const { retrievalService } = await import("../../services/muscle-memory");
+      const exemplars = await retrievalService.findExemplarsForContext(pack);
+
+      if (exemplars.length > 0) {
+        pack.muscleMemoryExemplars = {
+          total: exemplars.length,
+          exemplars,
+        };
+        console.log(`[Discovery] Added ${exemplars.length} muscle memory exemplars to context pack`);
+      }
+    } catch (error) {
+      console.error("[Discovery] Error retrieving muscle memory exemplars:", error);
+      // Continue without muscle memory (graceful degradation)
+    }
+  }
+
+  // Catalog Workflow Context - detect and resolve REQ/RITM/CTASK relationships
+  const catalogWorkflowRecords = await resolveCatalogWorkflowContext(options, slackSummary);
+  if (catalogWorkflowRecords.length > 0) {
+    pack.catalogWorkflowContext = {
+      total: catalogWorkflowRecords.length,
+      records: catalogWorkflowRecords,
+    };
+    console.log(`[Discovery] Added ${catalogWorkflowRecords.length} catalog workflow records to context pack`);
+  }
+
+  // Cache the generated pack
+  if (isCachingEnabled()) {
+    const cacheKey = generateCacheKey({
+      caseNumber: options.caseNumbers?.[0],
+      channelId: options.channelId,
+      threadTs: options.threadTs,
+      companyName: options.companyName,
+    });
+
+    const cache = getDiscoveryContextCache();
+    cache.set(cacheKey, pack);
+  }
+
   return pack;
+}
+
+function resolveClientScopePolicy(
+  options: GenerateDiscoveryContextPackOptions,
+  businessContext?: BusinessEntityContext | null
+): ClientScopePolicySummary | null {
+  if (options.clientScopePolicy) {
+    return options.clientScopePolicy;
+  }
+
+  const policyService = getClientScopePolicyService();
+  const searchTerms = new Set<string>();
+
+  if (options.companyName) {
+    searchTerms.add(options.companyName);
+  }
+
+  if (businessContext) {
+    searchTerms.add(businessContext.entityName);
+    for (const alias of businessContext.aliases ?? []) {
+      searchTerms.add(alias);
+    }
+  }
+
+  for (const term of searchTerms) {
+    const summary = policyService.getPolicySummary(term);
+    if (summary) {
+      return summary;
+    }
+  }
+
+  return null;
 }
 
 async function resolveBusinessContext(options: GenerateDiscoveryContextPackOptions) {
@@ -199,7 +388,7 @@ function summariseCaseContext(context: CaseContext) {
 }
 
 function buildSlackSummary(options: GenerateDiscoveryContextPackOptions) {
-  const limit = ensurePositiveInt(getConfigValue("discoverySlackMessageLimit"), 5);
+  const limit = ensurePositiveInt(5, 5); // TODO: Add to consolidated config
   const recordSource = options.threadHistory ?? options.messages ?? [];
   const flattened = recordSource
     .filter((msg) => msg.role === "user" || msg.role === "assistant")
@@ -239,7 +428,7 @@ async function resolveSimilarCases(
   }
 
   try {
-    const topK = ensurePositiveInt(getConfigValue("discoverySimilarCasesTopK"), 3);
+    const topK = ensurePositiveInt(3, 3); // TODO: Add to consolidated config
     return await searchFacade.searchSimilarCases(transcript, {
       topK,
       clientId: options.companyName,
@@ -248,6 +437,279 @@ async function resolveSimilarCases(
     console.warn("[Discovery] Similar case lookup failed:", error);
     return [];
   }
+}
+
+async function resolveCMDBHits(
+  options: GenerateDiscoveryContextPackOptions,
+  slackSummary: { messages: DiscoverySlackMessageSummary[] }
+): Promise<Array<ConfigurationItem & { matchReason: string }>> {
+  // Feature flag check
+  const enabled = getDiscoveryContextPackEnabled();
+  if (!enabled) {
+    return [];
+  }
+
+  try {
+    const cmdbRepo = getCmdbRepository();
+
+    // Extract text from journals and Slack messages
+    const textSources: string[] = [];
+
+    if (options.journalText) {
+      textSources.push(options.journalText);
+    }
+
+    slackSummary.messages.forEach((msg) => {
+      textSources.push(msg.text);
+    });
+
+    const combinedText = textSources.join("\n").slice(0, 2000); // Limit to 2000 chars
+
+    // Extract potential CI names, IP addresses, and FQDNs
+    const keywords = extractCMDBKeywords(combinedText);
+
+    const foundCIs: Array<ConfigurationItem & { matchReason: string }> = [];
+    const seenSysIds = new Set<string>();
+
+    // Search by IP addresses
+    for (const ip of keywords.ipAddresses.slice(0, 3)) {
+      try {
+        const results = await cmdbRepo.findByIpAddress(ip);
+        for (const ci of results) {
+          if (!seenSysIds.has(ci.sysId)) {
+            foundCIs.push({ ...ci, matchReason: `IP: ${ip}` });
+            seenSysIds.add(ci.sysId);
+          }
+        }
+      } catch (error) {
+        console.warn(`[Discovery] CMDB search by IP ${ip} failed:`, error);
+      }
+    }
+
+    // Search by FQDNs
+    for (const fqdn of keywords.fqdns.slice(0, 3)) {
+      try {
+        const results = await cmdbRepo.findByFqdn(fqdn);
+        for (const ci of results) {
+          if (!seenSysIds.has(ci.sysId)) {
+            foundCIs.push({ ...ci, matchReason: `FQDN: ${fqdn}` });
+            seenSysIds.add(ci.sysId);
+          }
+        }
+      } catch (error) {
+        console.warn(`[Discovery] CMDB search by FQDN ${fqdn} failed:`, error);
+      }
+    }
+
+    // Search by CI names (if company context available)
+    if (options.companyName) {
+      for (const name of keywords.potentialCINames.slice(0, 2)) {
+        try {
+          const results = await cmdbRepo.search({
+            name,
+            company: options.companyName,
+            limit: 3,
+          });
+          for (const ci of results) {
+            if (!seenSysIds.has(ci.sysId)) {
+              foundCIs.push({ ...ci, matchReason: `Name: ${name}` });
+              seenSysIds.add(ci.sysId);
+            }
+          }
+        } catch (error) {
+          console.warn(`[Discovery] CMDB search by name ${name} failed:`, error);
+        }
+      }
+    }
+
+    const limitedCIs = foundCIs.slice(0, 5);
+
+    // Fetch related CIs for top matches to provide dependency hints
+    await enrichWithRelatedCIs(limitedCIs, cmdbRepo);
+
+    return limitedCIs;
+  } catch (error) {
+    console.warn("[Discovery] CMDB resolution failed:", error);
+    return [];
+  }
+}
+
+async function enrichWithRelatedCIs(
+  cis: Array<ConfigurationItem & { matchReason: string }>,
+  cmdbRepo: ReturnType<typeof getCmdbRepository>
+) {
+  const candidates = cis.slice(0, MAX_BASE_MATCHES_FOR_RELATIONS);
+
+  await Promise.all(
+    candidates.map(async (ci) => {
+      if (!ci.sysId) {
+        return;
+      }
+      try {
+        const related = await cmdbRepo.getRelatedCIs(ci.sysId);
+        if (related.length === 0) {
+          return;
+        }
+
+        const relatedItems: DiscoveryCMDBRelatedItem[] = related
+          .slice(0, MAX_RELATED_CIS_PER_MATCH)
+          .map((relatedCi) => ({
+            name: relatedCi.name ?? "Unknown",
+            className: relatedCi.className,
+            ownerGroup: relatedCi.ownerGroup,
+            environment: relatedCi.environment,
+            matchReason: `Related to ${ci.name ?? "matching CI"}`,
+          }));
+
+        if (relatedItems.length > 0) {
+          (ci as any).relatedItems = relatedItems;
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch related CIs for ${ci.name ?? ci.sysId}:`, error);
+      }
+    })
+  );
+}
+
+async function resolvePolicySignals(
+  options: GenerateDiscoveryContextPackOptions,
+  businessContext: BusinessEntityContext | null
+): Promise<{ signals: PolicySignal[] }> {
+  try {
+    const result = await detectPolicySignals({
+      caseOrIncident: options.caseData,
+      businessContext,
+      channelId: options.channelId,
+    });
+
+    return { signals: result.signals };
+  } catch (error) {
+    console.warn("[Discovery] Policy signals detection failed:", error);
+    return { signals: [] };
+  }
+}
+
+/**
+ * Resolve catalog workflow records (REQ/RITM/CTASK) from messages
+ */
+async function resolveCatalogWorkflowContext(
+  options: GenerateDiscoveryContextPackOptions,
+  slackSummary: { totalMessages: number; messages: DiscoverySlackMessageSummary[] }
+): Promise<DiscoveryCatalogWorkflowSummary[]> {
+  const catalogRecords: DiscoveryCatalogWorkflowSummary[] = [];
+
+  try {
+    // Extract all text from messages and case numbers
+    const allText = slackSummary.messages.map((m) => m.text).join(" ");
+    const caseNumberText = (options.caseNumbers ?? []).join(" ");
+    const combinedText = `${allText} ${caseNumberText}`;
+
+    // Extract catalog workflow numbers (REQ, RITM, CTASK)
+    const reqPattern = /\b(REQ\d{7,})\b/gi;
+    const ritmPattern = /\b(RITM\d{7,})\b/gi;
+    const ctaskPattern = /\b(CTASK\d{7,})\b/gi;
+
+    const reqNumbers = Array.from(new Set(Array.from(combinedText.matchAll(reqPattern)).map((m) => m[1].toUpperCase())));
+    const ritmNumbers = Array.from(new Set(Array.from(combinedText.matchAll(ritmPattern)).map((m) => m[1].toUpperCase())));
+    const ctaskNumbers = Array.from(new Set(Array.from(combinedText.matchAll(ctaskPattern)).map((m) => m[1].toUpperCase())));
+
+    // Fetch REQ records
+    const requestRepo = getRequestRepository();
+    for (const reqNumber of reqNumbers.slice(0, 3)) {
+      try {
+        const request = await requestRepo.findByNumber(reqNumber);
+        if (request) {
+          catalogRecords.push({
+            recordNumber: request.number,
+            recordType: "request",
+            shortDescription: request.shortDescription,
+            state: request.state,
+            url: request.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch Request ${reqNumber}:`, error);
+      }
+    }
+
+    // Fetch RITM records
+    const ritmRepo = getRequestedItemRepository();
+    for (const ritmNumber of ritmNumbers.slice(0, 3)) {
+      try {
+        const ritm = await ritmRepo.findByNumber(ritmNumber);
+        if (ritm) {
+          catalogRecords.push({
+            recordNumber: ritm.number,
+            recordType: "requested_item",
+            shortDescription: ritm.shortDescription,
+            state: ritm.state,
+            parentNumber: ritm.requestNumber,
+            url: ritm.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch RITM ${ritmNumber}:`, error);
+      }
+    }
+
+    // Fetch CTASK records
+    const ctaskRepo = getCatalogTaskRepository();
+    for (const ctaskNumber of ctaskNumbers.slice(0, 3)) {
+      try {
+        const ctask = await ctaskRepo.findByNumber(ctaskNumber);
+        if (ctask) {
+          catalogRecords.push({
+            recordNumber: ctask.number,
+            recordType: "catalog_task",
+            shortDescription: ctask.shortDescription,
+            state: ctask.state,
+            parentNumber: ctask.requestItemNumber,
+            grandparentNumber: ctask.requestNumber,
+            url: ctask.url,
+          });
+        }
+      } catch (error) {
+        console.warn(`[Discovery] Failed to fetch CTASK ${ctaskNumber}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("[Discovery] Catalog workflow context resolution failed:", error);
+    // Continue without catalog workflow context (graceful degradation)
+  }
+
+  return catalogRecords;
+}
+
+/**
+ * Extract potential CMDB keywords from text
+ */
+function extractCMDBKeywords(text: string): {
+  ipAddresses: string[];
+  fqdns: string[];
+  potentialCINames: string[];
+} {
+  const ipv4Regex = /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
+  const fqdnRegex = /\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\b/gi;
+
+  const ipAddresses = Array.from(new Set(text.match(ipv4Regex) ?? []));
+  const fqdns = Array.from(
+    new Set(
+      (text.match(fqdnRegex) ?? []).filter(
+        (fqdn) => fqdn.includes(".") && fqdn.split(".").length >= 2
+      )
+    )
+  );
+
+  // Extract potential CI names (servers, switches, routers)
+  // Look for patterns like: SERVERNAME-01, SWITCH-CORE-01, RTR-EDGE-01
+  const ciNameRegex = /\b[A-Z]{2,}[-_][A-Z0-9-_]+\b/g;
+  const potentialCINames = Array.from(new Set(text.match(ciNameRegex) ?? []));
+
+  return {
+    ipAddresses: ipAddresses.slice(0, 5),
+    fqdns: fqdns.slice(0, 5),
+    potentialCINames: potentialCINames.slice(0, 5),
+  };
 }
 
 function normalizeMessageContent(content: CoreMessage["content"]): string {

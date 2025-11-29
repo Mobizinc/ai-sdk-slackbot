@@ -18,6 +18,8 @@ import type { CaseRecord, IncidentRecord, ServiceNowTableResponse } from "../typ
 import { mapCase, mapIncident, parseServiceNowDate, extractDisplayValue } from "../client/mappers";
 import { ServiceNowNotFoundError } from "../errors";
 import { buildFlexibleLikeQuery } from "./query-builders";
+import { cacheGet, cacheSet, cacheDel } from "../../../cache/redis";
+import { config } from "../../../config";
 
 /**
  * Configuration for Case Repository
@@ -40,7 +42,7 @@ export class ServiceNowCaseRepository implements CaseRepository {
     private readonly httpClient: ServiceNowHttpClient,
     config?: Partial<CaseRepositoryConfig>,
   ) {
-    this.caseTable = config?.caseTable ?? "sn_customerservice_case";
+    this.caseTable = config?.caseTable ?? "x_mobit_serv_case_service_case";
     this.caseJournalTable = config?.caseJournalTable ?? "sys_journal_field";
     this.incidentTable = config?.incidentTable ?? "incident";
   }
@@ -49,6 +51,10 @@ export class ServiceNowCaseRepository implements CaseRepository {
    * Find a case by its number
    */
   async findByNumber(number: string): Promise<Case | null> {
+    const cacheKey = `sn:case:${number}`;
+    const cached = await cacheGet<Case>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.httpClient.get<CaseRecord>(
       `/api/now/table/${this.caseTable}`,
       {
@@ -63,13 +69,19 @@ export class ServiceNowCaseRepository implements CaseRepository {
     }
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return mapCase(record, this.httpClient.getInstanceUrl());
+    const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+    await cacheSet(cacheKey, mapped, config.cacheTtlCase ?? 600);
+    return mapped;
   }
 
   /**
    * Find a case by its sys_id
    */
   async findBySysId(sysId: string): Promise<Case | null> {
+    const cacheKey = `sn:case_sys:${sysId}`;
+    const cached = await cacheGet<Case>(cacheKey);
+    if (cached) return cached;
+
     try {
       const response = await this.httpClient.get<CaseRecord>(
         `/api/now/table/${this.caseTable}/${sysId}`,
@@ -83,7 +95,9 @@ export class ServiceNowCaseRepository implements CaseRepository {
         return null;
       }
 
-      return mapCase(record, this.httpClient.getInstanceUrl());
+      const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+      await cacheSet(cacheKey, mapped, config.cacheTtlCase ?? 600);
+      return mapped;
     } catch (error) {
       // If 404, return null instead of throwing
       if (error instanceof ServiceNowNotFoundError) {
@@ -166,11 +180,8 @@ export class ServiceNowCaseRepository implements CaseRepository {
     }
 
     if (criteria.assignmentGroup) {
-      // Assignment group by display name
-      const clause = buildFlexibleLikeQuery("assignment_group.name", criteria.assignmentGroup);
-      if (clause) {
-        queryParts.push(clause);
-      }
+      // Assignment group by display name - use exact match to avoid permissions issues with LIKE
+      queryParts.push(`assignment_group.name=${criteria.assignmentGroup}`);
     }
 
     if (criteria.assignedTo) {
@@ -195,6 +206,22 @@ export class ServiceNowCaseRepository implements CaseRepository {
 
     if (criteria.updatedBefore) {
       queryParts.push(`sys_updated_on<=${this.formatDate(criteria.updatedBefore)}`);
+    }
+
+    if (criteria.resolvedAfter) {
+      queryParts.push(`resolved_at>=${this.formatDate(criteria.resolvedAfter)}`);
+    }
+
+    if (criteria.resolvedBefore) {
+      queryParts.push(`resolved_at<=${this.formatDate(criteria.resolvedBefore)}`);
+    }
+
+    if (criteria.closedAfter) {
+      queryParts.push(`closed_at>=${this.formatDate(criteria.closedAfter)}`);
+    }
+
+    if (criteria.closedBefore) {
+      queryParts.push(`closed_at<=${this.formatDate(criteria.closedBefore)}`);
     }
 
     // Active/closed filter
@@ -290,7 +317,16 @@ export class ServiceNowCaseRepository implements CaseRepository {
     );
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return mapCase(record, this.httpClient.getInstanceUrl());
+    const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+    if (mapped.number) {
+      await cacheDel(`sn:case:${mapped.number}`);
+    }
+    await cacheDel(`sn:case_sys:${sysId}`);
+    await cacheSet(`sn:case_sys:${sysId}`, mapped, config.cacheTtlCase ?? 600);
+    if (mapped.number) {
+      await cacheSet(`sn:case:${mapped.number}`, mapped, config.cacheTtlCase ?? 600);
+    }
+    return mapped;
   }
 
   /**
@@ -304,6 +340,8 @@ export class ServiceNowCaseRepository implements CaseRepository {
         [field]: note,
       },
     );
+    // Invalidate caches for this case
+    await cacheDel(`sn:case_sys:${sysId}`);
   }
 
   /**

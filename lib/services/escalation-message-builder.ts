@@ -10,7 +10,7 @@
  */
 
 import { z } from "zod";
-import { config } from "../config";
+import { getLlmTimeout, getServiceNowConfig, getEscalationNotifyAssignedEngineer } from "../config/helpers";
 import { withTimeout, isTimeoutError } from "../utils/timeout-wrapper";
 import { AnthropicChatService } from "./anthropic-chat";
 import type { EscalationContext, EscalationDecision } from "./escalation-service";
@@ -91,7 +91,7 @@ export async function buildEscalationMessage(
         ],
         maxSteps: 3,
       }),
-      config.llmEscalationTimeoutMs,
+      getLlmTimeout("escalation"),
     );
 
     let content: { summary: string; questions: string[] } | null = null;
@@ -222,6 +222,28 @@ function buildSlackBlocks(
       label: "Client",
       value: sanitizeMrkdwn(context.companyName),
     });
+  } else if (context.classification.scope_evaluation?.clientName) {
+    businessContextFields.push({
+      label: "Client",
+      value: sanitizeMrkdwn(context.classification.scope_evaluation.clientName),
+    });
+  } else {
+    const bi = context.classification.business_intelligence as { clientName?: string; client_name?: string } | undefined;
+    const biClient = bi?.clientName || bi?.client_name;
+    if (biClient) {
+      businessContextFields.push({
+        label: "Client",
+        value: sanitizeMrkdwn(biClient),
+      });
+    }
+  }
+
+  const requestSummary = context.caseData.short_description || context.caseData.description;
+  if (requestSummary) {
+    businessContextFields.push({
+      label: "Request",
+      value: sanitizeMrkdwn(requestSummary),
+    });
   }
 
   if (context.contactName) {
@@ -231,7 +253,7 @@ function buildSlackBlocks(
     });
   }
 
-  if (context.assignedTo && config.escalationNotifyAssignedEngineer) {
+  if (context.assignedTo && getEscalationNotifyAssignedEngineer()) {
     businessContextFields.push({
       label: "Assigned",
       value: `<@${context.assignedTo}>`, // Slack user mentions are safe
@@ -251,6 +273,11 @@ function buildSlackBlocks(
       createSectionBlock("*━━━ BUSINESS CONTEXT ━━━*"),
       createFieldsBlock(businessContextFields)
     );
+  }
+
+  const contractBlocks = buildContractGuardrailBlocks(context);
+  if (contractBlocks.length > 0) {
+    blocks.push(...contractBlocks);
   }
 
   // AI Analysis Section
@@ -354,6 +381,69 @@ function buildSlackBlocks(
   return blocks;
 }
 
+function buildContractGuardrailBlocks(context: EscalationContext): KnownBlock[] {
+  const scopeAnalysis = context.classification.scope_analysis;
+  const scopeEvaluation = context.classification.scope_evaluation;
+
+  if (!scopeAnalysis && !scopeEvaluation) {
+    return [];
+  }
+
+  const lines: string[] = [];
+  const recordType = context.classification.record_type_suggestion?.type;
+
+  if (typeof scopeAnalysis?.estimated_effort_hours === "number") {
+    const rounded = Math.round(scopeAnalysis.estimated_effort_hours * 10) / 10;
+    let capText = "";
+    const thresholds = scopeEvaluation?.policyEffortThresholds;
+    if (thresholds) {
+      if (
+        (recordType === "Incident" || recordType === "Problem") &&
+        typeof thresholds.incidentHours === "number"
+      ) {
+        capText = ` (cap ${thresholds.incidentHours}h incident)`;
+      } else if (
+        (recordType === "Case" || recordType === "Change" || !recordType) &&
+        typeof thresholds.serviceRequestHours === "number"
+      ) {
+        capText = ` (cap ${thresholds.serviceRequestHours}h request)`;
+      }
+    }
+    lines.push(`• Estimated effort: ${rounded}h${capText}`);
+  }
+
+  if (scopeAnalysis?.requires_onsite_support) {
+    const onsite = typeof scopeAnalysis.onsite_hours_estimate === "number"
+      ? `${Math.round(scopeAnalysis.onsite_hours_estimate * 10) / 10}h`
+      : "Yes";
+    const included = scopeEvaluation?.policyOnsiteSupport?.includedHoursPerMonth;
+    const onsiteCap = typeof included === "number" ? ` (monthly cap ${included}h)` : "";
+    lines.push(`• Onsite requirement: ${onsite}${onsiteCap}`);
+  }
+
+  if (scopeAnalysis?.contract_flags && scopeAnalysis.contract_flags.length > 0) {
+    lines.push(`• Contract flags: ${scopeAnalysis.contract_flags.map((flag) => flag.replace(/_/g, " ")).join(", ")}`);
+  }
+
+  if (scopeEvaluation?.reasons && scopeEvaluation.reasons.length > 0) {
+    scopeEvaluation.reasons.forEach((reason) => {
+      lines.push(`• ${reason}`);
+    });
+  } else if (scopeAnalysis?.reasoning) {
+    lines.push(`• ${scopeAnalysis.reasoning}`);
+  }
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const text = lines.map((line) => sanitizeMrkdwn(line)).join("\n");
+  return [
+    createSectionBlock("*━━━ CONTRACT GUARDRAILS ━━━*"),
+    createSectionBlock(text),
+  ];
+}
+
 /**
  * Build fallback escalation message (no LLM)
  * Used when LLM is disabled or fails
@@ -434,7 +524,7 @@ function getFallbackContent(context: EscalationContext): { summary: string; ques
  * Get ServiceNow case URL
  */
 function getServiceNowUrl(caseSysId: string): string {
-  const instance =
-    (config.servicenowInstanceUrl || config.servicenowUrl || "https://your-instance.service-now.com").replace(/\/$/, "");
+  const snConfig = getServiceNowConfig();
+  const instance = (snConfig.instanceUrl || "https://your-instance.service-now.com").replace(/\/$/, "");
   return `${instance}/sn_customerservice_case.do?sys_id=${caseSysId}`;
 }

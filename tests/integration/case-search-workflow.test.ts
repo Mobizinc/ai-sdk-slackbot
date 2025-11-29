@@ -37,6 +37,24 @@ const { mockCaseRepository } = vi.hoisted(() => {
 // Mock repository factory
 vi.mock('../../lib/infrastructure/servicenow/repositories/factory', () => ({
   getCaseRepository: () => mockCaseRepository,
+  getCustomerAccountRepository: vi.fn().mockReturnValue({
+    findByAccountNumber: vi.fn(),
+    search: vi.fn(),
+    findById: vi.fn(),
+  }),
+  getCmdbRepository: vi.fn().mockReturnValue({
+    findByIpAddress: vi.fn(),
+    findByFqdn: vi.fn(),
+    search: vi.fn(),
+  }),
+  getIncidentRepository: vi.fn().mockReturnValue({
+    findBySysId: vi.fn(),
+    search: vi.fn(),
+  }),
+  getKnowledgeRepository: vi.fn().mockReturnValue({
+    search: vi.fn(),
+    findById: vi.fn(),
+  }),
 }));
 
 describe('Case Search Workflow Integration', () => {

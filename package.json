@@ -9,6 +9,7 @@
     "build:admin": "cd admin && pnpm build",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "test:smoke": "vitest run tests/smoke --reporter=verbose",
     "smoke": "tsx scripts/smoke-test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
@@ -56,7 +57,9 @@
     "node-cron": "^4.2.1",
     "openai": "^6.2.0",
     "sharp": "^0.34.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "typescript": "^5.3.3",
+    "@upstash/redis": "^1.34.7"
   },
   "devDependencies": {
     "@types/mssql": "^9.1.8",
@@ -66,7 +69,6 @@
     "drizzle-kit": "^0.31.5",
     "msw": "^2.3.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
     "vitest": "^1.5.3"
   }
 }

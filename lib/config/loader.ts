@@ -10,9 +10,15 @@ const config: ConfigValueMap = createInitialConfig();
 let initialized = false;
 let loadPromise: Promise<ConfigValueMap> | null = null;
 
+// Auto-load config at module initialization (non-blocking)
+// This starts loading during cold start so config is ready when first request arrives
 void ensureConfigLoaded();
 
 export function getConfigSync(): ConfigValueMap {
+  if (!initialized) {
+    console.warn('[Config] WARN: Accessing config before async load completed - using env vars only');
+    console.warn('[Config] Call await getConfig() before accessing config values to ensure DB overrides are loaded');
+  }
   return config;
 }
 
@@ -35,7 +41,13 @@ function createInitialConfig(): ConfigValueMap {
   const initial = {} as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
     const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
-    const envRaw = definition.envVar ? process.env[definition.envVar] : undefined;
+    let envRaw = definition.envVar ? process.env[definition.envVar] : undefined;
+
+    // Special handling: support both NEXT_PUBLIC_ADMIN_TOKEN and ADMIN_API_TOKEN for backwards compatibility
+    if (key === 'adminApiToken' && !envRaw) {
+      envRaw = process.env.ADMIN_API_TOKEN;
+    }
+
     initial[key] = parseValue(definition, envRaw);
   }
   return initial as ConfigValueMap;
@@ -56,11 +68,14 @@ async function ensureConfigLoaded(): Promise<ConfigValueMap> {
 
 async function loadAndApplyConfig(): Promise<ConfigValueMap> {
   try {
+    console.log('[Config] Loading configuration from database...');
     const overrides = await loadOverridesFromDatabase();
     applyOverrides(config, overrides);
-    console.log(`[Config] Loaded ${overrides.size} config overrides from database`);
+    console.log(`[Config] Successfully loaded ${overrides.size} config overrides from database`);
+    console.log('[Config] Configuration initialization complete');
   } catch (error) {
-    console.error("[Config] Failed to load overrides from database:", error);
+    console.error("[Config] CRITICAL: Failed to load overrides from database:", error);
+    console.error("[Config] Error details:", error instanceof Error ? error.stack : String(error));
     console.log("[Config] Falling back to environment variables and defaults");
   } finally {
     initialized = true;

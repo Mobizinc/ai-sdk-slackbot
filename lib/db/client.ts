@@ -9,7 +9,7 @@
  * - Graceful degradation to memory-only mode
  */
 
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle, NeonHttpDatabase } from "drizzle-orm/neon-http";
 import { neon, neonConfig } from "@neondatabase/serverless";
 import * as schema from "./schema";
 import {
@@ -23,7 +23,7 @@ import { withInitRetry } from "./retry-wrapper";
 // This caches the connection between requests for better performance
 neonConfig.fetchConnectionCache = true;
 
-let db: ReturnType<typeof drizzle> | null = null;
+let db: NeonHttpDatabase<typeof schema> | null = null;
 let isInitializing = false;
 let initializationError: Error | null = null;
 
@@ -126,6 +126,7 @@ export async function testDatabaseConnection(): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("[Database] Connection test failed:", error);
-    return false;
+    // Surface the original error so retry logic can classify retryable failures (e.g., fetch failed)
+    throw error;
   }
 }

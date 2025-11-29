@@ -25,6 +25,7 @@ export interface Case {
   assignmentGroupSysId?: string;
   assignedTo?: string;
   assignedToSysId?: string;
+  assignedToEmail?: string | null;
   openedBy?: string;
   openedBySysId?: string;
   callerId?: string;
@@ -43,6 +44,9 @@ export interface Case {
   urgency?: string;
   sysDomain?: string;
   sysDomainPath?: string;
+  resolvedAt?: Date;
+  closedAt?: Date;
+  active?: boolean;
   url: string;
 }
 
@@ -331,6 +335,10 @@ export interface CaseSearchCriteria {
   openedBefore?: Date;
   updatedAfter?: Date;
   updatedBefore?: Date;
+  resolvedAfter?: Date;
+  resolvedBefore?: Date;
+  closedAfter?: Date;
+  closedBefore?: Date;
   activeOnly?: boolean; // Filter by active status
   sysDomain?: string; // Domain sys_id for multi-tenant filtering
   includeChildDomains?: boolean; // If true, includes cases from child domains (hierarchical search)
@@ -490,6 +498,139 @@ export interface SPMSearchCriteria {
   openedBefore?: Date;
   dueBefore?: Date;
   sortBy?: 'number' | 'opened_at' | 'due_date' | 'priority' | 'percent_complete';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Request entity (parent of RITM records)
+ * Represents a service catalog request from the sc_request table
+ */
+export interface Request {
+  sysId: string;
+  number: string; // REQ0043549
+  shortDescription: string;
+  description?: string;
+  requestedFor?: string; // User sys_id requesting
+  requestedForName?: string;
+  requestedBy?: string; // User sys_id who submitted
+  requestedByName?: string;
+  state?: string; // Pending, In Progress, Closed Complete, etc.
+  priority?: string;
+  openedAt?: Date;
+  closedAt?: Date;
+  dueDate?: Date;
+  stage?: string; // Fulfillment stage
+  approvalState?: string; // Approved, Rejected, etc.
+  deliveryAddress?: string;
+  specialInstructions?: string;
+  price?: number;
+  url: string;
+}
+
+/**
+ * Requested Item entity (RITM - child of Request)
+ * Represents a requested item from the sc_req_item table
+ */
+export interface RequestedItem {
+  sysId: string;
+  number: string; // RITM0046210
+  shortDescription: string;
+  description?: string;
+  request?: string; // Parent REQ sys_id
+  requestNumber?: string; // Parent REQ number
+  catalogItem?: string; // Catalog item sys_id
+  catalogItemName?: string;
+  state?: string; // Pending, In Progress, Closed Complete, etc.
+  stage?: string;
+  openedAt?: Date;
+  closedAt?: Date;
+  dueDate?: Date;
+  assignedTo?: string;
+  assignedToName?: string;
+  assignmentGroup?: string;
+  assignmentGroupName?: string;
+  quantity?: number;
+  price?: number;
+  url: string;
+}
+
+/**
+ * Service Catalog Task entity (child of RITM)
+ * Represents a catalog task from the sc_task table
+ */
+export interface CatalogTask {
+  sysId: string;
+  number: string; // CTASK0049921
+  shortDescription: string;
+  description?: string;
+  requestItem?: string; // Parent RITM sys_id
+  requestItemNumber?: string; // Parent RITM number
+  request?: string; // Grandparent REQ sys_id
+  requestNumber?: string; // Grandparent REQ number
+  state?: string; // Open, Work in Progress, Closed Complete, etc.
+  active?: boolean;
+  openedAt?: Date;
+  closedAt?: Date;
+  dueDate?: Date;
+  assignedTo?: string;
+  assignedToName?: string;
+  assignmentGroup?: string;
+  assignmentGroupName?: string;
+  priority?: string;
+  workNotes?: string;
+  closeNotes?: string;
+  url: string;
+}
+
+/**
+ * Criteria for searching requests
+ */
+export interface RequestSearchCriteria {
+  number?: string;
+  requestedFor?: string; // User sys_id
+  requestedBy?: string; // User sys_id
+  state?: string;
+  priority?: string;
+  openedAfter?: Date;
+  openedBefore?: Date;
+  sortBy?: 'number' | 'opened_at' | 'due_date' | 'priority';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Criteria for searching requested items
+ */
+export interface RequestedItemSearchCriteria {
+  number?: string;
+  request?: string; // Parent request sys_id or number
+  catalogItem?: string; // Catalog item name or sys_id
+  state?: string;
+  assignedTo?: string;
+  assignmentGroup?: string;
+  openedAfter?: Date;
+  sortBy?: 'number' | 'opened_at' | 'due_date';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Criteria for searching catalog tasks
+ */
+export interface CatalogTaskSearchCriteria {
+  number?: string;
+  requestItem?: string; // Parent RITM sys_id or number
+  request?: string; // Grandparent REQ sys_id or number
+  state?: string;
+  active?: boolean;
+  assignedTo?: string;
+  assignmentGroup?: string;
+  openedAfter?: Date;
+  sortBy?: 'number' | 'opened_at' | 'due_date';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;

@@ -13,6 +13,7 @@
 
 import { WebClient } from '@slack/web-api';
 import type { ChatMessage } from '../agent/types';
+import { getSlackClient } from '../slack/client';
 
 export interface PostMessageOptions {
   channel: string;
@@ -45,6 +46,33 @@ export class SlackMessagingService {
   private readonly MAX_FALLBACK_TEXT_LENGTH = 39000; // Slack hard limit is ~40k chars
 
   constructor(private client: WebClient) {}
+
+  async listChannels(): Promise<Array<{ id: string; name: string; isPrivate?: boolean }>> {
+    try {
+      const result = await this.client.conversations.list({
+        types: "public_channel,private_channel",
+        limit: 200,
+      });
+      const chans = (result.channels as any[]) || [];
+      return chans
+        .filter((ch) => ch && ch.id && ch.name)
+        .map((ch) => ({ id: ch.id as string, name: ch.name as string, isPrivate: Boolean(ch.is_private) }));
+    } catch (error) {
+      console.error("[Slack Messaging] Failed to list channels", error);
+      throw error;
+    }
+  }
+
+  async getChannelInfo(channelId: string): Promise<{ id: string; name: string; isPrivate?: boolean }> {
+    try {
+      const result = await this.client.conversations.info({ channel: channelId });
+      const ch = (result.channel as any) || {};
+      return { id: ch.id as string, name: ch.name as string, isPrivate: Boolean(ch.is_private) };
+    } catch (error) {
+      console.error(`[Slack Messaging] Failed to get channel info for ${channelId}`, error);
+      throw error;
+    }
+  }
 
   /**
    * Post a message to a Slack channel or thread
@@ -566,27 +594,7 @@ let slackMessagingService: SlackMessagingService | null = null;
  */
 export function getSlackMessagingService(): SlackMessagingService {
   if (!slackMessagingService) {
-    // Import client lazily to avoid circular dependency
-    // In test environment, require() might not work due to Vitest module resolution
-    try {
-      const { getSlackClient } = require('../slack/client');
-      slackMessagingService = new SlackMessagingService(getSlackClient());
-    } catch (error: any) {
-      // In tests, if require fails, create a mock WebClient
-      if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-        const mockClient = {
-          chat: { postMessage: () => Promise.resolve({ ok: true }), update: () => Promise.resolve({ ok: true }) },
-          files: { uploadV2: () => Promise.resolve({ ok: true }) },
-          conversations: { info: () => Promise.resolve({ ok: true }) },
-          auth: { test: () => Promise.resolve({ ok: true, user_id: "U123456" }) },
-          users: { lookupByEmail: () => Promise.resolve({ ok: true }) },
-          views: { open: () => Promise.resolve({ ok: true }), update: () => Promise.resolve({ ok: true }) },
-        } as any;
-        slackMessagingService = new SlackMessagingService(mockClient);
-      } else {
-        throw error;
-      }
-    }
+    slackMessagingService = new SlackMessagingService(getSlackClient());
   }
   return slackMessagingService;
 }

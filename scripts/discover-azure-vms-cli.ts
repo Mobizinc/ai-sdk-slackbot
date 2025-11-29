@@ -46,6 +46,48 @@ interface ResourceGroup {
   subscriptionId: string;
 }
 
+interface AzureVNet {
+  id: string;
+  name: string;
+  subscriptionId: string;
+  resourceGroup: string;
+  location: string;
+  addressPrefixes: string[];
+  dnsServers: string[];
+  subnets: Array<{
+    name: string;
+    addressPrefix: string;
+    nsgId?: string | null;
+    routeTableId?: string | null;
+  }>;
+}
+
+interface AzureVNetGateway {
+  id: string;
+  name: string;
+  subscriptionId: string;
+  resourceGroup: string;
+  location: string;
+  gatewayType?: string;
+  vpnType?: string;
+  sku?: string;
+  provisioningState?: string;
+  virtualNetwork?: string | null;
+  subnetResourceIds: string[];
+  publicIpAddresses: string[];
+}
+
+function extractResourceGroupFromId(id: string): string {
+  const match = id.match(/resourceGroups\/([^/]+)/i);
+  return match ? match[1] : 'unknown';
+}
+
+function extractVirtualNetworkFromSubnetId(id?: string | null): string | null {
+  if (!id) return null;
+  const match = id.match(/virtualNetworks\/([^/]+)/i);
+  return match ? match[1] : null;
+}
+
 async function discoverAzureVMs(tenantKey: string) {
   console.log('☁️  Discover Azure VMs, Resource Groups, and IPs');
   console.log('='.repeat(70));
@@ -95,6 +137,8 @@ async function discoverAzureVMs(tenantKey: string) {
 
   const allVMs: AzureVM[] = [];
   const allResourceGroups: ResourceGroup[] = [];
+  const allVNets: AzureVNet[] = [];
+  const allGateways: AzureVNetGateway[] = [];
 
   try {
     for (const sub of subscriptions) {
@@ -125,6 +169,128 @@ async function discoverAzureVMs(tenantKey: string) {
         }
       } catch (error: any) {
         console.log(`    ⚠️  Error discovering resource groups: ${error.message}`);
+      }
+
+      console.log('');
+
+      // Discover virtual networks
+      console.log('  Discovering virtual networks...');
+
+      try {
+        const vnetCommand = `az network vnet list --subscription ${sub.subscription_id} --output json`;
+        const { stdout: vnetStdout } = await execAsync(vnetCommand);
+        const vnets = JSON.parse(vnetStdout);
+
+        if (vnets.length === 0) {
+          console.log('    ⚠️  No virtual networks found in this subscription');
+        } else {
+          console.log(`    ✅ Found ${vnets.length} virtual network(s)`);
+        }
+
+        for (const vnet of vnets) {
+          const resourceGroup = extractResourceGroupFromId(vnet.id || '');
+          const addressPrefixes = vnet.addressSpace?.addressPrefixes || [];
+          const dnsServers = vnet.dhcpOptions?.dnsServers || [];
+          const subnets = (vnet.subnets || []).map((subnet: any) => ({
+            name: subnet.name,
+            addressPrefix: subnet.addressPrefix || subnet.properties?.addressPrefix || '',
+            nsgId: subnet.networkSecurityGroup?.id || subnet.properties?.networkSecurityGroup?.id || null,
+            routeTableId: subnet.routeTable?.id || subnet.properties?.routeTable?.id || null
+          }));
+
+          allVNets.push({
+            id: vnet.id,
+            name: vnet.name,
+            subscriptionId: sub.subscription_id,
+            resourceGroup,
+            location: vnet.location,
+            addressPrefixes,
+            dnsServers,
+            subnets
+          });
+        }
+      } catch (error: any) {
+        console.log(`    ⚠️  Error discovering virtual networks: ${error.message}`);
+      }
+
+      console.log('');
+
+      // Discover virtual network gateways
+      console.log('  Discovering virtual network gateways...');
+
+      try {
+        const vnetGatewayCommand = `az resource list --subscription ${sub.subscription_id} --resource-type Microsoft.Network/virtualNetworkGateways --output json`;
+        const vpnGatewayCommand = `az resource list --subscription ${sub.subscription_id} --resource-type Microsoft.Network/vpnGateways --output json`;
+        const { stdout: vnetGatewayStdout } = await execAsync(vnetGatewayCommand);
+        const { stdout: vpnGatewayStdout } = await execAsync(vpnGatewayCommand);
+        const gateways = [
+          ...JSON.parse(vnetGatewayStdout),
+          ...JSON.parse(vpnGatewayStdout)
+        ];
+
+        if (gateways.length === 0) {
+          console.log('    ⚠️  No virtual network gateways found in this subscription');
+        } else {
+          console.log(`    ✅ Found ${gateways.length} virtual network gateway(s)`);
+        }
+
+        let publicIpMap = new Map<string, string>();
+        if (gateways.length > 0) {
+          try {
+            const publicIpCommand = `az network public-ip list --subscription ${sub.subscription_id} --output json`;
+            const { stdout: publicIpStdout } = await execAsync(publicIpCommand);
+            const publicIps = JSON.parse(publicIpStdout);
+            for (const ip of publicIps) {
+              if (ip.id) {
+                publicIpMap.set(ip.id.toLowerCase(), ip.ipAddress || '');
+              }
+            }
+          } catch (publicIpError: any) {
+            console.log(`    ⚠️  Unable to load public IPs for gateways: ${publicIpError.message}`);
+          }
+        }
+
+        for (const gateway of gateways) {
+          const id: string = gateway.id;
+          const resourceGroup = gateway.resourceGroup || extractResourceGroupFromId(id);
+          const properties = gateway.properties || {};
+          const ipConfigurations = properties.ipConfigurations || [];
+          const publicIpAddresses: string[] = [];
+          const subnetResourceIds: string[] = [];
+
+          for (const config of ipConfigurations) {
+            const subnetId = config.properties?.subnet?.id;
+            if (subnetId) {
+              subnetResourceIds.push(subnetId);
+            }
+            const publicIpId = config.properties?.publicIPAddress?.id;
+            if (publicIpId) {
+              const normalizedId = publicIpId.toLowerCase();
+              if (publicIpMap.has(normalizedId)) {
+                publicIpAddresses.push(publicIpMap.get(normalizedId)!);
+              } else {
+                publicIpAddresses.push(publicIpId);
+              }
+            }
+          }
+
+          allGateways.push({
+            id,
+            name: gateway.name,
+            subscriptionId: sub.subscription_id,
+            resourceGroup,
+            location: gateway.location,
+            gatewayType: properties.gatewayType,
+            vpnType: properties.vpnType || properties.gatewayType,
+            sku: gateway.sku?.name || properties.sku?.name,
+            provisioningState: properties.provisioningState,
+            virtualNetwork: extractVirtualNetworkFromSubnetId(subnetResourceIds[0]),
+            subnetResourceIds,
+            publicIpAddresses
+          });
+        }
+      } catch (error: any) {
+        console.log(`    ⚠️  Error discovering virtual network gateways: ${error.message}`);
       }
 
       console.log('');
@@ -242,6 +408,8 @@ async function discoverAzureVMs(tenantKey: string) {
     console.log(`Total Subscriptions: ${subscriptions.length}`);
     console.log(`Total Resource Groups: ${allResourceGroups.length}`);
     console.log(`Total VMs: ${allVMs.length}`);
+    console.log(`Total Virtual Networks: ${allVNets.length}`);
+    console.log(`Total VNet Gateways: ${allGateways.length}`);
     console.log('');
 
     if (allVMs.length === 0) {
@@ -318,6 +486,33 @@ async function discoverAzureVMs(tenantKey: string) {
     console.log(`💾 VM Data (CSV): ${csvOutputPath}`);
     console.log('');
 
+    // Save VNet data (JSON)
+    const vnetOutputPath = path.join(discoveryDir, `${tenantSlug}-vnets.json`);
+    const vnetOutput = {
+      tenant: tenant,
+      discovered_at: new Date().toISOString(),
+      subscription_count: subscriptions.length,
+      virtual_network_count: allVNets.length,
+      vnets: allVNets
+    };
+
+    fs.writeFileSync(vnetOutputPath, JSON.stringify(vnetOutput, null, 2));
+    console.log(`💾 VNet Data (JSON): ${vnetOutputPath}`);
+
+    // Save VNet gateway data (JSON)
+    const gatewayOutputPath = path.join(discoveryDir, `${tenantSlug}-vnet-gateways.json`);
+    const gatewayOutput = {
+      tenant: tenant,
+      discovered_at: new Date().toISOString(),
+      subscription_count: subscriptions.length,
+      gateway_count: allGateways.length,
+      gateways: allGateways
+    };
+
+    fs.writeFileSync(gatewayOutputPath, JSON.stringify(gatewayOutput, null, 2));
+    console.log(`💾 VNet Gateway Data (JSON): ${gatewayOutputPath}`);
+    console.log('');
+
     console.log('─'.repeat(70));
     console.log('💡 Next Steps');
     console.log('─'.repeat(70));
@@ -333,6 +528,9 @@ async function discoverAzureVMs(tenantKey: string) {
     console.log(`   npx tsx scripts/create-azure-subscription-cis.ts config/azure/altus-azure-structure.json`);
     console.log(`   npx tsx scripts/create-azure-resource-group-cis.ts backup/azure-discovery/${tenantSlug}-resource-groups.json`);
     console.log(`   npx tsx scripts/create-azure-vm-cis.ts backup/azure-discovery/${tenantSlug}-vms.json`);
+    console.log(`   npx tsx scripts/create-azure-vnet-cis.ts backup/azure-discovery/${tenantSlug}-vnets.json`);
+    console.log(`   npx tsx scripts/create-azure-vnet-gateway-cis.ts backup/azure-discovery/${tenantSlug}-vnet-gateways.json`);
+    console.log(`   npx tsx scripts/create-azure-firewall-cis.ts backup/azure-discovery/${tenantSlug}-vms.json`);
     console.log('');
 
   } catch (error: any) {

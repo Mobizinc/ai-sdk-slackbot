@@ -1,0 +1,309 @@
+{
+  "tenant": {
+    "id": "64c9180e-db30-45b8-af76-82f8930da669",
+    "name": "Altus Community Healthcare",
+    "domain": "ztaltus.onmicrosoft.com"
+  },
+  "discovered_at": "2025-11-13T03:08:23.594Z",
+  "resource_group_count": 40,
+  "resource_groups": [
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-scu-asr-001",
+      "name": "rg-scu-asr-001",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-scu-altus-arc-001",
+      "name": "rg-scu-altus-arc-001",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-networks-01",
+      "name": "rg-altus-scus-networks-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-workloads-01",
+      "name": "rg-altus-scus-workloads-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-backups-01",
+      "name": "rg-altus-scus-backups-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/AzureBackupRG_southcentralus_1",
+      "name": "AzureBackupRG_southcentralus_1",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-azmig-dna01",
+      "name": "rg-altus-scus-azmig-dna01",
+      "location": "centralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c/resourceGroups/rg-altus-scus-azmig-v2",
+      "name": "rg-altus-scus-azmig-v2",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "6b3fbfcb-0887-4115-9bcd-c74e8eb80a7c"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main-southcentralus",
+      "name": "main-southcentralus",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/centralus",
+      "name": "centralus",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/testnew",
+      "name": "testnew",
+      "location": "westus2",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/cloud-shell-storage-westeurope",
+      "name": "cloud-shell-storage-westeurope",
+      "location": "westeurope",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/main",
+      "name": "main",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/ResourceMoverRG-eastus-southcentralus-eus2",
+      "name": "ResourceMoverRG-eastus-southcentralus-eus2",
+      "location": "eastus2",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/AzureBackupRG_eastus_1",
+      "name": "AzureBackupRG_eastus_1",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/test",
+      "name": "test",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/backup",
+      "name": "backup",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/backup2",
+      "name": "backup2",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/rg-altus-scus-jmpbx-01",
+      "name": "rg-altus-scus-jmpbx-01",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/f14908ec-6802-4578-bfc6-0bb77de1680b/resourceGroups/rg-altus-scus-veeam-asr01",
+      "name": "rg-altus-scus-veeam-asr01",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "f14908ec-6802-4578-bfc6-0bb77de1680b"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-intelligence-ai",
+      "name": "rg-altus-ncus-intelligence-ai",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-fabric-01",
+      "name": "rg-altus-ncus-fabric-01",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-networks-01",
+      "name": "rg-altus-ncus-networks-01",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/rg-altus-ncus-backups-01",
+      "name": "rg-altus-ncus-backups-01",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/db7b1d11-6a6c-4381-94ce-fdfa97486a75/resourceGroups/AzureBackupRG_northcentralus_1",
+      "name": "AzureBackupRG_northcentralus_1",
+      "location": "northcentralus",
+      "tags": {},
+      "subscriptionId": "db7b1d11-6a6c-4381-94ce-fdfa97486a75"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/testingrg",
+      "name": "testingrg",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-paloalto-001",
+      "name": "rg-altus-scus-paloalto-001",
+      "location": "southcentralus",
+      "tags": {
+        "Client": "Altus Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "Altus",
+        "Purpose": "Palo Alto Network Security Infrastructure"
+      },
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-001",
+      "name": "rg-altus-scus-sharedservices-001",
+      "location": "southcentralus",
+      "tags": {
+        "Client": "Altus Corp",
+        "CostCenter": "IT-Security",
+        "DeployedBy": "Terraform",
+        "Environment": "Production",
+        "Project": "Altus",
+        "Purpose": "Shared Services Infrastructure"
+      },
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/NetworkWatcherRG",
+      "name": "NetworkWatcherRG",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-sharedservices-002",
+      "name": "rg-altus-scus-sharedservices-002",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/AzureBackupRG_southcentralus_1",
+      "name": "AzureBackupRG_southcentralus_1",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-workloads-01",
+      "name": "rg-altus-scus-workloads-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-scus-ericom-01",
+      "name": "rg-altus-scus-ericom-01",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/DefaultResourceGroup-SCUS",
+      "name": "DefaultResourceGroup-SCUS",
+      "location": "southcentralus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/rg-altus-updates",
+      "name": "rg-altus-updates",
+      "location": "southcentralus",
+      "tags": {
+        "Client": "Altus Health System",
+        "Environment": "Production",
+        "ManagedBy": "Mobiz"
+      },
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/a704b75b-e54d-4010-85e1-f2f29d66dbc8/resourceGroups/DefaultResourceGroup-EUS",
+      "name": "DefaultResourceGroup-EUS",
+      "location": "eastus",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    },
+    {
+      "id": "/subscriptions/A704B75B-E54D-4010-85E1-F2F29D66DBC8/resourceGroups/DEFAULT-EVENTGRID",
+      "name": "DEFAULT-EVENTGRID",
+      "location": "westus2",
+      "tags": {},
+      "subscriptionId": "a704b75b-e54d-4010-85e1-f2f29d66dbc8"
+    }
+  ]
+}

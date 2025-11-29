@@ -22,7 +22,7 @@ import { getCaseRepository, getAssignmentGroupRepository } from "../lib/infrastr
 import { getSlackClient } from "../lib/slack/client";
 import { getAssignmentGroupCache } from "../lib/services/assignment-group-cache";
 import { getCaseSearchPagination } from "../lib/services/case-search-pagination";
-import { caseSearchService } from "../lib/services/case-search-service";
+import { getCaseSearchService } from "../lib/services/case-search-service";
 import { buildSearchResultsMessage } from "../lib/services/case-search-ui-builder";
 import { findStaleCases } from "../lib/services/case-aggregator";
 import { buildStaleCasesMessage } from "../lib/services/case-search-ui-builder";
@@ -60,6 +60,7 @@ import {
 import { openStandupModal, handleStandupModalSubmission } from "../lib/projects/standup-responses";
 import { StandupActions, StandupCallbackIds } from "../lib/projects/standup-constants";
 import type { ProjectDefinition } from "../lib/projects/types";
+import { DemandCallbackIds, handleDemandModalSubmission } from "../lib/demand/slack-workflow";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -315,6 +316,8 @@ async function handleViewSubmission(payload: any): Promise<void> {
     await handleReassignSubmission(payload);
   } else if (callbackId === StandupCallbackIds.MODAL) {
     await handleStandupModalSubmission(payload);
+  } else if (callbackId === DemandCallbackIds.MODAL) {
+    await handleDemandModalSubmission(payload);
   } else {
     console.warn(`[Interactivity] Unknown view submission: ${callbackId}`);
   }
@@ -1699,7 +1702,7 @@ async function handleSearchPagination(
     }
 
     // Execute search with new offset
-    const result = await caseSearchService.searchWithMetadata(state.filters);
+    const result = await getCaseSearchService().searchWithMetadata(state.filters);
 
     // Build updated display
     const display = buildSearchResultsMessage(result);
@@ -1751,7 +1754,7 @@ async function handleSearchRefresh(
     }
 
     // Reset offset and re-run search
-    const result = await caseSearchService.searchWithMetadata({
+    const result = await getCaseSearchService().searchWithMetadata({
       ...state.filters,
       offset: 0, // Reset to first page
     });
@@ -1794,7 +1797,7 @@ async function handleStaleThresholdChange(
 
   try {
     // Fetch stale cases with new threshold
-    const cases = await caseSearchService.findStaleCases(thresholdDays, 50);
+    const cases = await getCaseSearchService().findStaleCases(thresholdDays, 50);
     const staleCases = findStaleCases(cases, thresholdDays);
 
     // Build updated display
@@ -1853,7 +1856,7 @@ async function handleFilterSelection(
     filters.limit = 10;
 
     // Execute search
-    const result = await caseSearchService.searchWithMetadata(filters);
+    const result = await getCaseSearchService().searchWithMetadata(filters);
 
     // Build display
     const display = buildSearchResultsMessage(result);

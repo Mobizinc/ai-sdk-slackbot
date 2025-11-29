@@ -123,8 +123,8 @@ export function validateResponseFormat(
   const responseType = detectResponseType(response);
   const responseLength = response.trim().length;
 
-  // Simple structural validation - check for section presence only (informational)
-  // No keyword matching or content overlap validation
+  // Check for tools with formatted summaries that aren't being used
+  let valid = true;
 
   // Check if any ServiceNow tools were called (for context on whether to check structure)
   const hasServiceNowTools = toolCalls.some((tool) =>
@@ -133,7 +133,7 @@ export function validateResponseFormat(
 
   if (hasServiceNowTools) {
     if (responseType === 'overview') {
-      // For overviews: require Summary + Current State, warn on missing optional sections
+      // For overviews: require Summary + Current State, fail if missing
       const requiredMissing: string[] = [];
       const optionalMissing: string[] = [];
 
@@ -159,12 +159,12 @@ export function validateResponseFormat(
         }
       }
 
-      // Track missing sections as informational only (not errors)
-      // Don't add to missingElements - this is just for observability
-
+      // Missing required sections makes the response invalid
       if (requiredMissing.length > 0) {
+        valid = false;
+        missingElements.push(...requiredMissing);
         warnings.push(
-          `[INFO] Overview response missing suggested sections: ${requiredMissing.join(", ")}`
+          `Overview response missing required sections: ${requiredMissing.join(", ")}`
         );
       }
 
@@ -186,9 +186,51 @@ export function validateResponseFormat(
     }
   }
 
-  // All validation is now informational only - always return valid: true
-  // Warnings are for observability, not enforcement
-  const valid = true;
+  for (const tool of toolCalls) {
+    if (!tool.result || typeof tool.result !== "object") continue;
+    
+    // Check if this tool has a formatted summary
+    const summaryField = getFormattedSummaryField(tool.result);
+    if (!summaryField) continue;
+    
+    const summaryContent = tool.result[summaryField];
+    if (!summaryContent) continue;
+    
+    // Handle different content types
+    let contentString: string;
+    if (Array.isArray(summaryContent)) {
+      // For arrays like key_points, join them into a string
+      contentString = summaryContent.join(' ');
+    } else if (typeof summaryContent === "string") {
+      contentString = summaryContent;
+    } else {
+      continue;
+    }
+    
+    // Extract key phrases from the summary
+    const keyPhrases = extractKeyPhrases(contentString);
+    if (keyPhrases.length === 0) continue;
+    
+    // Determine match threshold based on response type
+    const threshold = responseType === 'field_query' ? 0.1 : 0.2;
+    const requiredMatches = Math.ceil(keyPhrases.length * threshold);
+    
+    // Count how many key phrases appear in the response
+    const matches = keyPhrases.filter(phrase => {
+      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      return regex.test(response);
+    });
+    
+
+    // If not enough matches, the response isn't using the summary
+    if (matches.length < requiredMatches) {
+      valid = false;
+      toolsWithUnusedSummaries.push(tool.toolName);
+      warnings.push(
+        `${tool.toolName} provided a formatted summary (${summaryField}) but the response doesn't appear to use it`
+      );
+    }
+  }
 
   return {
     valid,

@@ -49,7 +49,7 @@ export async function generateProjectInitiationDraft(options: ProjectInitiationO
 
   const collected = await collectProjectContext(project, ideaSummary);
   const prompt = buildInitiationPrompt(project, ideaSummary, collected.combined);
-  const model = options.model ?? "claude-3-haiku-20240307";
+  const model = options.model ?? "claude-haiku-4-5";
 
   let rawResponse = "";
   let llmOutput: ProjectInitiationOutput | null = null;

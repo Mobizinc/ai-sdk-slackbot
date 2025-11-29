@@ -25,8 +25,16 @@ const mockSearchFacade = {
   searchSimilarCases: vi.fn(),
 };
 
+const mockClientScopePolicyService = {
+  getPolicySummary: vi.fn(),
+};
+
 vi.mock("../lib/services/search-facade", () => ({
   getSearchFacadeService: () => mockSearchFacade,
+}));
+
+vi.mock("../lib/services/client-scope-policy-service", () => ({
+  getClientScopePolicyService: () => mockClientScopePolicyService,
 }));
 
 const configValues: Record<string, any> = {
@@ -49,6 +57,7 @@ describe("generateDiscoveryContextPack", () => {
     mockContextManager.getContextSync.mockReset();
     mockContextManager.getContextsForCase.mockReset().mockReturnValue([]);
     mockSearchFacade.isAzureSearchConfigured.mockReturnValue(false);
+    mockClientScopePolicyService.getPolicySummary.mockReset().mockReturnValue(null);
   });
 
   it("builds pack using provided data", async () => {
@@ -100,6 +109,8 @@ describe("generateDiscoveryContextPack", () => {
     expect(pack.caseContext?.caseNumber).toBe("SCS001");
     expect(pack.slackRecent?.messages.length).toBe(2);
     expect(pack.similarCases?.cases[0].caseNumber).toBe("SCS100");
+    expect(pack.schemaVersion).toBe("1.0.0");
+    expect(pack.clientScopePolicy).toBeUndefined();
   });
 
   it("fetches business context when not provided", async () => {
@@ -136,5 +147,22 @@ describe("generateDiscoveryContextPack", () => {
 
     expect(mockSearchFacade.searchSimilarCases).toHaveBeenCalled();
     expect(pack.similarCases?.cases[0].caseNumber).toBe("CS900");
+  });
+
+  it("attaches client scope policy summary when available", async () => {
+    mockClientScopePolicyService.getPolicySummary.mockReturnValue({
+      clientName: "Altus Community Healthcare",
+      effortThresholds: { incidentHours: 24, serviceRequestHours: 8 },
+    });
+
+    const pack = await generateDiscoveryContextPack({
+      companyName: "Altus Community Healthcare",
+    });
+
+    expect(mockClientScopePolicyService.getPolicySummary).toHaveBeenCalledWith(
+      "Altus Community Healthcare"
+    );
+    expect(pack.clientScopePolicy?.clientName).toBe("Altus Community Healthcare");
+    expect(pack.clientScopePolicy?.effortThresholds?.incidentHours).toBe(24);
   });
 });

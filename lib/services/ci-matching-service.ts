@@ -7,13 +7,13 @@
 import { getCmdbRepository } from "../infrastructure/servicenow/repositories/factory";
 
 interface CIMatch {
-  sys_id: string;
+  sysId: string;
   name: string;
   class: string;
   confidence: number;
   source: "cmdb" | "manual";
-  matched_at: string;
-  match_reason?: string;
+  matchedAt: string;
+  matchReason?: string;
 }
 
 interface ExtractedEntities {
@@ -50,15 +50,15 @@ export class CIMatchingService {
           try {
             const cis = await cmdbRepo.findByIpAddress(ip);
             for (const ci of cis) {
-              matches.push({
-                sys_id: ci.sysId,
-                name: ci.name,
-                class: ci.className || "Unknown",
-                confidence: 95,
-                source: "cmdb",
-                matched_at: new Date().toISOString(),
-                match_reason: `IP address match: ${ip}`,
-              });
+        matches.push({
+          sysId: ci.sysId,
+          name: ci.name || '',
+          class: ci.className || '',
+          confidence: 95,
+          source: "cmdb",
+          matchedAt: new Date().toISOString(),
+          matchReason: `IP address match: ${ip}`,
+        });
             }
           } catch (error) {
             console.warn(`[CI Matching Service] CMDB lookup failed for IP ${ip}:`, error);
@@ -73,13 +73,13 @@ export class CIMatchingService {
             const cis = await cmdbRepo.findByFqdn(hostname);
             for (const ci of cis) {
               matches.push({
-                sys_id: ci.sysId,
-                name: ci.name,
+                sysId: ci.sysId,
+                name: ci.name || '',
                 class: ci.className || "Unknown",
                 confidence: 95,
                 source: "cmdb",
-                matched_at: new Date().toISOString(),
-                match_reason: `Hostname match: ${hostname}`,
+                matchedAt: new Date().toISOString(),
+                matchReason: `Hostname match: ${hostname}`,
               });
             }
           } catch (error) {
@@ -96,13 +96,13 @@ export class CIMatchingService {
             const ciMatches = await cmdbRepo.search({ name, limit: 5 });
             for (const ci of ciMatches) {
               matches.push({
-                sys_id: ci.sysId,
-                name: ci.name,
+                sysId: ci.sysId,
+                name: ci.name || '',
                 class: ci.className || "Unknown",
                 confidence: 85,
                 source: "cmdb",
-                matched_at: new Date().toISOString(),
-                match_reason: `Name match: ${name}`,
+                matchedAt: new Date().toISOString(),
+                matchReason: `Name match: ${name}`,
               });
             }
           } catch (error) {
@@ -141,9 +141,9 @@ export class CIMatchingService {
     const uniqueMatches = new Map<string, CIMatch>();
 
     for (const match of cmdbMatches) {
-      const existing = uniqueMatches.get(match.sys_id);
+      const existing = uniqueMatches.get(match.sysId);
       if (!existing || match.confidence > existing.confidence) {
-        uniqueMatches.set(match.sys_id, match);
+        uniqueMatches.set(match.sysId, match);
       }
     }
 

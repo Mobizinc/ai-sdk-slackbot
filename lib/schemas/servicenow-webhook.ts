@@ -167,6 +167,43 @@ export const BusinessIntelligenceSchema = z.object({
 
 export type BusinessIntelligence = z.infer<typeof BusinessIntelligenceSchema>;
 
+export const ScopeAnalysisSchema = z.object({
+  estimated_effort_hours: z.number().optional().describe("Estimated total engineering effort hours"),
+  effort_confidence: z.enum(["low", "medium", "high"]).optional().describe("Confidence for the effort estimate"),
+  requires_onsite_support: z.boolean().optional().describe("True if onsite work is required"),
+  onsite_hours_estimate: z.number().optional().describe("Estimated onsite hours required"),
+  is_new_capability: z.boolean().optional().describe("True if the work creates a new capability or service"),
+  needs_project_sow: z.boolean().optional().describe("True if contract requires a separate SOW"),
+  reasoning: z.string().optional().describe("Explanation referencing the client policy"),
+  contract_flags: z.array(z.string()).optional().describe("Short tokens describing contract risk (e.g., exceeds_incident_threshold)"),
+});
+
+export const ScopeEvaluationSchema = z.object({
+  clientName: z.string().optional(),
+  shouldEscalate: z.boolean().optional(),
+  reasons: z.array(z.string()).optional(),
+  exceededEffortThreshold: z.boolean().optional(),
+  exceededOnsiteThreshold: z.boolean().optional(),
+  flaggedProjectWork: z.boolean().optional(),
+  estimatedEffortHours: z.number().optional(),
+  onsiteHoursEstimate: z.number().optional(),
+  policyEffortThresholds: z
+    .object({
+      incidentHours: z.number().optional(),
+      serviceRequestHours: z.number().optional(),
+    })
+    .optional(),
+  policyOnsiteSupport: z
+    .object({
+      includedHoursPerMonth: z.number().optional(),
+      overageRateUsd: z.number().optional(),
+      requiresPreapproval: z.boolean().optional(),
+      emergencyOnlyDefinition: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .optional(),
+});
+
 /**
  * Record Type Suggestion Schema
  * AI's determination of correct ITSM record type based on business intelligence synthesis
@@ -277,6 +314,8 @@ export const CaseClassificationResultSchema = z.object({
 
   // Exception-based business intelligence
   business_intelligence: BusinessIntelligenceSchema.optional().describe("Exception-based business intelligence (only populated when exceptions detected)"),
+  scope_analysis: ScopeAnalysisSchema.optional().describe("LLM-estimated effort/onsite analysis compared to client policy"),
+  scope_evaluation: ScopeEvaluationSchema.optional().describe("Deterministic contract evaluation result"),
 
   // ITSM record type suggestion
   record_type_suggestion: RecordTypeSuggestionSchema.optional().describe("AI's suggested ITSM record type based on business intelligence synthesis"),

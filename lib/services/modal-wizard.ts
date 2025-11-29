@@ -9,16 +9,10 @@
  * - Validation at each step
  * - Cancellation support
  * - Error recovery
- *
- * Example use cases:
- * - Complex case creation (multi-page forms)
- * - Project setup wizards
- * - Detailed KB article editing
- * - Multi-stage approvals
  */
 
 import { getSlackMessagingService } from "./slack-messaging";
-import { getInteractiveStateManager } from "./interactive-state-manager";
+import { workflowManager, Workflow } from "./workflow-manager";
 import {
   createModalView,
   createSectionBlock,
@@ -28,7 +22,7 @@ import {
 } from "../utils/message-styling";
 
 const slackMessaging = getSlackMessagingService();
-const stateManager = getInteractiveStateManager();
+const WORKFLOW_TYPE_MODAL_WIZARD = "MODAL_WIZARD";
 
 /**
  * Wizard step definition
@@ -54,13 +48,14 @@ export interface WizardConfig {
 }
 
 /**
- * Wizard state stored in database (matches ModalWizardStatePayload)
+ * Wizard state stored in database
  */
 interface WizardState {
   wizardId: string;
-  currentStep: number; // Changed from currentStepIndex to match payload
+  currentStep: number;
   totalSteps: number;
   collectedData: Record<string, any>;
+  userId: string;
 }
 
 /**
@@ -77,6 +72,9 @@ export class ModalWizard {
     userId: string,
     config: WizardConfig
   ): Promise<void> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available.");
+    }
     if (config.steps.length === 0) {
       throw new Error("Wizard must have at least one step");
     }
@@ -90,6 +88,7 @@ export class ModalWizard {
       currentStep: 0,
       totalSteps: config.steps.length,
       collectedData: {},
+      userId,
     };
 
     // Build first step modal
@@ -104,19 +103,15 @@ export class ModalWizard {
 
     // Store wizard state with view_id
     if (result.view?.id) {
-      // Persist to database (expires in 1 hour)
-      await stateManager.saveState(
-        'modal_wizard',
-        userId, // Use userId as channel for wizards
-        result.view.id, // Use view_id as message_ts
-        {
-          wizardId: config.wizardId,
-          currentStep: wizardState.currentStep,
-          totalSteps: wizardState.totalSteps,
-          collectedData: wizardState.collectedData,
-        },
-        { expiresInHours: 1, metadata: config.metadata }
-      );
+      await workflowManager.start({
+        workflowType: WORKFLOW_TYPE_MODAL_WIZARD,
+        workflowReferenceId: result.view.id,
+        initialState: 'IN_PROGRESS',
+        payload: wizardState,
+        expiresInSeconds: 3600, // 1 hour
+        contextKey: userId,
+        correlationId: config.wizardId,
+      });
     }
 
     console.log(`[Modal Wizard] Started ${config.wizardId} for user ${userId} (${config.steps.length} steps)`);
@@ -130,15 +125,18 @@ export class ModalWizard {
     viewState: Record<string, any>,
     userId: string
   ): Promise<{ shouldClose: boolean; error?: string }> {
+    if (!workflowManager) {
+        throw new Error("WorkflowManager not available.");
+    }
     // Get wizard state from database
-    const state = await stateManager.getState<'modal_wizard'>(userId, viewId, 'modal_wizard');
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_MODAL_WIZARD, viewId);
 
-    if (!state) {
-      console.error('[Modal Wizard] Wizard state not found for view:', viewId);
+    if (!workflow) {
+      console.error('[Modal Wizard] Wizard workflow not found for view:', viewId);
       return { shouldClose: true, error: "Wizard session expired" };
     }
 
-    const wizardState = state.payload;
+    const wizardState = workflow.payload as WizardState;
     const config = this.activeWizards.get(wizardState.wizardId);
 
     if (!config) {
@@ -165,8 +163,8 @@ export class ModalWizard {
       // Wizard complete!
       await config.onComplete(wizardState.collectedData, userId);
 
-      // Mark state as completed
-      await stateManager.markProcessed(userId, viewId, userId, 'completed');
+      // Mark workflow as completed
+      await workflowManager.transition(workflow.id, workflow.version, { toState: 'COMPLETED', lastModifiedBy: userId });
 
       // Cleanup
       this.activeWizards.delete(wizardState.wizardId);
@@ -180,9 +178,12 @@ export class ModalWizard {
     const nextStep = config.steps[wizardState.currentStep];
 
     // Update wizard state in database
-    await stateManager.updatePayload(userId, viewId, {
-      currentStep: wizardState.currentStep,
-      collectedData: wizardState.collectedData,
+    const updatedWorkflow = await workflowManager.transition(workflow.id, workflow.version, {
+        toState: 'IN_PROGRESS',
+        updatePayload: {
+          currentStep: wizardState.currentStep,
+          collectedData: wizardState.collectedData,
+        }
     });
 
     // Update modal to show next step
@@ -205,14 +206,18 @@ export class ModalWizard {
     viewId: string,
     userId: string
   ): Promise<void> {
+    if (!workflowManager) {
+        console.warn("[Modal Wizard] WorkflowManager not available.");
+        return;
+    }
     // Get wizard state
-    const state = await stateManager.getState<'modal_wizard'>(userId, viewId, 'modal_wizard');
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_MODAL_WIZARD, viewId);
 
-    if (!state) {
+    if (!workflow) {
       return;
     }
 
-    const wizardState = state.payload;
+    const wizardState = workflow.payload as WizardState;
     const config = this.activeWizards.get(wizardState.wizardId);
 
     // Call onCancel handler if exists
@@ -221,7 +226,7 @@ export class ModalWizard {
     }
 
     // Mark as rejected/cancelled
-    await stateManager.markProcessed(userId, viewId, userId, 'rejected');
+    await workflowManager.transition(workflow.id, workflow.version, { toState: 'CANCELLED', lastModifiedBy: userId });
 
     // Cleanup
     this.activeWizards.delete(wizardState.wizardId);
@@ -312,8 +317,11 @@ export class ModalWizard {
    * Get wizard state (for debugging/monitoring)
    */
   async getWizardState(viewId: string, userId: string): Promise<WizardState | null> {
-    const state = await stateManager.getState<'modal_wizard'>(userId, viewId, 'modal_wizard');
-    return state ? state.payload as any : null;
+    if (!workflowManager) {
+        return null;
+    }
+    const workflow = await workflowManager.findActiveByReferenceId(WORKFLOW_TYPE_MODAL_WIZARD, viewId);
+    return workflow ? workflow.payload as WizardState : null;
   }
 }
 

@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { config as appConfig } from "../config";
+import { getServiceNowConfig } from "../config/helpers";
 import { featureFlags, hashUserId } from "../infrastructure/feature-flags";
 import type {
   CaseRepository,
@@ -12,6 +12,9 @@ import type {
   ChoiceRepository,
   ProblemRepository,
   SPMRepository,
+  RequestRepository,
+  RequestedItemRepository,
+  CatalogTaskRepository,
 } from "../infrastructure/servicenow/repositories";
 import type {
   Case,
@@ -26,6 +29,9 @@ import type {
   SPMSearchCriteria,
   CreateConfigurationItemInput,
   CreateCIRelationshipInput,
+  Request,
+  RequestedItem,
+  CatalogTask,
 } from "../infrastructure/servicenow/types";
 import {
   getCaseRepository,
@@ -37,6 +43,9 @@ import {
   getChoiceRepository,
   getProblemRepository,
   getSPMRepository,
+  getRequestRepository,
+  getRequestedItemRepository,
+  getCatalogTaskRepository,
   type ServiceNowContext,
 } from "../infrastructure/servicenow/repositories";
 
@@ -66,16 +75,19 @@ function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-const serviceNowConfig: ServiceNowConfig = {
-  instanceUrl: normalize(appConfig.servicenowInstanceUrl || appConfig.servicenowUrl),
-  username: normalize(appConfig.servicenowUsername),
-  password: normalize(appConfig.servicenowPassword),
-  apiToken: normalize(appConfig.servicenowApiToken),
-  caseTable: (appConfig.servicenowCaseTable || "sn_customerservice_case").trim(),
-  caseJournalName: (appConfig.servicenowCaseJournalName || "x_mobit_serv_case_service_case").trim(),
-  ciTable: (appConfig.servicenowCiTable || "cmdb_ci").trim(),
-  taskTable: (appConfig.servicenowTaskTable || "sn_customerservice_task").trim(),
-};
+const serviceNowConfig: ServiceNowConfig = (() => {
+  const snConfig = getServiceNowConfig();
+  return {
+    instanceUrl: normalize(snConfig.instanceUrl),
+    username: normalize(snConfig.username),
+    password: normalize(snConfig.password),
+    apiToken: normalize(snConfig.apiToken),
+    caseTable: snConfig.caseTable.trim(),
+    caseJournalName: snConfig.caseJournalName.trim(),
+    ciTable: snConfig.ciTable.trim(),
+    taskTable: snConfig.taskTable.trim(),
+  };
+})();
 
 const SERVER_CLASS_EXPANSION = [
   "cmdb_ci_server",
@@ -462,6 +474,9 @@ export class ServiceNowClient {
   private choiceRepository: ChoiceRepository | null = null;
   private problemRepository: ProblemRepository | null = null;
   private spmRepository: SPMRepository | null = null;
+  private requestRepository: RequestRepository | null = null;
+  private requestedItemRepository: RequestedItemRepository | null = null;
+  private catalogTaskRepository: CatalogTaskRepository | null = null;
 
   /**
    * Get or initialize the case repository
@@ -559,6 +574,36 @@ export class ServiceNowClient {
       this.spmRepository = getSPMRepository();
     }
     return this.spmRepository;
+  }
+
+  /**
+   * Get or initialize the Request repository
+   */
+  private getRequestRepo(): RequestRepository {
+    if (!this.requestRepository) {
+      this.requestRepository = getRequestRepository();
+    }
+    return this.requestRepository;
+  }
+
+  /**
+   * Get or initialize the RequestedItem repository
+   */
+  private getRequestedItemRepo(): RequestedItemRepository {
+    if (!this.requestedItemRepository) {
+      this.requestedItemRepository = getRequestedItemRepository();
+    }
+    return this.requestedItemRepository;
+  }
+
+  /**
+   * Get or initialize the CatalogTask repository
+   */
+  private getCatalogTaskRepo(): CatalogTaskRepository {
+    if (!this.catalogTaskRepository) {
+      this.catalogTaskRepository = getCatalogTaskRepository();
+    }
+    return this.catalogTaskRepository;
   }
 
   /**
@@ -1230,6 +1275,285 @@ export class ServiceNowClient {
     console.log(`[ServiceNow] OLD path: Successfully retrieved case`, {
       sysId,
       number: result.number,
+    });
+
+    return result;
+  }
+
+  /**
+   * Get Service Catalog Request by number (REQ prefix)
+   */
+  public async getRequest(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<Request | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getRequest using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const requestRepo = this.getRequestRepo();
+        const request = await requestRepo.findByNumber(number);
+
+        if (!request) {
+          console.log(`[ServiceNow] NEW path: Request not found`, { number });
+          return null;
+        }
+
+        console.log(`[ServiceNow] NEW path: Successfully retrieved request`, {
+          number,
+          sysId: request.sysId,
+        });
+        return request;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Direct Table API call
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { number });
+
+    const data = await request<{ result: Array<any> }>(
+      `/api/now/table/sc_request?sysparm_query=${encodeURIComponent(
+        `number=${number}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Request not found`, { number });
+      return null;
+    }
+
+    const raw = data.result[0];
+    const sysId = extractDisplayValue(raw.sys_id);
+
+    // Map to Request domain model
+    const result: Request = {
+      sysId,
+      number: extractDisplayValue(raw.number) ?? number,
+      shortDescription: extractDisplayValue(raw.short_description) ?? '',
+      description: extractDisplayValue(raw.description),
+      requestedFor: extractReferenceSysId(raw.requested_for),
+      requestedForName: extractDisplayValue(raw.requested_for),
+      requestedBy: extractReferenceSysId(raw.requested_by),
+      requestedByName: extractDisplayValue(raw.requested_by),
+      state: extractDisplayValue(raw.state),
+      priority: extractDisplayValue(raw.priority),
+      openedAt: raw.opened_at ? new Date(extractDisplayValue(raw.opened_at) ?? '') : undefined,
+      closedAt: raw.closed_at ? new Date(extractDisplayValue(raw.closed_at) ?? '') : undefined,
+      dueDate: raw.due_date ? new Date(extractDisplayValue(raw.due_date) ?? '') : undefined,
+      stage: extractDisplayValue(raw.stage),
+      approvalState: extractDisplayValue(raw.approval),
+      deliveryAddress: extractDisplayValue(raw.delivery_address),
+      specialInstructions: extractDisplayValue(raw.special_instructions),
+      price: raw.price ? parseFloat(extractDisplayValue(raw.price) ?? '0') : undefined,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=sc_request.do?sys_id=${sysId}`,
+    };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved request`, {
+      number,
+      sysId: result.sysId,
+    });
+
+    return result;
+  }
+
+  /**
+   * Get Requested Item by number (RITM prefix)
+   */
+  public async getRequestedItem(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<RequestedItem | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getRequestedItem using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const ritmRepo = this.getRequestedItemRepo();
+        const ritm = await ritmRepo.findByNumber(number);
+
+        if (!ritm) {
+          console.log(`[ServiceNow] NEW path: Requested item not found`, { number });
+          return null;
+        }
+
+        console.log(`[ServiceNow] NEW path: Successfully retrieved requested item`, {
+          number,
+          sysId: ritm.sysId,
+        });
+        return ritm;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Direct Table API call
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { number });
+
+    const data = await request<{ result: Array<any> }>(
+      `/api/now/table/sc_req_item?sysparm_query=${encodeURIComponent(
+        `number=${number}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Requested item not found`, { number });
+      return null;
+    }
+
+    const raw = data.result[0];
+    const sysId = extractDisplayValue(raw.sys_id);
+
+    // Map to RequestedItem domain model
+    const result: RequestedItem = {
+      sysId,
+      number: extractDisplayValue(raw.number) ?? number,
+      shortDescription: extractDisplayValue(raw.short_description) ?? '',
+      description: extractDisplayValue(raw.description),
+      request: extractReferenceSysId(raw.request),
+      requestNumber: extractDisplayValue(raw.request),
+      catalogItem: extractReferenceSysId(raw.cat_item),
+      catalogItemName: extractDisplayValue(raw.cat_item),
+      state: extractDisplayValue(raw.state),
+      stage: extractDisplayValue(raw.stage),
+      openedAt: raw.opened_at ? new Date(extractDisplayValue(raw.opened_at) ?? '') : undefined,
+      closedAt: raw.closed_at ? new Date(extractDisplayValue(raw.closed_at) ?? '') : undefined,
+      dueDate: raw.due_date ? new Date(extractDisplayValue(raw.due_date) ?? '') : undefined,
+      assignedTo: extractReferenceSysId(raw.assigned_to),
+      assignedToName: extractDisplayValue(raw.assigned_to),
+      assignmentGroup: extractReferenceSysId(raw.assignment_group),
+      assignmentGroupName: extractDisplayValue(raw.assignment_group),
+      quantity: raw.quantity ? parseInt(extractDisplayValue(raw.quantity) ?? '1', 10) : undefined,
+      price: raw.price ? parseFloat(extractDisplayValue(raw.price) ?? '0') : undefined,
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=sc_req_item.do?sys_id=${sysId}`,
+    };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved requested item`, {
+      number,
+      sysId: result.sysId,
+    });
+
+    return result;
+  }
+
+  /**
+   * Get Catalog Task by number (SCTASK prefix)
+   */
+  public async getCatalogTask(
+    number: string,
+    context?: ServiceNowContext,
+  ): Promise<CatalogTask | null> {
+    const useNewPath = featureFlags.useServiceNowRepositories({
+      userId: context?.userId,
+      channelId: context?.channelId,
+      userIdHash: context?.userId ? hashUserId(context.userId) : undefined,
+    });
+
+    console.log(`[ServiceNow] getCatalogTask using ${useNewPath ? "NEW" : "OLD"} path`, {
+      number,
+      featureEnabled: useNewPath,
+      userId: context?.userId,
+      channelId: context?.channelId,
+    });
+
+    if (useNewPath) {
+      try {
+        const taskRepo = this.getCatalogTaskRepo();
+        const task = await taskRepo.findByNumber(number);
+
+        if (!task) {
+          console.log(`[ServiceNow] NEW path: Catalog task not found`, { number });
+          return null;
+        }
+
+        console.log(`[ServiceNow] NEW path: Successfully retrieved catalog task`, {
+          number,
+          sysId: task.sysId,
+        });
+        return task;
+      } catch (error) {
+        console.error(`[ServiceNow] NEW path ERROR - falling back to OLD path`, {
+          number,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Fall through to OLD path below
+      }
+    }
+
+    // OLD PATH: Direct Table API call
+    console.log(`[ServiceNow] OLD path: Using legacy implementation`, { number });
+
+    const data = await request<{ result: Array<any> }>(
+      `/api/now/table/sc_task?sysparm_query=${encodeURIComponent(
+        `number=${number}`,
+      )}&sysparm_limit=1&sysparm_display_value=all`,
+    );
+
+    if (!data.result?.length) {
+      console.log(`[ServiceNow] OLD path: Catalog task not found`, { number });
+      return null;
+    }
+
+    const raw = data.result[0];
+    const sysId = extractDisplayValue(raw.sys_id);
+
+    // Map to CatalogTask domain model
+    const result: CatalogTask = {
+      sysId,
+      number: extractDisplayValue(raw.number) ?? number,
+      shortDescription: extractDisplayValue(raw.short_description) ?? '',
+      description: extractDisplayValue(raw.description),
+      requestItem: extractReferenceSysId(raw.request_item),
+      requestItemNumber: extractDisplayValue(raw.request_item),
+      request: extractReferenceSysId(raw.request),
+      requestNumber: extractDisplayValue(raw.request),
+      state: extractDisplayValue(raw.state),
+      active: raw.active === 'true' || raw.active === true,
+      openedAt: raw.opened_at ? new Date(extractDisplayValue(raw.opened_at) ?? '') : undefined,
+      closedAt: raw.closed_at ? new Date(extractDisplayValue(raw.closed_at) ?? '') : undefined,
+      dueDate: raw.due_date ? new Date(extractDisplayValue(raw.due_date) ?? '') : undefined,
+      assignedTo: extractReferenceSysId(raw.assigned_to),
+      assignedToName: extractDisplayValue(raw.assigned_to),
+      assignmentGroup: extractReferenceSysId(raw.assignment_group),
+      assignmentGroupName: extractDisplayValue(raw.assignment_group),
+      priority: extractDisplayValue(raw.priority),
+      workNotes: extractDisplayValue(raw.work_notes),
+      closeNotes: extractDisplayValue(raw.close_notes),
+      url: `${serviceNowConfig.instanceUrl}/nav_to.do?uri=sc_task.do?sys_id=${sysId}`,
+    };
+
+    console.log(`[ServiceNow] OLD path: Successfully retrieved catalog task`, {
+      number,
+      sysId: result.sysId,
     });
 
     return result;

@@ -8,6 +8,8 @@ import type {
 } from "../types/domain-models";
 import type { ConfigurationItemRecord, ServiceNowTableResponse } from "../types/api-responses";
 import { mapConfigurationItem } from "../client/mappers";
+import { cacheGet, cacheSet, cacheDel } from "../../../cache/redis";
+import { config } from "../../../config";
 
 export interface CMDBRepositoryConfig {
   table: string;
@@ -49,6 +51,10 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
   }
 
   async findBySysId(sysId: string): Promise<ConfigurationItem | null> {
+    const cacheKey = `sn:ci:${sysId}`;
+    const cached = await cacheGet<ConfigurationItem>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.httpClient.get<ConfigurationItemRecord>(
       `/api/now/table/${this.table}/${sysId}`,
       {
@@ -61,7 +67,9 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
       return null;
     }
 
-    return mapConfigurationItem(record, this.httpClient.getInstanceUrl());
+    const mapped = mapConfigurationItem(record, this.httpClient.getInstanceUrl());
+    await cacheSet(cacheKey, mapped, config.cacheTtlCi ?? 900);
+    return mapped;
   }
 
   async findByIpAddress(ipAddress: string): Promise<ConfigurationItem[]> {
@@ -133,6 +141,10 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
 
     const query = queryParts.join("^");
 
+    const cacheKey = `sn:ci:search:${Buffer.from(query).toString("base64url")}`;
+    const cached = await cacheGet<ConfigurationItem[]>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.httpClient.get<ConfigurationItemRecord>(
       `/api/now/table/${this.table}`,
       {
@@ -143,9 +155,11 @@ export class ServiceNowCMDBRepository implements CMDBRepository {
     );
 
     const records = Array.isArray(response.result) ? response.result : [response.result];
-    return records
+    const mapped = records
       .filter(Boolean)
       .map((record) => mapConfigurationItem(record, this.httpClient.getInstanceUrl()));
+    await cacheSet(`sn:ci:search:${Buffer.from(query).toString("base64url")}`, mapped, config.cacheTtlCi ?? 900);
+    return mapped;
   }
 
   async findByClassName(className: string, limit = 25): Promise<ConfigurationItem[]> {

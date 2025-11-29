@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { IncidentClarificationService } from "../../lib/services/incident-clarification-service";
-import { getSlackMessagingService } from "../../lib/services/slack-messaging";
-import { getIncidentEnrichmentRepository } from "../../lib/db/repositories/incident-enrichment-repository";
-import { getIncidentEnrichmentService } from "../../lib/services/incident-enrichment-service";
+import { IncidentClarificationService } from "../lib/services/incident-clarification-service";
+import { getSlackMessagingService } from "../lib/services/slack-messaging";
+import { getIncidentEnrichmentRepository } from "../lib/db/repositories/incident-enrichment-repository";
+import { getIncidentEnrichmentService } from "../lib/services/incident-enrichment-service";
 
 // Mock all dependencies
-vi.mock("../../lib/services/slack-messaging");
-vi.mock("../../lib/db/repositories/incident-enrichment-repository");
-vi.mock("../../lib/services/incident-enrichment-service");
+vi.mock("../lib/services/slack-messaging");
+vi.mock("../lib/db/repositories/incident-enrichment-repository");
+vi.mock("../lib/services/incident-enrichment-service");
 
 const mockSlackService = {
   postMessage: vi.fn(),

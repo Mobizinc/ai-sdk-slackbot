@@ -73,6 +73,37 @@ export interface WebexCapture {
   raw: Record<string, unknown>;
 }
 
+// Tasks API response structure
+interface WebexTaskAttributes {
+  channelType?: string;
+  status?: string;
+  createdTime?: number;
+  lastUpdatedTime?: number;
+  endedTime?: number;
+  captureRequested?: boolean;
+  origin?: string;
+  destination?: string;
+  direction?: string;
+  owner?: { id?: string; name?: string };
+  queue?: { id?: string; name?: string };
+  wrapUpCode?: string;
+  wrapUpReason?: string;
+  customAttributes?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface WebexTaskRecord {
+  id: string; // This is the session/task ID
+  attributes: WebexTaskAttributes;
+}
+
+interface WebexInteractionResponse {
+  meta?: { orgId?: string };
+  data?: WebexTaskRecord[];
+  links?: { next?: string };
+}
+
+// Legacy interface for backward compatibility (interaction history API)
 interface WebexInteractionRecord {
   sessionId: string;
   contactId?: string;
@@ -88,11 +119,6 @@ interface WebexInteractionRecord {
   attributes?: Record<string, unknown>;
   recording?: { id?: string };
   [key: string]: unknown;
-}
-
-interface WebexInteractionResponse {
-  items?: WebexInteractionRecord[];
-  links?: { next?: string };
 }
 
 interface WebexCaptureRecord {
@@ -163,7 +189,7 @@ export interface WebexContactCenterClient {
 
 const DEFAULT_BASE_URL = "https://webexapis.com/v1";
 const DEFAULT_INTERACTION_PATH = "contactCenter/interactionHistory";
-const DEFAULT_CAPTURE_PATH = "contactCenter/captureManagement/captures";
+const DEFAULT_CAPTURE_PATH = "captures"; // Updated to match Webex CC API v1
 const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_MAX_CHUNK = 25;
 
@@ -237,10 +263,13 @@ export function createWebexClient(config: WebexClientConfig): WebexContactCenter
     while (nextUrl) {
       const response = await authorizedFetch(nextUrl);
       const payload = (await response.json()) as WebexInteractionResponse;
-      const items = payload.items ?? [];
 
-      for (const record of items) {
-        const mapped = toVoiceInteraction(record);
+      // Handle Tasks API format (data array) or legacy format (items array)
+      const tasks = payload.data ?? [];
+      logger.info?.(`[Webex API] Found ${tasks.length} tasks`);
+
+      for (const task of tasks) {
+        const mapped = taskToVoiceInteraction(task);
         if (!mapped) continue;
         interactions.push(mapped);
         if (mapped.endTime && (!latestEndTime || mapped.endTime > latestEndTime)) {
@@ -269,7 +298,7 @@ export function createWebexClient(config: WebexClientConfig): WebexContactCenter
 
     const captures: WebexCapture[] = [];
     for (const chunk of chunkArray(uniqueTaskIds, maxChunk)) {
-      const url = new URL(`${baseUrl}/${capturePath}`);
+      const url = new URL(`${baseUrl}/v1/${capturePath}`);
       chunk.forEach((id) => url.searchParams.append("taskId", id));
       if (orgId) {
         url.searchParams.set("orgId", orgId);
@@ -349,13 +378,14 @@ function buildInteractionUrl(
   endTime: Date,
   pageSize: number,
 ): string {
-  const url = new URL(`${baseUrl}/${interactionPath}`);
-  url.searchParams.set("mediaType", "telephony");
-  url.searchParams.set("startTime", startTime.toISOString());
-  url.searchParams.set("endTime", endTime.toISOString());
+  const url = new URL(`${baseUrl}/v1/${interactionPath}`);
+  // Tasks API uses epoch milliseconds and different parameter names
+  url.searchParams.set("from", String(startTime.getTime()));
+  url.searchParams.set("to", String(endTime.getTime()));
+  url.searchParams.set("channel", "telephony");
   url.searchParams.set("pageSize", String(pageSize));
   if (orgId) {
-    url.searchParams.set("orgId", orgId);
+    url.searchParams.set("orgid", orgId);
   }
   return url.toString();
 }
@@ -368,6 +398,39 @@ function chunkArray<T>(items: T[], chunkSize: number): T[][] {
   return result;
 }
 
+// Convert Tasks API format to WebexVoiceInteraction
+function taskToVoiceInteraction(task: WebexTaskRecord): WebexVoiceInteraction | null {
+  if (!task.id) return null;
+
+  const attr = task.attributes;
+  const start = attr.createdTime ? new Date(attr.createdTime) : undefined;
+  const end = attr.endedTime ? new Date(attr.endedTime) : attr.lastUpdatedTime ? new Date(attr.lastUpdatedTime) : undefined;
+  const durationSeconds =
+    start && end ? Math.round((end.getTime() - start.getTime()) / 1000) : undefined;
+
+  // Extract case number from custom attributes if available
+  const caseNumber = extractCaseNumberFromTask(task);
+
+  return {
+    sessionId: task.id,
+    contactId: task.id, // Tasks use same ID
+    direction: attr.direction,
+    ani: attr.origin,
+    dnis: attr.destination,
+    agentId: attr.owner?.id,
+    agentName: attr.owner?.name,
+    queueName: attr.queue?.name,
+    startTime: start,
+    endTime: end,
+    durationSeconds,
+    wrapUpCode: attr.wrapUpCode || attr.wrapUpReason,
+    caseNumber,
+    recordingId: undefined, // Need to fetch separately via Captures API
+    rawPayload: { id: task.id, attributes: attr } as Record<string, unknown>,
+  };
+}
+
+// Legacy format converter for backward compatibility
 function toVoiceInteraction(record: WebexInteractionRecord): WebexVoiceInteraction | null {
   if (!record.sessionId) return null;
 
@@ -399,6 +462,26 @@ function toVoiceInteraction(record: WebexInteractionRecord): WebexVoiceInteracti
     recordingId: record.recording?.id,
     rawPayload: record as Record<string, unknown>,
   };
+}
+
+function extractCaseNumberFromTask(task: WebexTaskRecord): string | undefined {
+  const customAttrs = task.attributes.customAttributes || {};
+  const possibleKeys = [
+    "caseNumber",
+    "CaseNumber",
+    "CASE_NUMBER",
+    "case_number",
+    "servicenow_case",
+    "case",
+    "Case",
+  ];
+
+  for (const key of possibleKeys) {
+    const value = customAttrs[key];
+    if (typeof value === "string" && value) return value;
+  }
+
+  return undefined;
 }
 
 function extractCaseNumber(record: WebexInteractionRecord): string | undefined {
