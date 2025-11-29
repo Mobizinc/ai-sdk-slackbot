@@ -26,9 +26,6 @@ export default function GitHubPage() {
   const [saving, setSaving] = useState(false);
   const [summary, setSummary] = useState<GithubSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
-  const [issuesPage, setIssuesPage] = useState(1);
-  const [prsPage, setPrsPage] = useState(1);
-  const perPage = 10;
   const [formData, setFormData] = useState<GithubFormState>({
     githubUrl: "",
     githubRepo: "",
@@ -57,11 +54,7 @@ export default function GitHubPage() {
     }
     try {
       setLoadingSummary(true);
-      const data = await getProjectGithubSummary(projectId, {
-        issuesPage,
-        prsPage,
-        perPage,
-      });
+      const data = await getProjectGithubSummary(projectId);
       setSummary(data);
     } catch (error) {
       console.error("Failed to load GitHub summary:", error);
@@ -69,7 +62,7 @@ export default function GitHubPage() {
     } finally {
       setLoadingSummary(false);
     }
-  }, [projectId, project?.githubRepo, issuesPage, prsPage, perPage]);
+  }, [projectId, project?.githubRepo]);
 
   useEffect(() => {
     if (projectId) {
@@ -81,7 +74,7 @@ export default function GitHubPage() {
     if (project?.githubRepo) {
       void loadGithubSummary();
     }
-  }, [project?.githubRepo, loadGithubSummary, issuesPage, prsPage]);
+  }, [project?.githubRepo, loadGithubSummary]);
 
   const parseGitHubUrl = useCallback((url: string) => {
     if (!url) return;
@@ -277,7 +270,7 @@ export default function GitHubPage() {
                   <div className="bg-white border border-gray-200 rounded-md p-3">
                     <p className="text-xs text-gray-500 uppercase">Open Issues</p>
                     <p className="text-2xl font-semibold text-gray-900">{summary.repo.openIssuesCount}</p>
-                    {summary.openIssues.slice(0, 3).map((issue) => (
+                    {summary.openIssues.items.slice(0, 3).map((issue) => (
                       <a
                         key={issue.id}
                         href={issue.html_url}
@@ -291,8 +284,8 @@ export default function GitHubPage() {
                   </div>
                   <div className="bg-white border border-gray-200 rounded-md p-3">
                     <p className="text-xs text-gray-500 uppercase">Open PRs</p>
-                    <p className="text-2xl font-semibold text-gray-900">{summary.openPulls.length}</p>
-                    {summary.openPulls.slice(0, 3).map((pr) => (
+                    <p className="text-2xl font-semibold text-gray-900">{summary.openPulls.items.length}</p>
+                    {summary.openPulls.items.slice(0, 3).map((pr) => (
                       <a
                         key={pr.id}
                         href={pr.html_url}
@@ -349,96 +342,3 @@ export default function GitHubPage() {
     </div>
   );
 }
-              {summary && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white border border-gray-200 rounded-md p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-500 uppercase">Open Issues</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <button
-                          className="underline disabled:text-gray-300"
-                          onClick={() => setIssuesPage((p) => Math.max(1, p - 1))}
-                          disabled={issuesPage <= 1 || loadingSummary}
-                        >
-                          Prev
-                        </button>
-                        <span>{issuesPage}</span>
-                        <button
-                          className="underline disabled:text-gray-300"
-                          onClick={() => setIssuesPage((p) => (summary.openIssues.hasMore ? p + 1 : p))}
-                          disabled={loadingSummary || !summary.openIssues.hasMore}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-2xl font-semibold text-gray-900 mt-1">{summary.repo.openIssuesCount}</p>
-                    {summary.openIssues.items.slice(0, 3).map((issue) => (
-                      <a
-                        key={issue.id}
-                        href={issue.html_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block text-sm text-blue-600 truncate"
-                      >
-                        #{issue.number} {issue.title}
-                      </a>
-                    ))}
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-md p-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-500 uppercase">Open PRs</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <button
-                          className="underline disabled:text-gray-300"
-                          onClick={() => setPrsPage((p) => Math.max(1, p - 1))}
-                          disabled={prsPage <= 1 || loadingSummary}
-                        >
-                          Prev
-                        </button>
-                        <span>{prsPage}</span>
-                        <button
-                          className="underline disabled:text-gray-300"
-                          onClick={() => setPrsPage((p) => (summary.openPulls.hasMore ? p + 1 : p))}
-                          disabled={loadingSummary || !summary.openPulls.hasMore}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-2xl font-semibold text-gray-900 mt-1">{summary.openPulls.items.length}</p>
-                    {summary.openPulls.items.slice(0, 3).map((pr) => (
-                      <a
-                        key={pr.id}
-                        href={pr.html_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block text-sm text-blue-600 truncate"
-                      >
-                        #{pr.number} {pr.title} {pr.draft ? "(draft)" : ""}
-                      </a>
-                    ))}
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-md p-3">
-                    <p className="text-xs text-gray-500 uppercase">Latest Commit</p>
-                    {summary.latestCommit ? (
-                      <a
-                        href={summary.latestCommit.url ?? undefined}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm text-blue-600 break-all"
-                      >
-                        {summary.latestCommit.sha.substring(0, 12)}
-                      </a>
-                    ) : (
-                      <p className="text-sm text-gray-500">No commit info</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Branch: {summary.repo.defaultBranch}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Updated: {summary.repo.pushedAt ? new Date(summary.repo.pushedAt).toLocaleString() : "n/a"}
-                    </p>
-                  </div>
-                </div>
-              )}

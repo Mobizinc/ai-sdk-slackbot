@@ -25,7 +25,9 @@ type EditableField =
   | "learningOpportunities"
   | "openTasks"
   | "mentorSlackUserId"
-  | "mentorName";
+  | "mentorName"
+  | "type"
+  | "source";
 
 const extractProjectFields = (item: ProjectWithRelations): Project =>
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

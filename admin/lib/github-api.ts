@@ -1,5 +1,4 @@
 import { apiClient } from "./api-client"
-import type { ProjectWithRelations } from "./api-client"
 
 export interface GithubSummary {
   repo: {

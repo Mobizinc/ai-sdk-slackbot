@@ -31,7 +31,7 @@ export function StandupConfigDialog({
   const [channelId, setChannelId] = useState<string>(currentConfig?.channelId || projectChannelId || "");
   const [frequency, setFrequency] = useState<string>(currentConfig?.schedule?.frequency || currentConfig?.cadence || "daily");
   const [dayOfWeek, setDayOfWeek] = useState<number>(currentConfig?.schedule?.dayOfWeek ?? 1);
-  const [timeUtc, setTimeUtc] = useState<string>(currentConfig?.schedule?.timeUtc || currentConfig?.timeUtc || "13:00");
+  const [timeUtc, setTimeUtc] = useState<string>((currentConfig?.schedule?.timeUtc as string | undefined) || (currentConfig?.timeUtc as string | undefined) || "13:00");
   const [useSpmTasks, setUseSpmTasks] = useState<boolean>(currentConfig?.dataSources?.useSpmTasks ?? false);
   const [useGithubIssues, setUseGithubIssues] = useState<boolean>(currentConfig?.dataSources?.useGithubIssues ?? false);
   const [useLocalOpenTasks, setUseLocalOpenTasks] = useState<boolean>(
@@ -47,7 +47,7 @@ export function StandupConfigDialog({
     setChannelId(currentConfig?.channelId || projectChannelId || "");
     setFrequency(currentConfig?.schedule?.frequency || currentConfig?.cadence || "daily");
     setDayOfWeek(currentConfig?.schedule?.dayOfWeek ?? 1);
-    setTimeUtc(currentConfig?.schedule?.timeUtc || currentConfig?.timeUtc || "13:00");
+    setTimeUtc((currentConfig?.schedule?.timeUtc as string | undefined) || (currentConfig?.timeUtc as string | undefined) || "13:00");
     setUseSpmTasks(currentConfig?.dataSources?.useSpmTasks ?? false);
     setUseGithubIssues(currentConfig?.dataSources?.useGithubIssues ?? false);
     setUseLocalOpenTasks(currentConfig?.dataSources?.useLocalOpenTasks ?? true);
@@ -81,9 +81,9 @@ export function StandupConfigDialog({
       setSaving(true);
       await apiClient.updateStandupConfig(projectId, {
         enabled,
-        channelId: channelId || null,
+        channelId: channelId || undefined,
         schedule: {
-          frequency: frequency as any,
+          frequency: frequency as "daily" | "weekdays" | "weekly",
           timeUtc,
           dayOfWeek: frequency === "weekly" ? dayOfWeek : undefined,
         },

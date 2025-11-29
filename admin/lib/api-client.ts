@@ -540,6 +540,22 @@ export interface ProjectAnalytics {
     taskVelocity: number
   }
   timeline: TimelineEntry[]
+  spmSummary?: {
+    number: string
+    state: string
+    percentComplete: number | null
+    priority: string | null
+    stories?: Array<{
+      number: string
+      shortDescription: string
+    }>
+  }
+  githubSummary?: {
+    fullName: string
+    defaultBranch: string
+    openIssuesCount: number
+    openPrCount: number
+  }
 }
 
 export interface MissingCategoriesStatistics {
