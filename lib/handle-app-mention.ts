@@ -9,9 +9,7 @@ import { getCaseTriageService } from "./services/case-triage";
 import { createStatusUpdater } from "./utils/slack-status-updater";
 import { setErrorWithStatusUpdater } from "./utils/slack-error-handler";
 import { getResolutionDetector } from "./passive/detectors/resolution-detector";
-import { formatCaseAsMinimalCard, splitTextIntoSectionBlocks, formatCaseAsBlockKit } from "./formatters/servicenow-block-kit";
-import { detectIntentHybrid } from "./intent-detection-llm";
-import { getUnifiedTaskRepository } from "./infrastructure/servicenow/repositories/unified-task-repository";
+import { formatCaseAsMinimalCard, splitTextIntoSectionBlocks } from "./formatters/servicenow-block-kit";
 
 const slackMessaging = getSlackMessagingService();
 
@@ -142,67 +140,9 @@ export async function handleNewAppMention(
   const contextManager = getContextManager();
   const mentionCaseNumbers = contextManager.extractCaseNumbers(event.text || "");
 
-  // --- FAST PATH: Status Checks ---
-  // Quickly detect if this is a simple status check for a single case/incident
-  try {
-    const intentResult = await detectIntentHybrid({ message: event.text });
-    const isSimpleIntent = ['status_query', 'latest_updates', 'assignment_info'].includes(intentResult.intent);
-    
-    // Proceed if simple intent and exactly one case number found (or ambiguous intent but high confidence match)
-    if ((isSimpleIntent || intentResult.confidence >= 0.8) && mentionCaseNumbers.length === 1) {
-      const ticketNumber = mentionCaseNumbers[0];
-      console.log(`[App Mention] Fast Path triggered for ${ticketNumber} (Intent: ${intentResult.intent})`);
-      
-      if (isServiceNowConfigured()) {
-        await updateStatus(`checking status of ${ticketNumber}...`);
-        
-        const repo = getUnifiedTaskRepository();
-        const data = await repo.getTaskAndJournals(ticketNumber);
-
-        if (data) {
-          // Map UnifiedTask to the format expected by formatCaseAsBlockKit
-          // The formatter handles snake_case fields from API, but our UnifiedTask has camelCase
-          // We map back to what the formatter expects
-          const formatData = {
-            number: data.task.number,
-            sys_id: data.task.sysId,
-            short_description: data.task.shortDescription,
-            description: data.task.description,
-            state: data.task.state,
-            priority: data.task.priority,
-            assigned_to: data.task.assignedTo,
-            assignment_group: data.task.assignmentGroup,
-            sys_created_on: data.task.sysCreatedOn?.toISOString(),
-            updated_on: data.task.sysUpdatedOn?.toISOString(),
-            // Add mapped fields for display
-            caller_id: "Caller", // Generic label since we normalized it
-            company: "",
-            category: "",
-            subcategory: ""
-          };
-
-          const blocks = formatCaseAsBlockKit(formatData, {
-            includeJournal: true,
-            journalEntries: data.journals.map(j => ({
-              sys_created_on: j.createdOn.toISOString(),
-              sys_created_by: j.createdBy,
-              value: j.value || "",
-              element: j.element
-            })),
-            maxJournalEntries: 3 // Show latest 3 updates
-          });
-
-          // Send response and EXIT
-          await setFinalMessage(`Here is the latest update for *${ticketNumber}*:`, blocks);
-          return; 
-        }
-      }
-    }
-  } catch (error) {
-    console.error("[App Mention] Fast path failed, falling back to agent:", error);
-    // Fall through to normal agent execution
-  }
-  // --- END FAST PATH ---
+  // Note: Fast path removed - routing now handled by specialist registry in runner.ts
+  // Simple lookups (status, details) → Haiku with basic tools
+  // Complex workflows (triage, orchestrate) → Sonnet with full tools
 
   // Check for triage command pattern: @botname triage [case_number]
   // Supported patterns:

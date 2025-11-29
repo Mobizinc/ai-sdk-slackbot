@@ -65,6 +65,14 @@ export async function runAgent(params: RunnerParams): Promise<string> {
         console.log(`[Agent] Pending specialist requirements → ${reqSummary}`);
       }
 
+      // Determine model: explicit override > routing recommendation > default
+      const model = params.options?.model ??
+        (routing.recommendedModel === "haiku" ? "claude-haiku-4-5" : undefined);
+
+      if (routing.recommendedModel) {
+        console.log(`[Agent] Recommended model: ${routing.recommendedModel} → ${model ?? "default"}`);
+      }
+
       const augmentedMetadata = {
         ...(params.contextMetadata || {}),
         specialistShortlist: specialistMetadata,
@@ -122,6 +130,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
           // toolResults are now appended directly to conversation (see line 206-209)
           // to preserve proper message ordering for Anthropic 0.67+
           toolResults: [],
+          model,
         });
 
         // Handle max_tokens truncation during tool use
@@ -137,6 +146,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
               tools: toolDefinitions,
               toolResults: [], // Already spliced above
               maxTokens: 8192,
+              model,
             });
           }
         }
@@ -166,6 +176,7 @@ export async function runAgent(params: RunnerParams): Promise<string> {
             messages: conversation,
             tools: toolDefinitions,
             toolResults: [],
+            model,
           });
         }
 

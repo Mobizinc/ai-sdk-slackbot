@@ -68,6 +68,7 @@ export interface ToolAllowlistResult {
   allowlist?: string[];
   matches: SpecialistAgentMatch[];
   pendingRequirements?: SpecialistRequirementPrompt[];
+  recommendedModel?: "haiku" | "sonnet";
 }
 
 const REQUIREMENT_CONFIGS: Record<SpecialistContextRequirementId, RequirementConfig> = {
@@ -96,6 +97,32 @@ const REQUIREMENT_CONFIGS: Record<SpecialistContextRequirementId, RequirementCon
 };
 
 const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
+  {
+    id: "fast_lookup",
+    name: "Fast Lookup Agent",
+    description: "Quick retrieval of case/incident details, status checks, and journal entries.",
+    keywords: ["status", "details", "show me", "get", "what is", "check", "lookup", "retrieve", "provide", "give me"],
+    sampleUtterances: [
+      "show me SCS0001234",
+      "what's the status of INC0001234",
+      "get details for case",
+      "check this incident",
+      "provide me details for"
+    ],
+    toolNames: [
+      "getCase",
+      "getIncident",
+      "getCaseJournal",
+      "getRequest",
+      "getRequestedItem",
+      "getCatalogTask",
+      "searchKnowledge"
+    ],
+    entryPoint: "tool",
+    costClass: "low",
+    latencyClass: "short",
+    baseWeight: 5,
+  },
   {
     id: "servicenow_orchestration",
     name: "ServiceNow Orchestration Agent",
@@ -382,10 +409,17 @@ export function buildToolAllowList(input: SpecialistRoutingInput): ToolAllowlist
     return { matches, pendingRequirements: buildPendingRequirements(pendingMap) };
   }
 
+  // Determine recommended model based on matched specialists' cost/latency class
+  const highCostMatch = viable.some(
+    (m) => m.agent.costClass === "high" || m.agent.latencyClass === "long"
+  );
+  const recommendedModel: "haiku" | "sonnet" = highCostMatch ? "sonnet" : "haiku";
+
   return {
     matches,
     allowlist: Array.from(shortlist),
     pendingRequirements: buildPendingRequirements(pendingMap),
+    recommendedModel,
   };
 }
 
