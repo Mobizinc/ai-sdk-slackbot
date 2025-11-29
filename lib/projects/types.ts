@@ -60,6 +60,13 @@ export const standupConfigSchema = z.object({
     .max(720)
     .default(DEFAULT_STANDUP_REMINDER_MINUTES),
   maxReminders: z.number().int().min(0).max(5).default(DEFAULT_STANDUP_MAX_REMINDERS),
+  dataSources: z
+    .object({
+      useSpmTasks: z.boolean().optional(),
+      useGithubIssues: z.boolean().optional(),
+      useLocalOpenTasks: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 export type StandupConfig = z.infer<typeof standupConfigSchema>;
@@ -121,12 +128,16 @@ export const projectSchema = z.object({
   id: z.string().min(1, "Project id is required"),
   name: z.string().min(1, "Project name is required"),
   status: z.enum(["active", "inactive", "draft", "archived"]).default("draft"),
+  type: z.string().default("internal"),
+  source: z.string().default("local"),
   githubUrl: z.string().url().optional(),
   githubRepo: z
     .string()
     .regex(githubRepoPattern, "GitHub repo must be in the form owner/repo")
     .optional(),
   githubDefaultBranch: z.string().min(1).optional(),
+  spmSysId: z.string().optional(),
+  spmNumber: z.string().optional(),
   summary: z.string().min(1, "Project summary is required"),
   background: z.string().optional(),
   techStack: z.array(z.string()).default([]),

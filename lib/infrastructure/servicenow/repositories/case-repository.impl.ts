@@ -18,6 +18,8 @@ import type { CaseRecord, IncidentRecord, ServiceNowTableResponse } from "../typ
 import { mapCase, mapIncident, parseServiceNowDate, extractDisplayValue } from "../client/mappers";
 import { ServiceNowNotFoundError } from "../errors";
 import { buildFlexibleLikeQuery } from "./query-builders";
+import { cacheGet, cacheSet, cacheDel } from "../../../cache/redis";
+import { config } from "../../../config";
 
 /**
  * Configuration for Case Repository
@@ -49,6 +51,10 @@ export class ServiceNowCaseRepository implements CaseRepository {
    * Find a case by its number
    */
   async findByNumber(number: string): Promise<Case | null> {
+    const cacheKey = `sn:case:${number}`;
+    const cached = await cacheGet<Case>(cacheKey);
+    if (cached) return cached;
+
     const response = await this.httpClient.get<CaseRecord>(
       `/api/now/table/${this.caseTable}`,
       {
@@ -63,13 +69,19 @@ export class ServiceNowCaseRepository implements CaseRepository {
     }
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return mapCase(record, this.httpClient.getInstanceUrl());
+    const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+    await cacheSet(cacheKey, mapped, config.cacheTtlCase ?? 600);
+    return mapped;
   }
 
   /**
    * Find a case by its sys_id
    */
   async findBySysId(sysId: string): Promise<Case | null> {
+    const cacheKey = `sn:case_sys:${sysId}`;
+    const cached = await cacheGet<Case>(cacheKey);
+    if (cached) return cached;
+
     try {
       const response = await this.httpClient.get<CaseRecord>(
         `/api/now/table/${this.caseTable}/${sysId}`,
@@ -83,7 +95,9 @@ export class ServiceNowCaseRepository implements CaseRepository {
         return null;
       }
 
-      return mapCase(record, this.httpClient.getInstanceUrl());
+      const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+      await cacheSet(cacheKey, mapped, config.cacheTtlCase ?? 600);
+      return mapped;
     } catch (error) {
       // If 404, return null instead of throwing
       if (error instanceof ServiceNowNotFoundError) {
@@ -303,7 +317,16 @@ export class ServiceNowCaseRepository implements CaseRepository {
     );
 
     const record = Array.isArray(response.result) ? response.result[0] : response.result;
-    return mapCase(record, this.httpClient.getInstanceUrl());
+    const mapped = mapCase(record, this.httpClient.getInstanceUrl());
+    if (mapped.number) {
+      await cacheDel(`sn:case:${mapped.number}`);
+    }
+    await cacheDel(`sn:case_sys:${sysId}`);
+    await cacheSet(`sn:case_sys:${sysId}`, mapped, config.cacheTtlCase ?? 600);
+    if (mapped.number) {
+      await cacheSet(`sn:case:${mapped.number}`, mapped, config.cacheTtlCase ?? 600);
+    }
+    return mapped;
   }
 
   /**
@@ -317,6 +340,8 @@ export class ServiceNowCaseRepository implements CaseRepository {
         [field]: note,
       },
     );
+    // Invalidate caches for this case
+    await cacheDel(`sn:case_sys:${sysId}`);
   }
 
   /**

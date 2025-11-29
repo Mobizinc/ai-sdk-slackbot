@@ -13,6 +13,8 @@ import {
 import type { ProjectDefinition, StandupConfig, StandupQuestion, StandupSessionState } from "./types";
 import { workflowManager } from "../services/workflow-manager";
 import { getSlackMessagingService } from "../services/slack-messaging";
+import { getSPMRepository } from "../infrastructure/servicenow/repositories";
+import { getGitHubClient } from "../integrations/github/client";
 import {
   createActionsBlock,
   createContextBlock,
@@ -27,6 +29,7 @@ import {
   composeAdaptiveQuestions,
   type StandupParticipantContext,
 } from "./standup-context";
+import type { IssueReference } from "./standup-context";
 
 const WORKFLOW_TYPE_PROJECT_STANDUP = "PROJECT_STANDUP_PROMPT";
 
@@ -145,6 +148,87 @@ async function hasStandupAlreadyScheduled(projectId: string, scheduledFor: Date)
     .limit(1);
 
   return existing.length > 0;
+}
+
+async function gatherExternalStandupContext(project: ProjectDefinition, config: StandupConfig): Promise<{
+  extraDependencyNotes: string[];
+  extraIssueRefs: IssueReference[];
+}> {
+  const notes: string[] = [];
+  const issueRefs: IssueReference[] = [];
+
+  // SPM tasks (stories/epics)
+  const spmId = (project as any).spmSysId || (project as any).spm?.sysId;
+  if (config.dataSources?.useSpmTasks && spmId) {
+    try {
+      const repo = getSPMRepository();
+      const [stories, epics] = await Promise.all([
+        repo.findRelatedStories(spmId).catch(() => []),
+        repo.findRelatedEpics(spmId).catch(() => []),
+      ]);
+
+      const storySummaries = stories.slice(0, 5).map((s) => `${s.number}: ${s.shortDescription ?? ""}`.trim());
+      const epicSummaries = epics.slice(0, 3).map((e) => `${e.number}: ${e.shortDescription ?? ""}`.trim());
+      if (storySummaries.length > 0) {
+        notes.push(`SPM stories: ${storySummaries.join("; ")}`);
+      }
+      if (epicSummaries.length > 0) {
+        notes.push(`SPM epics: ${epicSummaries.join("; ")}`);
+      }
+      stories.slice(0, 5).forEach((s) => {
+        issueRefs.push({
+          raw: s.number ? `SPM-${s.number}` : s.sysId,
+          source: "spm",
+          normalizedId: s.number ?? s.sysId,
+          status: s.state,
+        });
+      });
+    } catch (error) {
+      console.warn(`[Standup] Failed to fetch SPM context for project ${project.id}:`, error);
+    }
+  }
+
+  // GitHub issues/PRs
+  if (config.dataSources?.useGithubIssues && project.githubRepo) {
+    const parts = project.githubRepo.split("/");
+    if (parts.length === 2 && parts[0] && parts[1]) {
+      try {
+        const client = await getGitHubClient();
+        const [issuesResp, prsResp] = await Promise.all([
+          client.issues.listForRepo({ owner: parts[0], repo: parts[1], state: "open", per_page: 5, sort: "updated" }),
+          client.pulls.list({ owner: parts[0], repo: parts[1], state: "open", per_page: 5, sort: "updated" }),
+        ]);
+        const issueSummaries = issuesResp.data.map((i) => `#${i.number}: ${i.title}`);
+        const prSummaries = prsResp.data.map((p) => `PR#${p.number}: ${p.title}`);
+        if (issueSummaries.length) {
+          notes.push(`GitHub issues: ${issueSummaries.join("; ")}`);
+        }
+        if (prSummaries.length) {
+          notes.push(`GitHub PRs: ${prSummaries.join("; ")}`);
+        }
+        issuesResp.data.forEach((i) =>
+          issueRefs.push({
+            raw: `#${i.number}`,
+            source: "github",
+            normalizedId: String(i.number),
+            status: i.state,
+          }),
+        );
+        prsResp.data.forEach((p) =>
+          issueRefs.push({
+            raw: `PR#${p.number}`,
+            source: "github",
+            normalizedId: String(p.number),
+            status: p.state,
+          }),
+        );
+      } catch (error) {
+        console.warn(`[Standup] Failed to fetch GitHub context for project ${project.id}:`, error);
+      }
+    }
+  }
+
+  return { extraDependencyNotes: notes, extraIssueRefs: issueRefs };
 }
 
 async function resolveStandupParticipants(project: ProjectDefinition, config: StandupConfig): Promise<string[]> {
@@ -344,7 +428,11 @@ async function createStandupRun(project: ProjectDefinition, config: StandupConfi
     return null;
   }
 
-  const contexts = await buildStandupParticipantContexts(project, participants);
+  const external = await gatherExternalStandupContext(project, config);
+  const contexts = await buildStandupParticipantContexts(project, participants, {
+    extraDependencyNotes: external.extraDependencyNotes,
+    extraIssueRefs: external.extraIssueRefs,
+  });
   await sendStandupPrompts(project, config, standupRecord, participants, contexts);
 
   return {

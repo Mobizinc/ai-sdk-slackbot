@@ -521,6 +521,27 @@ export const CONFIG_DEFINITIONS = {
     group: "telemetry",
     description: "Enable LangSmith tracing for LLM providers. Defaults to true, but tracing requires BOTH this flag to be true AND a valid LANGSMITH_API_KEY to be set. Set to false to explicitly disable tracing even when API key is present.",
   },
+  cacheTtlCase: {
+    envVar: "CACHE_TTL_CASE",
+    type: "number",
+    default: 600,
+    group: "cache",
+    description: "Cache TTL (seconds) for ServiceNow case/incident lookups.",
+  },
+  cacheTtlSpm: {
+    envVar: "CACHE_TTL_SPM",
+    type: "number",
+    default: 600,
+    group: "cache",
+    description: "Cache TTL (seconds) for ServiceNow SPM project lookups.",
+  },
+  cacheTtlCi: {
+    envVar: "CACHE_TTL_CI",
+    type: "number",
+    default: 900,
+    group: "cache",
+    description: "Cache TTL (seconds) for CMDB CI lookups.",
+  },
   azureSearchEndpoint: {
     envVar: "AZURE_SEARCH_ENDPOINT",
     type: "string",

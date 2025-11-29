@@ -424,10 +424,14 @@ export interface ProjectStats {
   paused: number
   completed: number
   archived: number
+  byType?: Record<string, number>
+  bySource?: Record<string, number>
 }
 
 export interface ProjectFilters {
   status?: string | string[]
+  type?: string | string[]
+  source?: string | string[]
   mentor?: string
   search?: string
   limit?: number
@@ -614,6 +618,11 @@ export interface StandupConfig extends JsonObject {
   // Legacy fields (for backwards compatibility)
   cadence?: string
   time?: string
+  dataSources?: {
+    useSpmTasks?: boolean
+    useGithubIssues?: boolean
+    useLocalOpenTasks?: boolean
+  }
   // Participant configuration
   participants?: string[]
   includeMentor?: boolean
@@ -680,6 +689,15 @@ class ApiClient {
     }
 
     return response.json()
+  }
+
+  // Slack helpers (admin)
+  async listSlackChannels(): Promise<{ channels: Array<{ id: string; name: string; isPrivate?: boolean }> }> {
+    return this.request('/api/admin/slack/channels')
+  }
+
+  async validateSlackChannel(channelId: string): Promise<{ ok: boolean; channel?: { id: string; name: string } }> {
+    return this.request(`/api/admin/slack/validate-channel?channelId=${encodeURIComponent(channelId)}`)
   }
 
   // Business Contexts

@@ -47,6 +47,33 @@ export class SlackMessagingService {
 
   constructor(private client: WebClient) {}
 
+  async listChannels(): Promise<Array<{ id: string; name: string; isPrivate?: boolean }>> {
+    try {
+      const result = await this.client.conversations.list({
+        types: "public_channel,private_channel",
+        limit: 200,
+      });
+      const chans = (result.channels as any[]) || [];
+      return chans
+        .filter((ch) => ch && ch.id && ch.name)
+        .map((ch) => ({ id: ch.id as string, name: ch.name as string, isPrivate: Boolean(ch.is_private) }));
+    } catch (error) {
+      console.error("[Slack Messaging] Failed to list channels", error);
+      throw error;
+    }
+  }
+
+  async getChannelInfo(channelId: string): Promise<{ id: string; name: string; isPrivate?: boolean }> {
+    try {
+      const result = await this.client.conversations.info({ channel: channelId });
+      const ch = (result.channel as any) || {};
+      return { id: ch.id as string, name: ch.name as string, isPrivate: Boolean(ch.is_private) };
+    } catch (error) {
+      console.error(`[Slack Messaging] Failed to get channel info for ${channelId}`, error);
+      throw error;
+    }
+  }
+
   /**
    * Post a message to a Slack channel or thread
    */
