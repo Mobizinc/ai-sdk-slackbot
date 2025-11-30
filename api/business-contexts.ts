@@ -42,8 +42,12 @@ function jsonResponse(request: Request, data: any, status: number = 200) {
 
 // Security check
 function checkAuth(request: Request) {
-  const isDevelopment = !appConfig.vercelEnv || appConfig.vercelEnv === 'development';
-  const adminToken = appConfig.adminApiToken;
+  const vercelEnv = process.env.VERCEL_ENV || appConfig.vercelEnv;
+  const adminToken =
+    process.env.ADMIN_API_TOKEN ||
+    process.env.NEXT_PUBLIC_ADMIN_TOKEN ||
+    appConfig.adminApiToken;
+  const isDevelopment = !vercelEnv || vercelEnv === 'development';
   const authHeader = request.headers.get('authorization');
 
   if (!isDevelopment) {
@@ -51,7 +55,7 @@ function checkAuth(request: Request) {
     if (!adminToken) {
       return jsonResponse(request, {
         success: false,
-        error: "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
+        error: "Admin API is disabled in production. Set ADMIN_API_TOKEN (or NEXT_PUBLIC_ADMIN_TOKEN) to enable.",
       }, 503);
     }
 

@@ -76,7 +76,7 @@ describe('Admin API', () => {
     it('should reject access in production without admin token', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      delete process.env.BUSINESS_CONTEXT_ADMIN_TOKEN;
+      delete process.env.ADMIN_API_TOKEN;
 
       const request = new Request('https://app.vercel.app/api/admin');
 
@@ -88,13 +88,13 @@ describe('Admin API', () => {
       expect(response.headers.get('Content-Type')).toBe('text/plain');
       
       const text = await response.text();
-      expect(text).toBe('Admin interface is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.');
+      expect(text).toBe('Admin interface is disabled in production. Set ADMIN_API_TOKEN (or NEXT_PUBLIC_ADMIN_TOKEN) to enable.');
     });
 
     it('should reject access with missing authorization header', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'secret-token');
+      vi.stubEnv('ADMIN_API_TOKEN', 'secret-token');
 
       const request = new Request('https://app.vercel.app/api/admin');
 
@@ -112,7 +112,7 @@ describe('Admin API', () => {
     it('should reject access with malformed authorization header', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'secret-token');
+      vi.stubEnv('ADMIN_API_TOKEN', 'secret-token');
 
       const request = new Request('https://app.vercel.app/api/admin', {
         headers: {
@@ -134,7 +134,7 @@ describe('Admin API', () => {
     it('should reject access with invalid token', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'correct-token');
+      vi.stubEnv('ADMIN_API_TOKEN', 'correct-token');
 
       const request = new Request('https://app.vercel.app/api/admin', {
         headers: {
@@ -156,7 +156,7 @@ describe('Admin API', () => {
     it('should allow access with valid Bearer token in production', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'secret-token');
+      vi.stubEnv('ADMIN_API_TOKEN', 'secret-token');
       
       const mockHtml = '<html><body>Admin Interface</body></html>';
       vi.mocked(readFileSync).mockReturnValue(mockHtml);
@@ -226,7 +226,7 @@ describe('Admin API', () => {
       for (const env of productionEnvs) {
         vi.clearAllMocks();
         vi.stubEnv('VERCEL_ENV', env);
-        vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'test-token');
+        vi.stubEnv('ADMIN_API_TOKEN', 'test-token');
         
         const mockHtml = '<html><body>Admin Interface</body></html>';
         vi.mocked(readFileSync).mockReturnValue(mockHtml);
@@ -249,7 +249,7 @@ describe('Admin API', () => {
     it('should trim token correctly from Bearer header', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', 'secret-token');
+      vi.stubEnv('ADMIN_API_TOKEN', 'secret-token');
       
       const mockHtml = '<html><body>Admin Interface</body></html>';
       vi.mocked(readFileSync).mockReturnValue(mockHtml);
@@ -271,7 +271,7 @@ describe('Admin API', () => {
     it('should handle empty token in production', async () => {
       // Arrange
       vi.stubEnv('VERCEL_ENV', 'production');
-      vi.stubEnv('BUSINESS_CONTEXT_ADMIN_TOKEN', '');
+      vi.stubEnv('ADMIN_API_TOKEN', '');
 
       const request = new Request('https://app.vercel.app/api/admin');
 
@@ -283,7 +283,7 @@ describe('Admin API', () => {
       expect(response.headers.get('Content-Type')).toBe('text/plain');
       
       const text = await response.text();
-      expect(text).toBe('Admin interface is disabled in production. Set BUSINESS_CONTEXT_ADMIN_TOKEN to enable.');
+      expect(text).toBe('Admin interface is disabled in production. Set ADMIN_API_TOKEN (or NEXT_PUBLIC_ADMIN_TOKEN) to enable.');
     });
   });
 });

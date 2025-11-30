@@ -105,11 +105,11 @@ Uses same token-based auth as current admin:
 
 **Development:** No authentication required
 
-**Production:** Requires `BUSINESS_CONTEXT_ADMIN_TOKEN` environment variable
+**Production:** Requires `ADMIN_API_TOKEN` environment variable (UI also supports `NEXT_PUBLIC_ADMIN_TOKEN`)
 
 ```bash
 # In Vercel environment variables
-BUSINESS_CONTEXT_ADMIN_TOKEN=your-secure-token-here
+ADMIN_API_TOKEN=your-secure-token-here
 NEXT_PUBLIC_ADMIN_TOKEN=your-secure-token-here
 ```
 
@@ -217,7 +217,7 @@ Serve via CDN or static hosting.
 - Verify all dependencies installed: `pnpm install`
 
 **Auth not working:**
-- Verify `BUSINESS_CONTEXT_ADMIN_TOKEN` is set
+- Verify `ADMIN_API_TOKEN` is set
 - Check Authorization header is being sent
 
 **API calls failing:**
