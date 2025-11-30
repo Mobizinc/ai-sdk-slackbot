@@ -404,6 +404,12 @@ export interface SPMProject {
   portfolioName?: string;
   lifecycleStage?: string;
   active?: boolean;
+  customer?: string;
+  customerName?: string;
+  customerSysId?: string;
+  company?: string;
+  companyName?: string;
+  companySysId?: string;
   url: string;
 }
 
@@ -497,6 +503,8 @@ export interface SPMSearchCriteria {
   parent?: string; // Parent project sys_id
   portfolio?: string; // Portfolio sys_id
   lifecycleStage?: string;
+  customer?: string; // Customer/company name or sys_id
+  company?: string; // Company name or sys_id (alias for customer)
   activeOnly?: boolean;
   openedAfter?: Date;
   openedBefore?: Date;

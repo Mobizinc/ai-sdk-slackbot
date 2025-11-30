@@ -42,6 +42,12 @@ const SearchProjectsInputSchema = z.object({
     .describe(
       "Filter by project manager name (supports partial matching)"
     ),
+  customer: z
+    .string()
+    .optional()
+    .describe(
+      "Filter by customer/company (name or sys_id). Use company sys_id for exact matching."
+    ),
   projectActiveOnly: z
     .boolean()
     .optional()
@@ -71,19 +77,21 @@ export function createSearchProjectsTool(params: AgentToolFactoryParams) {
 
   return createTool({
     name: "search_projects",
-    description:
+  description:
       "Search ServiceNow SPM (Strategic Portfolio Management) projects with flexible filtering. " +
       "Returns projects matching the search criteria, sorted by opened date (newest first).\n\n" +
       "**Use this tool when:**\n" +
       "- User asks for a list of projects\n" +
       "- Looking for projects by name or keyword\n" +
       "- Filtering projects by state, priority, or manager\n" +
+      "- Filtering projects by customer/company\n" +
       "- Finding active/open projects\n\n" +
       "**Query Examples:**\n" +
       "- 'migration projects' → projectName: 'migration'\n" +
       "- 'open projects' → projectState: 'Open' or projectActiveOnly: true\n" +
       "- 'high priority projects' → projectPriority: '2'\n" +
       "- 'projects managed by John' → projectManager: 'John'\n" +
+      "- 'projects for customer 123' → customer: '<sys_id>'\n" +
       "- 'in progress projects' → projectState: 'Work in Progress'\n\n" +
       "**IMPORTANT:**\n" +
       "- All filters are optional (returns all projects if no filters)\n" +
@@ -98,6 +106,7 @@ export function createSearchProjectsTool(params: AgentToolFactoryParams) {
       projectState,
       projectPriority,
       projectManager,
+      customer,
       projectActiveOnly,
       limit = 25,
     }: SearchProjectsInput) => {
@@ -113,6 +122,11 @@ export function createSearchProjectsTool(params: AgentToolFactoryParams) {
         if (projectState) criteria.state = projectState;
         if (projectPriority) criteria.priority = projectPriority;
         if (projectManager) criteria.projectManager = projectManager;
+        if (customer) {
+          // Accept either sys_id or name; repository handles both
+          criteria.customer = customer;
+          criteria.company = customer;
+        }
         if (projectActiveOnly !== undefined) criteria.activeOnly = projectActiveOnly;
 
         const criteriaDesc = [
@@ -120,6 +134,7 @@ export function createSearchProjectsTool(params: AgentToolFactoryParams) {
           projectState && `state="${projectState}"`,
           projectPriority && `priority="${projectPriority}"`,
           projectManager && `manager="${projectManager}"`,
+          customer && `customer="${customer}"`,
           projectActiveOnly && "activeOnly=true",
         ]
           .filter(Boolean)
