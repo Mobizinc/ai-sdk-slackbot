@@ -295,7 +295,8 @@ export class StaleCaseFollowupService {
 
     const ownerLabel = ownerMention ?? summaries[0].case.assignedTo ?? "Unassigned";
 
-    // Build plans per case
+    // Build plans per case with tight length control to avoid Slack 3000-char block limits
+    const caseBlocks: any[] = [];
     const lines: string[] = [];
     for (const summary of summaries) {
       const plan = await this.buildFollowupPlan(summary);
@@ -305,18 +306,18 @@ export class StaleCaseFollowupService {
         slackChannelLabel,
       });
 
-      lines.push(this.formatOwnerLine(summary, plan));
+      const line = this.formatOwnerLine(summary, plan);
+      lines.push(line.text);
+      caseBlocks.push(line.block);
     }
 
     const header = `*${ownerLabel}* — ${summaries.length} stale case(s)`;
-    const blocks = [
-      { type: "section", text: { type: "mrkdwn", text: header } },
-      { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } },
-      {
-        type: "context",
-        elements: [{ type: "mrkdwn", text: `Posted in ${slackChannelLabel ?? slackChannel}` }],
-      },
-    ];
+    const blocks: any[] = [{ type: "section", text: { type: "mrkdwn", text: header } }];
+    blocks.push(...caseBlocks);
+    blocks.push({
+      type: "context",
+      elements: [{ type: "mrkdwn", text: `Posted in ${slackChannelLabel ?? slackChannel}` }],
+    });
 
     await this.deps.slack.postMessage({
       channel: slackChannel,
@@ -397,15 +398,24 @@ export class StaleCaseFollowupService {
     return resp.ts;
   }
 
-  private formatOwnerLine(summary: StaleCaseSummary, plan: FollowupPlan): string {
+  private formatOwnerLine(summary: StaleCaseSummary, plan: FollowupPlan): { text: string; block: any } {
     const caseLink = summary.case.url ? `<${summary.case.url}|${summary.case.number}>` : summary.case.number;
+    const summaryText = this.truncate(plan.summary, 240);
+    const remindersText = plan.reminders.length ? this.truncate(plan.reminders.join("; "), 240) : "";
+    const questionsText = plan.questions.length ? this.truncate(plan.questions.join("; "), 240) : "";
+
     const parts = [
       `• ${caseLink} (${summary.staleDays}d stale, ${summary.ageDays ?? "n/a"}d old, ${summary.case.priority ?? "n/a"} / ${summary.case.state ?? "n/a"})`,
-      plan.summary ? `  ↳ ${plan.summary}` : "",
-      plan.reminders.length ? `  ↳ Next: ${plan.reminders.join("; ")}` : "",
-      plan.questions.length ? `  ↳ Questions: ${plan.questions.join("; ")}` : "",
+      summaryText ? `  ↳ ${summaryText}` : "",
+      remindersText ? `  ↳ Next: ${remindersText}` : "",
+      questionsText ? `  ↳ Questions: ${questionsText}` : "",
+      "  ↳ Full details posted as ServiceNow work note",
     ].filter(Boolean);
-    return parts.join("\n");
+    const text = parts.join("\n");
+    return {
+      text,
+      block: { type: "section", text: { type: "mrkdwn", text } },
+    };
   }
 
   private buildSummaryMessage(assignmentGroup: string, cases: StaleCaseSummary[]): FollowupMessagePayload {
@@ -449,6 +459,15 @@ export class StaleCaseFollowupService {
       fallbackText: components,
       blocks,
     };
+  }
+
+  /**
+   * Trim text to a max length, adding ellipsis when truncated.
+   */
+  private truncate(text: string | undefined, maxLength: number): string {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength - 1)}…`;
   }
 
   private buildFollowupMessage(
