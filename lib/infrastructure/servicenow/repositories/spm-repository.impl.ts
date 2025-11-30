@@ -129,7 +129,10 @@ export class ServiceNowSPMRepository implements SPMRepository {
     }
 
     if (criteria.query) {
-      queryParts.push(`short_descriptionLIKE${criteria.query}^ORdescriptionLIKE${criteria.query}`);
+      // Match user-provided text against common project text fields
+      queryParts.push(
+        `nameLIKE${criteria.query}^ORshort_descriptionLIKE${criteria.query}^ORdescriptionLIKE${criteria.query}`,
+      );
     }
 
     if (criteria.state) {
