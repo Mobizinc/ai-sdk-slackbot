@@ -1,4 +1,3 @@
-import { config as runtimeConfig } from "../../../../../lib/config";
 import { fetchProjectById } from "../../../../../lib/db/repositories/projects-repository";
 import { getSPMRepository } from "../../../../../lib/infrastructure/servicenow/repositories";
 import { getGitHubClient } from "../../../../../lib/integrations/github/client";
@@ -12,59 +11,12 @@ import {
   getInterviewStats,
   fetchRecentInterviews,
 } from "../../../../../lib/db/repositories/interview-repository";
+import { authorizeAdminRequest, getCorsHeaders } from "../../../utils";
 
-function buildUnauthorizedResponse(message: string, status: number): Response {
-  return new Response(message, {
-    status,
-    headers: {
-      "Content-Type": "text/plain",
-    },
-  });
-}
-
-function authorize(request: Request): Response | null {
-  const isDevelopment =
-    !runtimeConfig.vercelEnv || runtimeConfig.vercelEnv === "development";
-  if (isDevelopment) {
-    return null;
-  }
-
-  const adminToken = runtimeConfig.adminApiToken;
-  if (!adminToken) {
-    return buildUnauthorizedResponse(
-      "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
-      403,
-    );
-  }
-
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return buildUnauthorizedResponse(
-      "Unauthorized. Provide Bearer token in Authorization header.",
-      401,
-    );
-  }
-
-  const provided = authHeader.substring(7);
-  if (provided !== adminToken) {
-    return buildUnauthorizedResponse("Forbidden. Invalid admin token.", 403);
-  }
-
-  return null;
-}
-
-const corsHeaders = {
-  "Content-Type": "application/json",
-  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS(): Promise<Response> {
+export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(request),
   });
 }
 
@@ -72,7 +24,7 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } },
 ): Promise<Response> {
-  const unauthorized = authorize(request);
+  const unauthorized = authorizeAdminRequest(request);
   if (unauthorized) {
     return unauthorized;
   }
@@ -92,7 +44,7 @@ export async function GET(
         }),
         {
           status: 404,
-          headers: corsHeaders,
+          headers: getCorsHeaders(request),
         },
       );
     }
@@ -237,7 +189,7 @@ export async function GET(
       }),
       {
         status: 200,
-        headers: corsHeaders,
+        headers: getCorsHeaders(request),
       },
     );
   } catch (error) {
@@ -249,7 +201,7 @@ export async function GET(
       }),
       {
         status: 500,
-        headers: corsHeaders,
+        headers: getCorsHeaders(request),
       },
     );
   }

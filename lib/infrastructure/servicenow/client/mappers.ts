@@ -180,9 +180,11 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     ? Math.floor((Date.now() - openedAt.getTime()) / (1000 * 60 * 60 * 24))
     : undefined;
 
+  const sysId = extractSysId(record.sys_id) || String(record.sys_id);
+
   return {
-    sysId: record.sys_id,
-    number: record.number,
+    sysId,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     priority: extractDisplayValue(record.priority),
@@ -219,7 +221,7 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
     resolvedAt,
     closedAt,
     active,
-    url: buildRecordUrl(instanceUrl, "sn_customerservice_case", record.sys_id),
+    url: buildRecordUrl(instanceUrl, "sn_customerservice_case", sysId),
   };
 }
 
@@ -229,7 +231,7 @@ export function mapCase(record: CaseRecord, instanceUrl: string): Case {
 export function mapIncident(record: IncidentRecord, instanceUrl: string): Incident {
   return {
     sysId: record.sys_id,
-    number: record.number,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     state: extractDisplayValue(record.state),
@@ -257,7 +259,7 @@ export function mapIncident(record: IncidentRecord, instanceUrl: string): Incide
 export function mapProblem(record: ProblemRecord, instanceUrl: string): Problem {
   return {
     sysId: record.sys_id,
-    number: record.number,
+    number: extractDisplayValue(record.number),
     shortDescription: extractDisplayValue(record.short_description),
     description: extractDisplayValue(record.description),
     state: extractDisplayValue(record.state),

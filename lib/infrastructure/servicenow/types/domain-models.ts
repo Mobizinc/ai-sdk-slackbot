@@ -247,6 +247,10 @@ export interface UpdateCaseInput {
   subcategory?: string;
   assignmentGroup?: string;
   assignedTo?: string;
+  closeNotes?: string;
+  closeCode?: string;
+  incident?: string;
+  problem?: string;
 }
 
 /**
@@ -400,6 +404,12 @@ export interface SPMProject {
   portfolioName?: string;
   lifecycleStage?: string;
   active?: boolean;
+  customer?: string;
+  customerName?: string;
+  customerSysId?: string;
+  company?: string;
+  companyName?: string;
+  companySysId?: string;
   url: string;
 }
 
@@ -493,11 +503,76 @@ export interface SPMSearchCriteria {
   parent?: string; // Parent project sys_id
   portfolio?: string; // Portfolio sys_id
   lifecycleStage?: string;
+  customer?: string; // Customer/company name or sys_id
+  company?: string; // Company name or sys_id (alias for customer)
   activeOnly?: boolean;
   openedAfter?: Date;
   openedBefore?: Date;
   dueBefore?: Date;
   sortBy?: 'number' | 'opened_at' | 'due_date' | 'priority' | 'percent_complete';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Health status value for project status reports
+ * green = On Track, yellow = At Risk, red = Off Track
+ */
+export type HealthStatus = 'green' | 'yellow' | 'red';
+
+/**
+ * Project Status entity (project health reporting)
+ * Represents a status report from the project_status table
+ */
+export interface ProjectStatus {
+  sysId: string;
+  number: string; // PRJSTAT0010761
+  projectSysId: string;
+  projectName: string;
+  projectNumber?: string; // PRJ0002582
+  overallHealth: HealthStatus;
+  scheduleHealth: HealthStatus;
+  costHealth: HealthStatus;
+  scopeHealth: HealthStatus;
+  resourcesHealth: HealthStatus;
+  state: string;
+  phase?: string; // executing, planning, etc.
+  statusDate: Date; // as_on field
+  createdOn: Date;
+  createdBy?: string;
+  url: string;
+}
+
+/**
+ * Project with latest status (combined view)
+ */
+export interface ProjectWithStatus extends SPMProject {
+  latestStatus?: {
+    overallHealth: HealthStatus;
+    scheduleHealth: HealthStatus;
+    costHealth: HealthStatus;
+    scopeHealth: HealthStatus;
+    resourcesHealth: HealthStatus;
+    statusDate: Date;
+    statusNumber: string;
+  };
+}
+
+/**
+ * Criteria for searching project status reports
+ */
+export interface ProjectStatusSearchCriteria {
+  projectSysId?: string;
+  overallHealth?: HealthStatus;
+  scheduleHealth?: HealthStatus;
+  costHealth?: HealthStatus;
+  scopeHealth?: HealthStatus;
+  resourcesHealth?: HealthStatus;
+  statusDateAfter?: Date;
+  statusDateBefore?: Date;
+  latestOnly?: boolean; // Only get latest status per project
+  sortBy?: 'as_on' | 'sys_created_on' | 'overall_health';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;

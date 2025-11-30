@@ -129,7 +129,10 @@ export class ServiceNowSPMRepository implements SPMRepository {
     }
 
     if (criteria.query) {
-      queryParts.push(`short_descriptionLIKE${criteria.query}^ORdescriptionLIKE${criteria.query}`);
+      // Match user-provided text against common project text fields
+      queryParts.push(
+        `nameLIKE${criteria.query}^ORshort_descriptionLIKE${criteria.query}^ORdescriptionLIKE${criteria.query}`,
+      );
     }
 
     if (criteria.state) {
@@ -138,6 +141,14 @@ export class ServiceNowSPMRepository implements SPMRepository {
 
     if (criteria.priority) {
       queryParts.push(`priority=${criteria.priority}`);
+    }
+
+    if (criteria.customer) {
+      queryParts.push(`customer.nameLIKE${criteria.customer}^ORcustomer=${criteria.customer}`);
+    }
+
+    if (criteria.company) {
+      queryParts.push(`company.nameLIKE${criteria.company}^ORcompany=${criteria.company}`);
     }
 
     if (criteria.assignedTo) {
@@ -532,6 +543,12 @@ export class ServiceNowSPMRepository implements SPMRepository {
       projectManagerSysId: extractSysId(record.project_manager),
       sponsor: extractDisplayValue(record.sponsor),
       sponsorName: extractDisplayValue(record.sponsor),
+      customer: extractDisplayValue(record.customer),
+      customerName: extractDisplayValue(record.customer),
+      customerSysId: extractSysId(record.customer),
+      company: extractDisplayValue(record.company),
+      companyName: extractDisplayValue(record.company),
+      companySysId: extractSysId(record.company),
       portfolio: extractDisplayValue(record.portfolio),
       portfolioName: extractDisplayValue(record.portfolio),
       lifecycleStage: extractDisplayValue(record.lifecycle_stage),

@@ -310,6 +310,10 @@ export class ServiceNowCaseRepository implements CaseRepository {
     if (updates.subcategory) payload.subcategory = updates.subcategory;
     if (updates.assignmentGroup) payload.assignment_group = updates.assignmentGroup;
     if (updates.assignedTo) payload.assigned_to = updates.assignedTo;
+    if (updates.closeNotes) payload.close_notes = updates.closeNotes;
+    if (updates.closeCode) payload.close_code = updates.closeCode;
+    if (updates.incident) payload.incident = updates.incident;
+    if (updates.problem) payload.problem = updates.problem;
 
     const response = await this.httpClient.patch<CaseRecord>(
       `/api/now/table/${this.caseTable}/${sysId}`,

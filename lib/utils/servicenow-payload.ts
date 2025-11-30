@@ -17,17 +17,21 @@ function extractErrorContext(payload: string, position: number, contextSize = 50
 /**
  * Fix invalid escape sequences in JSON strings.
  * ServiceNow may send paths like "L:\" which need escaping.
+ * Uses negative lookbehind to avoid double-escaping already-escaped backslashes.
  */
 export function fixInvalidEscapeSequences(payload: string): string {
-  return payload.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+  // Match backslash NOT preceded by another backslash, and NOT followed by valid escape chars
+  return payload.replace(/(?<!\\)\\(?!["\\/bfnrtu])/g, "\\\\");
 }
 
 /**
  * Fix invalid unicode escape sequences like \user or \u12GZ by escaping the backslash.
  * Ensures JSON.parse sees them as literal strings rather than invalid unicode sequences.
+ * Uses negative lookbehind to avoid double-escaping already-escaped backslashes.
  */
 export function fixInvalidUnicodeEscapes(payload: string): string {
-  return payload.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
+  // Match \u NOT preceded by another backslash, and NOT followed by 4 hex digits
+  return payload.replace(/(?<!\\)\\u(?![0-9a-fA-F]{4})/g, "\\\\u");
 }
 
 /**

@@ -46,6 +46,7 @@ import { createGetRequestedItemTool } from "./servicenow/catalog/get-requested-i
 import { createGetCatalogTaskTool } from "./servicenow/catalog/get-catalog-task.tool";
 import { createGetProjectTool } from "./servicenow/spm/get-project.tool";
 import { createSearchProjectsTool } from "./servicenow/spm/search-projects.tool";
+import { createSearchProjectStatusTool } from "./servicenow/spm/search-project-status.tool";
 import { createGetProjectEpicsTool } from "./servicenow/spm/get-project-epics.tool";
 import { createGetProjectStoriesTool } from "./servicenow/spm/get-project-stories.tool";
 import { createGetChangeTool } from "./servicenow/change/get-change.tool";
@@ -132,6 +133,7 @@ export function createAgentTools(params: AgentToolFactoryParams) {
     // SPM domain (read + write)
     getProject: createGetProjectTool(params),
     searchProjects: createSearchProjectsTool(params),
+    searchProjectStatus: createSearchProjectStatusTool(params),
     getProjectEpics: createGetProjectEpicsTool(params),
     getProjectStories: createGetProjectStoriesTool(params),
     createProject: createCreateProjectTool(params), // Phase 3
