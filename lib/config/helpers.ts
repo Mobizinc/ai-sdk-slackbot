@@ -19,6 +19,8 @@ export function getServiceNowConfig() {
   const username = envConfig.username || process.env.SERVICENOW_USERNAME || "";
   const password = envConfig.password || process.env.SERVICENOW_PASSWORD || "";
   const apiToken = getConfigValue("servicenowApiToken") as string || process.env.SERVICENOW_API_TOKEN || "";
+  // Prefer explicit env override for table in case the JSON default is set to a different table
+  const caseTable = (process.env.SERVICENOW_CASE_TABLE || envConfig.caseTable || "x_mobit_serv_case_service_case").trim();
 
   return {
     ...envConfig,
@@ -27,7 +29,7 @@ export function getServiceNowConfig() {
     username,
     password,
     apiToken,
-    caseTable: envConfig.caseTable || process.env.SERVICENOW_CASE_TABLE || "sn_customerservice_case",
+    caseTable,
     caseJournalName: getConfigValue("servicenowCaseJournalName"),
     webhookSecret: getConfigValue("servicenowWebhookSecret"),
     cloneTargetInstance: envConfig.cloneTargetInstance || "mobizuat",

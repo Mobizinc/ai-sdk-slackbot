@@ -15,7 +15,7 @@ vercel --prod
 **Environment Variables (Vercel dashboard for admin project):**
 ```
 NEXT_PUBLIC_API_BASE_URL=https://slack.mobiz.solutions
-NEXT_PUBLIC_ADMIN_TOKEN=(same as BUSINESS_CONTEXT_ADMIN_TOKEN)
+NEXT_PUBLIC_ADMIN_TOKEN=(same as ADMIN_API_TOKEN)
 ```
 
 **Result:** Admin at `https://admin-ui.vercel.app` or custom domain

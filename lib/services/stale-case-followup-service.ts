@@ -53,10 +53,36 @@ interface FollowupMessagePayload {
   blocks: any[];
 }
 
+export interface OwnerJobCasePayload {
+  caseNumber: string;
+  caseSysId: string;
+  shortDescription?: string;
+  priority?: string;
+  state?: string;
+  assignmentGroup?: string;
+  assignedTo?: string;
+  assignedToSysId?: string;
+  cmdbCi?: string;
+  businessService?: string;
+  ageDays?: number;
+  staleDays: number;
+  url?: string;
+}
+
+export interface OwnerJobPayload {
+  assignmentGroup: string;
+  slackChannel: string;
+  slackChannelLabel?: string;
+  ownerKey: string;
+  cases: OwnerJobCasePayload[];
+}
+
 const DEFAULT_THRESHOLD_DAYS = parseInt(process.env.STALE_CASE_THRESHOLD_DAYS ?? "3", 10);
 const DEFAULT_FETCH_LIMIT = parseInt(process.env.STALE_CASE_FETCH_LIMIT ?? "60", 10);
 const DEFAULT_FOLLOWUP_LIMIT = parseInt(process.env.STALE_CASE_FOLLOWUP_LIMIT ?? "8", 10);
 const DEFAULT_JOURNAL_LIMIT = parseInt(process.env.STALE_CASE_JOURNAL_LIMIT ?? "8", 10);
+const DEFAULT_OWNER_BATCH_LIMIT = parseInt(process.env.STALE_CASE_OWNER_BATCH_LIMIT ?? "10", 10);
+const DEFAULT_OWNER_JOB_LIMIT = parseInt(process.env.STALE_CASE_OWNER_JOB_LIMIT ?? "25", 10); // cap per dispatch
 const REVIEW_MODEL = process.env.STALE_CASE_REVIEW_MODEL ?? "claude-sonnet-4-5";
 const STALE_CASE_FOLLOWUP_STATE_KEY = "stale_case_followup:last_run";
 
@@ -73,24 +99,38 @@ export const DEFAULT_ASSIGNMENT_GROUPS: AssignmentGroupConfig[] = [
   },
 ];
 
+type ServiceMode = "legacy" | "dispatch-only" | "worker";
+
 export class StaleCaseFollowupService {
   private readonly thresholdDays = Math.max(DEFAULT_THRESHOLD_DAYS, 1);
   private readonly fetchLimit = Math.max(DEFAULT_FETCH_LIMIT, 5);
   private readonly followupLimit = Math.max(DEFAULT_FOLLOWUP_LIMIT, 1);
   private readonly journalLimit = Math.max(DEFAULT_JOURNAL_LIMIT, 3);
+  private readonly ownerBatchLimit = Math.max(DEFAULT_OWNER_BATCH_LIMIT, 1);
+  private readonly ownerJobLimit = Math.max(DEFAULT_OWNER_JOB_LIMIT, 1);
+  private readonly mode: ServiceMode;
 
-  constructor(private readonly deps: FollowupDependencies = {
-    caseSearch: getCaseSearchService(),
-    caseRepository: getCaseRepository(),
-    slack: getSlackMessagingService(),
-    chat: AnthropicChatService.getInstance(),
-    userDirectory: getServiceNowUserDirectory(),
-    persistRunSummary: async (summary) => {
-      await setAppSetting(STALE_CASE_FOLLOWUP_STATE_KEY, JSON.stringify(summary));
+  constructor(
+    private readonly deps: FollowupDependencies = {
+      caseSearch: getCaseSearchService(),
+      caseRepository: getCaseRepository(),
+      slack: getSlackMessagingService(),
+      chat: AnthropicChatService.getInstance(),
+      userDirectory: getServiceNowUserDirectory(),
+      persistRunSummary: async (summary) => {
+        await setAppSetting(STALE_CASE_FOLLOWUP_STATE_KEY, JSON.stringify(summary));
+      },
     },
-  }) {}
+    mode: ServiceMode = "legacy",
+  ) {
+    this.mode = mode;
+  }
 
   async run(groups: AssignmentGroupConfig[]): Promise<FollowupRunSummary> {
+    if (this.mode !== "legacy") {
+      throw new Error("run() is only supported in legacy mode");
+    }
+
     const results: FollowupGroupResult[] = [];
 
     for (const group of groups) {
@@ -170,6 +210,122 @@ export class StaleCaseFollowupService {
     };
   }
 
+  /**
+   * Dispatch mode: group stale cases by owner and enqueue jobs via provided enqueueFn
+   */
+  async dispatchOwnerJobs(
+    groups: AssignmentGroupConfig[],
+    enqueueFn: (payload: OwnerJobPayload) => Promise<void>,
+  ): Promise<number> {
+    if (this.mode === "legacy") {
+      throw new Error("dispatchOwnerJobs is not available in legacy mode");
+    }
+
+    let enqueued = 0;
+
+    for (const group of groups) {
+      const staleSummaries = await this.fetchStaleCases(group.assignmentGroup);
+      const byOwner = this.groupByOwner(staleSummaries);
+
+      for (const [ownerKey, cases] of byOwner.entries()) {
+        if (enqueued >= this.ownerJobLimit) {
+          break;
+        }
+
+        const ownerCases = cases.slice(0, this.ownerBatchLimit);
+        const payload: OwnerJobPayload = {
+          assignmentGroup: group.assignmentGroup,
+          slackChannel: group.slackChannel,
+          slackChannelLabel: group.slackChannelLabel,
+          ownerKey,
+          cases: ownerCases.map((c) => ({
+            caseNumber: c.case.number,
+            caseSysId: c.case.sysId,
+            shortDescription: c.case.shortDescription,
+            priority: c.case.priority,
+            state: c.case.state,
+            assignmentGroup: c.case.assignmentGroup,
+            assignedTo: c.case.assignedTo,
+            assignedToSysId: c.case.assignedToSysId,
+            cmdbCi: c.case.cmdbCi,
+            businessService: c.case.businessService,
+            ageDays: c.ageDays,
+            staleDays: c.staleDays,
+            url: c.case.url,
+          })),
+        };
+
+        await enqueueFn(payload);
+        enqueued += 1;
+      }
+    }
+
+    return enqueued;
+  }
+
+  /**
+   * Worker mode: process a single owner payload (QStash)
+   */
+  async processOwnerPayload(payload: OwnerJobPayload): Promise<void> {
+    if (this.mode === "legacy") {
+      throw new Error("processOwnerPayload is not available in legacy mode");
+    }
+
+    const { assignmentGroup, slackChannel, slackChannelLabel, ownerKey, cases } = payload;
+
+    // Fetch fresh case/journal data to avoid stale content
+    const summaries: StaleCaseSummary[] = [];
+    for (const c of cases) {
+      const caseSummary = await this.hydrateCaseSummary(c);
+      if (caseSummary) {
+        summaries.push(caseSummary);
+      }
+    }
+
+    if (summaries.length === 0) {
+      return;
+    }
+
+    const threadTs = await this.ensureSummaryThread(assignmentGroup, slackChannel, slackChannelLabel, summaries);
+
+    const ownerMention = await this.deps.userDirectory.resolveSlackMention({
+      assignedTo: summaries[0].case.assignedTo,
+      assignedToSysId: summaries[0].case.assignedToSysId,
+    } as Case);
+
+    const ownerLabel = ownerMention ?? summaries[0].case.assignedTo ?? "Unassigned";
+
+    // Build plans per case
+    const lines: string[] = [];
+    for (const summary of summaries) {
+      const plan = await this.buildFollowupPlan(summary);
+      await this.recordWorkNote(summary.case, plan, {
+        assignmentGroup,
+        slackChannel,
+        slackChannelLabel,
+      });
+
+      lines.push(this.formatOwnerLine(summary, plan));
+    }
+
+    const header = `*${ownerLabel}* — ${summaries.length} stale case(s)`;
+    const blocks = [
+      { type: "section", text: { type: "mrkdwn", text: header } },
+      { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } },
+      {
+        type: "context",
+        elements: [{ type: "mrkdwn", text: `Posted in ${slackChannelLabel ?? slackChannel}` }],
+      },
+    ];
+
+    await this.deps.slack.postMessage({
+      channel: slackChannel,
+      text: `${header}\n${lines.join("\n")}`,
+      blocks,
+      threadTs,
+    });
+  }
+
   private async fetchStaleCases(assignmentGroup: string): Promise<StaleCaseSummary[]> {
     const cutoff = new Date(Date.now() - this.thresholdDays * 24 * 60 * 60 * 1000);
     const result: CaseSearchResult = await this.deps.caseSearch.searchWithMetadata({
@@ -183,6 +339,73 @@ export class StaleCaseFollowupService {
 
     const staleSummaries = findStaleCases(result.cases, this.thresholdDays);
     return staleSummaries;
+  }
+
+  private groupByOwner(cases: StaleCaseSummary[]): Map<string, StaleCaseSummary[]> {
+    const map = new Map<string, StaleCaseSummary[]>();
+    for (const c of cases) {
+      const key = c.case.assignedToSysId || c.case.assignedTo || "Unassigned";
+      const bucket = map.get(key);
+      if (bucket) {
+        bucket.push(c);
+      } else {
+        map.set(key, [c]);
+      }
+    }
+    return map;
+  }
+
+  private async hydrateCaseSummary(payload: OwnerJobCasePayload): Promise<StaleCaseSummary | null> {
+    // Minimal hydration: use payload fields, no refetch to keep worker fast
+    // Age/stale days already provided; treat as trusted from dispatch
+    const caseModel: Case = {
+      sysId: payload.caseSysId,
+      number: payload.caseNumber,
+      shortDescription: payload.shortDescription ?? "",
+      priority: payload.priority,
+      state: payload.state,
+      assignmentGroup: payload.assignmentGroup,
+      assignedTo: payload.assignedTo,
+      assignedToSysId: payload.assignedToSysId,
+      cmdbCi: payload.cmdbCi,
+      businessService: payload.businessService,
+      ageDays: payload.ageDays,
+      url: payload.url ?? "",
+    } as Case;
+
+    return {
+      case: caseModel,
+      staleDays: payload.staleDays,
+      ageDays: payload.ageDays ?? 0,
+      isHighPriority: false,
+    };
+  }
+
+  private async ensureSummaryThread(
+    assignmentGroup: string,
+    slackChannel: string,
+    slackChannelLabel: string | undefined,
+    cases: StaleCaseSummary[],
+  ): Promise<string | undefined> {
+    // Post a fresh summary per worker run; future optimization could cache threadTs in app settings
+    const summary = this.buildSummaryMessage(assignmentGroup, cases);
+    const resp = await this.deps.slack.postMessage({
+      channel: slackChannel,
+      text: summary.fallbackText,
+      blocks: summary.blocks,
+    });
+    return resp.ts;
+  }
+
+  private formatOwnerLine(summary: StaleCaseSummary, plan: FollowupPlan): string {
+    const caseLink = summary.case.url ? `<${summary.case.url}|${summary.case.number}>` : summary.case.number;
+    const parts = [
+      `• ${caseLink} (${summary.staleDays}d stale, ${summary.ageDays ?? "n/a"}d old, ${summary.case.priority ?? "n/a"} / ${summary.case.state ?? "n/a"})`,
+      plan.summary ? `  ↳ ${plan.summary}` : "",
+      plan.reminders.length ? `  ↳ Next: ${plan.reminders.join("; ")}` : "",
+      plan.questions.length ? `  ↳ Questions: ${plan.questions.join("; ")}` : "",
+    ].filter(Boolean);
+    return parts.join("\n");
   }
 
   private buildSummaryMessage(assignmentGroup: string, cases: StaleCaseSummary[]): FollowupMessagePayload {

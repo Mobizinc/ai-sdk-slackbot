@@ -198,15 +198,15 @@ async function gatherExternalStandupContext(project: ProjectDefinition, config: 
           client.issues.listForRepo({ owner: parts[0], repo: parts[1], state: "open", per_page: 5, sort: "updated" }),
           client.pulls.list({ owner: parts[0], repo: parts[1], state: "open", per_page: 5, sort: "updated" }),
         ]);
-        const issueSummaries = issuesResp.data.map((i) => `#${i.number}: ${i.title}`);
-        const prSummaries = prsResp.data.map((p) => `PR#${p.number}: ${p.title}`);
+        const issueSummaries = issuesResp.data.map((i: typeof issuesResp.data[number]) => `#${i.number}: ${i.title}`);
+        const prSummaries = prsResp.data.map((p: typeof prsResp.data[number]) => `PR#${p.number}: ${p.title}`);
         if (issueSummaries.length) {
           notes.push(`GitHub issues: ${issueSummaries.join("; ")}`);
         }
         if (prSummaries.length) {
           notes.push(`GitHub PRs: ${prSummaries.join("; ")}`);
         }
-        issuesResp.data.forEach((i) =>
+        issuesResp.data.forEach((i: typeof issuesResp.data[number]) =>
           issueRefs.push({
             raw: `#${i.number}`,
             source: "github",
@@ -214,7 +214,7 @@ async function gatherExternalStandupContext(project: ProjectDefinition, config: 
             status: i.state,
           }),
         );
-        prsResp.data.forEach((p) =>
+        prsResp.data.forEach((p: typeof prsResp.data[number]) =>
           issueRefs.push({
             raw: `PR#${p.number}`,
             source: "github",

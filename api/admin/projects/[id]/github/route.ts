@@ -96,7 +96,7 @@ export async function GET(
         stargazersCount: repoResp.data.stargazers_count,
       },
       openIssues: {
-        items: openIssuesResp.data.map((issue) => ({
+        items: openIssuesResp.data.map((issue: typeof openIssuesResp.data[number]) => ({
           id: issue.id,
           number: issue.number,
           title: issue.title,
@@ -111,7 +111,7 @@ export async function GET(
         hasMore: openIssuesResp.data.length === perPage,
       },
       openPulls: {
-        items: openPrsResp.data.map((pr) => ({
+        items: openPrsResp.data.map((pr: typeof openPrsResp.data[number]) => ({
           id: pr.id,
           number: pr.number,
           title: pr.title,

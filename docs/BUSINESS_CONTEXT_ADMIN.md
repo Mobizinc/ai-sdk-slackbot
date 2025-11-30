@@ -55,7 +55,7 @@ openssl rand -base64 32
 In Vercel Dashboard → Settings → Environment Variables:
 
 ```
-BUSINESS_CONTEXT_ADMIN_TOKEN=your-generated-token-here
+ADMIN_API_TOKEN=your-generated-token-here
 ```
 
 ### 3. Access API with Bearer Token
@@ -199,7 +199,7 @@ Delete business context by ID.
 
 ### "Business Context Admin API is disabled in production"
 
-**Solution**: The admin token is not configured. Add `BUSINESS_CONTEXT_ADMIN_TOKEN` to Vercel environment variables.
+**Solution**: The admin token is not configured. Add `ADMIN_API_TOKEN` to Vercel environment variables.
 
 ### "Unauthorized. Provide Bearer token in Authorization header"
 
