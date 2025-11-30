@@ -375,7 +375,7 @@ export const CONFIG_DEFINITIONS = {
         instanceUrl: "",
         username: "",
         password: "",
-        caseTable: "sn_customerservice_case",
+        caseTable: "x_mobit_serv_case_service_case",
         ciTable: "cmdb_ci",
         taskTable: "sn_customerservice_task",
         companyId: "",
@@ -386,7 +386,7 @@ export const CONFIG_DEFINITIONS = {
         instanceUrl: "",
         username: "",
         password: "",
-        caseTable: "",
+        caseTable: "x_mobit_serv_case_service_case",
         ciTable: "cmdb_ci",
         taskTable: "sn_customerservice_task",
         companyId: ""
@@ -395,7 +395,7 @@ export const CONFIG_DEFINITIONS = {
         instanceUrl: "",
         username: "",
         password: "",
-        caseTable: "",
+        caseTable: "x_mobit_serv_case_service_case",
         ciTable: "cmdb_ci",
         taskTable: "sn_customerservice_task"
       }

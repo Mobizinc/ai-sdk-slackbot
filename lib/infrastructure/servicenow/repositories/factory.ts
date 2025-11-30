@@ -68,7 +68,7 @@ export function createCaseRepository(
 
   const snConfig = getServiceNowConfig();
   const repositoryConfig: Partial<CaseRepositoryConfig> = {
-    caseTable: repoConfig?.caseTable ?? snConfig.caseTable ?? "sn_customerservice_case",
+    caseTable: repoConfig?.caseTable ?? snConfig.caseTable ?? "x_mobit_serv_case_service_case",
     caseJournalTable: repoConfig?.caseJournalTable ?? "sys_journal_field",
     incidentTable: repoConfig?.incidentTable ?? "incident",
   };
