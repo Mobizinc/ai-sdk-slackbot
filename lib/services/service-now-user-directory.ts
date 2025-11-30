@@ -2,6 +2,7 @@ import type { Case } from "../infrastructure/servicenow/types/domain-models";
 import { getTableApiClient } from "../infrastructure/servicenow/repositories/factory";
 import type { ServiceNowTableAPIClient } from "../infrastructure/servicenow/client/table-api-client";
 import { getSlackMessagingService, type SlackMessagingService } from "./slack-messaging";
+import { extractDisplayValue } from "../infrastructure/servicenow/client/mappers";
 
 interface ServiceNowUserRecord {
   sys_id: string;
@@ -58,7 +59,7 @@ export class ServiceNowUserDirectory {
     }
 
     try {
-      const record = await this.tableClient.fetchById<ServiceNowUserRecord>(
+      const raw = await this.tableClient.fetchById<ServiceNowUserRecord>(
         "sys_user",
         sysId,
         {
@@ -66,7 +67,16 @@ export class ServiceNowUserDirectory {
           sysparm_display_value: "all",
         }
       );
-      if (record) {
+      if (raw) {
+        // Normalize potential display_value objects into strings
+        const record: ServiceNowUserRecord = {
+          sys_id: extractDisplayValue((raw as any).sys_id) || raw.sys_id,
+          name: extractDisplayValue((raw as any).name) || raw.name,
+          user_name: extractDisplayValue((raw as any).user_name) || raw.user_name,
+          email: extractDisplayValue((raw as any).email) || raw.email,
+          u_slack_user_id:
+            extractDisplayValue((raw as any).u_slack_user_id) || raw.u_slack_user_id,
+        };
         this.userCache.set(sysId, record);
         return record;
       }
@@ -82,24 +92,26 @@ export class ServiceNowUserDirectory {
       return user.u_slack_user_id.trim();
     }
 
-    if (!user.email) {
+    const email = user.email ? user.email : extractDisplayValue((user as any).email);
+    if (!email) {
       return null;
     }
 
-    const cached = this.slackIdByEmail.get(user.email.toLowerCase());
+    const normalizedEmail = email.toLowerCase();
+    const cached = this.slackIdByEmail.get(normalizedEmail);
     if (cached) {
       return cached;
     }
 
     try {
-      const lookup = await this.slackMessaging.lookupUserByEmail(user.email);
+      const lookup = await this.slackMessaging.lookupUserByEmail(email);
       const slackId = lookup?.user?.id;
       if (slackId) {
-        this.slackIdByEmail.set(user.email.toLowerCase(), slackId);
+        this.slackIdByEmail.set(normalizedEmail, slackId);
         return slackId;
       }
     } catch (error) {
-      console.warn(`[ServiceNowUserDirectory] Slack lookup failed for ${user.email}`, error);
+      console.warn(`[ServiceNowUserDirectory] Slack lookup failed for ${email}`, error);
     }
 
     return null;

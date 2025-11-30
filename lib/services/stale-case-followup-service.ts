@@ -272,7 +272,12 @@ export class StaleCaseFollowupService {
           {
             role: "system",
             content:
-              "You are a senior engineer performing case audits. Return tight JSON with keys summary (string), reminders (array of actionable bullet strings), questions (array of short owner-facing questions).",
+              "You are a senior engineer performing case audits.\n" +
+              "- Return ONLY compact JSON with keys: summary (string), reminders (string[] of actionable bullets), questions (string[] of short owner-facing questions).\n" +
+              "- Verify if Configuration Items (CIs) are linked; if missing/unclear, call it out in reminders.\n" +
+              "- Assess whether troubleshooting notes are sufficiently detailed for another engineer to pick up. If not, add reminders to capture steps taken, results, artifacts (logs/screenshots), and next probes.\n" +
+              "- If history is thin or missing repro/impact, make sure questions/reminders explicitly ask for that detail.\n" +
+              "- Keep it concise and actionable; avoid fluff.",
           },
           { role: "user", content: prompt },
         ],
@@ -297,6 +302,8 @@ export class StaleCaseFollowupService {
       `State: ${summary.case.state ?? "n/a"}`,
       `Assignment Group: ${summary.case.assignmentGroup ?? "n/a"}`,
       `Assignee: ${summary.case.assignedTo ?? "Unassigned"}`,
+      `Configuration Items: ${summary.case.cmdbCi ?? "n/a"}`,
+      `Business Service: ${summary.case.businessService ?? "n/a"}`,
       `Age days: ${summary.ageDays ?? "n/a"}`,
       `Days since update: ${summary.staleDays}`,
     ].join("\n");
