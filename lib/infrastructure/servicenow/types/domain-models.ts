@@ -508,6 +508,69 @@ export interface SPMSearchCriteria {
 }
 
 /**
+ * Health status value for project status reports
+ * green = On Track, yellow = At Risk, red = Off Track
+ */
+export type HealthStatus = 'green' | 'yellow' | 'red';
+
+/**
+ * Project Status entity (project health reporting)
+ * Represents a status report from the project_status table
+ */
+export interface ProjectStatus {
+  sysId: string;
+  number: string; // PRJSTAT0010761
+  projectSysId: string;
+  projectName: string;
+  projectNumber?: string; // PRJ0002582
+  overallHealth: HealthStatus;
+  scheduleHealth: HealthStatus;
+  costHealth: HealthStatus;
+  scopeHealth: HealthStatus;
+  resourcesHealth: HealthStatus;
+  state: string;
+  phase?: string; // executing, planning, etc.
+  statusDate: Date; // as_on field
+  createdOn: Date;
+  createdBy?: string;
+  url: string;
+}
+
+/**
+ * Project with latest status (combined view)
+ */
+export interface ProjectWithStatus extends SPMProject {
+  latestStatus?: {
+    overallHealth: HealthStatus;
+    scheduleHealth: HealthStatus;
+    costHealth: HealthStatus;
+    scopeHealth: HealthStatus;
+    resourcesHealth: HealthStatus;
+    statusDate: Date;
+    statusNumber: string;
+  };
+}
+
+/**
+ * Criteria for searching project status reports
+ */
+export interface ProjectStatusSearchCriteria {
+  projectSysId?: string;
+  overallHealth?: HealthStatus;
+  scheduleHealth?: HealthStatus;
+  costHealth?: HealthStatus;
+  scopeHealth?: HealthStatus;
+  resourcesHealth?: HealthStatus;
+  statusDateAfter?: Date;
+  statusDateBefore?: Date;
+  latestOnly?: boolean; // Only get latest status per project
+  sortBy?: 'as_on' | 'sys_created_on' | 'overall_health';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
  * Request entity (parent of RITM records)
  * Represents a service catalog request from the sc_request table
  */

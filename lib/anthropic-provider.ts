@@ -91,6 +91,7 @@ export const ANTHROPIC_MODELS = {
   SONNET_45: 'claude-sonnet-4-5',
   SONNET_4: 'claude-sonnet-4',
   OPUS_4: 'claude-opus-4',
+  OPUS_45: 'claude-opus-4-5',
   HAIKU_45: 'claude-haiku-4-5',
 
   // Legacy (for fallback)
@@ -136,6 +137,13 @@ export const MODEL_PRICING = {
     cache_read: 0.30,
   },
   [ANTHROPIC_MODELS.OPUS_4]: {
+    input: 15.00,
+    output: 75.00,
+    cache_write_5m: 18.75,
+    cache_write_1h: 30.00,
+    cache_read: 1.50,
+  },
+  [ANTHROPIC_MODELS.OPUS_45]: {
     input: 15.00,
     output: 75.00,
     cache_write_5m: 18.75,

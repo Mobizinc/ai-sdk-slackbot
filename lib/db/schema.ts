@@ -1277,3 +1277,61 @@ export const workflows = pgTable(
 
 export type Workflow = typeof workflows.$inferSelect;
 export type NewWorkflow = typeof workflows.$inferInsert;
+
+/**
+ * Prompts Table
+ * Centralized storage for all LLM prompts used in the system
+ * Supports versioning, categorization, and variable substitution
+ */
+export const prompts = pgTable(
+  "prompts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull().unique(), // e.g., "system_prompt", "requirement_case_number"
+    type: text("type").notNull(), // 'system', 'requirement', 'workflow', 'context_template', 'custom'
+    content: text("content").notNull(),
+    description: text("description"),
+    variables: jsonb("variables").$type<string[]>().default([]).notNull(), // Variables that can be injected: ["{{companyName}}", "{{date}}"]
+    version: integer("version").notNull().default(1),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: text("created_by"),
+    updatedBy: text("updated_by"),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex("idx_prompts_name").on(table.name),
+    typeIdx: index("idx_prompts_type").on(table.type),
+    isActiveIdx: index("idx_prompts_is_active").on(table.isActive),
+    typeActiveIdx: index("idx_prompts_type_active").on(table.type, table.isActive),
+  })
+);
+
+/**
+ * Prompt Versions Table
+ * Tracks version history for prompt changes with rollback capability
+ */
+export const promptVersions = pgTable(
+  "prompt_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promptId: uuid("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: text("created_by"),
+    changeNotes: text("change_notes"),
+  },
+  (table) => ({
+    promptIdIdx: index("idx_prompt_versions_prompt_id").on(table.promptId),
+    versionIdx: index("idx_prompt_versions_version").on(table.version),
+    promptVersionUnique: uniqueIndex("uq_prompt_version").on(table.promptId, table.version),
+  })
+);
+
+export type Prompt = typeof prompts.$inferSelect;
+export type NewPrompt = typeof prompts.$inferInsert;
+export type PromptVersion = typeof promptVersions.$inferSelect;
+export type NewPromptVersion = typeof promptVersions.$inferInsert;

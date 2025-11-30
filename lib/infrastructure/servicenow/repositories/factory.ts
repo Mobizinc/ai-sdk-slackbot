@@ -16,6 +16,7 @@ import { ServiceNowProblemRepository } from "./problem-repository.impl";
 import { ServiceNowAssignmentGroupRepository } from "./assignment-group-repository.impl";
 import { ChangeRepository } from "./change-repository.impl";
 import { ServiceNowSPMRepository, type SPMRepositoryConfig } from "./spm-repository.impl";
+import { ServiceNowProjectStatusRepository } from "./project-status-repository.impl";
 import { ServiceNowRequestRepository, type RequestRepositoryConfig } from "./request-repository.impl";
 import { ServiceNowRequestedItemRepository, type RequestedItemRepositoryConfig } from "./requested-item-repository.impl";
 import { ServiceNowCatalogTaskRepository, type CatalogTaskRepositoryConfig } from "./catalog-task-repository.impl";
@@ -30,6 +31,7 @@ import type { ChoiceRepository } from "./choice-repository.interface";
 import type { ProblemRepository } from "./problem-repository.interface";
 import type { AssignmentGroupRepository } from "./assignment-group-repository.interface";
 import type { SPMRepository } from "./spm-repository.interface";
+import type { ProjectStatusRepository } from "./project-status-repository.interface";
 import type { RequestRepository } from "./request-repository.interface";
 import type { RequestedItemRepository } from "./requested-item-repository.interface";
 import type { CatalogTaskRepository } from "./catalog-task-repository.interface";
@@ -234,6 +236,7 @@ let problemRepositoryInstance: ProblemRepository | undefined;
 let assignmentGroupRepositoryInstance: AssignmentGroupRepository | undefined;
 let changeRepositoryInstance: ChangeRepository | undefined;
 let spmRepositoryInstance: SPMRepository | undefined;
+let projectStatusRepositoryInstance: ProjectStatusRepository | undefined;
 let requestRepositoryInstance: RequestRepository | undefined;
 let requestedItemRepositoryInstance: RequestedItemRepository | undefined;
 let catalogTaskRepositoryInstance: CatalogTaskRepository | undefined;
@@ -357,6 +360,16 @@ export function getSPMRepository(): SPMRepository {
 }
 
 /**
+ * Get shared ProjectStatusRepository instance
+ */
+export function getProjectStatusRepository(): ProjectStatusRepository {
+  if (!projectStatusRepositoryInstance) {
+    projectStatusRepositoryInstance = new ServiceNowProjectStatusRepository(getHttpClient());
+  }
+  return projectStatusRepositoryInstance;
+}
+
+/**
  * Get shared RequestRepository instance
  */
 export function getRequestRepository(): RequestRepository {
@@ -413,6 +426,7 @@ export function resetRepositories(): void {
   assignmentGroupRepositoryInstance = undefined;
   changeRepositoryInstance = undefined;
   spmRepositoryInstance = undefined;
+  projectStatusRepositoryInstance = undefined;
   requestRepositoryInstance = undefined;
   requestedItemRepositoryInstance = undefined;
   catalogTaskRepositoryInstance = undefined;

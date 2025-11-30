@@ -255,6 +255,37 @@ const SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
     entryPoint: "workflow",
     baseWeight: 1,
   },
+  {
+    id: "spm_agent",
+    name: "SPM Project Agent",
+    description: "Searches and retrieves ServiceNow SPM (Strategic Portfolio Management) projects, portfolios, epics, and stories.",
+    keywords: [
+      "project", "projects", "spm", "portfolio", "pm_project",
+      "on track", "at risk", "off track", "green", "yellow", "red",
+      "project status", "project health", "active projects",
+      "project manager", "project priority", "epic", "story"
+    ],
+    sampleUtterances: [
+      "what projects are green",
+      "show me active projects",
+      "projects on track",
+      "high priority projects",
+      "projects managed by"
+    ],
+    toolNames: [
+      "searchProjects",
+      "searchProjectStatus",
+      "getProject",
+      "updateProject",
+      "createProject",
+      "getProjectEpics",
+      "getProjectStories"
+    ],
+    entryPoint: "tool",
+    costClass: "low",
+    latencyClass: "short",
+    baseWeight: 5,
+  },
 ];
 
 const MAX_SPECIALIST_SHORTLIST = 4;

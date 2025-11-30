@@ -623,6 +623,77 @@ export interface CatalogRedirectStatsResponse {
   clients?: CatalogRedirectClientSummary[]
 }
 
+// Prompts
+export type PromptType = "system" | "requirement" | "workflow" | "context_template" | "custom"
+
+export interface Prompt {
+  id: string
+  name: string
+  type: PromptType
+  content: string
+  description: string | null
+  variables: string[]
+  version: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  createdBy: string | null
+  updatedBy: string | null
+}
+
+export interface PromptVersion {
+  id: string
+  promptId: string
+  version: number
+  content: string
+  createdAt: string
+  createdBy: string | null
+  changeNotes: string | null
+}
+
+export interface PromptCreateInput {
+  name: string
+  type: PromptType
+  content: string
+  description?: string
+  variables?: string[]
+  createdBy?: string
+}
+
+export interface PromptUpdateInput {
+  content?: string
+  description?: string
+  variables?: string[]
+  isActive?: boolean
+  updatedBy?: string
+  changeNotes?: string
+}
+
+export interface PromptStats {
+  total: number
+  active: number
+  byType: Record<string, number>
+  cacheStats: {
+    size: number
+    ttlMs: number
+    entries: Array<{ name: string; ageMs: number; isExpired: boolean }>
+  }
+}
+
+export interface PromptTestResult {
+  original: string
+  substituted: string
+  validation: {
+    allVariables: string[]
+    hasUnsubstituted: boolean
+    unsubstitutedVariables: string[]
+  }
+  characterCount: {
+    original: number
+    substituted: number
+  }
+}
+
 export interface StandupConfig extends JsonObject {
   enabled?: boolean
   channelId?: string
@@ -1028,6 +1099,77 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ ...data, syncToSPM }),
     })
+  }
+
+  // Prompts
+  async getPrompts(params?: {
+    type?: PromptType
+    isActive?: boolean
+    search?: string
+  }): Promise<{ success: boolean; data: Prompt[]; count: number }> {
+    const searchParams = new URLSearchParams()
+    if (params?.type) searchParams.set('type', params.type)
+    if (params?.isActive !== undefined) searchParams.set('isActive', String(params.isActive))
+    if (params?.search) searchParams.set('search', params.search)
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : ''
+    return this.request(`/api/admin/prompts${query}`)
+  }
+
+  async getPrompt(id: string): Promise<{ success: boolean; data: Prompt & { versionCount: number } }> {
+    return this.request(`/api/admin/prompts/${id}`)
+  }
+
+  async createPrompt(data: PromptCreateInput): Promise<{ success: boolean; data: Prompt; message: string }> {
+    return this.request('/api/admin/prompts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updatePrompt(id: string, data: PromptUpdateInput): Promise<{ success: boolean; data: Prompt; message: string }> {
+    return this.request(`/api/admin/prompts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deletePrompt(id: string, hard: boolean = false): Promise<{ success: boolean; message: string }> {
+    const query = hard ? '?hard=true' : ''
+    return this.request(`/api/admin/prompts/${id}${query}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getPromptVersions(id: string): Promise<{ success: boolean; data: PromptVersion[]; count: number }> {
+    return this.request(`/api/admin/prompts/${id}/versions`)
+  }
+
+  async rollbackPrompt(id: string, version: number, updatedBy?: string): Promise<{ success: boolean; data: Prompt; message: string }> {
+    return this.request(`/api/admin/prompts/${id}/versions`, {
+      method: 'POST',
+      body: JSON.stringify({ version, updatedBy }),
+    })
+  }
+
+  async duplicatePrompt(id: string, newName: string, createdBy?: string): Promise<{ success: boolean; data: Prompt; message: string }> {
+    return this.request(`/api/admin/prompts/${id}/duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ newName, createdBy }),
+    })
+  }
+
+  async testPrompt(
+    promptId: string,
+    variables: Record<string, string | number | boolean>
+  ): Promise<{ success: boolean; data: PromptTestResult }> {
+    return this.request('/api/admin/prompts/test', {
+      method: 'POST',
+      body: JSON.stringify({ promptId, variables }),
+    })
+  }
+
+  async getPromptStats(): Promise<{ success: boolean; data: PromptStats }> {
+    return this.request('/api/admin/prompts/stats')
   }
 }
 
