@@ -111,7 +111,13 @@ function applyOverrides(target: ConfigValueMap, overrides: RawOverrides): void {
   const mutableTarget = target as unknown as Record<ConfigKey, unknown>;
   for (const key of CONFIG_KEYS) {
     const definition = CONFIG_DEFINITIONS[key] as ConfigDefinition;
-    const raw = overrides.get(key) ?? (definition.envVar ? process.env[definition.envVar] : undefined);
+    let raw = overrides.get(key) ?? (definition.envVar ? process.env[definition.envVar] : undefined);
+
+    // Keep admin token backward-compatibility when no override/envVar is present
+    if (key === "adminApiToken" && !raw) {
+      raw = process.env.ADMIN_API_TOKEN;
+    }
+
     mutableTarget[key] = parseValue(definition, raw);
   }
 }
