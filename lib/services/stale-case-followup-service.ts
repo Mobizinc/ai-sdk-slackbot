@@ -690,12 +690,7 @@ export class StaleCaseFollowupService {
     return `*Stale cases snapshot*\n${rows.join("\n")}`;
   }
 
-  private truncate(value: string, max: number): string {
-    if (!value || value.length <= max) {
-      return value;
-    }
-    return `${value.slice(0, max - 3)}...`;
-  }
+
 }
 
 export async function getStaleCaseFollowupSummary(): Promise<FollowupRunSummary | null> {

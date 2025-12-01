@@ -14,13 +14,17 @@ function resolveOrigin(request: Request): string {
 }
 
 export function authorizeAdminRequest(request: Request): Response | null {
-  const isDevelopment =
-    !runtimeConfig.vercelEnv || runtimeConfig.vercelEnv === "development";
+  const vercelEnv = process.env.VERCEL_ENV || runtimeConfig.vercelEnv;
+  const isDevelopment = !vercelEnv || vercelEnv === "development";
+  const adminToken =
+    process.env.ADMIN_API_TOKEN ||
+    process.env.NEXT_PUBLIC_ADMIN_TOKEN ||
+    runtimeConfig.adminApiToken;
+
   if (isDevelopment) {
     return null;
   }
 
-  const adminToken = runtimeConfig.adminApiToken;
   if (!adminToken) {
     return new Response(
       "Admin API is disabled in production. Set ADMIN_API_TOKEN to enable.",
