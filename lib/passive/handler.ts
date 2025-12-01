@@ -36,8 +36,12 @@ export async function handlePassiveMessage(
 
   // Process case numbers in the message
   const caseNumbers = extractCaseNumbers(event.text || '');
+  let assistancePosted = false;
   for (const caseNumber of caseNumbers) {
-    await processCaseDetection(event, caseNumber);
+    const posted = await processCaseDetection(event, caseNumber, {
+      allowAssistance: !assistancePosted,
+    });
+    assistancePosted = assistancePosted || posted;
   }
 
   // Process existing threads for resolution and user responses
@@ -67,5 +71,4 @@ export async function cleanupTimedOutGathering(): Promise<void> {
   const kbAction = getTriggerKBWorkflowAction();
   await kbAction.cleanupTimedOut();
 }
-
 

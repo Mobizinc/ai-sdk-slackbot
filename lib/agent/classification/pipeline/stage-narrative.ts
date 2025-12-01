@@ -1,7 +1,7 @@
 import { AnthropicChatService } from "../../../services/anthropic-chat";
 import type { StageContext } from "./context";
 import { buildSharedContext } from "./context";
-import { parseJsonFromText } from "./json";
+import { parseJsonWithSchema } from "./json";
 import { NarrativeStageSchema, type NarrativeStageResult, type StageExecutionResult, type CategorizationStageResult } from "./types";
 
 export async function runNarrativeStage(
@@ -40,8 +40,7 @@ Draw from case context, similar cases, and service offerings. Keep steps actiona
     temperature: 0.2,
   });
 
-  const parsed = parseJsonFromText(response.outputText);
-  const data = NarrativeStageSchema.parse(parsed);
+  const data = parseJsonWithSchema(response.outputText, NarrativeStageSchema, "narrative");
 
   return {
     data,

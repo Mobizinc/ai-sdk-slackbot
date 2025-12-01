@@ -8,11 +8,12 @@ import {
   notifyResolution,
   cleanupTimedOutGathering,
 } from "../lib/passive/handler";
+import { __resetCaseDetectionDebouncer, __resetAssistanceCooldowns } from "../lib/passive/handler-utils";
 import type { GenericMessageEvent } from "../lib/slack-event-types";
 
 // Mock all dependencies
 vi.mock("../lib/utils/case-number-extractor");
-vi.mock("../lib/utils/resolution-detector");
+vi.mock("../lib/passive/detectors/resolution-detector");
 vi.mock("../lib/passive/actions/add-to-context");
 vi.mock("../lib/passive/actions/post-assistance");
 vi.mock("../lib/passive/actions/trigger-kb-workflow");
@@ -52,14 +53,12 @@ describe("Passive Handler", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    __resetCaseDetectionDebouncer();
+    __resetAssistanceCooldowns();
 
     // Setup mocks
-    const caseExtractor = await import(
-      "../lib/passive/detectors/case-number-extractor"
-    );
-    const resolutionDetector = await import(
-      "../lib/passive/detectors/resolution-detector"
-    );
+    const caseExtractor = await import("../lib/utils/case-number-extractor");
+    const resolutionDetector = await import("../lib/passive/detectors/resolution-detector");
     const addToContext = await import("../lib/passive/actions/add-to-context");
     const postAssistance = await import(
       "../lib/passive/actions/post-assistance"
@@ -278,6 +277,62 @@ describe("Passive Handler", () => {
         "INC0005678",
         event
       );
+    });
+
+    it("should only post assistance once per message even with multiple cases", async () => {
+      mockExtractCaseNumbers.mockReturnValue(["SCS0001234", "INC0005678"]);
+      const contextAction = mockGetAddToContextAction();
+      contextAction.getContext.mockReturnValue(
+        createMockContext({ hasPostedAssistance: false })
+      );
+      const postAction = mockGetPostAssistanceAction();
+      postAction.execute.mockResolvedValue(true);
+
+      const event = createMockEvent();
+
+      await handlePassiveMessage(event, "U999999");
+
+      expect(postAction.execute).toHaveBeenCalledTimes(1);
+      expect(contextAction.markAssistancePosted).toHaveBeenCalledTimes(1);
+    });
+
+    it("should skip low-value messages without posting assistance", async () => {
+      mockExtractCaseNumbers.mockReturnValue(["SCS0001234"]);
+      const contextAction = mockGetAddToContextAction();
+      contextAction.getContext.mockReturnValue(
+        createMockContext({ hasPostedAssistance: false })
+      );
+      const postAction = mockGetPostAssistanceAction();
+      const event = createMockEvent({ text: "Thanks SCS0001234" });
+
+      await handlePassiveMessage(event, "U999999");
+
+      expect(postAction.execute).not.toHaveBeenCalled();
+      expect(contextAction.markAssistancePosted).not.toHaveBeenCalled();
+    });
+
+    it("should respect cooldown and avoid repeated assistance in the same thread", async () => {
+      vi.useFakeTimers();
+      mockExtractCaseNumbers.mockReturnValue(["SCS0001234"]);
+      const contextAction = mockGetAddToContextAction();
+      contextAction.getContext.mockReturnValue(
+        createMockContext({ hasPostedAssistance: false })
+      );
+      const postAction = mockGetPostAssistanceAction();
+      postAction.execute.mockResolvedValue(true);
+
+      const event = createMockEvent();
+
+      await handlePassiveMessage(event, "U999999"); // first post
+      await handlePassiveMessage(event, "U999999"); // should be skipped due to cooldown
+
+      expect(postAction.execute).toHaveBeenCalledTimes(1);
+
+      // Advance beyond cooldown and allow another post
+      vi.advanceTimersByTime(13 * 60 * 1000);
+      await handlePassiveMessage(event, "U999999");
+      expect(postAction.execute).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
     });
 
     it("should process thread messages for existing contexts", async () => {

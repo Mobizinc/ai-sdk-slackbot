@@ -314,6 +314,104 @@ expect(mockCmdbRepo.search).toHaveBeenCalledWith(
     });
   });
 
+  describe("Firewall intent heuristics", () => {
+    it("should search firewall classes when the user asks for firewalls without specifying a class", async () => {
+      const firewallCi = {
+        sysId: "fw-1",
+        name: "Altus FortiGate Cluster",
+        className: "cmdb_ci_firewall",
+        ipAddresses: ["10.52.0.4"],
+      };
+
+      mockCmdbRepo.search.mockImplementation(async ({ className }) => {
+        if (className === "cmdb_ci_firewall") {
+          return [firewallCi];
+        }
+        return [];
+      });
+
+      tool = createSearchConfigurationItemsTool({
+        messages: [
+          { role: "user", content: "What firewalls does Altus have?" } as any,
+        ],
+        caseNumbers: [],
+        updateStatus: mockUpdateStatus,
+        options: {},
+      });
+
+      const result = await tool.execute({ companyName: "Altus Community Healthcare" });
+
+      expect(mockCmdbRepo.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          className: "cmdb_ci_firewall",
+          company: "Altus Community Healthcare",
+          limit: 10,
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(result.data?.configurationItems[0]).toMatchObject({
+        sysId: "fw-1",
+        className: "cmdb_ci_firewall",
+        name: "Altus FortiGate Cluster",
+      });
+    });
+
+    it("should prioritize firewall classes even when ciClassName is set to servers", async () => {
+      const firewallCi = {
+        sysId: "fw-2",
+        name: "Altus Palo Alto",
+        className: "cmdb_ci_firewall",
+      };
+      const serverCi = {
+        sysId: "svr-1",
+        name: "ALTUS-APP-01",
+        className: "cmdb_ci_server",
+      };
+
+      mockCmdbRepo.search.mockImplementation(async ({ className, limit }) => {
+        if (className === "cmdb_ci_firewall") {
+          return [firewallCi];
+        }
+        if (className === "cmdb_ci_server") {
+          return Array(Math.min(1, limit ?? 1))
+            .fill(null)
+            .map(() => serverCi);
+        }
+        return [];
+      });
+
+      tool = createSearchConfigurationItemsTool({
+        messages: [
+          { role: "user", content: "List the firewalls for Altus" } as any,
+        ],
+        caseNumbers: [],
+        updateStatus: mockUpdateStatus,
+        options: {},
+      });
+
+      const result = await tool.execute({
+        companyName: "Altus",
+        ciClassName: "cmdb_ci_server",
+        limit: 5,
+      });
+
+      expect(mockCmdbRepo.search.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ className: "cmdb_ci_firewall", limit: 5 })
+      );
+      expect(
+        mockCmdbRepo.search.mock.calls.some(
+          (call) =>
+            call[0]?.className === "cmdb_ci_server" && call[0]?.limit === 4
+        )
+      ).toBe(true);
+      expect(result.success).toBe(true);
+      expect(result.data?.configurationItems[0]).toMatchObject({
+        sysId: "fw-2",
+        className: "cmdb_ci_firewall",
+      });
+    });
+  });
+
   describe("Logging", () => {
     it("should log search activity", async () => {
       const consoleLogSpy = vi.spyOn(console, "log");

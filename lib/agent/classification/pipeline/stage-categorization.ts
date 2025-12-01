@@ -1,7 +1,7 @@
 import { AnthropicChatService } from "../../../services/anthropic-chat";
 import type { StageContext } from "./context";
 import { buildSharedContext } from "./context";
-import { parseJsonFromText } from "./json";
+import { parseJsonWithSchema } from "./json";
 import { CategorizationStageSchema, type CategorizationStageResult, type StageExecutionResult } from "./types";
 
 export async function runCategorizationStage(
@@ -53,8 +53,7 @@ Focus on classification accuracy first. Prefer specific subcategories when possi
     temperature: 0,
   });
 
-  const parsed = parseJsonFromText(response.outputText);
-  const data = CategorizationStageSchema.parse(parsed);
+  const data = parseJsonWithSchema(response.outputText, CategorizationStageSchema, "categorization");
 
   return {
     data,

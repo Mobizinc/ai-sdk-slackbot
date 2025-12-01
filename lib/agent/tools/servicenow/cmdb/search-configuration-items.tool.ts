@@ -15,6 +15,63 @@ import {
   ServiceNowErrorCodes,
 } from "../shared/types";
 import { detectTableFromPrefix } from "../../../../utils/case-number-normalizer";
+import type { CoreMessage } from "../../shared";
+
+const FIREWALL_KEYWORDS = [
+  "firewall",
+  "fortigate",
+  "fortinet",
+  "palo alto",
+  "palo-alto",
+  "paloalto",
+  "panw",
+  "pan-os",
+  "checkpoint",
+  "sonicwall",
+  "asa",
+  "meraki mx",
+];
+
+const FIREWALL_CLASS_CANDIDATES = [
+  "cmdb_ci_firewall",
+  "cmdb_ci_firewall_device",
+  "cmdb_ci_firewall_device_palo_alto",
+  "cmdb_ci_firewall_device_cisco",
+  "cmdb_ci_firewall_cluster",
+  "cmdb_ci_firewall_cluster_fortinet",
+  "cmdb_ci_ip_firewall",
+  "cmdb_ci_netgear",
+];
+
+function normalizeMessageContent(content: CoreMessage["content"] | undefined): string {
+  if (!content) return "";
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((block: any) => (typeof block === "string" ? block : block?.text ?? ""))
+      .join(" ");
+  }
+  if (typeof content === "object" && "text" in content) {
+    return String((content as any).text ?? "");
+  }
+  return "";
+}
+
+function getLatestUserText(messages: CoreMessage[] = []): string {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role === "user") {
+      return normalizeMessageContent(message.content);
+    }
+  }
+  return "";
+}
+
+function inferFirewallIntent(messageText: string): boolean {
+  if (!messageText) return false;
+  const lower = messageText.toLowerCase();
+  return FIREWALL_KEYWORDS.some((keyword) => lower.includes(keyword));
+}
 
 /**
  * Input schema for search_configuration_items tool
@@ -242,27 +299,76 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
 
         updateStatus?.(`is searching configuration items (${criteriaDesc})...`);
 
+        const latestUserText = getLatestUserText(params.messages);
+        const wantsFirewalls = inferFirewallIntent(latestUserText);
+
+        const requestedClassNames: Array<string | undefined> = [];
+
+        // Prioritize firewall classes if the user asked about firewalls (even if the model picked "server")
+        if (wantsFirewalls) {
+          requestedClassNames.push(...FIREWALL_CLASS_CANDIDATES);
+        }
+
+        if (ciClassName) {
+          requestedClassNames.push(ciClassName);
+        }
+
+        const classSearchOrder =
+          Array.from(new Set(requestedClassNames.filter(Boolean))) || [];
+
+        const searchPaths = classSearchOrder.length > 0 ? classSearchOrder : [undefined];
+        console.log(
+          `[search_configuration_items] Class search plan: ${
+            searchPaths.filter(Boolean).join(", ") || "any"
+          }`,
+        );
+
         // Search configuration items via repository
         const cmdbRepo = getCmdbRepository();
-        const results = await cmdbRepo.search({
-          name: ciName,
-          ipAddress,
-          sysId: ciSysId,
-          className: ciClassName,
-          company: companyName,
-          operationalStatus: ciOperationalStatus,
-          location: ciLocation,
-          ownerGroup: ciOwnerGroup,
-          environment: ciEnvironment,
-          limit,
-        });
+        const aggregatedResults: any[] = [];
+        const seenSysIds = new Set<string>();
+
+        for (const classNameToSearch of searchPaths) {
+          if (aggregatedResults.length >= limit) {
+            break;
+          }
+
+          const remainingLimit = Math.max(1, limit - aggregatedResults.length);
+          const searchCriteria = {
+            name: ciName,
+            ipAddress,
+            sysId: ciSysId,
+            className: classNameToSearch,
+            company: companyName,
+            operationalStatus: ciOperationalStatus,
+            location: ciLocation,
+            ownerGroup: ciOwnerGroup,
+            environment: ciEnvironment,
+            limit: remainingLimit,
+          };
+
+          const results = await cmdbRepo.search(searchCriteria);
+          for (const ci of results) {
+            const sysId = ci.sysId || ci.sys_id;
+            if (sysId && seenSysIds.has(sysId)) {
+              continue;
+            }
+            if (sysId) {
+              seenSysIds.add(sysId);
+            }
+            aggregatedResults.push(ci);
+            if (aggregatedResults.length >= limit) {
+              break;
+            }
+          }
+        }
 
         console.log(
-          `[search_configuration_items] Found ${results.length} CIs matching criteria: ${criteriaDesc}`
+          `[search_configuration_items] Found ${aggregatedResults.length} CIs matching criteria: ${criteriaDesc}`
         );
 
         // Convert domain models to API format for formatter
-        const apiFormat = results.map((ci: any) => ({
+        const apiFormat = aggregatedResults.map((ci: any) => ({
           sys_id: ci.sysId,
           name: ci.name,
           sys_class_name: ci.className,
@@ -283,7 +389,7 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
         // Format results for LLM consumption
         const formatted = formatConfigurationItemsForLLM(apiFormat as any);
 
-        if (results.length === 0) {
+        if (aggregatedResults.length === 0) {
           return createSuccessResult({
             configurationItems: [],
             totalFound: 0,
@@ -303,8 +409,8 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
         }
 
         return createSuccessResult({
-          configurationItems: results,
-          totalFound: results.length,
+          configurationItems: aggregatedResults,
+          totalFound: aggregatedResults.length,
           searchCriteria: {
             ciName,
             ipAddress,
@@ -319,8 +425,8 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
           summary: formatted?.summary,
           rawData: formatted?.rawData,
           message:
-            results.length === limit
-              ? `Found ${results.length} CIs (limit reached). If you need more results, increase the limit parameter or refine your search criteria.`
+            aggregatedResults.length === limit
+              ? `Found ${aggregatedResults.length} CIs (limit reached). If you need more results, increase the limit parameter or refine your search criteria.`
               : undefined,
         });
       } catch (error) {

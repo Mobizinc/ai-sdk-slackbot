@@ -1,7 +1,7 @@
 import { AnthropicChatService } from "../../../services/anthropic-chat";
 import type { StageContext } from "./context";
 import { buildSharedContext } from "./context";
-import { parseJsonFromText } from "./json";
+import { parseJsonWithSchema } from "./json";
 import {
   BusinessIntelStageSchema,
   type BusinessIntelStageResult,
@@ -41,8 +41,7 @@ Only flag items when evidence exists. Provide short reasons referencing the cont
     temperature: 0,
   });
 
-  const parsed = parseJsonFromText(response.outputText);
-  const data = BusinessIntelStageSchema.parse(parsed);
+  const data = parseJsonWithSchema(response.outputText, BusinessIntelStageSchema, "business-intel");
 
   return {
     data,

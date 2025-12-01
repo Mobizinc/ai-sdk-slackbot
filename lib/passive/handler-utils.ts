@@ -28,9 +28,15 @@ class CaseDetectionDebouncer {
     setTimeout(() => this.pending.delete(key), this.DEBOUNCE_MS);
     return true;
   }
+
+  reset(): void {
+    this.pending.clear();
+  }
 }
 
 const caseDetectionDebouncer = new CaseDetectionDebouncer();
+const ASSISTANCE_COOLDOWN_MS = 12 * 60 * 1000; // 12 minutes default
+const assistanceCooldowns = new Map<string, number>(); // key: channel:thread
 
 /**
  * Detect if a message is delegating work to another user
@@ -84,26 +90,64 @@ export function shouldSkipMessage(event: GenericMessageEvent, botUserId: string)
   );
 }
 
+function isLowValueMessage(text: string): boolean {
+  const lower = text.toLowerCase();
+  const politeOpeners = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"];
+  const fyiPhrases = ["fyi", "heads up", "for your information"];
+  const thankPhrases = ["thanks", "thank you", "thx", "ty"];
+  const statusPhrases = ["please update", "update these cases", "need update", "any updates", "status update"];
+
+  const hasQuestion = text.includes("?");
+  const isShort = text.trim().split(/\s+/).length <= 4;
+
+  const matchesPolite = politeOpeners.some((p) => lower.startsWith(p));
+  const matchesFyi = fyiPhrases.some((p) => lower.includes(p));
+  const matchesThanks = thankPhrases.some((p) => lower.includes(p));
+  const matchesStatusOnly = statusPhrases.some((p) => lower.includes(p));
+
+  // Treat as low-value if it's only greetings/thanks/fyi/update ask without a question
+  if (hasQuestion) return false;
+  if (matchesThanks || matchesFyi) return true;
+  if (matchesPolite && isShort) return true;
+  if (matchesStatusOnly && !hasQuestion) return true;
+
+  return false;
+}
+
+function isWithinCooldown(channelId: string, threadTs: string): boolean {
+  const key = `${channelId}:${threadTs}`;
+  const last = assistanceCooldowns.get(key);
+  return !!(last && Date.now() - last < ASSISTANCE_COOLDOWN_MS);
+}
+
+function markCooldown(channelId: string, threadTs: string): void {
+  const key = `${channelId}:${threadTs}`;
+  assistanceCooldowns.set(key, Date.now());
+}
+
 export async function processCaseDetection(
   event: GenericMessageEvent,
   caseNumber: string,
-): Promise<void> {
+  options?: { allowAssistance?: boolean },
+): Promise<boolean> {
+  const allowAssistance = options?.allowAssistance !== false;
   const contextAction = getAddToContextAction();
   const postAction = getPostAssistanceAction();
   const threadTs = event.thread_ts || event.ts;
+  const threadKey = `${event.channel}:${threadTs}`;
 
   if (!caseDetectionDebouncer.shouldProcess(caseNumber, threadTs)) {
     console.log(
       `[Passive Handler] Skipping duplicate assistance for ${caseNumber} in thread ${threadTs} (debounced)`,
     );
-    return;
+    return false;
   }
 
   contextAction.addMessageFromEvent(caseNumber, event);
   const context = contextAction.getContext(caseNumber, threadTs);
 
   if (!context || context.hasPostedAssistance) {
-    return;
+    return false;
   }
 
   try {
@@ -115,10 +159,31 @@ export async function processCaseDetection(
     console.warn("[Passive Handler] Could not fetch channel info:", error);
   }
 
-  const posted = await postAction.execute({ event, caseNumber, context });
-  if (posted) {
-    contextAction.markAssistancePosted(caseNumber, threadTs);
+  let posted = false;
+  if (allowAssistance) {
+    if (isWithinCooldown(event.channel, threadTs)) {
+      console.log(
+        `[Passive Handler] Skipping assistance for ${caseNumber} in thread ${threadTs} (cooldown)`,
+      );
+      return false;
+    }
+
+    const messageText = event.text || "";
+    if (isLowValueMessage(messageText)) {
+      console.log(
+        `[Passive Handler] Skipping assistance for ${caseNumber} in thread ${threadTs} (low-value message)`,
+      );
+      return false;
+    }
+
+    posted = await postAction.execute({ event, caseNumber, context });
+    if (posted) {
+      contextAction.markAssistancePosted(caseNumber, threadTs);
+      markCooldown(event.channel, threadTs);
+    }
   }
+
+  return posted;
 }
 
 export async function processExistingThread(event: GenericMessageEvent): Promise<void> {
@@ -149,4 +214,14 @@ export async function processExistingThread(event: GenericMessageEvent): Promise
       contextAction.resetResolutionFlag(context.caseNumber, context.threadTs);
     }
   }
+}
+
+// Test helper
+export function __resetCaseDetectionDebouncer(): void {
+  caseDetectionDebouncer.reset();
+}
+
+// Test helper
+export function __resetAssistanceCooldowns(): void {
+  assistanceCooldowns.clear();
 }
