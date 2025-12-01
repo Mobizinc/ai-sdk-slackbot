@@ -34,6 +34,15 @@
     },
     "api/cron/stale-case-followup.ts": {
       "maxDuration": 120
+    },
+    "api/cron/expire-clarification-sessions.ts": {
+      "maxDuration": 60
+    },
+    "api/cron/monitor-stuck-cases.ts": {
+      "maxDuration": 60
+    },
+    "api/servicenow-worknote-webhook.ts": {
+      "maxDuration": 180
     }
   },
   "crons": [
@@ -68,6 +77,14 @@
     {
       "path": "/api/cron/stale-case-followup",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/expire-clarification-sessions",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/monitor-stuck-cases",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

@@ -27,6 +27,9 @@ import type { CaseClassificationResult } from "../schemas/servicenow-webhook";
 import type { NewCaseEscalation } from "../db/schema";
 import { getCaseRepository } from "../infrastructure/servicenow/repositories";
 import type { Case } from "../infrastructure/servicenow/types/domain-models";
+import { validateCaseQuality } from "./case-quality-gate";
+import { serviceNowClient } from "../tools/servicenow";
+import type { ServiceNowContext } from "../infrastructure/servicenow/repositories";
 
 export interface EscalationContext {
   caseNumber: string;
@@ -44,6 +47,7 @@ export interface EscalationContext {
   assignmentGroup?: string;
   companyName?: string;
   contactName?: string;
+  snContext?: ServiceNowContext;
 }
 
 export interface EscalationDecision {
@@ -74,6 +78,52 @@ export class EscalationService {
     }
 
     console.log(`[Escalation Service] Evaluating escalation for ${context.caseNumber}`);
+
+    // Step 0: Check if quality gate blocks escalation
+    if (context.caseData) {
+      const webhookData = {
+        case_number: context.caseNumber,
+        sys_id: context.caseSysId,
+        short_description: context.caseData.short_description,
+        description: context.caseData.description,
+        priority: context.caseData.priority,
+        urgency: context.caseData.urgency,
+        state: context.caseData.state,
+        category: context.classification.category,
+        subcategory: context.classification.subcategory,
+        assignment_group: context.assignmentGroup,
+        caller_id: context.assignedTo,
+        company: context.companyName,
+        account_id: context.companyName,
+      } as any;
+
+      const qualityGate = await validateCaseQuality(webhookData);
+      
+      if (qualityGate.shouldBlock) {
+        console.log(`[Escalation Service] Blocked by quality gate for ${context.caseNumber}`);
+        
+        // Add quality gate block note to case
+        const blockNote = `
+🚫 ESCALATION BLOCKED BY QUALITY GATE
+
+Escalation cannot proceed until quality gate requirements are satisfied.
+
+Blocked Issues:
+${qualityGate.missingInfo.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+
+Required Actions:
+${qualityGate.recommendations.map((rec, i) => `• ${rec}`).join('\n')}
+
+Quality gate must be cleared before escalation can proceed.
+        `.trim();
+
+        await serviceNowClient.addCaseWorkNote(context.caseSysId, blockNote, true, context.snContext);
+        
+        return false;
+      } else if (!qualityGate.passed) {
+        console.warn(`[Escalation Service] Quality gate warnings for ${context.caseNumber}:`, qualityGate.missingInfo);
+      }
+    }
 
     // Step 1: Decide if escalation is needed (rule-based)
     const resolvedCompanyName = await resolveCompanyName(context);

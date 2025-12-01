@@ -63,6 +63,13 @@ export interface CaseTriageOptions {
    * Max retry attempts for classification
    */
   maxRetries?: number;
+
+  /**
+   * Skip quality gate validation
+   * Used when resuming case processing after clarification is completed
+   * Prevents infinite loops in the quality gate → clarification → resume flow
+   */
+  skipQualityGate?: boolean;
 }
 
 export interface CaseTriageResult {
@@ -80,6 +87,9 @@ export interface CaseTriageResult {
   cmdbReconciliation?: any; // TODO: Import proper type from cmdb-reconciliation
   cached: boolean;
   cacheReason?: string;
+  // Quality gate fields
+  blocked?: boolean;
+  qualityGate?: any; // QualityGateResult type
   // ITSM record type fields
   incidentCreated: boolean;
   incidentNumber?: string;

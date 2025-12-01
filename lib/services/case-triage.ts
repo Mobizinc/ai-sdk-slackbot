@@ -48,6 +48,11 @@ import type { ClassificationConfig } from "./case-triage/constants";
 import { createTriageSystemContext } from "./case-triage/context";
 import { runClassificationAgent } from "../agent/classification";
 import type { DiscoveryContextPack } from "../agent/discovery/context-pack";
+import { validateCaseQuality, generateQualityGateSummary } from "./case-quality-gate";
+import { validateClassificationResult, generateValidationSummary } from "./classification-validator";
+import { serviceNowClient } from "../tools/servicenow";
+import { getQualityGateRepository } from "../db/repositories/quality-gate-repository";
+import { getQualityAuditService } from "./quality-audit-service";
 import { reviewServiceNowArtifact } from "../supervisor";
 import { getClientScopePolicyService } from "./client-scope-policy-service";
 import { evaluateScopeAgainstPolicy } from "./client-scope-evaluator";
@@ -183,6 +188,114 @@ export class CaseTriageService {
       }
     }
 
+    // Pre-classification quality gate (skip if resuming from clarification)
+    const qualityGateRepo = getQualityGateRepository();
+    const qualityAuditService = getQualityAuditService();
+
+    if (options.skipQualityGate) {
+      console.log(`[Case Triage] Skipping quality gate for ${webhook.case_number} (resume from clarification)`);
+    }
+
+    const qualityGate = options.skipQualityGate ? { passed: true, shouldBlock: false } as any : await validateCaseQuality(webhook);
+    if (!qualityGate.passed) {
+      if (qualityGate.shouldBlock) {
+        console.log(`[Case Triage] ${generateQualityGateSummary(qualityGate)} for ${webhook.case_number}`);
+        
+        // Add quality gate work note and block further processing
+        const clarificationQuestions = qualityGate.clarifyingQuestions || [];
+        const recommendations = qualityGate.recommendations || [];
+        const workNote = `
+🔍 QUALITY GATE - Processing Blocked
+
+${generateQualityGateSummary(qualityGate)}
+
+Required Clarifications:
+${clarificationQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}
+
+Recommendations:
+${recommendations.map((rec: string) => `• ${rec}`).join('\n')}
+
+Please address these items before proceeding with incident creation.
+        `.trim();
+
+        await serviceNowClient.addCaseWorkNote(webhook.sys_id, workNote, true);
+
+        // Create quality gate record
+        const qualityGateRecord = await qualityGateRepo.create({
+          caseNumber: webhook.case_number,
+          caseSysId: webhook.sys_id,
+          gateType: 'CLASSIFICATION',
+          status: 'BLOCKED',
+          decision: qualityGate.decision,
+          blocked: true,
+          riskLevel: qualityGate.riskLevel,
+          clarificationsRequired: qualityGate.clarificationsRequired,
+          autoApproved: qualityGate.autoApproved,
+          reviewerId: 'system',
+          reviewReason: qualityGate.missingInfo?.join('; ') || '',
+          reviewMetadata: qualityGate,
+          reviewedAt: null,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expires in 24 hours
+        });
+
+        // Create audit record
+        await qualityAuditService.logQualityGateDecision(
+          qualityGateRecord.id,
+          qualityGate.decision,
+          qualityGate.blocked,
+          qualityGate.riskLevel,
+          qualityGate.reason,
+          'system'
+        );
+
+        // Return early with blocked status as ClassificationStageResult
+        const processingTime = Date.now() - startTime;
+        return {
+          core: {
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            workflowId: 'blocked',
+            classification: null as any,
+            similarCases: [],
+            kbArticles: [],
+            processingTimeMs: processingTime,
+            cached: false,
+          },
+          metadata: {
+            webhook,
+            workflowDecision: { workflowId: 'blocked', ruleMatched: false },
+            inboundId: null,
+            snContext: snContext as Record<string, unknown>,
+            workNoteContent: workNote,
+            rawClassificationResult: null,
+            fullConfig,
+            startTime,
+            classificationTimeMs: 0,
+            sideEffectsAlreadyApplied: true,
+          },
+          completedResult: {
+            caseNumber: webhook.case_number,
+            caseSysId: webhook.sys_id,
+            workflowId: 'blocked',
+            classification: null as any,
+            similarCases: [],
+            kbArticles: [],
+            servicenowUpdated: true,
+            processingTimeMs: processingTime,
+            entitiesDiscovered: 0,
+            cached: false,
+            blocked: true,
+            qualityGate,
+            incidentCreated: false,
+            problemCreated: false,
+            catalogRedirected: false,
+          },
+        };
+      }
+    } else {
+      console.warn(`[Case Triage] ${generateQualityGateSummary(qualityGate)} for ${webhook.case_number}`);
+    }
+
     const enrichment = await enrichClassificationContext(
       webhook,
       this.categorySyncService,
@@ -257,6 +370,37 @@ export class CaseTriageService {
       throw new Error(
         `Classification failed after ${fullConfig.maxRetries} attempts: ${lastError?.message}`
       );
+    }
+
+    // Post-classification validation
+    const validationResult = await validateClassificationResult(classificationResult, webhook);
+    if (!validationResult.approved) {
+      console.error(`[Case Triage] ${generateValidationSummary(validationResult)} for ${webhook.case_number}`);
+      
+      if (validationResult.requiresEscalation) {
+        const validationWorkNote = `
+🚨 CLASSIFICATION VALIDATION FAILED
+
+${generateValidationSummary(validationResult)}
+
+Errors:
+${validationResult.errors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
+
+Warnings:
+${validationResult.warnings.map((w, i) => `${i + 1}. ${w}`).join('\n')}
+
+Recommendations:
+${validationResult.recommendations.map((r, i) => `• ${r}`).join('\n')}
+
+Human review required before proceeding.
+        `.trim();
+
+        await serviceNowClient.addCaseWorkNote(webhook.sys_id, validationWorkNote, true, snContext);
+        
+        if (validationResult.errors.length > 0) {
+          throw new Error(`Classification validation failed: ${validationResult.reason}`);
+        }
+      }
     }
 
     const classificationTime = Date.now() - classificationStart;

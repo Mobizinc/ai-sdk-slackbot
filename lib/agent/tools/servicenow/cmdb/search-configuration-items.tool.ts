@@ -349,7 +349,7 @@ export function createSearchConfigurationItemsTool(params: AgentToolFactoryParam
 
           const results = await cmdbRepo.search(searchCriteria);
           for (const ci of results) {
-            const sysId = ci.sysId || ci.sys_id;
+            const sysId = ci.sysId;
             if (sysId && seenSysIds.has(sysId)) {
               continue;
             }

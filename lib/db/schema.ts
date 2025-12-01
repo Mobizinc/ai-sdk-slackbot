@@ -1335,3 +1335,6 @@ export type Prompt = typeof prompts.$inferSelect;
 export type NewPrompt = typeof prompts.$inferInsert;
 export type PromptVersion = typeof promptVersions.$inferSelect;
 export type NewPromptVersion = typeof promptVersions.$inferInsert;
+
+// Quality Gate Schema Exports (for drizzle-kit migrations)
+export * from "./quality-gate-schema";

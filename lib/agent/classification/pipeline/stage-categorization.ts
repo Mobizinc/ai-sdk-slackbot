@@ -53,7 +53,23 @@ Focus on classification accuracy first. Prefer specific subcategories when possi
     temperature: 0,
   });
 
-  const data = parseJsonWithSchema(response.outputText, CategorizationStageSchema, "categorization");
+  const rawData = parseJsonWithSchema(response.outputText, CategorizationStageSchema, "categorization");
+
+  const data = {
+    ...rawData,
+    keywords: rawData.keywords || [],
+    technical_entities: rawData.technical_entities ? {
+      ip_addresses: rawData.technical_entities.ip_addresses || [],
+      systems: rawData.technical_entities.systems || [],
+      users: rawData.technical_entities.users || [],
+      software: rawData.technical_entities.software || [],
+      error_codes: rawData.technical_entities.error_codes || []
+    } : undefined,
+    record_type_suggestion: rawData.record_type_suggestion ? {
+      ...rawData.record_type_suggestion,
+      is_major_incident: rawData.record_type_suggestion.is_major_incident ?? false
+    } : undefined
+  };
 
   return {
     data,
